@@ -1,0 +1,69 @@
+build
+makefile.dep
+doc/html
+doc/latex
+*.o
+*.hi
+doc/hs
+*.legacy
+*.bin
+*.iso
+*.map
+*.elf
+
+# Coq
+makefile.autocoq
+*.aux
+*.v.d
+*.vo
+*.glob
+*.crashcoqide
+\#*\#
+*.vio
+
+# Misc
+*.json
+*.tar
+*.pcap
+
+# Ignore documentation
+*.html
+*.htm
+*.css
+doc/UserGuide/UserGuide.lol
+doc/c-doc/
+
+# Mac OSX-related files
+.DS_Store
+
+# Toolchain configuration
+toolchain.mk
+
+# Internal.h is regenerated with each compilation
+Internal.h
+
+# Latex
+*.aux
+*.glo
+*.idx
+*.log
+*.toc
+*.ist
+*.acn
+*.acr
+*.alg
+*.bbl
+*.blg
+*.dvi
+*.glg
+*.gls
+*.ilg
+*.ind
+*.lof
+*.lot
+*.maf
+*.mtc
+*.mtc1
+*.out
+*.synctex.gz
+*.pdf
