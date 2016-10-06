@@ -99,7 +99,7 @@ CFLAGS+=-I$(TARGET_DIR)/
 all: kernel proofs doc 
 
 kernel: gitinfo $(TARGET_DIR) linker makefile.dep extract $(COBJ) $(AOBJ)
-	$(LD) $(LDFLAGS) $(AOBJ) $(COBJ) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $(TARGET_DIR)/meso.bin
+	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $(TARGET_DIR)/meso.bin
 
 gitinfo:
 	printf "#ifndef __GIT__\n#define __GIT__\n#define GIT_REVISION \"`git rev-parse HEAD`\"\n#endif" > $(SRC_DIR)/boot/$(TARGET)/include/git.h
