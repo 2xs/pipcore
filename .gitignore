@@ -37,7 +37,7 @@ doc/c-doc/
 .DS_Store
 
 # Toolchain configuration
-toolchain.mk
+src/partitions/*/toolchain.mk
 
 # Internal.h is regenerated with each compilation
 Internal.h
