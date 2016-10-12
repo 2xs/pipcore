@@ -72,7 +72,7 @@ int printf(const char *format, ...);
 
 
 #ifndef LOGLEVEL
-#define LOGLEVEL DEBUG_HARD
+#define LOGLEVEL TRACE + 1
 #endif
 
 /**
@@ -83,7 +83,7 @@ int printf(const char *format, ...);
 /**
  * \brief Defines the appropriate DEBUG behavior.
  */
-#define DEBUG(l,a,...) if(l <= LOGLEVEL){printf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define DEBUG(l,a,...) if(l <= LOGLEVEL){printf(#l " [%s:%d] \n\r" a, __FILE__, __LINE__, ##__VA_ARGS__);}
 /* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
 
 /**
