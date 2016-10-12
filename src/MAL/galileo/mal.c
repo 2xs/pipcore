@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include "mal.h"
 #include "structures.h"
-
+#include "debug.h"
 
 static uint32_t current_partition; /* Current partition's CR3 */
 static uint32_t root_partition; /* Multiplexer's partition descriptor */
@@ -45,11 +45,15 @@ static uint32_t root_partition; /* Multiplexer's partition descriptor */
  */
 void enable_paging()
 {
-	uint32_t cr0;
-	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	
+	uint32_t cr0,prcr0;
+    asm volatile("mov %%cr0, %0": "=r"(cr0));
+    prcr0 = cr0;
+	// Disable paging bit
 	cr0 |= 0x80000000;
-	asm volatile("mov %0, %%cr0":: "r"(cr0));
+
+   	asm volatile("mov %0, %%cr0":: "r"(cr0));
+
+
 }
 
 /*!     \fn void disable_paging()
@@ -61,7 +65,7 @@ void disable_paging()
 	// Get CR0 value
 	uint32_t cr0;
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	
+
 	// Disable paging bit
 	cr0 &= 0x7FFFFFFF;
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
@@ -78,14 +82,14 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 {
 	/* Disable paging */
 	disable_paging();
-	
+
 	/* Get the destination address */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	*(uint32_t*)dest = val;
-	
+
 	/* Enable paging */
 	enable_paging();
-	
+
 	return;
 }
 
@@ -100,19 +104,19 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 {
 	/* We're in kernel : we can disable paging */
 	disable_paging();
-	
+
 	/* We're page-aligned : zero the flags */
 	uint32_t mask = 0xFFFFF000;
-	
+
 	/* Binary OR with the table's address, page-aligned, and the offset */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Now we got a fresh, cool, nice pointer, return its value */
 	uint32_t val = *(uint32_t*)dest;
-	
+
 	/* Re-enable paging */
 	enable_paging();
-	
+
 	return val & 0xFFFFF000;
 }
 
@@ -164,13 +168,13 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
 {
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Get value */
 	uint32_t val = *(uint32_t*)dest;
-	
+
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
-	
+
 	/* Now return the accessible flag */
 	return entry->user;
 }
@@ -186,13 +190,13 @@ void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 {
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)dest;
-	
+
 	/* Write the flag */
 	entry->user = value;
-	
+
 	/* Return so we avoid the warning */
 	return;
 }
@@ -217,8 +221,8 @@ updateCurPartition (uint32_t descriptor)
 }
 
 /*! \fn uint32_t getRootPartition()
- \brief get the root partition 
-	\return the root partition 
+ \brief get the root partition
+	\return the root partition
  */
 uint32_t getRootPartition(void)
 {
@@ -246,13 +250,13 @@ uint32_t readPresent(uint32_t table, uint32_t index)
 {
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Get value */
 	uint32_t val = *(uint32_t*)dest;
-	
+
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
-	
+
 	/* Now return the present flag */
 	return entry->present;
 }
@@ -268,13 +272,13 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
 {
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)dest;
-	
+
 	/* Write the flag */
 	entry->present = value;
-	
+
 	/* Return so we avoid the warning */
 	return;
 }
@@ -297,7 +301,7 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 		*(uint32_t*)dest = curAddr | 0x00000001;
 	else
 		*(uint32_t*)dest = curAddr;
-	
+
 	return;
 }
 
@@ -312,7 +316,7 @@ uint32_t readPDflag(uint32_t table, uint32_t index)
 {
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	uint32_t curval = *(uint32_t*)dest;
-	
+
 	return (curval & 0x00000001);
 }
 
@@ -320,16 +324,16 @@ uint32_t readPhysical(uint32_t table, uint32_t index)
 {
 	/* We're in kernel : we can disable paging */
 	disable_paging();
-	
+
 	/* Binary OR with the table's address, page-aligned, and the offset */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Now we got a fresh, cool, nice pointer, return its value */
 	uint32_t val = *(uint32_t*)dest;
-	
+
 	/* Re-enable paging */
 	enable_paging();
-	
+
 	return val;
 }
 
@@ -338,18 +342,18 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
 {
 	/* Disable paging */
 	disable_paging();
-	
+
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr & ~0xfff;
-	
+
 	/* Get the destination address */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	*(uint32_t*)dest = (*(uint32_t*)dest&0xfff)|val;
-	
+
 	/* Enable paging */
 	enable_paging();
-	
+
 	return;
 }
 
@@ -379,15 +383,15 @@ void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr)
 {
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr & 0xFFFFF000;
-	
+
 	/* Get the destination address */
 	uint32_t dest = table | (index * sizeof(uint32_t));
-	
+
 	/* Store this, leaving the current flags unchanged */
 	uint32_t curFlags = *(uint32_t*)dest & 0x00000FFF;
-	
+
 	*(uint32_t*)dest = val | curFlags;
-	
+
 	return;
 }
 
@@ -402,10 +406,10 @@ uint32_t readTableVirtual(uint32_t table, uint32_t index)
 {
 	/* Binary OR with the table's address, page-aligned, and the offset */
 	uint32_t dest = table | ((uint32_t)index * sizeof(uint32_t));
-	
+
 	/* Now we got a fresh, cool, nice pointer, return its value */
 	uint32_t val = (uint32_t)*(uint32_t*)dest;
-	
+
 	return val & 0xFFFFF000;
 }
 
@@ -422,11 +426,11 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 	// Read has to be 1 (only user/kernel in x86)
 	if(read==0)
 		return 0;
-	
+
 	// No XD bit on i386
 	if(execute==0)
 		return 0;
-	
+
 	// Well the complier will complain about a unused parameter thing so...
 	if(write==0 || write == 1)
 		return 1;

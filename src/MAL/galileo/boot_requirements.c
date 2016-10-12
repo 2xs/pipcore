@@ -48,14 +48,17 @@
  */
 void activate(uintptr_t dir)
 {
-	// Set CR3 to the address of our Page Directory
+
+    uint32_t cr4;
+
+    // Set CR3 to the address of our Page Directory
 	page_directory_t* d = (page_directory_t*)dir;
-	asm volatile("mov %0, %%cr3"
+    asm volatile("mov %0, %%cr3"
 				 :
 				 : "r"(&(d->tablesPhysical)));
-	
-	// Switch on paging
-	enable_paging();
+
+    // Switch on paging
+    enable_paging();
 }
 
 /*!
@@ -81,10 +84,10 @@ uintptr_t readTableVirtualNoFlags(uintptr_t table, uint32_t index)
 {
 	/* Binary OR with the table's address, page-aligned, and the offset */
 	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
+
 	/* Now we got a fresh, cool, nice pointer, return its value */
 	uintptr_t val = (uintptr_t)*(uint32_t*)dest;
-	
+
 	return val;
 }
 
@@ -92,12 +95,12 @@ void writeTableVirtualNoFlags(uintptr_t table, uint32_t index, uintptr_t addr)
 {
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr;
-	
+
 	/* Get the destination address */
 	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
+
 	*(uint32_t*)dest = val;
-	
+
 	return;
 }
 
@@ -113,7 +116,7 @@ uint32_t derivated(uintptr_t table, uint32_t index)
 	uintptr_t dest = (uintptr_t)(table + ((uintptr_t)index * sizeof(uint32_t)));
 	uint32_t curval = *(uint32_t*)dest;
 	uintptr_t curAddr = (uintptr_t)curval & 0xFFFFF000;
-	
+
 	return !(curAddr == 0x00000000);
 }
 
@@ -126,7 +129,7 @@ uint32_t derivated(uintptr_t table, uint32_t index)
 void cleanPageEntry(uintptr_t table, uint32_t index){
 	uintptr_t dest = table + (uintptr_t)(index * sizeof(uint32_t));
 	*(uintptr_t*)dest = 0x00000000;
-	
+
 	return;
 }
 
@@ -141,16 +144,16 @@ uint32_t readIndex(uintptr_t table, uint32_t index)
 {
 	/* We're in kernel : we can disable paging */
 	disable_paging();
-	
+
 	/* Binary OR with the table's address, page-aligned, and the offset */
 	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
+
 	/* Now we got a fresh, cool, nice pointer, return its value */
 	uint32_t val = *(uint32_t*)dest;
-	
+
 	/* Re-enable paging */
 	enable_paging();
-	
+
 	return val;
 }
 
@@ -165,18 +168,18 @@ void writeIndex(uintptr_t table, uint32_t index, uint32_t addr)
 {
 	/* Disable paging */
 	disable_paging();
-	
+
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr;
-	
+
 	/* Get the destination address */
 	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
+
 	*(uint32_t*)dest = val /* | curFlags */;
-	
+
 	/* Enable paging */
 	enable_paging();
-	
+
 	return;
 }
 
@@ -220,14 +223,14 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t wr
 	uint32_t checkright = checkRights(read, write, execute);
 	if(checkright == 0)
 		return 0;
-	
+
 	// Find the entry
 	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
 	page_table_entry_t* entry = (page_table_entry_t*)dest;
-	
+
 	// Change the RW bit
 	entry->rw = write;
-	
+
 	return 1;
 }
 
