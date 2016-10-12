@@ -70,6 +70,7 @@ start:
 	cli
 	mov esp, _sys_stack
 	push ebx
+    push 0x1BADB002
 	call c_main
 	jmp $
 
