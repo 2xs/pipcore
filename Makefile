@@ -187,7 +187,7 @@ coq-disable-simulation:
 	       -e 's/^\( *\)(\* *END *SIMULATION *\*) *$$/\1   END SIMULATION *)/'           \
 	    $(VSOURCES)
 
-doc: doc-c doc-coq userguide doc/README.html doc/PipInternals.html
+doc: doc-c doc-coq userguide doc/Readme.html doc/PipInternals.html
 
 doc-c:
 	cd doc && doxygen doxygen.conf
