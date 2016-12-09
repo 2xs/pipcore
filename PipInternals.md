@@ -1,24 +1,28 @@
+#PipInternals
+
 Pip enables the user to create a collection of memory partitions, with a
 hierarchical organisation where a parent partition can manage the memory
 of its child partitions.
 
 ## Memory management :
 ### The description of all primitives
-Pip exports 7 primitives related to memory management :
+Pip exports 7 primitives related to memory management:
 
-* createPartition : creates a new child partition, given five free pages (which will become Partition Descriptor, Page Directory, Shadow 1, 2 and linked list)
-* deletePartition : deletes the given child partition
-* addVaddr : maps a page from the current partition into the given child partition
-* removeVaddr : gets back a page from a child partition
-* prepare : prepares a child partition for page map, given the required amount of pages (see pageCount)
-* collect : retrieves the empty indirection tables, and gives them back to the caller
-* pageCount : returns the amount of pages required to perform a prepare operation
+* `createPartition`: creates a new child partition, given five free pages (which will become Partition Descriptor, Page Directory, Shadow 1, 2 and linked list)
+* `deletePartition`: deletes the given child partition
+* `addVaddr`: maps a page from the current partition into the given child partition
+* `removeVaddr`: gets back a page from a child partition
+* `prepare`: prepares a child partition for page map, given the required amount of pages (see pageCount)
+* `collect`: retrieves the empty indirection tables, and gives them back to the caller
+* `pageCount`: returns the amount of pages required to perform a prepare operation
+
+Pip also exports the primitives `dispatch` and `resume` that are discussed below and are related to control flow.
 
 ### Data structure 
 In order to control, allow or decline memory operations, Pip uses several data structures to keep track of derivations.
 
 #### Partition descriptor
-The partition descriptor is the first empty page given to createPartition. It contains the following elements, stored into it as a list :
+The partition descriptor is the first empty page given to createPartition. It contains the following elements, stored into it as a list:
 
 * VAddr in parent partition and PAddr of Partition Descriptor
 * VAddr in parent partition and PAddr of Page Directory
