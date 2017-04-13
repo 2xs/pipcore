@@ -90,7 +90,7 @@ Definition gtb (a b : index) : LLI bool := ret (b <? a).
 Definition eqb (a b : index) : LLI bool := ret (a =? b). 
 Program Definition zero : LLI index:= ret (Build_index 0 _).
 Next Obligation.
-assert (tableSize > 10).
+assert (tableSize > 14).
 apply tableSizeBigEnough.
 omega.
 Qed.

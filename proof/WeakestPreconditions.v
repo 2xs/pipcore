@@ -521,6 +521,65 @@ eapply bind .
   - eapply weaken.
    eapply get . intuition.
 Qed.
+   Lemma writePDflag  table idx  (flag: bool)  (P : unit -> state -> Prop) :
+{{fun  s => exists v , lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+P tt {|
+         currentPartition := currentPartition s;
+         memory := add table idx (VE {| pd := flag; va := va v |}) 
+                     (memory s) beqPage beqIndex |} }} writePDflag table idx flag {{P}}.
+Proof.
+unfold writePDflag.
+eapply bindRev.
++
+eapply weaken.
+eapply get.
+simpl.
+intros.
+instantiate(1:= fun s s0 =>
+              s=s0 /\ exists v : Ventry,
+              lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+              P tt
+                {|
+                currentPartition := currentPartition s;
+                memory := add table idx (VE {| pd := flag; va := va v |}) 
+                            (memory s) beqPage beqIndex |}).
+simpl.
+intuition.
++
+intros s.
+simpl.
+case_eq (lookup table idx s.(memory) beqPage beqIndex).
+- intros v Hentry.
+
+  case_eq v; [| intros;
+ simpl;
+ eapply weaken;
+try eapply modify ;
+intros; simpl;
+destruct H0 as  (Hs &ve & Htrue & Hp);
+inversion Htrue;subst;
+assumption | | |];
+  
+    intros;
+    eapply weaken;
+    try eapply undefined ;simpl;
+    intros;simpl in *;
+    intuition;
+    subst;
+    destruct H2 as (v &Hv & Hp);
+    inversion Hv;
+    intros.
+ - intros;
+    eapply weaken;
+    try eapply undefined ;simpl;
+    intros;simpl in *;
+    intuition;
+    subst;
+    destruct H2 as (v &Hv & Hp);
+    inversion Hv;
+    intros.
+    Qed.
+    
 Lemma readAccessible  table idx (P : bool -> state -> Prop) : 
 {{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
              P entry.(user) s }} MAL.readAccessible table idx {{P}}.

@@ -185,7 +185,7 @@ writeAccessibleRec timout1 vaInAncestor ancestor flag
 else ret false
 end. *)
 
-Fixpoint writeAccessibleRec timout (va : vaddr) (descParent : page) (flag : bool):=
+Fixpoint writeAccessibleRecAux timout (va : vaddr) (descParent : page) (flag : bool):=
 match timout with 
 | 0 => ret false
 | S timout1 =>   
@@ -219,9 +219,11 @@ perform pdAncestor := getPd ancestor in
     perform idx := getIndexOfAddr vaInAncestor fstLevel in
     writeAccessible pt idx flag ;;
 (** recursion **)
-writeAccessibleRec timout1 vaInAncestor ancestor flag 
+writeAccessibleRecAux timout1 vaInAncestor ancestor flag 
 end.
 
+Definition writeAccessibleRec (va : vaddr) (descParent : page) (flag : bool):=
+writeAccessibleRecAux (nbPage+1) va descParent flag.
 (** The [checkDerivation] tests if the given entry (table+idx) contains a 
     derivation *)
 Definition checkDerivation table idx : LLI bool :=
@@ -431,7 +433,7 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
         setUnderived va currentSh1 l1 ;;
         setAccessible va currentPD l1 true;;
         perform currentPart := getCurPartition in 
-        writeAccessibleRec nbPage va currentPart true;;
+        writeAccessibleRec  va currentPart true;;
         (**  Recursive call, using va as our new link head *)
         putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1
   end.
@@ -451,7 +453,7 @@ Fixpoint putShadowsBackAux timeout (phyRefPart : page) (pos : index) (currentPD 
     setUnderived va currentSh1 l1;;
     setAccessible va currentPD l1 true;;
     perform currentPart := getCurPartition in 
-    writeAccessibleRec nbPage va currentPart true;;
+    writeAccessibleRec  va currentPart true;;
     perform zero := MALInternal.Index.zero in
     (* storeVirtual va zero buf ;; *)
     perform idxSh3 := getSh3idx in
@@ -673,7 +675,7 @@ Fixpoint initVEntryTableAux timeout shadow1 idx :=
 
 (**  The [initVEntryTable] function fixes the timeout value of [initVEntryTableAux] *)
 Definition initVEntryTable  shadow1 idx  :=
-  initVEntryTableAux N  shadow1 idx .
+  initVEntryTableAux tableSize  shadow1 idx .
 
 (** The [initVAddrTable] function initializes virtual addresses [vaddr] of a 
     given table [shadow2] by default value (defaultVAddr) *)
@@ -695,14 +697,14 @@ Fixpoint initVAddrTableAux timeout shadow2 idx :=
 
 (**  The [initVEntryTable] function fixes the timeout value of [initVEntryTableAux] *)
 Definition initVAddrTable sh2 n :=
-  initVAddrTableAux N sh2 n.
+  initVAddrTableAux tableSize sh2 n.
 
 (** The [initPEntryTableAux] function initialize physical entries [PEntry] of 
     a given table [ind] by default value (defaultPage for [pa] and false for 
     other flags *) 
 Fixpoint initPEntryTableAux timeout  table idx :=
   match timeout with
-  |0 =>  ret false
+  |0 =>  ret tt
   | S timeout1 => perform maxindex := getMaxIndex in
     perform res := MALInternal.Index.ltb idx maxindex in
     if (res)
@@ -711,7 +713,7 @@ Fixpoint initPEntryTableAux timeout  table idx :=
       perform nextIdx :=  MALInternal.Index.succ idx in
       initPEntryTableAux timeout1 table nextIdx
     else  perform defaultPage := getDefaultPage in
-      writePhyEntry table idx defaultPage false false false false false ;;ret true
+      writePhyEntry table idx defaultPage false false false false false 
   end.
 
 (** The [initPEntryTable] function fixes the timeout value of [initPEntryTableAux] *)
@@ -788,6 +790,18 @@ Fixpoint checkVAddrsEqualityWOOffsetAux timeout (va1 va2 : vaddr) (l1 : level) :
 Definition checkVAddrsEqualityWOOffset (va1 va2 : vaddr) (l1 : level) :=
   checkVAddrsEqualityWOOffsetAux nbLevel va1 va2 l1.
 
+Definition initFstShadow table nbL zero := 
+perform res := MALInternal.Level.eqb nbL fstLevel in 
+if res
+then 
+initVEntryTable table zero
+else 
+initPEntryTable table zero. 
 
-
-
+Definition initSndShadow table nbL zero := 
+perform res := MALInternal.Level.eqb nbL fstLevel in 
+if res
+then 
+initVAddrTable table zero
+else 
+initPEntryTable table zero. 

@@ -688,32 +688,63 @@ presentRefChild = true  /\ presentPDChild = true  /\
               presentConfigPagesList = true /\ presentSh1 = true /\ presentSh2 = true
                -> 
 {{ fun s : state =>
-   (((propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
-      descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild ptSh1Child shadow1
-      idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList idxConfigPagesList
-      presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1
-      derivedPDChild ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child childListSh1
-      derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
-      phyDescChild s   /\ pzero = CIndex 0) /\
-     (forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)) /\
-    (forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)) /\
-   (forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage) /\ 
+  (((propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
+        descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild ptSh1Child shadow1
+        idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList idxConfigPagesList
+        presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1
+        derivedPDChild ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child childListSh1
+        derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
+        phyDescChild s /\((((forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+         (forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phySh1Child (getAccessibleMappedPages partition s))) /\
+        (forall partition : page,
+         In partition (getAncestors currentPart s) ->
+         ~ In phySh2Child (getAccessibleMappedPages partition s))) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyDescChild (getAccessibleMappedPages partition s))) /\ pzero = CIndex 0) /\ isWellFormedSndShadow level phySh2Child s) /\
+    isWellFormedFstShadow level phySh1Child s) /\
+   (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false)  /\ 
    (curidx = (CIndex 0) \/ Nat.Odd curidx)
     }} 
 
   Internal.initConfigPagesList phyConfigPagesList curidx 
   
   {{ fun _ s  =>
-   (((propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
-      descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild ptSh1Child shadow1
-      idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList idxConfigPagesList
-      presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1
-      derivedPDChild ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child childListSh1
-      derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
-      phyDescChild s   /\ pzero = CIndex 0) /\
-     (forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)) /\
-    (forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)) /\
-   (forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage) }}.
+  (((propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
+        descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild ptSh1Child shadow1
+        idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList idxConfigPagesList
+        presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1
+        derivedPDChild ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child childListSh1
+        derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
+        phyDescChild s /\ ((((forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+         (forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phySh1Child (getAccessibleMappedPages partition s))) /\
+        (forall partition : page,
+         In partition (getAncestors currentPart s) ->
+         ~ In phySh2Child (getAccessibleMappedPages partition s))) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyDescChild (getAccessibleMappedPages partition s))) /\pzero = CIndex 0) /\ isWellFormedSndShadow level phySh2Child s) /\
+    isWellFormedFstShadow level phySh1Child s) /\
+   (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false)  
+   }}.
 Proof.
 unfold initConfigPagesList.
 intros Hlegit.
@@ -788,23 +819,29 @@ induction n.  simpl.
     intuition.
     unfold propagatedProperties in *.
     intuition.
-    split.
-    intuition.
-    split.
-    intros.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+   unfold propagatedProperties in *.  
+   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
+   
+    split. intuition.
+(*     split.
+    intros. *)
+         assert(Hprop : phyConfigPagesList <> phySh2Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -818,27 +855,14 @@ induction n.  simpl.
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst.
-    assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
     assumption. }
-    split.
-    intros. 
-    
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+    assert(Hprop2 : phyConfigPagesList <> phySh1Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -852,20 +876,10 @@ induction n.  simpl.
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst.
-    assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
     assumption. }
-    intros.
-        assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
-    clear H0.
+    assert(Hprop3 : phyConfigPagesList <> phyPDChild).
+    { destruct H.
+    clear H0.   
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
@@ -884,13 +898,29 @@ induction n.  simpl.
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst.
-    assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
     assumption. }
-}
-(** the first entry *) 
+    split.
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
+    intuition.
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    assert (Htable : (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false))
+    by intuition.
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
+    symmetry.
+    apply readPhyEntryUpdateMappedPageData; trivial.
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial. }
+    
+    (** the first entry *) 
 case_eq eqbZero;intros HfstEntry.
   { (** MALInternal.Index.succ **) 
    eapply bindRev.
@@ -904,7 +934,7 @@ case_eq eqbZero;intros HfstEntry.
    pattern s in H.
    eassumption.
    repeat rewrite and_assoc in H.
-   destruct H as (Hpp & _  & _ & _ &_ & _ & Hzero & Hmax & 
+   destruct H as (Hpp & _  & _ & _ &_ & _ &  _  & _ & _ &_ & _ &  Hzero & Hmax & 
                   Hnoteqmax & Heqbzero).  
    unfold StateLib.Index.eqb in Hnoteqmax.
    symmetry in Hnoteqmax.
@@ -934,23 +964,28 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     unfold propagatedProperties in *.
     intuition.
+   unfold propagatedProperties in *.  
+   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
+
     split.
  intuition.
-    split.
-    intros.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+          assert(Hprop : phyConfigPagesList <> phySh2Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -965,25 +1000,14 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
-    split.
-    intros. 
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+    }
+    assert(Hprop2 : phyConfigPagesList <> phySh1Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -998,20 +1022,22 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
+     }
+    
     split.
-    intros.
-        assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
+    intuition.
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    split.
+        assert (Htable : (forall idx : index,
+     StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
-    clear H0.
+        assert(Hprop3 : phyConfigPagesList <> phyPDChild).
+    { destruct H.
+    clear H0.   
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
@@ -1031,10 +1057,18 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
+    }
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
+    symmetry.
+    apply readPhyEntryUpdateMappedPageData; trivial.
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial.    
+    intros.
     intuition.
    intros [].
 (** recursion **)
@@ -1056,7 +1090,8 @@ case_eq eqbZero;intros HfstEntry.
    
    intuition.
    split. intuition.
-   destruct H as (Hpp & _  & _ & _ &_ &  _ & Hzero & Hmax & 
+   
+   destruct H as (Hpp & _  & _ & _ &_ &  _ &_  & _ & _ &_ &  _ & Hzero & Hmax & 
                   Hnoteqmax & Heqbzero & Hidxsucc).
    (** Nat.Odd idxsucc**)
    { right.
@@ -1091,24 +1126,28 @@ case_eq eqbZero;intros HfstEntry.
     unfold propagatedProperties in *. 
     intuition.
     unfold propagatedProperties in *.
-    intuition. 
+    intuition.
+   unfold propagatedProperties in *.  
+   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
     split.
    intuition.
-    split.
-    intros.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+            assert(Hprop : phyConfigPagesList <> phySh2Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -1123,26 +1162,14 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
-    split.
-    intros. 
-    
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+    }
+    assert(Hprop2 : phyConfigPagesList <> phySh1Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -1157,20 +1184,10 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
-    split.
-    intros.
-        assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
-    clear H0.
+    }
+    assert(Hprop3 : phyConfigPagesList <> phyPDChild).
+    { destruct H.
+    clear H0.   
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
@@ -1190,10 +1207,28 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
+     }
+    split.
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
     intuition.
-    subst.
-    assumption. }
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    split. 
+    assert (Htable : (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false))
+    by intuition.
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
+    symmetry.
+    apply readPhyEntryUpdateMappedPageData; trivial.
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial.
     intuition.
    intros [].
  (** MALInternal.Index.succ **) 
@@ -1208,7 +1243,7 @@ case_eq eqbZero;intros HfstEntry.
    pattern s in H.
    eassumption.
    repeat rewrite and_assoc in H.
-   destruct H as (Hpp & _  & _ & _  & _ & _ & Hzero & Hmax & 
+   destruct H as (Hpp & _  & _ & _  & _ & _ & _  & _ & _  & _ & _ & Hzero & Hmax & 
                   Hnoteqmax & Heqbzero & Hnullv).  
    unfold StateLib.Index.eqb in Hnoteqmax.
    symmetry in Hnoteqmax.
@@ -1232,7 +1267,7 @@ case_eq eqbZero;intros HfstEntry.
    pattern s in H.
    eassumption.   
    repeat rewrite and_assoc in H.
-      destruct H as (Hpp & _  & _ & _ &_ & Hor & Hzero & Hmax & 
+      destruct H as (Hpp & _  & _ & _ &_ & _  & _ & _ &_ & _ & Hor & Hzero & Hmax & 
                   Hnoteqmax & Heqbzero & Hnullv & Hidxsucc). 
 
    assert(Hoddcuridx : Nat.Odd curidx).
@@ -1289,24 +1324,30 @@ case_eq eqbZero;intros HfstEntry.
     unfold propagatedProperties in *. 
     intuition.
     unfold propagatedProperties in *.
+    
     intuition.
+   unfold propagatedProperties in *.  
+   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
+    
     split.
     intuition.
-    split.
-    intros.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+             assert(Hprop : phyConfigPagesList <> phySh2Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -1321,26 +1362,14 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
-    split.
-    intros. 
-    
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
+     }
+    assert(Hprop2 : phyConfigPagesList <> phySh1Child). 
+    { destruct H.
     clear H0.
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
     intros Hfalse.
-    clear IHn.
     intuition.
     symmetry in Hfalse.
     contradict Hfalse.
@@ -1355,20 +1384,10 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst.
-    assumption. }
-    split.
-    intros.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
-    symmetry.
-    apply readPhyEntryUpdateMappedPageData; trivial. 
-    destruct H.
-    clear H0.
+     }
+    assert(Hprop3 : phyConfigPagesList <> phyPDChild).
+    { destruct H.
+    clear H0.   
     unfold propagatedProperties in *.
     unfold consistency in *.
     unfold not.
@@ -1388,10 +1407,29 @@ case_eq eqbZero;intros HfstEntry.
     intuition.
     subst.
     assumption.
-    repeat rewrite andb_true_iff in Hlegit.
+    
+    }
+    split.
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
     intuition.
-    subst.
-    assumption. }
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    split. 
+    assert (Htable : (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false))
+    by intuition.
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
+    symmetry.
+    apply readPhyEntryUpdateMappedPageData; trivial.
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial.
     intuition.
    intros [].
 (** Recursion **)

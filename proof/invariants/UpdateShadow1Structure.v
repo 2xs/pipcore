@@ -37,14 +37,14 @@
 
 Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware  Model.MAL 
-DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties.
+DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateMappedPageContent.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
 
 Lemma getPdAddDerivation partition (descChild : vaddr) 
-table idx (s : state) entry :
+table idx (s : state) entry flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 StateLib.getPd partition
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.getPd partition (memory s).
 Proof.
 simpl.
@@ -67,10 +67,10 @@ case_eq (beqPairs (table, idx) (partition, i) beqPage beqIndex);trivial;intros H
 Qed.
 
 Lemma getFstShadowAddDerivation partition (descChild : vaddr) 
-table idx (s : state) entry :
+table idx (s : state) entry flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 getFstShadow partition
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 getFstShadow partition (memory s).
 Proof.
 simpl.
@@ -93,10 +93,10 @@ case_eq (beqPairs (table, idx) (partition, i) beqPage beqIndex);trivial;intros H
 Qed.
 
 Lemma getSndShadowAddDerivation child (descChild : vaddr) 
-table idx (s : state) entry :
+table idx (s : state) entry flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getSndShadow child
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 getSndShadow child (memory s).
 Proof.
 intros Hentry.
@@ -118,10 +118,10 @@ case_eq (beqPairs (table, idx) (child, i) beqPage beqIndex);trivial;intros Hpair
 Qed.
 
 Lemma getParentAddDerivation partition (descChild : vaddr) 
-table idx (s : state) entry :
+table idx (s : state) entry flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 StateLib.getParent partition
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.getParent partition (memory s).
 Proof.
 simpl.
@@ -144,10 +144,10 @@ case_eq (beqPairs (table, idx) (partition, i) beqPage beqIndex);trivial;intros H
 Qed.
 
 Lemma getConfigTablesLinkedListAddDerivation child (descChild : vaddr) 
-table idx (s : state) entry :
+table idx (s : state) entry flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getConfigTablesLinkedList child
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 getConfigTablesLinkedList child (memory s).
 Proof.
 intros Hentry.
@@ -168,11 +168,11 @@ case_eq (beqPairs (table, idx) (child, i) beqPage beqIndex);trivial;intros Hpair
      rewrite Hmemory. reflexivity.
 Qed.
 
-Lemma getIndirectionAddDerivation sh1 table idx descChild s entry va nbL stop:
+Lemma getIndirectionAddDerivation sh1 table idx descChild s entry va nbL stop flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 getIndirection sh1 va nbL stop
   {|  currentPartition := currentPartition s;
-      memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+      memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getIndirection sh1 va nbL stop s .
 Proof.
 intros Hentry.
@@ -181,7 +181,7 @@ induction  stop.
 + simpl. trivial.
 + simpl. intros. 
   destruct (StateLib.Level.eqb nbL fstLevel);trivial.
-  set (entry0 := (VE {| pd := false; va := descChild |})  ) in *.
+  set (entry0 := (VE {| pd := flag; va := descChild |})  ) in *.
   simpl.
   assert ( StateLib.readPhyEntry sh1 (StateLib.getIndexOfAddr va nbL)
                   (add table idx entry0 (memory s) beqPage beqIndex) = 
@@ -310,10 +310,10 @@ rewrite HpartRef.
 rewrite IHl; trivial.
 Qed.  
 Lemma readPresentAddDerivation (descChild : vaddr) 
-table idx (s : state)  p idx2  entry: 
+table idx (s : state)  p idx2  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
  StateLib.readPresent p idx2
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
      StateLib.readPresent p idx2 (memory s).
 Proof.
 intros Hentry.
@@ -331,10 +331,10 @@ assert(Hmemory : lookup p idx2 (removeDup table idx (memory s) beqPage beqIndex)
 Qed.
 
 Lemma readAccessibleAddDerivation (descChild : vaddr) 
-table idx (s : state)  p idx2  entry: 
+table idx (s : state)  p idx2  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
  StateLib.readAccessible p idx2
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
      StateLib.readAccessible p idx2 (memory s).
 Proof.
 intros Hentry.
@@ -352,10 +352,10 @@ assert(Hmemory : lookup p idx2 (removeDup table idx (memory s) beqPage beqIndex)
 Qed.
 
 Lemma readPhyEntryAddDerivation (descChild : vaddr) 
-table idx (s : state)  p idx2  entry: 
+table idx (s : state)  p idx2  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 StateLib.readPhyEntry p idx2
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.readPhyEntry p idx2 (memory s).
 Proof.
 intros Hentry.
@@ -373,10 +373,10 @@ rewrite Hmemory; reflexivity.
 Qed.
 
 Lemma readPhysicalAddDerivation (descChild : vaddr) 
-table idx (s : state)  p idx2  entry: 
+table idx (s : state)  p idx2  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 StateLib.readPhysical p idx2
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.readPhysical p idx2 (memory s).
 Proof.
 intros Hentry.
@@ -394,10 +394,10 @@ rewrite Hmemory; reflexivity.
 Qed.
 
 Lemma readVirtualAddDerivation (descChild : vaddr) 
-table idx (s : state)  p idx2  entry: 
+table idx (s : state)  p idx2  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 StateLib.readVirtual p idx2
-  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.readVirtual p idx2 (memory s).
 Proof.
 intros Hentry.
@@ -436,12 +436,12 @@ rewrite Hmemory; reflexivity.
 Qed.
 
 Lemma  getMappedPageAddDerivation (descChild : vaddr) 
-table idx (s : state)  va pd entry: 
+table idx (s : state)  va pd entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getMappedPage pd
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} va =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} va =
 getMappedPage pd s va.
 Proof.
 intros Hentry.
@@ -451,14 +451,14 @@ cbn.
 assert(Hind : getIndirection pd va l (nbLevel - 1)
     {|
     currentPartition := currentPartition s;
-    memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+    memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
     getIndirection pd va l (nbLevel - 1) s).
 apply getIndirectionAddDerivation with entry; trivial.
 rewrite Hind.  
 destruct(getIndirection pd va l (nbLevel - 1) s); intros; trivial.
 destruct(defaultPage =? p);trivial.
  assert(Hpresent :   StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
      StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s)).
 apply readPresentAddDerivation with entry; trivial.
 rewrite Hpresent.
@@ -468,12 +468,12 @@ apply readPhyEntryAddDerivation with entry; trivial .
 Qed.
 
 Lemma getMappedPagesAuxAddDerivation (descChild : vaddr) 
-table idx (s : state)  listVa pd entry: 
+table idx (s : state)  listVa pd entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getMappedPagesAux pd listVa
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) 
+  memory := add table idx (VE {| pd := flag; va := descChild |}) 
               (memory s) beqPage beqIndex |} =
 getMappedPagesAux pd listVa s.
 Proof.
@@ -490,12 +490,12 @@ apply getMappedPageAddDerivation with entry; trivial.
 Qed.
 
 Lemma getMappedPagesAddDerivation child (descChild : vaddr) 
-table idx (s : state)  entry: 
+table idx (s : state)  entry flag: 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getMappedPages child
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getMappedPages child s.
 Proof.
 intros Hentry.
@@ -504,7 +504,7 @@ assert(Hpd :  StateLib.getPd child
     (memory
        {|
        currentPartition := currentPartition s;
-       memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}) =
+       memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}) =
        StateLib.getPd child (memory s)).
 apply getPdAddDerivation with entry; trivial.
 rewrite Hpd.
@@ -594,18 +594,18 @@ unfold getPartitions.
 apply getPartitionAuxAddDerivation with entry;trivial.
 Qed.
 
-Lemma getTablePagesAddDerivation   (descChild : vaddr) table idx entry size p (s : state):
+Lemma getTablePagesAddDerivation   (descChild : vaddr) table idx entry size p (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getTablePages p size
  {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}=
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}=
 getTablePages p size s.
 Proof.
 revert p .
 set (s' :=   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}).
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}).
 induction size;
 intros;  trivial.
 simpl.
@@ -628,12 +628,12 @@ case_eq(beqPairs (table, idx) (p, CIndex size) beqPage beqIndex);intros Hpairs.
   reflexivity.
 Qed.
 
-Lemma getIndirectionsAddDerivation  (descChild : vaddr) table idx entry pd (s : state):
+Lemma getIndirectionsAddDerivation  (descChild : vaddr) table idx entry pd (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->  
 getIndirections pd
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getIndirections pd s.
 Proof.
 intros Hentry.
@@ -644,7 +644,7 @@ simpl. trivial. simpl.
 intros. f_equal.
     assert (getTablePages pd tableSize   {|
      currentPartition := currentPartition s;
-     memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} = getTablePages pd tableSize s) as Htablepages.
+     memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} = getTablePages pd tableSize s) as Htablepages.
 apply getTablePagesAddDerivation with entry ;trivial.
 rewrite Htablepages.
 clear Htablepages.
@@ -655,83 +655,84 @@ f_equal.
 apply IHl.
 Qed.
 
-Lemma getConfigTablesLinkedListsAddDerivation sh3  (descChild : vaddr) table idx entry (s : state):
+Lemma getConfigTablesLinkedListsAddDerivation sh3  (descChild : vaddr) table idx entry
+ (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getTrdShadows sh3
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} nbPage =
-getTrdShadows sh3 s nbPage.
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} (nbPage+1) =
+getTrdShadows sh3 s (nbPage+1).
 Proof.
 revert sh3.
-induction nbPage;trivial.
+induction (nbPage+1);trivial.
 intros. simpl.
  set (s' :=   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} ) in *.
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} ) in *.
 destruct (StateLib.getMaxIndex);trivial.
-assert(HreadPhyEnt :  StateLib.readPhyEntry sh3 i
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) = 
-    StateLib.readPhyEntry sh3 i (memory s) ).
-apply readPhyEntryAddDerivation with entry;trivial.
+assert(HreadPhyEnt :  StateLib.readPhysical sh3 i
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) = 
+    StateLib.readPhysical sh3 i (memory s) ).
+apply readPhysicalAddDerivation with entry;trivial.
 rewrite HreadPhyEnt.
-destruct (StateLib.readPhyEntry sh3 i (memory s));trivial.
+destruct (StateLib.readPhysical sh3 i (memory s));trivial.
 destruct (p =? defaultPage) ;trivial.
 f_equal.
 apply IHn; trivial.
 Qed. 
 
-Lemma getConfigPagesAuxAddDerivation child (descChild : vaddr) table idx entry (s : state):
+Lemma getConfigPagesAuxAddDerivation child (descChild : vaddr) table idx entry (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getConfigPagesAux child
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getConfigPagesAux child s.
 Proof.
 intros Hentry.
 unfold getConfigPagesAux.
 cbn.
 
-assert (StateLib.getPd child  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getPd child (memory s) ) as HgetPd.
+assert (StateLib.getPd child  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getPd child (memory s) ) as HgetPd.
 apply getPdAddDerivation with entry ;trivial.
 unfold getConfigPagesAux in *.
 rewrite HgetPd.
 destruct (StateLib.getPd child (memory s)) as [ pd|] ;trivial.
-assert (StateLib.getFstShadow child  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getFstShadow child (memory s)) as Hsh1.
+assert (StateLib.getFstShadow child  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getFstShadow child (memory s)) as Hsh1.
 apply getFstShadowAddDerivation with entry ;trivial.
 rewrite Hsh1.
 destruct  (StateLib.getFstShadow child (memory s))as [ sh1|]  ;trivial.
-assert (StateLib.getSndShadow child  (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getSndShadow child (memory s)) as Hsh2.
+assert (StateLib.getSndShadow child  (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) = StateLib.getSndShadow child (memory s)) as Hsh2.
 apply getSndShadowAddDerivation with entry ;trivial.
 rewrite Hsh2.
 destruct  (StateLib.getSndShadow child (memory s))as [ sh2|]  ;trivial.
-assert (StateLib.getConfigTablesLinkedList child   (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex)= StateLib.getConfigTablesLinkedList child (memory s)) as Hsh3.
+assert (StateLib.getConfigTablesLinkedList child   (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex)= StateLib.getConfigTablesLinkedList child (memory s)) as Hsh3.
 apply getConfigTablesLinkedListAddDerivation with entry; trivial.
 rewrite Hsh3.
 destruct  (StateLib.getConfigTablesLinkedList child (memory s)) as [ sh3|] ;trivial.
 assert (getIndirections pd   {|
      currentPartition := currentPartition s;
-     memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}  = getIndirections pd s) as Hind.
+     memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}  = getIndirections pd s) as Hind.
 apply getIndirectionsAddDerivation with entry ; trivial.
 rewrite Hind; clear Hind.
 assert (forall sh1, getIndirections sh1  {|
         currentPartition := currentPartition s;
-        memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} = getIndirections sh1 s) as Hind.
+        memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} = getIndirections sh1 s) as Hind.
 intros. 
 apply getIndirectionsAddDerivation with entry; trivial.
 rewrite Hind.
 rewrite Hind.
-do 7 f_equal.
+do 3 f_equal.
 apply getConfigTablesLinkedListsAddDerivation with entry; trivial.
 Qed.
 
-Lemma getConfigPagesAddDerivation child (descChild : vaddr) table idx entry (s : state):
+Lemma getConfigPagesAddDerivation child (descChild : vaddr) table idx entry (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getConfigPages child
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getConfigPages child s.
 Proof.
 intros Hentry.
@@ -739,12 +740,12 @@ unfold getConfigPages; f_equal.
 apply getConfigPagesAuxAddDerivation with entry; trivial.
 Qed.
 
-Lemma getUsedPagesAddDerivation child (descChild : vaddr) table idx entry (s : state):
+Lemma getUsedPagesAddDerivation child (descChild : vaddr) table idx entry (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getUsedPages child
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getUsedPages child s.
 Proof.
 intros Hentry.
@@ -794,18 +795,19 @@ rewrite Husedpages.
 rewrite Husedpages.
 apply H1 with parent; trivial.
 Qed.
-Lemma getAccessibleMappedPageAddDerivation pd (descChild : vaddr) table idx entry va (s : state):
+Lemma getAccessibleMappedPageAddDerivation pd (descChild : vaddr) table idx entry va (s : state)
+flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getAccessibleMappedPage pd
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} va =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} va =
 getAccessibleMappedPage pd s va.
 Proof.
 intros Hentry.
 set(s' :=  {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} ).
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} ).
   
 unfold getAccessibleMappedPage.
 destruct( StateLib.getNbLevel ); intros; trivial.
@@ -813,7 +815,7 @@ cbn.
 assert(Hind : getIndirection pd va l (nbLevel - 1)
     {|
     currentPartition := currentPartition s;
-    memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+    memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
     getIndirection pd va l (nbLevel - 1) s).
 apply getIndirectionAddDerivation with entry; trivial.
 unfold s'.
@@ -821,14 +823,14 @@ rewrite Hind.
 destruct(getIndirection pd va l (nbLevel - 1) s); intros; trivial.
 destruct(defaultPage =? p);trivial.
  assert(Hpresent :   StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
      StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s)).
 apply readPresentAddDerivation with entry; trivial.
 rewrite Hpresent.
 destruct(StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s) ); trivial.
 destruct b; trivial.
 assert( Hacc : StateLib.readAccessible p (StateLib.getIndexOfAddr va fstLevel)
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) = 
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) = 
     StateLib.readAccessible p (StateLib.getIndexOfAddr va fstLevel) (memory s) ).
 apply readAccessibleAddDerivation with entry;trivial.
 rewrite Hacc.
@@ -837,12 +839,13 @@ destruct b; trivial.
 apply readPhyEntryAddDerivation with entry; trivial .
 Qed.
 
-Lemma getAccessibleMappedPagesAuxAddDerivation  (descChild : vaddr) table idx entry pd (s : state):
+Lemma getAccessibleMappedPagesAuxAddDerivation  (descChild : vaddr) table idx entry pd (s : state)
+flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getAccessibleMappedPagesAux pd getAllVAddr
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getAccessibleMappedPagesAux pd getAllVAddr s.
 Proof.
 unfold getAccessibleMappedPagesAux.
@@ -854,24 +857,25 @@ induction getAllVAddr; simpl; trivial.
 intros.
 set(s' :=  {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} ).
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} ).
 f_equal.
 apply getAccessibleMappedPageAddDerivation with entry;trivial.
 apply IHl.
 Qed.
 
-Lemma getAccessibleMappedPagesAddDerivation partition (descChild : vaddr) table idx entry (s : state):
+Lemma getAccessibleMappedPagesAddDerivation partition (descChild : vaddr) table idx entry
+ (s : state) flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getAccessibleMappedPages partition
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} =
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |} =
 getAccessibleMappedPages partition s.
 Proof.
 intros Hentry.
 unfold getAccessibleMappedPages.
 assert(HgetPd : StateLib.getPd partition
-    (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+    (add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex) =
 StateLib.getPd partition (memory s) ).
 apply getPdAddDerivation with entry; trivial.
 simpl.
@@ -964,12 +968,12 @@ rewrite Hmapped;clear Hmapped.
 apply H1;trivial.
 Qed.
 
-Lemma isVAAddDerivation idx partition table descChild entry idxroot s:
+Lemma isVAAddDerivation idx partition table descChild entry idxroot s flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 isVA partition idxroot s -> 
 isVA partition idxroot
   {| currentPartition := currentPartition s;
-     memory := add table idx (VE {| pd := false; va := descChild |}) 
+     memory := add table idx (VE {| pd := flag; va := descChild |}) 
      (memory s) beqPage beqIndex |}.
 Proof.
 intros Hentry.
@@ -987,12 +991,12 @@ case_eq (beqPairs (table, idx) (partition, idxroot) beqPage beqIndex);trivial;in
      rewrite Hmemory. trivial.
 Qed.
 
-Lemma isPEAddDerivation idx partition table descChild entry idxroot s:
+Lemma isPEAddDerivation idx partition table descChild entry idxroot s flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 isPE partition idxroot s -> 
 isPE partition idxroot
   {| currentPartition := currentPartition s;
-     memory := add table idx (VE {| pd := false; va := descChild |}) 
+     memory := add table idx (VE {| pd := flag; va := descChild |}) 
      (memory s) beqPage beqIndex |}.
 Proof.
 intros Hentry.
@@ -1010,12 +1014,12 @@ case_eq (beqPairs (table, idx) (partition, idxroot) beqPage beqIndex);trivial;in
      rewrite Hmemory. trivial.
 Qed.
 
-Lemma isVEAddDerivation idx partition table descChild entry idxroot s:
+Lemma isVEAddDerivation idx partition table descChild entry idxroot s flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 isVE partition idxroot s -> 
 isVE partition idxroot
   {| currentPartition := currentPartition s;
-     memory := add table idx (VE {| pd := false; va := descChild |}) 
+     memory := add table idx (VE {| pd := flag; va := descChild |}) 
      (memory s) beqPage beqIndex |}.
 Proof.
 intros Hentry.
@@ -1029,13 +1033,13 @@ apply beqPairsFalse in Hpairs.
      rewrite Hmemory. trivial.
 Qed.
 
-Lemma nextEntryIsPPAddDerivation idx partition table descChild entry idxroot PPentry s:
+Lemma nextEntryIsPPAddDerivation idx partition table descChild entry idxroot PPentry s flag:
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) ->
 nextEntryIsPP partition idxroot PPentry s <-> 
 nextEntryIsPP partition idxroot PPentry
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}.
 Proof.
 split;intros Hentry;
 unfold nextEntryIsPP in *;
@@ -1124,7 +1128,7 @@ assert (Hind : getIndirection entry0 va level stop s = Some indirection).
 clear H3.
 assert(Hdss :indirection = defaultPage \/
       (stop < level /\ isPE indirection idx0 s \/
-       stop = level /\
+       stop >= level /\
        (isVE indirection idx0 s /\ idxroot = sh1idx \/
         isVA indirection idx0 s /\ idxroot = sh2idx \/ isPE indirection idx0 s /\ idxroot = PDidx)) /\
       indirection <> defaultPage).
@@ -1365,13 +1369,13 @@ rewrite H4.
 apply H with partition pd page;trivial.
 Qed.
 
-Lemma getVirtualAddressSh2AddDerivation sh2 s descChild table idx va entry:
+Lemma getVirtualAddressSh2AddDerivation sh2 s descChild table idx va entry flag:
   lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 getVirtualAddressSh2 sh2 s va =
 getVirtualAddressSh2 sh2
     {|
     currentPartition := currentPartition s;
-    memory := add table idx (VE {| pd := false; va := descChild |}) 
+    memory := add table idx (VE {| pd := flag; va := descChild |}) 
     (memory s) beqPage beqIndex |} va.
 Proof.
 intros.
@@ -1380,7 +1384,8 @@ case_eq(StateLib.getNbLevel);trivial.
 intros nbL HnbL.
 symmetry in HnbL. 
 simpl.
-rewrite  getIndirectionAddDerivation with sh2 table idx descChild s entry va  nbL (nbLevel -1);
+rewrite  getIndirectionAddDerivation with 
+sh2 table idx descChild s entry va  nbL (nbLevel -1) flag;
 trivial.
 case_eq( getIndirection sh2 va nbL (nbLevel - 1) s);trivial.
 intros lastIndirection Hind.
@@ -1390,42 +1395,42 @@ symmetry.
 apply readVirtualAddDerivation with entry;trivial.
 Qed.
 
-Lemma isAccessibleMappedPageInParentAddDerivattion partition (* nbL *) entry va
+Lemma isAccessibleMappedPageInParentAddDerivattion partition (* nbL *) entry va flag
  accessiblePage table idx descChild s:
   lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 isAccessibleMappedPageInParent partition va accessiblePage s =
 isAccessibleMappedPageInParent partition va accessiblePage
   {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+  memory := add table idx (VE {| pd := flag; va := descChild |}) (memory s) beqPage beqIndex |}.
 Proof.
 unfold isAccessibleMappedPageInParent.
 simpl.
 intros.
-rewrite  getSndShadowAddDerivation with partition descChild table idx s entry ;trivial.
+rewrite  getSndShadowAddDerivation with partition descChild table idx s entry flag;trivial.
 case_eq (getSndShadow partition (memory s));trivial.
 intros sh2 Hsh2.
-rewrite <- getVirtualAddressSh2AddDerivation with sh2 s descChild table idx va entry;trivial.
+rewrite <- getVirtualAddressSh2AddDerivation with sh2 s descChild table idx va entry flag;trivial.
 case_eq(getVirtualAddressSh2 sh2 s va);trivial.
 intros vaInParent HvaInParent.
-rewrite getParentAddDerivation with  partition descChild table idx s entry ;trivial.
+rewrite getParentAddDerivation with  partition descChild table idx s entry flag;trivial.
 case_eq(getParent partition (memory s));trivial.
 intros parent Hparent.
-rewrite getPdAddDerivation with  parent descChild table idx s entry;trivial.
+rewrite getPdAddDerivation with  parent descChild table idx s entry flag;trivial.
 case_eq(StateLib.getPd parent (memory s) );trivial.
 intros pdParent HpdParent.
 rewrite <- getAccessibleMappedPageAddDerivation  with 
-pdParent descChild table idx entry vaInParent s;trivial.
+pdParent descChild table idx entry vaInParent s flag;trivial.
 
 Qed.
 
-Lemma accessibleChildPhysicalPageIsAccessibleIntoParentAddDerivation
+Lemma accessibleChildPageIsAccessibleIntoParentAddDerivation
  (descChild : vaddr) table idx entry (s : state): 
 ( StateLib.readPDflag table idx (memory s) = Some false \/
 StateLib.readPDflag table idx (memory s) = None)-> 
  lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
-accessibleChildPhysicalPageIsAccessibleIntoParent s -> 
-accessibleChildPhysicalPageIsAccessibleIntoParent
+accessibleChildPageIsAccessibleIntoParent s -> 
+accessibleChildPageIsAccessibleIntoParent
 {|
 currentPartition := currentPartition s;
 memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
@@ -1435,7 +1440,7 @@ set (s' :=  {|
   currentPartition := currentPartition s;
   memory := add table idx (VE {| pd := false; va := descChild |}) 
    (memory s) beqPage beqIndex |}) in *.   
-unfold accessibleChildPhysicalPageIsAccessibleIntoParent.
+unfold accessibleChildPageIsAccessibleIntoParent.
 intros  partition va pd  accessiblePage.
 intros Hpart Hpd HaccessPage.
 unfold s'.
@@ -1444,14 +1449,14 @@ assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
 rewrite Hgetparts in *.
 clear Hgetparts.
 simpl in *.
-rewrite getPdAddDerivation with partition descChild table idx s  entry in Hpd ; trivial.
+rewrite getPdAddDerivation with partition descChild table idx s  entry false in Hpd ; trivial.
 unfold s' in *.
 rewrite getAccessibleMappedPageAddDerivation  
-with pd descChild table idx entry va s in HaccessPage;trivial. 
+with pd descChild table idx entry va s false in HaccessPage;trivial. 
 
 rewrite <- isAccessibleMappedPageInParentAddDerivattion with partition entry
-va accessiblePage table idx descChild s;trivial.
-unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
+va false accessiblePage table idx descChild s ;trivial.
+unfold accessibleChildPageIsAccessibleIntoParent in *.
 apply Haccess with pd;trivial.
 Qed.
 
@@ -1607,8 +1612,298 @@ unfold StateLib.readPresent in *.
 unfold StateLib.readPhyEntry in *.
 trivial.
 Qed. 
-  
+
+Lemma physicalPageNotDerivedAddDerivation table idx descChild entry s :
+beqVAddr defaultVAddr descChild = false -> 
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/ 
+StateLib.readPDflag table idx (memory s) = None) ->
+physicalPageNotDerived s ->
+physicalPageNotDerived
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) 
+    (memory s) beqPage beqIndex |}.
+Proof.
+intros  Hvanotnull Hlookup Hpdflag Hcons.
+unfold physicalPageNotDerived in *.
+simpl in *.
+intros parent va  pdParent pageParent.
+intros Hparts HgetpdParent Hderiv Hmapparent child pdChild vaInChild pageChild
+Hgetchildren Hpdchild Hmapchild.
+set(s':= {|
+          currentPartition := currentPartition s;
+          memory := add table idx (VE {| pd := false; va := descChild |}) 
+          (memory s) beqPage beqIndex |}) in *.
+assert(Hpartitions : getPartitions multiplexer s = getPartitions multiplexer s').
+symmetry.
+apply getPartitionsAddDerivation with entry ;trivial.
+rewrite Hpartitions in *.
+assert(Hchildren : 
+getChildren parent s' 
+   = getChildren parent s).
+apply getChildrenAddDerivation with entry;trivial.
+rewrite Hchildren in *;clear Hchildren.
+rewrite getPdAddDerivation with parent descChild table idx s  entry false in HgetpdParent ; trivial.
+rewrite getPdAddDerivation with child descChild table idx s  entry false in Hpdchild ; trivial.
+assert(Hmapped : forall pd v,  getMappedPage pd
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |} v =
+getMappedPage pd s v).
+intros.
+apply getMappedPageAddDerivation with entry; trivial.
+rewrite Hmapped in *. clear Hmapped.
+apply Hcons with parent va pdParent child pdChild vaInChild;trivial.
+unfold isDerived in *.
+unfold s' in *;simpl in *.
+rewrite getFstShadowAddDerivation with parent descChild table idx s entry false
+ in Hderiv;trivial.
+ case_eq (getFstShadow parent (memory s) );[intros sh1parent Hsh1parent | intros Hsh1parent];
+ rewrite Hsh1parent in *;trivial.
+ unfold not; intros Hgetvirt;
+ contradict Hderiv.
+ unfold getVirtualAddressSh1 in *.
+case_eq(StateLib.getNbLevel);[intros nbL HnbL | intros HnbL];
+ rewrite HnbL in *;trivial.
+ rewrite getIndirectionAddDerivation with sh1parent table  idx  descChild s 
+ entry va nbL (nbLevel -1) false;
+ trivial.
+case_eq( getIndirection sh1parent va nbL (nbLevel - 1) s); 
+[intros ind Hind | intros Hind];
+ rewrite Hind in *;trivial.
+ destruct(defaultPage =? ind);trivial.
+ simpl.
+ unfold StateLib.readVirEntry in *.
+ simpl in *.
+ case_eq(  beqPairs (table, idx) (ind, StateLib.getIndexOfAddr va fstLevel) 
+ beqPage beqIndex);intros Hpairs .
+ simpl.
+ trivial.
+ assert(lookup ind (StateLib.getIndexOfAddr va fstLevel)
+      (removeDup table idx (memory s) beqPage beqIndex) beqPage beqIndex = 
+ lookup ind (StateLib.getIndexOfAddr va fstLevel) (memory s) beqPage beqIndex).
+ apply removeDupIdentity.
+ apply beqPairsFalse in Hpairs.
+ intuition.
+ rewrite H;trivial.
+Qed.
+
+Lemma multiplexerWithoutParentUpdtateSh1Structure table idx  entry descChild s :
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+multiplexerWithoutParent s -> 
+multiplexerWithoutParent
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros.
+unfold multiplexerWithoutParent in *.
+intros.
+simpl in *.
+assert(Hparent : getParent multiplexer
+       (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+       getParent multiplexer (memory s)).       
+apply getParentAddDerivation with entry ;trivial.
+rewrite Hparent in *.
+apply H1;trivial.
+Qed. 
+
+Lemma isParentUpdtateSh1Structure table idx  entry descChild s :
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+isParent s -> 
+isParent
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros.
+unfold isParent in *.
+intros.
+simpl in *.
+set(s':= {|  currentPartition := _ |}) in *.
+assert(Hchildren : 
+getChildren parent s' 
+   = getChildren parent s).
+apply getChildrenAddDerivation with entry;trivial.
+rewrite Hchildren in *;clear Hchildren.
+assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
+{ apply getPartitionsAddDerivation with entry; trivial. }
+rewrite Hgetparts in *.
+clear Hgetparts.
+assert(Hparent : getParent partition
+       (add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex) =
+       getParent partition (memory s)).
+       
+apply getParentAddDerivation with entry ;trivial.
+rewrite Hparent in *.
+apply H1;trivial.
+Qed. 
+
+Lemma noDupPartitionTreeUpdtateSh1Structure table idx  entry descChild s :
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+noDupPartitionTree s -> 
+noDupPartitionTree
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros.
+unfold noDupPartitionTree in *.
+intros.
+simpl in *.
+set(s':= {|  currentPartition := _ |}) in *.
+assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
+{ apply getPartitionsAddDerivation with entry; trivial. }
+rewrite Hgetparts in *.
+clear Hgetparts.
+trivial.
+Qed. 
+
+Lemma wellFormedFstShadowUpdtateSh1Structure table idx  entry descChild s :
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+wellFormedFstShadow s -> 
+wellFormedFstShadow
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros Hlookup Hor Hwell.
+unfold wellFormedFstShadow in *.
+intros.
+simpl in *.
+set(s':= {|  currentPartition := _ |}) in *.
+assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
+{ apply getPartitionsAddDerivation with entry; trivial. }
+rewrite Hgetparts in *.
+clear Hgetparts.
+rewrite getPdAddDerivation with partition descChild table idx s  entry false in * ; trivial.
+rewrite getFstShadowAddDerivation with partition descChild table idx s entry false
+ in *;trivial.
+assert(Hmapped : forall pd va,  getMappedPage pd s' va =
+getMappedPage pd s va).
+intros.
+apply getMappedPageAddDerivation with entry; trivial.
+rewrite Hmapped in *. clear Hmapped.
+assert(Hsh1 :  exists vainparent : vaddr, getVirtualAddressSh1 sh1 s va = Some vainparent).
+apply  Hwell with partition pg pd;trivial.
+destruct Hsh1 as (vainparent & Hvainpatent).
+clear Hwell.
+ unfold getVirtualAddressSh1 in *.
+case_eq(StateLib.getNbLevel);[intros nbL HnbL | intros HnbL];
+ rewrite HnbL in *;trivial. 
++ unfold s'. rewrite getIndirectionAddDerivation with sh1 table  idx  descChild s 
+ entry va nbL (nbLevel -1) false;
+ trivial.
+case_eq( getIndirection sh1 va nbL (nbLevel - 1) s); 
+[intros ind Hind | intros Hind];
+ rewrite Hind in *;trivial.
+ destruct(defaultPage =? ind);trivial.
+ now contradict Hvainpatent.
+ simpl.
+ unfold StateLib.readVirEntry in *.
+ simpl in *.
+ case_eq(  beqPairs (table, idx) (ind, StateLib.getIndexOfAddr va fstLevel) 
+ beqPage beqIndex);intros Hpairs .
+ simpl. exists descChild;trivial.
+ assert(lookup ind (StateLib.getIndexOfAddr va fstLevel)
+      (removeDup table idx (memory s) beqPage beqIndex) beqPage beqIndex = 
+ lookup ind (StateLib.getIndexOfAddr va fstLevel) (memory s) beqPage beqIndex).
+ apply removeDupIdentity.
+ apply beqPairsFalse in Hpairs.
+ clear Hor.
+ intuition.
+ rewrite H4;trivial.
+exists vainparent;trivial.
+now contradict Hvainpatent.
++ now contradict Hvainpatent.
+Qed. 
+
+Lemma wellFormedSndShadowUpdtateSh1Structure table idx  entry descChild s :
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+wellFormedSndShadow s -> 
+wellFormedSndShadow
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros Hlookup Hor Hwell.
+unfold wellFormedSndShadow in *.
+intros.
+simpl in *.
+set(s':= {|  currentPartition := _ |}) in *.
+assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
+{ apply getPartitionsAddDerivation with entry; trivial. }
+rewrite Hgetparts in *.
+clear Hgetparts.
+rewrite getPdAddDerivation with partition descChild table idx s  entry false in * ; trivial.
+rewrite getSndShadowAddDerivation with partition descChild table idx s entry false
+ in *;trivial.
+assert(Hmapped : forall pd va,  getMappedPage pd s' va =
+getMappedPage pd s va).
+intros.
+apply getMappedPageAddDerivation with entry; trivial.
+rewrite Hmapped in *. clear Hmapped.
+assert(exists vainparent : vaddr,
+          getVirtualAddressSh2 sh2 s va = Some vainparent /\ 
+          beqVAddr defaultVAddr vainparent = false).
+apply Hwell with partition  pg pd ;trivial.
+destruct H4 as (vainparent & Hvainpatent & Hnotnull).
+rewrite  getVirtualAddressSh2AddDerivation with sh2 s descChild table idx va entry false
+in * ;trivial.
+exists vainparent;split;trivial.
+Qed.
+
+Lemma wellFormedShadowsUpdtateSh1Structure table idx  entry descChild idxroot s :
+(idxroot = sh1idx \/ idxroot = sh2idx) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+(StateLib.readPDflag table idx (memory s) = Some false \/
+StateLib.readPDflag table idx (memory s) = None) -> 
+wellFormedShadows idxroot s -> 
+wellFormedShadows idxroot
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros Hor1 Hlookup Hor Hwell.
+unfold wellFormedShadows in *.
+intros.
+simpl in *.
+set(s':= {|  currentPartition := _ |}) in *.
+assert(Hgetparts : getPartitions multiplexer s' = getPartitions multiplexer s).
+{ apply getPartitionsAddDerivation with entry; trivial. }
+rewrite Hgetparts in *.
+clear Hgetparts.
+rewrite getPdAddDerivation with partition descChild table idx s  entry false in * ; trivial.
+assert(HppS : nextEntryIsPP partition idxroot structroot s).
+{ destruct Hor1; subst.
+  rewrite nextEntryIsPPgetFstShadow in *.    
+  rewrite <- getFstShadowAddDerivation with partition descChild table idx s entry false
+  in *;trivial.
+  rewrite nextEntryIsPPgetSndShadow in *.    
+  rewrite <- getSndShadowAddDerivation with partition descChild table idx s entry false
+  in *;trivial. }
+unfold s'. rewrite getIndirectionAddDerivation with structroot table  idx  descChild s 
+ entry va nbL stop false;
+trivial. unfold s' in *. 
+rewrite  getIndirectionAddDerivation with pdroot table  idx  descChild s 
+entry va nbL stop false in *;
+trivial.
+apply Hwell with partition pdroot indirection1;trivial.
+Qed.
+
 Lemma consistencyUpdtateSh1Structure (descChild : vaddr) table idx entry (s : state):
+beqVAddr defaultVAddr descChild = false -> 
 lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
 (StateLib.readPDflag table idx (memory s) = Some false \/ 
 StateLib.readPDflag table idx (memory s) = None) ->
@@ -1619,7 +1914,7 @@ consistency
   memory := add table idx (VE {| pd := false; va := descChild |}) 
               (memory s) beqPage beqIndex |}.
 Proof.
-intros.
+(* dataStructurePdSh1Sh2asRootintros. *)
 unfold consistency in *.
 split.
 apply partitionDescriptorEntryAddDerivation with entry; intuition.
@@ -1640,7 +1935,7 @@ apply parentInPartitionListAddDerivation with entry; intuition.
 split.
 apply accessibleVAIsNotPartitionDescriptorAddDerivation with entry; intuition.
 split.
-apply accessibleChildPhysicalPageIsAccessibleIntoParentAddDerivation with entry;intuition.
+apply accessibleChildPageIsAccessibleIntoParentAddDerivation with entry;intuition.
 split.
 apply noCycleInPartitionTreeUpdtateSh1Structure with entry;intuition.
 split.
@@ -1649,9 +1944,24 @@ split.
 apply isChildUpdtateSh1Structure with entry ;intuition.
 split.
 apply isPresentNotDefaultIffAddDerivation ;intuition.
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-Admitted.
+split. 
+apply physicalPageNotDerivedAddDerivation with entry;intuition.
+split.
+apply multiplexerWithoutParentUpdtateSh1Structure with entry;intuition.
+split.
+apply isParentUpdtateSh1Structure with entry;intuition.
+split.
+apply noDupPartitionTreeUpdtateSh1Structure with entry;intuition.
+split.
+apply wellFormedFstShadowUpdtateSh1Structure with entry ;intuition.
+split.
+apply wellFormedSndShadowUpdtateSh1Structure with entry;intuition.
+split.
+apply wellFormedShadowsUpdtateSh1Structure with entry;intuition.
+split.
+apply wellFormedShadowsUpdtateSh1Structure with entry;intuition.
+intuition.
+Qed.
 
 Lemma getTableRootAddDerivation table1 idx1 table2 idx2 partition   
 va idxVa (descChild : vaddr) entry (s : state) f :
@@ -1817,4 +2127,2640 @@ apply beqPairsFalse in Hpairs.
 apply removeDupIdentity;intuition.
 rewrite H.
 trivial. 
+Qed.
+Lemma checkChildTrueSameValue a nbL s entry descChild ptRefChildFromSh1
+currentPart:
+lookup ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel) (memory s) beqPage beqIndex =
+Some (VE entry) -> 
+checkChild currentPart nbL s a = true -> 
+checkChild currentPart nbL {|
+currentPartition := currentPartition s;
+memory := add ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel)
+    (VE {| pd := true; va := va entry |}) (memory s) beqPage beqIndex |} a = true. 
+Proof.
+set(s' := {|
+currentPartition := currentPartition s;
+memory := add ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel) (VE {| pd := true; va := va entry |})
+(memory s) beqPage beqIndex |} ) in*. 
+intros Hlookup Hi.
+unfold checkChild in *.
+assert(Hsh1S : StateLib.getFstShadow currentPart (memory s') =
+  StateLib.getFstShadow currentPart (memory s))by (
+apply getFstShadowAddDerivation with entry;trivial). 
+rewrite Hsh1S . clear Hsh1S.
+case_eq (getFstShadow currentPart (memory s) );[intros sh1 Hsh1 |
+intros Hsh1]; 
+rewrite Hsh1 in *;trivial.
+assert(HindS: getIndirection sh1 a nbL (nbLevel - 1) s' =
+getIndirection sh1 a nbL (nbLevel - 1) s) by (
+apply getIndirectionAddDerivation with entry;trivial).
+rewrite HindS in *;clear HindS. 
+case_eq(getIndirection sh1 a nbL (nbLevel - 1) s);
+[ intros ind Hind| intros Hind];rewrite Hind in *;trivial.
+case_eq (ind =? defaultPage);intros Hindnotnil;
+rewrite Hindnotnil in *;trivial.
+unfold StateLib.readPDflag in *.
+simpl in *. 
+case_eq ( beqPairs (ptRefChildFromSh1, StateLib.getIndexOfAddr descChild fstLevel)
+(ind, StateLib.getIndexOfAddr a fstLevel) beqPage beqIndex);
+intros Hpairs;
+simpl;trivial.
+apply beqPairsFalse in Hpairs.
+assert(Hmemory : lookup ind (StateLib.getIndexOfAddr a fstLevel) (memory s) beqPage beqIndex =
+lookup ind (StateLib.getIndexOfAddr a fstLevel)
+(removeDup ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel) (memory s) beqPage beqIndex) beqPage
+beqIndex).
+rewrite removeDupIdentity;trivial.
+intuition.
+rewrite <- Hmemory.
+trivial.
+Qed.
+    Lemma vaNotDerived currentPart shadow1 (ptSh1ChildFromSh1 : page) s : 
+    consistency s ->
+    In currentPart (getPartitions multiplexer s) -> 
+     (defaultPage =? ptSh1ChildFromSh1) = false  -> 
+    (exists va : vaddr,
+        isEntryVA ptSh1ChildFromSh1 (StateLib.getIndexOfAddr shadow1 fstLevel) va s /\
+        beqVAddr defaultVAddr va = true) -> 
+     (forall idx : index,
+     StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+     isVE ptSh1ChildFromSh1 idx s /\ getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) -> 
+    ~ isDerived currentPart shadow1 s .
+    Proof.
+    intros Hcons Hparts Hptfromsh1notnull Hii Hi. 
+        
+         destruct Hi with (StateLib.getIndexOfAddr shadow1 fstLevel) as 
+        (Hve & Hgetve);trivial.
+
+        clear Hi.
+        destruct Hii as (va0 & Hvae & Hveq).
+        unfold isDerived.
+        unfold getTableAddrRoot in *.
+        destruct Hgetve as (_ & Hgetve).
+        assert(Hcursh1 :(exists entry : page, nextEntryIsPP currentPart sh1idx entry s /\ entry <> defaultPage)).
+        assert(Hpde :  partitionDescriptorEntry s).
+        unfold consistency in *.
+        intuition.
+        unfold partitionDescriptorEntry in *.
+        apply Hpde;trivial.
+        right;left;trivial.
+        destruct Hcursh1 as (cursh1 & Hcursh1 & Hsh1notnull).
+        rewrite nextEntryIsPPgetFstShadow in *.
+        rewrite Hcursh1.
+        rewrite <- nextEntryIsPPgetFstShadow in *.        
+        apply Hgetve in Hcursh1.
+        destruct Hcursh1 as (l & Hl & stop & Hstop & Hgetva).
+        clear Hgetve.
+        unfold getVirtualAddressSh1.
+        rewrite <- Hl.
+        subst.
+        assert(Hgetind : getIndirection cursh1 shadow1 l (nbLevel - 1) s  = Some ptSh1ChildFromSh1).
+        apply getIndirectionStopLevelGT2 with (l+1);trivial.
+        abstract omega.
+        apply getNbLevelEq in Hl.
+        subst.
+        apply nbLevelEq.
+        rewrite Hgetind.
+        rewrite Hptfromsh1notnull.
+        unfold  isEntryVA in *.
+        unfold isVE in *.
+        unfold StateLib.readVirEntry.
+        case_eq(lookup ptSh1ChildFromSh1 (StateLib.getIndexOfAddr shadow1 fstLevel) 
+          (memory s) beqPage beqIndex);intros * Hlookupsh1;rewrite Hlookupsh1 in *; 
+          try now contradict Hve.
+        case_eq v;intros * Hvsh1;rewrite Hvsh1 in *; 
+          try now contradict Hve.
+          subst.
+          unfold not;intros.
+          rewrite H in Hveq.
+          now contradict Hveq.
+          Qed.
+     Lemma phyNotDerived currentPart phySh1Child currentPD shadow1 (ptSh1Child : page)s :  
+     (defaultPage =? ptSh1Child) = false -> 
+     ~ isDerived currentPart shadow1 s -> 
+     consistency s -> 
+     In currentPart (getPartitions multiplexer s) -> 
+     nextEntryIsPP currentPart PDidx currentPD s  -> 
+     (forall idx : index,
+       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+       isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) -> 
+       isEntryPage ptSh1Child (StateLib.getIndexOfAddr shadow1 fstLevel) phySh1Child s -> 
+       entryPresentFlag ptSh1Child (StateLib.getIndexOfAddr shadow1 fstLevel) true s -> 
+     forall child : page,
+In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s).
+Proof.
+intros Hptnotnull HderivShadow1 Hcons Hcurparts Hcurpd Hget Hep Hpres child Hchild. 
+       assert(H1 : physicalPageNotDerived s).
+          { unfold consistency in *.
+            intuition. }
+        unfold physicalPageNotDerived in *.
+        rewrite nextEntryIsPPgetPd in *.
+        generalize (H1 currentPart shadow1 currentPD 
+        phySh1Child Hcurparts Hcurpd HderivShadow1);clear H1;intros H1.
+        unfold getMappedPages.
+        case_eq (StateLib.getPd child (memory s) );intros;trivial.
+        unfold getMappedPagesAux.
+        rewrite filterOptionInIff.
+        unfold getMappedPagesOption.
+        rewrite in_map_iff.
+        unfold not in *.
+        intros.
+        destruct H0 as (x & Hx1 & Hx2).
+
+        apply H1 with child p x phySh1Child;trivial.
+        apply getMappedPageGetTableRoot
+        with ptSh1Child currentPart;intuition.
+        subst.
+        trivial.
+        subst.
+        trivial.
+        apply nextEntryIsPPgetPd;trivial.
+        unfold not;intros Hfalse;now contradict Hfalse. 
+        Qed. 
+Definition newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
+phyConfigPagesList phyDescChild := 
+     (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+     (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phySh1Child (getAccessibleMappedPages partition s)) /\
+     (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phySh2Child (getAccessibleMappedPages partition s)) /\
+     (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+     (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phyDescChild (getAccessibleMappedPages partition s)) /\
+     zero = CIndex 0 /\
+     isWellFormedSndShadow level phySh2Child s /\
+     isWellFormedFstShadow level phySh1Child s /\
+     (forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
+     StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
+     (forall idx : index,
+      idx <> CIndex (tableSize - 1) ->
+      Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
+     (forall idx : index,
+      Nat.Even idx ->
+      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+     nullv = defaultVAddr /\
+     idxPR = PRidx /\
+     idxPD = PDidx /\
+     idxSH1 = sh1idx /\
+     idxSH2 = sh2idx /\
+     idxSH3 = sh3idx /\
+     idxPPR = PPRidx /\
+     isVA phyDescChild idxPPR s /\
+     nextEntryIsPP phyDescChild idxPPR currentPart s /\
+     isVA phyDescChild idxSH3 s /\
+     nextEntryIsPP phyDescChild idxSH3 phyConfigPagesList s /\
+     isVA phyDescChild idxSH2 s /\
+     nextEntryIsPP phyDescChild idxSH2 phySh2Child s /\
+     isVA phyDescChild idxSH1 s /\
+     nextEntryIsPP phyDescChild idxSH1 phySh1Child s /\
+     isVA phyDescChild idxPD s /\
+     nextEntryIsPP phyDescChild idxPD phyPDChild s /\
+     isVA phyDescChild idxPR s /\ nextEntryIsPP phyDescChild idxPR phyDescChild s.
+     
+Lemma writeVirEntryPD     
+pdChild currentPart currentPD level ptRefChild descChild idxRefChild 
+ ptPDChild idxPDChild   ptSh1Child shadow1 idxSh1
+  ptSh2Child shadow2 idxSh2   ptConfigPagesList 
+idxConfigPagesList  
+currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
+ptSh1ChildFromSh1 derivedSh1Child childSh2
+derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+phySh2Child phyConfigPagesList phyDescChild zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR        
+ :derivedRefChild && derivedPDChild && derivedSh1Child && derivedSh2Child && derivedRefChildListSh1 = true -> 
+beqVAddr defaultVAddr descChild = false -> {{ fun s : state =>
+   propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
+            descChild idxRefChild true ptPDChild idxPDChild true ptSh1Child shadow1 idxSh1 true
+            ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+            ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild ptSh1ChildFromSh1
+            derivedSh1Child childSh2 derivedSh2Child childListSh1 derivedRefChildListSh1 list
+            phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+          newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
+phyConfigPagesList phyDescChild  }} 
+  writeVirEntry ptPDChildSh1 idxPDChild descChild {{ fun _ (s : state) =>
+  propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild
+            descChild idxRefChild true ptPDChild idxPDChild true ptSh1Child shadow1 idxSh1 true
+            ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+            ptRefChildFromSh1 derivedRefChild ptPDChildSh1 false ptSh1ChildFromSh1
+            derivedSh1Child childSh2 derivedSh2Child childListSh1 derivedRefChildListSh1 list
+            phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+          newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
+phyConfigPagesList phyDescChild /\
+
+
+    (forall child : page,
+     In child (getChildren currentPart s) -> ~ In phyDescChild (getMappedPages child s)) /\
+    (forall child : page,
+     In child (getChildren currentPart s) -> ~ In phyPDChild (getMappedPages child s)) /\
+    (forall child : page,
+     In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s)) /\
+    (forall child : page,
+     In child (getChildren currentPart s) -> ~ In phySh2Child (getMappedPages child s)) /\
+    (forall child : page,
+     In child (getChildren currentPart s) -> ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s }}.
+Proof. intros Hderiv Hnotdef.  
+    eapply weaken.
+    eapply WP.writeVirEntry.
+    simpl; intros.
+    set(s' :=  {|
+  currentPartition := _ |} ) in *.
+              
+
+   unfold propagatedProperties in *.
+   unfold newPropagatedProperties in *. 
+repeat rewrite andb_true_iff in Hderiv. 
+              assert(Hparts : In currentPart (getPartitions multiplexer s)).
+          { intuition. subst.
+            unfold consistency in *.
+             unfold currentPartitionInPartitionsList in *.
+             intuition. }
+                         repeat rewrite andb_true_iff in H.
+                (** use physicalPageNotDerived and isChild  to get a contradiction *)
+
+            assert(HderivShadow1 : ~ isDerived currentPart shadow1 s ).
+            { unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+          apply vaNotDerived with ptSh1ChildFromSh1;trivial. }
+    assert(Hsh1 : forall child, In child (getChildren currentPart s) ->
+     ~ In phySh1Child (getMappedPages child s)).
+{ 
+        intros.
+        unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+        apply phyNotDerived  with (currentPartition s) currentPD shadow1 ptSh1Child; trivial. }
+            assert(HderivPD : ~ isDerived currentPart pdChild s ).
+            { unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+          apply vaNotDerived with ptPDChildSh1 ;trivial. }
+    assert(HPD : forall child, In child (getChildren currentPart s) ->
+     ~ In phyPDChild (getMappedPages child s)).
+{ 
+        intros.
+        unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+        apply phyNotDerived  with (currentPartition s) currentPD pdChild ptPDChild ; trivial. }
+   
+            assert(Hderivshadow2 : ~ isDerived currentPart shadow2 s ).
+            { unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+          apply vaNotDerived with childSh2 ;trivial. }
+    assert(Hsh2 : forall child, In child (getChildren currentPart s) ->
+     ~ In phySh2Child (getMappedPages child s)).
+{ 
+        intros.
+        unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+        apply phyNotDerived  with (currentPartition s) currentPD shadow2 ptSh2Child ; trivial. }
+        
+            assert(Hderivlist : ~ isDerived currentPart list s ).
+            { unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+          apply vaNotDerived with childListSh1 ;trivial. }
+    assert(Hlist : forall child, In child (getChildren currentPart s) ->
+     ~ In phyConfigPagesList (getMappedPages child s)).
+{ 
+        intros.
+        unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+        apply phyNotDerived  with (currentPartition s) currentPD list ptConfigPagesList ; trivial. }
+            assert(Hderivdesc : ~ isDerived currentPart descChild s ).
+            { unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+          apply vaNotDerived with ptRefChildFromSh1 ;trivial. }
+    assert(Hdesc : forall child, In child (getChildren currentPart s) ->
+     ~ In phyDescChild (getMappedPages child s)).
+{ 
+        intros.
+        unfold not;intros Hgoal.
+            intuition. subst.
+            contradict Hgoal.
+        apply phyNotDerived  with (currentPartition s) currentPD descChild ptRefChild ; trivial. }
+        
+(*    assert(Hderiv := conj (conj ( conj ( conj Hdesc HPD ) Hsh1) Hsh2) Hlist).
+    destruct H0 as (H0 & Hnew).
+    do 57 rewrite <- and_assoc in H0.
+    destruct H0 as (H0 & Hsplit).
+    destruct H0 as (H0 & Hfalse). 
+
+    assert (Hpost := conj (conj ( conj ( conj (conj (conj (conj H0 Hsplit)  Hnew) Hdesc) HPD ) Hsh1) Hsh2) Hlist).
+    try repeat rewrite and_assoc in Hpost. 
+    clear H0 Hfalse Hnew Hsplit.
+    pattern s in Hpost.
+    match type of Hpost with 
+    |?HT s => instantiate (1 := fun tt s => HT s /\ 
+                                isEntryVA ptPDChildSh1 idxPDChild descChild s)
+    end. *)
+    simpl in *.
+    unfold propagatedProperties in *.
+    assert(Hget : forall idx : index,
+                  StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+                  isVE ptPDChildSh1 idx s /\ 
+                  getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s)
+      by intuition.
+    assert (Hve :isVE ptPDChildSh1 idxPDChild s).
+    apply Hget.
+    intuition.
+    unfold isVE in Hve.
+    case_eq( lookup ptPDChildSh1 idxPDChild (memory s) beqPage beqIndex);
+    intros; rewrite H0 in *; try now contradict Hve.
+    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
+    assert(Hpartitions : getPartitions multiplexer
+            {|
+            currentPartition := currentPartition s;
+            memory := add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})
+                        (memory s) beqPage beqIndex |} = 
+                        getPartitions multiplexer
+            s).
+    apply getPartitionsAddDerivation with v0;trivial.
+    unfold isPartitionFalse in *.
+    intuition.
+      assert(Hconfig :forall partition,  getConfigPagesAux partition
+            {|
+            currentPartition := currentPartition s;
+            memory := add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |}) 
+                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
+      { intros.
+        apply getConfigPagesAuxAddDerivation with v0;trivial. }
+    split. 
+    do 3 rewrite <- and_assoc .
+    split.
+    (** partitionsIsolation **)
+    do 2 rewrite and_assoc.
+    split.
+    assert (Hiso : partitionsIsolation s) by intuition.
+    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
+    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
+    unfold isPartitionFalse in *.
+    assumption.
+    (** kernelDataIsolation **)
+    split.
+    assert (Hkdi : kernelDataIsolation s) by intuition.
+    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
+    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
+    unfold isPartitionFalse in *.
+    assumption.
+    (** VerticalSharing **)
+    split.
+    assert (Hvs : verticalSharing s) by intuition.
+    apply verticalSharingUpdtateSh1Structure with v0; trivial.
+    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
+    unfold isPartitionFalse in *.
+    assumption.
+    (** consistency **)
+    assert (Hcons : consistency s ) by intuition.
+    apply consistencyUpdtateSh1Structure with v0; trivial.
+    unfold consistency in *. 
+    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
+    unfold isPartitionFalse in *.
+    intuition . 
+    (** Propagate properties **)
+    { 
+     unfold s' in *.
+     intuition try trivial. 
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isPEAddDerivation with v0; trivial. 
+      assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  isPE ptRefChild idx s /\ 
+                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
+      by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+                    isPE ptPDChild idx s /\ 
+                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
+       intuition.
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+                  isPE ptSh1Child idx s /\ 
+                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr list fstLevel = idx ->
+      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr descChild fstLevel = idx ->
+       isVE ptRefChildFromSh1 idx s /\
+       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+       isVE ptPDChildSh1 idx s /\
+       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
+    +    unfold isEntryVA.
+    cbn.
+    assert(Htrue : beqPairs (ptPDChildSh1, idxPDChild) (ptPDChildSh1, idxPDChild)
+           beqPage beqIndex = true).
+    { apply beqPairsTrue.
+      split; trivial. }
+    rewrite Htrue.
+    cbn;trivial.
+    exists descChild;split;trivial. 
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+       isVE ptSh1ChildFromSh1 idx s /\
+       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+       isVE childSh2 idx s /\
+       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA childSh2 idxSh2  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr list fstLevel = idx ->
+       isVE childListSh1 idx s /\
+       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with list
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    
+    +   rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial. 
+      right;trivial.
+    +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
+                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
+                idxSh1 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 pdChild currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+    + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
+                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 pdChild currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
+                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
+                 idxConfigPagesList
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with list pdChild currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
+                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
+                 idxRefChild  (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild pdChild currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+    + apply isPartitionFalseAddDerivation. }
+    intuition try trivial.
+    + 
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyPDChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh1Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + 
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh2Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + 
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyConfigPagesList (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    +
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyDescChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + apply isWellFormedSndShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx pdChild idxPDChild s ;
+      trivial.
+      right;left;trivial.
+      unfold consistency in *.
+      intuition.
+    + apply isWellFormedFstShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx pdChild idxPDChild s ;
+      trivial.
+      right;left;trivial.
+      unfold consistency in *.
+      intuition.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (Hi & _).
+      rewrite <- Hi.
+      apply readPhyEntryAddDerivation with v0;trivial.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (_ & Hi).
+      rewrite <- Hi.
+      apply readPresentAddDerivation with v0;trivial.
+    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
+              Some defaultPage)by intuition.
+      rewrite <- Hi.
+      apply readPhysicalAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      (idx = CIndex (tableSize - 1) -> False) ->
+      Nat.Odd idx -> 
+      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
+      rewrite <- Hi with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      Nat.Even idx ->
+      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
+      by trivial.
+      assert (Heven : Nat.Even idx) by trivial.
+      apply Hi in Heven.
+      destruct Heven as (idxValue & Hidx).
+      exists idxValue.
+      rewrite <- Hidx.
+      apply readIndexAddDerivation with v0; trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial. 
+    + unfold s' in *.  rewrite getChildrenAddDerivation with  currentPart descChild
+        ptPDChildSh1 idxPDChild v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptPDChildSh1 idxPDChild s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyDescChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+   +     unfold s' in *.  rewrite getChildrenAddDerivation with  currentPart descChild
+       ptPDChildSh1 idxPDChild v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptPDChildSh1 idxPDChild s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyPDChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    +     unfold s' in *.  rewrite getChildrenAddDerivation with  currentPart descChild
+       ptPDChildSh1 idxPDChild v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptPDChildSh1 idxPDChild  s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh1Child  (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    +     unfold s' in *.  rewrite getChildrenAddDerivation with  currentPart descChild
+       ptPDChildSh1 idxPDChild v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptPDChildSh1 idxPDChild s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh2Child (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+     +     unfold s' in *.  rewrite getChildrenAddDerivation with  currentPart descChild
+        ptPDChildSh1 idxPDChild v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptPDChildSh1 idxPDChild s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyConfigPagesList(getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    +
+(** New property to propagate **)
+    unfold isEntryVA.
+    cbn.
+    assert(Htrue : beqPairs (ptPDChildSh1, idxPDChild) (ptPDChildSh1, idxPDChild)
+           beqPage beqIndex = true).
+    { apply beqPairsTrue.
+      split; trivial. }
+    rewrite Htrue.
+    cbn;trivial.
+Qed.
+
+Lemma writeVirEntrySh1 pdChild currentPart currentPD level ptRefChild descChild idxRefChild 
+ ptPDChild idxPDChild   ptSh1Child shadow1 idxSh1
+  ptSh2Child shadow2 idxSh2   ptConfigPagesList 
+idxConfigPagesList  
+currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
+ptSh1ChildFromSh1 derivedSh1Child childSh2
+derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+phySh2Child phyConfigPagesList phyDescChild zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR        
+ :derivedRefChild && derivedPDChild && derivedSh1Child && derivedSh2Child && derivedRefChildListSh1 = true -> 
+beqVAddr defaultVAddr descChild = false ->
+{{ fun s : state =>
+   propagatedProperties false false false false pdChild currentPart currentPD level
+     ptRefChild descChild idxRefChild true ptPDChild idxPDChild true ptSh1Child
+     shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList
+     idxConfigPagesList true currentShadow1 ptRefChildFromSh1 derivedRefChild
+     ptPDChildSh1 false ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child
+     childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR
+     currentPart level phyPDChild phySh1Child phySh2Child phyConfigPagesList
+     phyDescChild /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s }} 
+  writeVirEntry ptSh1ChildFromSh1 idxSh1 descChild {{  fun _ (s : state) =>
+   propagatedProperties false false false false pdChild currentPart currentPD level
+     ptRefChild descChild idxRefChild true ptPDChild idxPDChild true ptSh1Child
+     shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList
+     idxConfigPagesList true currentShadow1 ptRefChildFromSh1 derivedRefChild
+     ptPDChildSh1 false ptSh1ChildFromSh1 false childSh2 derivedSh2Child
+     childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR
+     currentPart level phyPDChild phySh1Child phySh2Child phyConfigPagesList
+     phyDescChild /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page,
+    In child (getChildren currentPart s) ->
+    ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s /\  isEntryVA  ptSh1ChildFromSh1 idxSh1 descChild  s}}.
+Proof.
+intros Hderivation Hpost.
+    eapply weaken.
+    eapply WP.writeVirEntry.
+    simpl; intros.
+(*     destruct H0 as (H0 & Hnew).
+    unfold propagatedProperties in *. 
+    do 60 rewrite <- and_assoc in H0.
+    destruct H0 as (H0 & Hsplit).
+    destruct H0 as (H0 & Hfalse). 
+    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
+    try repeat rewrite and_assoc in Hpost. 
+    clear H0 Hfalse Hnew Hsplit.      
+    pattern s in Hpost.
+    match type of Hpost with 
+    |?HT s => instantiate (1 := fun tt s => HT s /\ 
+                                isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s)
+    end. *)
+    simpl in *.
+    unfold propagatedProperties in *.
+    assert(Hget : forall idx : index,
+                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+                  isVE ptSh1ChildFromSh1 idx s /\ 
+                  getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s)
+      by intuition.
+    assert (Hve :isVE ptSh1ChildFromSh1 idxSh1 s).
+    apply Hget.
+    intuition.
+    unfold isVE in Hve.
+    case_eq( lookup ptSh1ChildFromSh1 idxSh1 (memory s) beqPage beqIndex);
+    intros; rewrite H0 in *; try now contradict Hve.
+    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
+    assert(Hpartitions : getPartitions multiplexer
+            {|
+            currentPartition := currentPartition s;
+            memory := add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})
+                        (memory s) beqPage beqIndex |} = 
+                        getPartitions multiplexer
+            s).
+    apply getPartitionsAddDerivation with v0;trivial.
+    unfold isPartitionFalse in *.
+    intuition.
+    subst.
+    split.
+    do 3 rewrite <- and_assoc .
+    assert(Hispart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s ) by intuition.
+    subst.
+    split.
+    (** partitionsIsolation **)
+    do 2 rewrite and_assoc.
+    split.
+    assert (Hiso : partitionsIsolation s) by intuition.
+    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
+    (** kernelDataIsolation **)
+    split.
+    assert (Hkdi : kernelDataIsolation s) by intuition.
+    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
+    (** VerticalSharing **)
+    split.
+    assert (Hvs : verticalSharing s) by intuition.
+    apply verticalSharingUpdtateSh1Structure with v0; trivial.
+    (** consistency **)
+    assert (Hcons : consistency s ) by intuition.
+    apply consistencyUpdtateSh1Structure with v0; trivial.
+    (** Propagate properties **)
+    { assert(Hconfig :forall partition,  getConfigPagesAux partition
+            {|
+            currentPartition := currentPartition s;
+            memory := add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |}) 
+                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
+      { intros.
+        apply getConfigPagesAuxAddDerivation with v0;trivial. }
+     intuition try trivial. 
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isPEAddDerivation with v0; trivial. 
+      assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  isPE ptRefChild idx s /\ 
+                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
+      by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+                    isPE ptPDChild idx s /\ 
+                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
+       intuition.
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+                  isPE ptSh1Child idx s /\ 
+                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr list fstLevel = idx ->
+      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr descChild fstLevel = idx ->
+       isVE ptRefChildFromSh1 idx s /\
+       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild
+      shadow1   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+       isVE ptPDChildSh1 idx s /\
+       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
+    
+    + exists descChild.
+      split;trivial.
+      apply isEntryVASameValue;trivial. 
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+       isVE ptSh1ChildFromSh1 idx s /\
+       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
+(*     + assert (Hi : exists va : vaddr,
+         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
+    + (** New property to propagate **)
+      unfold isEntryVA.
+      cbn.
+      assert(Htrue : beqPairs (ptSh1ChildFromSh1, idxSh1) (ptSh1ChildFromSh1, idxSh1) 
+      beqPage beqIndex = true).
+      { apply beqPairsTrue.
+        split; trivial. }
+      rewrite Htrue.
+      cbn;trivial.
+      exists descChild ; split;trivial. 
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+       isVE childSh2 idx s /\
+       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA childSh2 idxSh2  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
+      shadow1   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr list fstLevel = idx ->
+       isVE childListSh1 idx s /\
+       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with list
+      shadow1   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      rewrite <- Hconfig.
+      unfold getConfigPages in *.
+      simpl in *. trivial.
+(*     + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial. 
+      right;trivial. *)
+    + apply isPartitionFalseAddDerivation.
+(*     +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
+                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
+                idxSh1 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 pdChild currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial. *)
+    + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
+                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 shadow1 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
+                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
+                 idxConfigPagesList
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with list shadow1 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
+                (add ptSh1ChildFromSh1 idxSh1(VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
+                 idxRefChild  (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow1 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
+                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
+                 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with pdChild shadow1 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial. }
+  { unfold newPropagatedProperties in *.
+    intuition try trivial. 
+     
+    +  set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyPDChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh1Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh2Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyConfigPagesList (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyDescChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial.  *)
+    + apply isWellFormedSndShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx shadow1 idxSh1 s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+    + apply isWellFormedFstShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx shadow1 idxSh1 s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      intuition.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (Hi & _).
+      rewrite <- Hi.
+      apply readPhyEntryAddDerivation with v0;trivial.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (_ & Hi).
+      rewrite <- Hi.
+      apply readPresentAddDerivation with v0;trivial.
+    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
+              Some defaultPage)by intuition.
+      rewrite <- Hi.
+      apply readPhysicalAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      (idx = CIndex (tableSize - 1) -> False) ->
+      Nat.Odd idx -> 
+      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
+      rewrite <- Hi with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      Nat.Even idx ->
+      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
+      by trivial.
+      assert (Heven : Nat.Even idx) by trivial.
+      apply Hi in Heven.
+      destruct Heven as (idxValue & Hidx).
+      exists idxValue.
+      rewrite <- Hidx.
+      apply readIndexAddDerivation with v0; trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+        ptSh1ChildFromSh1 idxSh1 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptSh1ChildFromSh1 idxSh1 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyDescChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       ptSh1ChildFromSh1 idxSh1 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptSh1ChildFromSh1 idxSh1 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyPDChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       ptSh1ChildFromSh1 idxSh1 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptSh1ChildFromSh1 idxSh1  s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh1Child  (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       ptSh1ChildFromSh1 idxSh1 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        ptSh1ChildFromSh1 idxSh1 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh2Child (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+     + rewrite getChildrenAddDerivation with  currentPart descChild
+        ptSh1ChildFromSh1 idxSh1 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+       ptSh1ChildFromSh1 idxSh1 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyConfigPagesList(getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial. 
+    +
+       apply isEntryVASameValue;trivial.
+    + (** New property to propagate **)
+      unfold isEntryVA.
+      cbn.
+      assert(Htrue : beqPairs (ptSh1ChildFromSh1, idxSh1) (ptSh1ChildFromSh1, idxSh1) 
+      beqPage beqIndex = true).
+      { apply beqPairsTrue.
+        split; trivial. }
+      rewrite Htrue.
+      cbn;trivial. }
+Qed.
+
+Lemma writeVirEntrySh2     
+pdChild currentPart currentPD level ptRefChild descChild idxRefChild 
+ ptPDChild idxPDChild   ptSh1Child shadow1 idxSh1
+  ptSh2Child shadow2 idxSh2   ptConfigPagesList 
+idxConfigPagesList  
+currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
+ptSh1ChildFromSh1 derivedSh1Child childSh2
+derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+phySh2Child phyConfigPagesList phyDescChild zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR        
+ :derivedRefChild && derivedPDChild && derivedSh1Child && derivedSh2Child && derivedRefChildListSh1 = true -> 
+beqVAddr defaultVAddr descChild = false ->
+{{ fun s : state =>
+   propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild descChild idxRefChild true ptPDChild idxPDChild
+     true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+     ptRefChildFromSh1 derivedRefChild ptPDChildSh1 false ptSh1ChildFromSh1 false childSh2 derivedSh2Child childListSh1 derivedRefChildListSh1
+     list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR currentPart level phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s /\ isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s }} 
+  writeVirEntry childSh2 idxSh2 descChild 
+  {{  fun _ (s : state) =>
+   propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild descChild idxRefChild true ptPDChild idxPDChild
+     true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+     ptRefChildFromSh1 derivedRefChild ptPDChildSh1 false ptSh1ChildFromSh1 false childSh2 false childListSh1 derivedRefChildListSh1
+     list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR currentPart level phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s /\ isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s /\
+   isEntryVA childSh2 idxSh2 descChild s }}.
+  Proof.  
+intros Hderived Hpost. 
+    eapply weaken.
+    eapply WP.writeVirEntry.
+    simpl; intros.
+(*     destruct H0 as (H0 & Hnew).
+    unfold propagatedProperties in H0.
+    do 60 rewrite <- and_assoc in H0.
+    destruct H0 as (H0 & Hsplit).
+    destruct H0 as (H0 & Hfalse). 
+    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
+    try repeat rewrite and_assoc in Hpost. 
+    clear H0 Hfalse Hnew Hsplit.      
+    pattern s in Hpost.
+    match type of Hpost with 
+    |?HT s => instantiate (1 := fun tt s => HT s /\ 
+                                isEntryVA childSh2 idxSh2 descChild s)
+    end.
+    simpl in *.
+    split.  *)
+    unfold propagatedProperties in *.
+    assert(Hget : forall idx : index,
+                  StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+                  isVE childSh2 idx s /\ 
+                  getTableAddrRoot childSh2 sh1idx currentPart shadow2 s)
+      by intuition.
+    assert (Hve :isVE childSh2 idxSh2  s).
+    apply Hget.
+    intuition.
+    unfold isVE in Hve.
+    case_eq( lookup childSh2 idxSh2  (memory s) beqPage beqIndex);
+    intros; rewrite H0 in *; try now contradict Hve.
+    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
+    assert(Hpartitions : getPartitions multiplexer
+            {|
+            currentPartition := currentPartition s;
+            memory := add childSh2 idxSh2  (VE {| pd := false; va := descChild |})
+                        (memory s) beqPage beqIndex |} = 
+                        getPartitions multiplexer
+            s).
+    apply getPartitionsAddDerivation with v0;trivial.
+    unfold isPartitionFalse in *.
+    intuition.
+
+
+    assert(Hispart : isPartitionFalse childSh2 idxSh2  s ) by intuition.
+    assert(Hconfig :forall partition,  getConfigPagesAux partition
+            {|
+            currentPartition := currentPartition s;
+            memory := add childSh2 idxSh2  (VE {| pd := false; va := descChild |}) 
+                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
+      { intros.
+        apply getConfigPagesAuxAddDerivation with v0;trivial. }
+    split.    
+    (** partitionsIsolation **)
+(*     do 2 rewrite and_assoc. *)
+    split. 
+    assert (Hiso : partitionsIsolation s) by intuition.
+    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
+    (** kernelDataIsolation **)
+    split.
+    assert (Hkdi : kernelDataIsolation s) by intuition.
+    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
+    (** VerticalSharing **)
+    split.
+    assert (Hvs : verticalSharing s) by intuition.
+    apply verticalSharingUpdtateSh1Structure with v0; trivial.
+    split.
+    (** consistency **)
+    assert (Hcons : consistency s ) by intuition.
+    apply consistencyUpdtateSh1Structure with v0; trivial.
+    (** Propagate properties **)
+    { 
+     intuition try trivial. 
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isPEAddDerivation with v0; trivial. 
+      assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  isPE ptRefChild idx s /\ 
+                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
+      by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+                    isPE ptPDChild idx s /\ 
+                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
+       intuition.
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+                  isPE ptSh1Child idx s /\ 
+                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr list fstLevel = idx ->
+      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr descChild fstLevel = idx ->
+       isVE ptRefChildFromSh1 idx s /\
+       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild
+      shadow2   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+       isVE ptPDChildSh1 idx s /\
+       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
+    + exists descChild.
+      split;trivial.
+      apply isEntryVASameValue;trivial. 
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+       isVE ptSh1ChildFromSh1 idx s /\
+       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
+(*     + assert (Hi : exists va : vaddr,
+         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
+     + exists descChild.
+      split;trivial.
+      apply isEntryVASameValue;trivial. 
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+       isVE childSh2 idx s /\
+       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial. 
+(** New property to propagate **)
+    + unfold isEntryVA.
+      cbn.
+      assert(Htrue : beqPairs (childSh2, idxSh2) (childSh2, idxSh2) beqPage beqIndex
+        = true).
+      { apply beqPairsTrue.
+        split; trivial. }
+      rewrite Htrue.
+      cbn;trivial.
+      exists descChild;split;trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr list fstLevel = idx ->
+       isVE childListSh1 idx s /\
+       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with list
+      shadow2   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *. 
+      unfold getConfigPages in *. 
+      rewrite Hconfig in *.
+      simpl in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+   +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
+                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
+                idxSh1 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 shadow2 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+    + apply isPartitionFalseAddDerivation. 
+(*     + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
+                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 shadow1 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial. *)
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
+                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
+                 idxConfigPagesList
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with list shadow2 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
+                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
+                 idxRefChild  (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow2 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
+                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
+                 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with pdChild shadow2 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial. }
+  { unfold newPropagatedProperties in *.
+    intuition try trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyPDChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh1Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh2Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyConfigPagesList (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyDescChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.  
+      
+    + apply isWellFormedSndShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx shadow2 idxSh2 s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+    + apply isWellFormedFstShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx shadow2 idxSh2 s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      intuition.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (Hi & _).
+      rewrite <- Hi.
+      apply readPhyEntryAddDerivation with v0;trivial.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (_ & Hi).
+      rewrite <- Hi.
+      apply readPresentAddDerivation with v0;trivial.
+    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
+              Some defaultPage)by intuition.
+      rewrite <- Hi.
+      apply readPhysicalAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      (idx = CIndex (tableSize - 1) -> False) ->
+      Nat.Odd idx -> 
+      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
+      rewrite <- Hi with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      Nat.Even idx ->
+      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
+      by trivial.
+      assert (Heven : Nat.Even idx) by trivial.
+      apply Hi in Heven.
+      destruct Heven as (idxValue & Hidx).
+      exists idxValue.
+      rewrite <- Hidx.
+      apply readIndexAddDerivation with v0; trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+        childSh2 idxSh2 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childSh2 idxSh2 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyDescChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+   + rewrite getChildrenAddDerivation with  currentPart descChild
+       childSh2 idxSh2 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childSh2 idxSh2 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyPDChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       childSh2 idxSh2 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childSh2 idxSh2  s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh1Child  (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       childSh2 idxSh2 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childSh2 idxSh2 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh2Child (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+     + rewrite getChildrenAddDerivation with  currentPart descChild
+        childSh2 idxSh2 v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childSh2 idxSh2 s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyConfigPagesList(getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + apply isEntryVASameValue;trivial.
+    + apply isEntryVASameValue;trivial.
+    +      
+(** New property to propagate **)
+    unfold isEntryVA.
+    cbn.
+    assert(Htrue : beqPairs (childSh2, idxSh2) (childSh2, idxSh2) beqPage beqIndex
+ = true).
+    { apply beqPairsTrue.
+      split; trivial. }
+    rewrite Htrue.
+    cbn;trivial. }
+Qed. 
+
+Lemma writeVirEntryList     
+pdChild currentPart currentPD level ptRefChild descChild idxRefChild 
+ ptPDChild idxPDChild   ptSh1Child shadow1 idxSh1
+  ptSh2Child shadow2 idxSh2   ptConfigPagesList 
+idxConfigPagesList  
+currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
+ptSh1ChildFromSh1 derivedSh1Child childSh2
+derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+phySh2Child phyConfigPagesList phyDescChild zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR        
+ :derivedRefChild && derivedPDChild && derivedSh1Child && derivedSh2Child && derivedRefChildListSh1 = true -> 
+beqVAddr defaultVAddr descChild = false ->
+{{ fun s : state =>
+   propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild descChild idxRefChild true ptPDChild
+     idxPDChild true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+     ptRefChildFromSh1 derivedRefChild ptPDChildSh1 false ptSh1ChildFromSh1 false childSh2 false childListSh1 derivedRefChildListSh1 list
+     phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR currentPart level phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s /\ isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s /\ isEntryVA childSh2 idxSh2 descChild s }} 
+  writeVirEntry childListSh1 idxConfigPagesList descChild {{fun _ (s : state) =>
+   propagatedProperties false false false false pdChild currentPart currentPD level ptRefChild descChild idxRefChild true ptPDChild
+     idxPDChild true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true currentShadow1
+     ptRefChildFromSh1 derivedRefChild ptPDChildSh1 false ptSh1ChildFromSh1 false childSh2 false childListSh1 false list
+     phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
+   newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR currentPart level phyPDChild phySh1Child phySh2Child
+     phyConfigPagesList phyDescChild /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyDescChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyPDChild (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh1Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phySh2Child (getMappedPages child s)) /\
+   (forall child : page, In child (getChildren currentPart s) -> ~ In phyConfigPagesList (getMappedPages child s)) /\
+   isEntryVA ptPDChildSh1 idxPDChild descChild s /\ 
+   isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s /\ 
+   isEntryVA childSh2 idxSh2 descChild s /\
+   isEntryVA childListSh1 idxConfigPagesList descChild s }} .
+ Proof.
+  intros Hderived Hpost.
+  eapply weaken.
+  eapply WP.writeVirEntry.
+    simpl; intros.
+  unfold propagatedProperties in *.
+  assert(Hget : forall idx : index,
+          StateLib.getIndexOfAddr list fstLevel = idx ->
+          isVE childListSh1 idx s /\ 
+          getTableAddrRoot childListSh1 sh1idx currentPart list s)
+  by intuition.
+  assert (Hve :isVE childListSh1 idxConfigPagesList  s).
+  apply Hget.
+    intuition.
+    unfold isVE in Hve.
+    case_eq( lookup childListSh1 idxConfigPagesList  (memory s) beqPage beqIndex);
+    intros; rewrite H0 in *; try now contradict Hve.
+    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
+    assert(Hpartitions : getPartitions multiplexer
+            {|
+            currentPartition := currentPartition s;
+            memory := add childListSh1 idxConfigPagesList  (VE {| pd := false; va := descChild |})
+                        (memory s) beqPage beqIndex |} = 
+                        getPartitions multiplexer
+            s).
+    apply getPartitionsAddDerivation with v0;trivial.
+    unfold isPartitionFalse in *.
+    intuition.
+    assert(Hconfig :forall partition,  getConfigPagesAux partition
+            {|
+            currentPartition := currentPartition s;
+            memory := add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |}) 
+                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
+      { intros.
+        apply getConfigPagesAuxAddDerivation with v0;trivial. }
+    assert(Hispart : isPartitionFalse childListSh1 idxConfigPagesList  s ) by intuition.
+    split.    
+    (** partitionsIsolation **)
+(*     do 3 rewrite and_assoc. *)
+    split.
+    assert (Hiso : partitionsIsolation s) by intuition.
+    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
+    (** kernelDataIsolation **)
+    split.
+    assert (Hkdi : kernelDataIsolation s) by intuition.
+    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
+    (** VerticalSharing **)
+    split.
+    assert (Hvs : verticalSharing s) by intuition.
+    apply verticalSharingUpdtateSh1Structure with v0; trivial.
+    (** consistency **)
+    split.
+    assert (Hcons : consistency s ) by intuition.
+    apply consistencyUpdtateSh1Structure with v0; trivial.
+    (** Propagate properties **)
+    { 
+     intuition try trivial. 
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isPEAddDerivation with v0; trivial. 
+      assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  isPE ptRefChild idx s /\ 
+                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
+      by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+                    isPE ptPDChild idx s /\ 
+                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
+       intuition.
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+                  isPE ptSh1Child idx s /\ 
+                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + assert(Hi : forall idx : index,
+      StateLib.getIndexOfAddr list fstLevel = idx ->
+      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
+       intuition. 
+      apply isPEAddDerivation with v0; trivial.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
+    + apply entryPresentFlagAddDerivation with v0; trivial.
+    + apply entryUserFlagAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr descChild fstLevel = idx ->
+       isVE ptRefChildFromSh1 idx s /\
+       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
+    + assert (Hi : exists va : vaddr,
+         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
+         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild
+      list   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+       isVE ptPDChildSh1 idx s /\
+       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
+    + exists descChild;split;trivial.
+      apply isEntryVASameValue;trivial.
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+       isVE ptSh1ChildFromSh1 idx s /\
+       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
+(*     + assert (Hi : exists va : vaddr,
+         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
+      pdChild   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
+    + exists descChild;split;trivial.
+      apply isEntryVASameValue;trivial.
+
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+       isVE childSh2 idx s /\
+       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
+(*     + assert (Hi : exists va : vaddr,
+         isEntryVA childSh2 idxSh2  va s /\ 
+         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
+      destruct Hi as (va & Hva & Hderiv).
+      exists va;split;trivial.
+      apply isEntryVAAddDerivation; trivial.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
+      shadow1   currentPart
+      currentShadow1 sh1idx level isVE s ;trivial.
+      right;left; trivial.
+      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
+    + exists descChild;split;trivial.
+      apply isEntryVASameValue;trivial.
+
+    + apply isVEAddDerivation with v0; trivial. 
+      assert (Hi : forall idx : index,
+       StateLib.getIndexOfAddr list fstLevel = idx ->
+       isVE childListSh1 idx s /\
+       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
+      apply Hi; trivial.
+    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
+(** New property to propagate **)
+    + exists descChild;split;trivial.
+     unfold isEntryVA.
+    cbn.
+    assert(Htrue : beqPairs (childListSh1, idxConfigPagesList) (childListSh1, idxConfigPagesList)
+     beqPage beqIndex
+ = true).
+    { apply beqPairsTrue.
+      split; trivial. }
+    rewrite Htrue.
+    cbn;trivial. 
+    + apply isEntryPageAddDerivation with v0; trivial.    
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      left;trivial.
+    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
+      rewrite Hconfig in *; clear Hconfig.
+      rewrite Hpartitions in *;clear Hpartitions.
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+      right;trivial.
+    + apply isEntryPageAddDerivation with v0; trivial.
+    + rewrite Hpartitions in *.
+      unfold getConfigPages in *.
+      simpl in *.
+      rewrite Hconfig in *.   
+      assert(Hi : forall partition : page,
+      In partition (getPartitions multiplexer s) ->
+      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
+      by intuition.
+      apply Hi with partition;trivial.
+   +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
+                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
+                idxSh1 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 list currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+   + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
+                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 list currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial. 
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    + apply isPartitionFalseAddDerivation.
+    (* assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
+                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
+                 idxConfigPagesList
+                (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with list shadow2 currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+     rewrite Hreadflag;trivial.*)
+(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
+    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
+                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
+                 idxRefChild  (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with descChild list currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial.
+   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
+       unfold isPartitionFalse in *.
+       simpl in *.
+       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
+                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
+                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
+                 (memory s)).
+      apply  readPDflagAddDerivation.
+      apply toApplyPageTablesOrIndicesAreDifferent with pdChild list currentPart 
+            currentShadow1 sh1idx level isVE  s;trivial.
+     right;left;trivial.
+     subst.
+     rewrite Hreadflag;trivial. }
+   { unfold newPropagatedProperties in *. 
+     intuition try trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyPDChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh1Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phySh2Child (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyConfigPagesList (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + set (s' := {| currentPartition := _ |})  in *.
+      assert(Haccess : getAccessibleMappedPages partition s' =
+      getAccessibleMappedPages partition s).
+      apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+      rewrite Haccess in *.   
+      assert(Htrue : forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        In phyDescChild (getAccessibleMappedPages partition s) -> False) by trivial.
+      apply Htrue  with partition.
+      assert(Hanc : getAncestors currentPart s' = getAncestors currentPart s) by (
+        apply getAncestorsAddDerivation with v0;trivial).
+      rewrite <- Hanc;trivial.
+      trivial.
+    + apply isWellFormedSndShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx list idxConfigPagesList s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+    + apply isWellFormedFstShadowUpdateMappedPageData;trivial. 
+      unfold not;intros Hfalse;symmetry in Hfalse;contradict Hfalse.
+      apply mappedPageIsNotPTable with currentPart currentShadow1 isVE sh1idx list idxConfigPagesList s ;
+      trivial.
+      right;left;trivial.
+      subst.
+      unfold consistency in *.
+      unfold currentPartitionInPartitionsList in *.
+      intuition.
+      unfold consistency in *.
+      intuition.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (Hi & _).
+      rewrite <- Hi.
+      apply readPhyEntryAddDerivation with v0;trivial.
+    + assert(Hii : forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)  by intuition.
+      destruct Hii with idx as (_ & Hi).
+      rewrite <- Hi.
+      apply readPresentAddDerivation with v0;trivial.
+    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
+              Some defaultPage)by intuition.
+      rewrite <- Hi.
+      apply readPhysicalAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      (idx = CIndex (tableSize - 1) -> False) ->
+      Nat.Odd idx -> 
+      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
+      rewrite <- Hi with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
+    + assert(Hi : forall idx : index,
+      Nat.Even idx ->
+      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
+      by trivial.
+      assert (Heven : Nat.Even idx) by trivial.
+      apply Hi in Heven.
+      destruct Heven as (idxValue & Hidx).
+      exists idxValue.
+      rewrite <- Hidx.
+      apply readIndexAddDerivation with v0; trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + apply isVAAddDerivation with v0;trivial.
+    + apply nextEntryIsPPAddDerivation with v0;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+        childListSh1 idxConfigPagesList v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childListSh1 idxConfigPagesList s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyDescChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+   + rewrite getChildrenAddDerivation with  currentPart descChild
+       childListSh1 idxConfigPagesList v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childListSh1 idxConfigPagesList s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyPDChild (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       childListSh1 idxConfigPagesList v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childListSh1 idxConfigPagesList  s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh1Child  (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + rewrite getChildrenAddDerivation with  currentPart descChild
+       childListSh1 idxConfigPagesList v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childListSh1 idxConfigPagesList s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phySh2Child (getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+     + rewrite getChildrenAddDerivation with  currentPart descChild
+        childListSh1 idxConfigPagesList v0 s in *;trivial.       
+       rewrite getMappedPagesAddDerivation with child descChild
+        childListSh1 idxConfigPagesList s  v0 false in *;trivial.
+       assert(Hgoal : forall child : page,
+       In child (getChildren currentPart s) -> In phyConfigPagesList(getMappedPages child s) -> False) by trivial.
+       apply Hgoal with child ;trivial.
+    + apply isEntryVASameValue;trivial.
+    + apply isEntryVASameValue;trivial.
+    + apply isEntryVASameValue;trivial.
+    +
+(** New property to propagate **)
+    unfold isEntryVA.
+    cbn.
+    assert(Htrue : beqPairs (childListSh1, idxConfigPagesList) (childListSh1, idxConfigPagesList)
+     beqPage beqIndex
+ = true).
+    { apply beqPairsTrue.
+      split; trivial. }
+    rewrite Htrue.
+    cbn;trivial. 
+    }
 Qed.

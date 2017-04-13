@@ -66,4 +66,7 @@ Internal.h
 *.mtc1
 *.out
 *.synctex.gz
+*.spl
+*.backup
+*.pag
 *.pdf

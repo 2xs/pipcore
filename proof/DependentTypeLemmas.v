@@ -260,7 +260,31 @@ simpl;trivial.
 assert(0<nbLevel) by apply nbLevelNotZero.
 omega.
 Qed.
+
+Lemma fstLevelLe :
+forall l: level ,
+fstLevel <= l.
+Proof.
+unfold fstLevel.
+unfold CLevel.
+intros.
+case_eq( lt_dec 0 nbLevel);intros.
+simpl;omega.
+assert(0 <nbLevel) by apply nbLevelNotZero.
+omega.
+Qed.
  
+Lemma getNbLevelLt nbL:
+StateLib.getNbLevel = Some nbL -> nbL < nbLevel.
+Proof.
+intros.
+unfold  StateLib.getNbLevel in *.
+destruct (gt_dec nbLevel 0).
+inversion H.
+simpl;trivial.
+omega.
+now contradict H.
+Qed.
 (**** ADT : page **)
 Lemma isDefaultPageFalse : forall p,   (defaultPage =? pa p) = false -> pa p <> defaultPage .
 Proof.
@@ -317,6 +341,19 @@ subst.
 intuition.
 Qed.
 
+Lemma pageDecOrNot :
+forall p1 p2 : page, p1 = p2 \/ p1<>p2.
+Proof.
+destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
+assert (Heq :p=p0 \/ p<> p0) by omega.
+destruct Heq as [Heq|Heq].
+subst.
+left;f_equal;apply proof_irrelevance.
+right. unfold not;intros.
+inversion H.
+subst.
+now contradict Heq.
+Qed.
 
 (** ADT : index **)
 Lemma indexEqFalse : 

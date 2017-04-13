@@ -58,7 +58,7 @@ Axiom nbPageNotZero: nbPage > 0.
 
 Axiom tableSizeIsEven : Nat.Even tableSize.
 (* END NOT SIMULATION *)
-Definition tableSizeLowerBound := 10.  
+Definition tableSizeLowerBound := 14.  
 Axiom tableSizeBigEnough : tableSize > tableSizeLowerBound. (* to be fixed on count **) 
 Record index := {
   i :> nat ;

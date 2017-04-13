@@ -35,10 +35,60 @@
     We prove that this PIP service preserves the isolation property *)
 Require Import Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL InitConfigPagesList InitPEntryTable DependentTypeLemmas  GetTableAddr 
-WriteAccessible WriteAccessibleRec UpdateMappedPageContent InternalLemmas  Lib
-UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure.
+Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr WriteAccessible WritePhyEntry 
+PropagatedProperties WriteAccessibleRec
+InitConfigPagesList InitPEntryTable    
+ UpdateMappedPageContent   
+UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure
+InitFstShadow InitSndShadow   UpdatePDFlagTrue.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
+      Lemma andPreAndPost :  
+ forall (A : Type) (P: state -> Prop) 
+ (Q1 Q2  :  state -> Prop) (m : LLI A),
+{{fun s => P s /\ Q1 s}} m {{fun _ => Q1}} -> 
+{{fun s => P s /\ Q2 s}} m {{fun _ =>  Q2}} -> 
+{{fun s => P s /\ Q1 s /\ Q2 s}} m {{fun _ s =>  Q1 s /\ Q2 s}}.
+Proof.
+intros.
+unfold hoareTriple in *.
+intros.
+assert( P s /\ Q1 s) by intuition.
+apply H in H2.
+
+assert( P s /\ Q2 s) by intuition.
+apply H0 in H3.
+destruct (m s); trivial.
+destruct p.
+split; trivial.
+Qed.
+Lemma levelDecOrNot : 
+      forall p1 p2 : level, p1 <> p2 \/ p1 = p2. 
+Proof.
+destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
+assert (Heq :l<>l0 \/ l = l0) by abstract omega.
+destruct Heq as [Heq|Heq].
+
+left. unfold not;intros.
+inversion H.
+subst.
+now contradict Heq.
+subst.
+right;f_equal. apply proof_irrelevance.
+Qed.
+
+Lemma writeKernelPhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx
+              (PE {| read := r; write := w; exec := e; present := p; user := u; pa := addr |})
+              (memory s) beqPage beqIndex |} }} writePhyEntry table idx addr p u r w e  {{P}}.
+Proof.
+unfold writeKernelPhyEntry.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
 
 Lemma createPartition (descChild pdChild shadow1 shadow2 list : vaddr) :
 {{fun s => partitionsIsolation s  /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }} 
@@ -46,6 +96,11 @@ createPartition descChild pdChild shadow1 shadow2 list
 {{fun _ s  => partitionsIsolation s  /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof.
 unfold createPartition.
+case_eq(beqVAddr defaultVAddr descChild);
+intros HdescChildDefault.
+eapply weaken.
+eapply WP.ret.
+simpl;intros;trivial.
 eapply WP.bindRev.
 eapply WP.weaken. 
 (** getNbLevel **)
@@ -86,7 +141,11 @@ repeat (eapply WP.bindRev; [ eapply WP.weaken ;
               [ apply Invariants.checkKernelMap | intros; simpl; pattern s in H; eapply H ]
                                 | simpl; intro ]).
                                 simpl.
-case_eq (negb a && negb a0 && negb a1 && negb a2 && negb a3).
+ repeat (eapply WP.bindRev; [ eapply WP.weaken ; 
+              [ apply Invariants.compareVAddrToNull | intros; simpl; pattern s in H; eapply H ]
+                                | simpl; intro ]).
+                                simpl.                               
+case_eq ( negb a && negb a0 && negb a1 && negb a2 && negb a3 && negb a4 && negb a5 && negb a6 && negb a7).
 intro Hkmap.
 repeat rewrite andb_true_iff in Hkmap.
 try repeat rewrite and_assoc in Hkmap.
@@ -145,12 +204,21 @@ eapply WP.bindRev.
       instantiate (1:= currentPart). subst. assumption.
       instantiate (1:= PDidx).
       split. intuition.
-      destruct H as ( _ & _ & _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd ).
+      assert(consistency s /\
+              Some level = StateLib.getNbLevel /\ 
+              currentPart = currentPartition s /\ 
+              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+      by intuition.
+      clear H.     (* 
+      destruct H as ( _ & _ & _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & 
+      _ &_ & _ & _ & _ &_ &_ & _ &_ & _& _& Hcp & Hrootpd ). *)
       exists currentPD.
       split. assumption.
       split.
       unfold consistency in *.
-      destruct Hcons as (Hpd & _ & _ &_  & Hpr  & _). 
+      assert(partitionDescriptorEntry s /\ currentPartitionInPartitionsList s) as (Hpd &Hpr)
+      by intuition. clear Hcons.
+(*       destruct Hcons as (Hpd & _ & _ &_  & Hpr  & _).  *)
       unfold partitionDescriptorEntry in Hpd.
       unfold currentPartitionInPartitionsList in *.
       subst.
@@ -188,24 +256,8 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]].
         - contradict Hfalse.
-           unfold PDidx. unfold sh1idx.
-           apply indexEqFalse ;
-           assert (tableSize > tableSizeLowerBound).
-           apply tableSizeBigEnough.
-           unfold tableSizeLowerBound in *.
-           omega.  apply tableSizeBigEnough.
-           unfold tableSizeLowerBound in *.
-           omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh2idx.
-         apply indexEqFalse;
-         assert (tableSize > tableSizeLowerBound).
-         apply tableSizeBigEnough.
-         unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
-         unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
-      -
+          apply idxPDidxSh1notEq.
+       - contradict Hfalse. apply idxPDidxSh2notEq.      -
        assumption.
      - assumption.  } 
     assert (HP := conj H0 H).
@@ -275,16 +327,23 @@ eapply WP.bindRev.
       split. 
       intuition.
       split. 
-      instantiate (1:= currentPart). intuition. subst. unfold consistency in *. 
+      instantiate (1:= currentPart).
+      intuition. subst. unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. intuition.
       instantiate (1:= PDidx).
       split. intuition.
-       destruct H as ( _ & _ & _& Hcons  & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H).
+      assert(consistency s /\
+              Some level = StateLib.getNbLevel /\ 
+              currentPart = currentPartition s /\ 
+              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+      by intuition.
+      clear H.  
       exists currentPD.
       split. assumption.
       split.
       unfold consistency in *.
-      destruct Hcons as (Hpd & _ & _ &_  & Hpr  & _). 
+      assert(partitionDescriptorEntry s /\ currentPartitionInPartitionsList s) as (Hpd &Hpr)
+      by intuition. clear Hcons. 
       unfold partitionDescriptorEntry in Hpd.
       unfold currentPartitionInPartitionsList in *.
       subst.
@@ -323,24 +382,8 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]].
         - contradict Hfalse.
-         
-       unfold PDidx. unfold sh1idx.
-       apply indexEqFalse ;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh2idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
+          apply idxPDidxSh1notEq.
+       - contradict Hfalse. apply idxPDidxSh2notEq.
       -
        assumption.
      - assumption.  } 
@@ -420,12 +463,19 @@ eapply WP.bindRev.
       intuition.
       instantiate (1:= PDidx).
       split. intuition.
-      destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
+      assert(consistency s /\
+              Some level = StateLib.getNbLevel /\ 
+              currentPart = currentPartition s /\ 
+              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+      by intuition.
+      clear H. 
       exists currentPD.
-      split. intuition.
+      split. assumption.
       split.
       unfold consistency in *.
-      destruct Hcons as (Hpd & _ & _ &_  & Hpr  & _). 
+      assert(partitionDescriptorEntry s /\ currentPartitionInPartitionsList s) as (Hpd &Hpr)
+      by intuition. clear Hcons. 
+
       unfold partitionDescriptorEntry in Hpd.
       assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx\/PDidx = sh3idx\/ PDidx = PPRidx \/ PDidx = PRidx ) as Htmp
           by auto.
@@ -461,25 +511,8 @@ eapply WP.bindRev.
       
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]].
-        - contradict Hfalse.
-         
-       unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh2idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
+        - contradict Hfalse. apply idxPDidxSh1notEq.
+       - contradict Hfalse. apply idxPDidxSh2notEq.
       -split;
        assumption. }
        
@@ -562,7 +595,7 @@ eapply WP.bindRev.
       split. intuition.
       
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & 
-      b_ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H).
+      b_ & _ & _ &_ & _ & _ & _ &_ & _&_ & _ &_ & _& Hcp & Hrootpd & H).
       exists currentPD.
       split. intuition.
       split.
@@ -600,25 +633,9 @@ eapply WP.bindRev.
       + right. intros idx Hidx.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]].
-        - contradict Hfalse.
-         
-       unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh2idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
+         - contradict Hfalse.
+           apply idxPDidxSh1notEq.
+         - contradict Hfalse.  apply idxPDidxSh2notEq.
       - split;
        assumption. }
        assert (HP := conj H0 H).
@@ -697,7 +714,7 @@ eapply WP.bindRev.
       intuition.
       instantiate (1:= PDidx).
       split. intuition.
-      destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
+      destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
 
       exists currentPD.
       split. intuition.
@@ -736,25 +753,9 @@ eapply WP.bindRev.
       + right. intros idx Hidx.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]].
-        - contradict Hfalse.
-         
-       unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
        - contradict Hfalse.
-          unfold PDidx. unfold sh2idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
+           apply idxPDidxSh1notEq.
+         - contradict Hfalse.  apply idxPDidxSh2notEq.
       - split;
        assumption. }
     assert (HP := conj H0 H).
@@ -898,25 +899,10 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(Hpe &Htrue) |[ (_& Hfalse) | (_&Hfalse) ]].
         - split; assumption.
-        - contradict Hfalse.
-         
-       unfold sh2idx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega. }
+        - contradict Hfalse. 
+         symmetrynot. apply idxSh2idxSh1notEq.
+       - contradict Hfalse. 
+          symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
     eapply HP. 
@@ -1017,24 +1003,10 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(Hpe &Htrue) |[ (_& Hfalse) | (_&Hfalse) ]].
         - split; assumption.
-        - contradict Hfalse.
-          unfold sh2idx. unfold sh1idx.
-          apply indexEqFalse;
-          assert (tableSize > tableSizeLowerBound).
-          apply tableSizeBigEnough.
-          unfold tableSizeLowerBound in *.
-          omega.  apply tableSizeBigEnough.
-          unfold tableSizeLowerBound in *.
-          omega. apply tableSizeBigEnough. omega.
-           - contradict Hfalse.
-             unfold PDidx. unfold sh1idx.
-             apply indexEqFalse;
-             assert (tableSize > tableSizeLowerBound).
-             apply tableSizeBigEnough.
-             unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
-             unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega. }
+        - contradict Hfalse. 
+         symmetrynot. apply idxSh2idxSh1notEq.
+       - contradict Hfalse. 
+          symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
     eapply HP.
@@ -1135,25 +1107,10 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(Hpe &Htrue) |[ (_& Hfalse) | (_&Hfalse) ]].
         - split; assumption.
-        - contradict Hfalse.
-         
-       unfold sh2idx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega. }
+        - contradict Hfalse. 
+         symmetrynot. apply idxSh2idxSh1notEq.
+       - contradict Hfalse. 
+          symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
     eapply HP.
@@ -1255,25 +1212,10 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(Hpe &Htrue) |[ (_& Hfalse) | (_&Hfalse) ]].
         - split; assumption.
-        - contradict Hfalse.
-         
-       unfold sh2idx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega. }
+- contradict Hfalse. 
+         symmetrynot. apply idxSh2idxSh1notEq.
+       - contradict Hfalse. 
+          symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
     eapply HP.
@@ -1377,25 +1319,10 @@ eapply WP.bindRev.
         generalize (H1 idx Hidx);clear H1;intros H1.
         destruct H1 as [(Hpe &Htrue) |[ (_& Hfalse) | (_&Hfalse) ]].
         - split; assumption.
-        - contradict Hfalse.
-         
-       unfold sh2idx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega.
-       - contradict Hfalse.
-          unfold PDidx. unfold sh1idx.
-       apply indexEqFalse;
-       assert (tableSize > tableSizeLowerBound).
-       apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega.  apply tableSizeBigEnough.
-       unfold tableSizeLowerBound in *.
-       omega. apply tableSizeBigEnough. omega. }
+- contradict Hfalse. 
+         symmetrynot. apply idxSh2idxSh1notEq.
+       - contradict Hfalse. 
+          symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
     eapply HP.
@@ -1439,7 +1366,8 @@ eapply WP.bindRev.
     pattern s in H0.
     eapply H0. 
     subst.
-    unfold propagatedProperties in *.
+    
+    unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
       isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by intuition.
@@ -1489,7 +1417,7 @@ eapply WP.bindRev.
     pattern s in Hnew.
     apply Hnew. 
     subst.
-    unfold propagatedProperties in *.
+     unfold propagatedProperties in *. 
     assert (Hpe : forall idx : index,
                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
                    isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx 
@@ -1531,7 +1459,7 @@ eapply WP.bindRev.
     pattern s in Hnew.
     eapply Hnew. 
     subst.
-    unfold propagatedProperties in *.
+     unfold propagatedProperties in *. 
     assert (Hpe : forall idx : index,
                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
                      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child 
@@ -1572,7 +1500,7 @@ eapply WP.bindRev.
     pattern s in Hnew.
     eapply Hnew. 
     subst.
-    unfold propagatedProperties in *.
+ unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
                        StateLib.getIndexOfAddr list fstLevel = idx ->
                        isPE ptConfigPagesList idx s /\
@@ -1614,7 +1542,7 @@ eapply WP.bindRev.
     pattern s in Hnew.
     eapply Hnew. 
     subst.
-    unfold propagatedProperties in *.
+ unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
                          StateLib.getIndexOfAddr descChild fstLevel = idx ->
                          isPE ptRefChild idx s /\
@@ -1627,1060 +1555,26 @@ eapply WP.bindRev.
 (** writeAccessible : pdChild **)
     eapply WP.bindRev.
     eapply WP.weaken.
-    eapply WP.writeAccessible.
-    intros. simpl.
-    assert (exists entry : Pentry,
-      lookup ptPDChild idxPDChild (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
-    { apply isPELookupEq.
-      assert (forall idx : index,
-          StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-          isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s) as H1 by intuition.
-      generalize (H1  idxPDChild);clear H1; intros H1.
-      assert (StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild ) as H2 by intuition.
-      apply H1 in H2. intuition. }      
-    destruct Hlookup as (entry & Hlookup).
-    exists entry ; split;trivial.
-    assert(Hphynotnull : (defaultPage =? phyDescChild) = false).
-    { unfold consistency in *.
-      assert(Hcons : isPresentNotDefaultIff s) by intuition.
-      assert(Hpresent : entryPresentFlag ptRefChild idxRefChild presentRefChild s) by intuition.
-      apply phyPageNotDefault with ptRefChild idxRefChild s;intuition.
-      repeat rewrite andb_true_iff in Hlegit;intuition.
-      subst. trivial. }
-    assert(Hphy :forall partition, In partition (getPartitions multiplexer s) ->
-      ~ In phyDescChild  (getConfigPages partition s)).
-    { intros. 
-      try repeat rewrite  andb_true_iff in Hlegit.
-      try repeat rewrite and_assoc in Hlegit.
-      destruct Hlegit as ( presentPD & accessPD & _ ).
-       unfold  consistency in *.
-      assert (Hcurpart : currentPartitionInPartitionsList s) by intuition.
-      unfold currentPartitionInPartitionsList in *; trivial.
-      assert (Hkernel : kernelDataIsolation s) by intuition.
-      unfold kernelDataIsolation in Hkernel.
-      unfold disjoint in Hkernel.
-      apply Hkernel with (currentPartition s); trivial.
-      intuition.
-      apply physicalPageIsAccessible with ptRefChild descChild 
-      idxRefChild accessibleChild level presentRefChild currentPD; subst; intuition. }
-    assert (Hreadflag : isPartitionFalse ptPDChildSh1 idxPDChild s ).
-   { unfold isPartitionFalse.
-    unfold consistency in *. 
-    assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-    unfold accessibleVAIsNotPartitionDescriptor in *.
-    assert (Hflag : getPDFlag currentShadow1 pdChild s = false).
-    { apply Haccessva with currentPart currentPD phyPDChild.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst;assumption.
-      apply nextEntryIsPPgetPd; intuition.
-      apply nextEntryIsPPgetFstShadow;intuition.
-      assert (pa entry = phyPDChild).
-      apply isEntryPageLookupEq with ptPDChild idxPDChild s; trivial.
-      intuition.
-      subst.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition.
-      subst.      
-      apply isAccessibleMappedPage with ptPDChild;trivial. }
-    apply getPDFlagReadPDflag with currentShadow1 pdChild currentPart;trivial.
-    intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptPDChildSh1) = false) by trivial.
-    apply beq_nat_false in Hfalsepge.
-    unfold not;intros Hfalse'.
-    rewrite Hfalse' in Hfalsepge.    
-    now contradict Hfalsepge.
-    intuition.
-    intuition.
-    intuition. }
-    assert (Hreadflagsh1 : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s ).
-   { unfold isPartitionFalse.
-    unfold consistency in *. 
-    assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-    unfold accessibleVAIsNotPartitionDescriptor in *.
-    assert (Hflag : getPDFlag currentShadow1 shadow1 s = false).
-    { apply Haccessva with currentPart currentPD phySh1Child.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst;assumption.
-      apply nextEntryIsPPgetPd; intuition.
-      apply nextEntryIsPPgetFstShadow;intuition.  
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition.
-      subst.
-      apply isAccessibleMappedPage2 with (currentPartition s) ptSh1Child;intuition. }
-    apply getPDFlagReadPDflag with currentShadow1 shadow1 currentPart;trivial.
-    intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptSh1ChildFromSh1) = false) by trivial.
-    apply beq_nat_false in Hfalsepge.
-    unfold not;intros Hfalse'.
-    rewrite Hfalse' in Hfalsepge.    
-    now contradict Hfalsepge.
-    intuition.
-    intuition.
-    intuition. }
-   assert (Hreadflagsh2 : isPartitionFalse childSh2 idxSh2 s ).
-   { unfold isPartitionFalse.
-    unfold consistency in *. 
-    assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-    unfold accessibleVAIsNotPartitionDescriptor in *.
-    assert (Hflag : getPDFlag currentShadow1 shadow2 s = false).
-    { apply Haccessva with currentPart currentPD phySh2Child.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst;assumption.
-      apply nextEntryIsPPgetPd; intuition.
-      apply nextEntryIsPPgetFstShadow;intuition.  
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition.
-      subst.
-      apply isAccessibleMappedPage2 with (currentPartition s) ptSh2Child;intuition. }
-    apply getPDFlagReadPDflag with currentShadow1 shadow2 currentPart;trivial.
-    intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? childSh2) = false) by trivial.
-    apply beq_nat_false in Hfalsepge.
-    unfold not;intros Hfalse'.
-    rewrite Hfalse' in Hfalsepge.    
-    now contradict Hfalsepge.
-    intuition.
-    intuition.
-    intuition. }
-   assert (Hreadflaglist : isPartitionFalse childListSh1 idxConfigPagesList s ).
-   { unfold isPartitionFalse.
-    unfold consistency in *. 
-    assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-    unfold accessibleVAIsNotPartitionDescriptor in *.
-    assert (Hflag : getPDFlag currentShadow1 list s = false).
-    { apply Haccessva with currentPart currentPD phyConfigPagesList.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst;assumption.
-      apply nextEntryIsPPgetPd; intuition.
-      apply nextEntryIsPPgetFstShadow;intuition.  
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition.
-      subst.
-      apply isAccessibleMappedPage2 with (currentPartition s) ptConfigPagesList;intuition. }
-    apply getPDFlagReadPDflag with currentShadow1 list currentPart;trivial.
-    intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? childListSh1) = false) by trivial.
-    apply beq_nat_false in Hfalsepge.
-    unfold not;intros Hfalse'.
-    rewrite Hfalse' in Hfalsepge.    
-    now contradict Hfalsepge.
-    intuition.
-    intuition.
-    intuition. }
-    assert (Hreadflagdesc : isPartitionFalse ptRefChildFromSh1 idxRefChild s ).
-   { unfold isPartitionFalse.
-    unfold consistency in *. 
-    assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-    unfold accessibleVAIsNotPartitionDescriptor in *.
-    assert (Hflag : getPDFlag currentShadow1 descChild s = false).
-    { apply Haccessva with currentPart currentPD phyDescChild.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst;assumption.
-      apply nextEntryIsPPgetPd; intuition.
-      apply nextEntryIsPPgetFstShadow;intuition.  
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition.
-      subst.
-      apply isAccessibleMappedPage2 with (currentPartition s) ptRefChild;intuition. }
-    apply getPDFlagReadPDflag with currentShadow1 descChild currentPart;trivial.
-    intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptRefChildFromSh1) = false) by trivial.
-    apply beq_nat_false in Hfalsepge.
-    unfold not;intros Hfalse'.
-    rewrite Hfalse' in Hfalsepge.    
-    now contradict Hfalsepge.
-    intuition.
-    intuition.
-    intuition. }
-    assert(HpdChildaccess : getAccessibleMappedPage currentPD s pdChild = Some phyPDChild).
-    { intuition.
-      assert(Heqentry : pa entry =phyPDChild).
-      apply isEntryPageLookupEq with ptPDChild idxPDChild s;subst;trivial.
-      rewrite <- Heqentry in *.
-      apply isAccessibleMappedPage with ptPDChild;subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. 
-      subst;trivial. }
-    assert(Hcurparts : In currentPart (getPartitions multiplexer s)).
-    { unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst.
-      assumption. }
-    assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-    { intuition. subst.
-      apply nextEntryIsPPgetPd;trivial. }
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts PPRidx); clear Hpde; intros Hpde.
-    
-    assert(Hcurentparent : (exists entry : page, nextEntryIsPP currentPart PPRidx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 4 right;left;trivial. }
-    clear Hpde.
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts sh2idx); clear Hpde; intros Hpde.
-    
-    assert(Hcurrentsh2 : (exists entry : page, nextEntryIsPP currentPart sh2idx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 2 right;left;trivial. }
-    clear Hpde.
-    assert(Hisaccessible : isAccessibleMappedPageInParent currentPart pdChild phyPDChild s = true).
-               { assert(Hcons : consistency s).
-        { unfold propagatedProperties in *.
-          intuition. }
-        unfold consistency in Hcons.
-        assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-        unfold accessibleChildPhysicalPageIsAccessibleIntoParent in Haccess.
-        apply Haccess with currentPD;intuition. }
-    destruct H0 as (H0 & Hnew).
-    try repeat rewrite and_assoc in H0.
-    do 31 rewrite <- and_assoc in H0.
-    destruct H0 as (H0 & Hsplit).
-    subst. 
-    destruct H0 as (H0 & Hfalse). 
-    try repeat rewrite and_assoc in H0.
-    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
-
-    assert(Hnewprops := conj (conj (conj ( conj (conj (conj (conj Hphynotnull Hphy)  Hreadflagsh1) Hreadflagsh2) 
-    Hreadflaglist)Hreadflagdesc ) Hreadflag) Hisaccessible).
-        try repeat rewrite and_assoc in Hnewprops.
-    assert (Hnewpost := conj Hpost Hnewprops).    
-    pattern s in Hnewpost.
-    match type of Hnewpost with 
-    | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                entryUserFlag ptPDChild idxPDChild false s )
-    end.
+    assert(Htrue : accessiblePDChild = true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in Hlegit.
+    eapply writePhyEntry1.
+    eapply Hlegit.
+    eassumption.
+    intros.
     simpl.
-    set (s' := {|
-    currentPartition := currentPartition s;
-    memory := add ptPDChild idxPDChild
-              (PE
-                 {|
-                 read := read entry;
-                 write := write entry;
-                 exec := exec entry;
-                 present := present entry;
-                 user := false;
-                 pa := pa entry |}) (memory s) beqPage beqIndex |}) in *.
-    do 6 apply and_assoc.
-    split.
-  (** partitionsIsolation **) 
-    assert (partitionsIsolation s ) as Hiso. intuition.
-    clear Hpost Hsplit H0.
-    unfold partitionsIsolation in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hiso parent child1 child2); clear Hiso; intros Hiso. 
-    assert(getChildren parent s' = getChildren parent s) as Hchildren.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite Hchildren in H2, H1. clear Hchildren.
-    assert (getUsedPages child1 s'= getUsedPages child1 s) as Hch1used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch1used. clear Hch1used.
-    assert (getUsedPages child2 s' = getUsedPages child2 s) as Hch2used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch2used. clear Hch2used.
-    apply Hiso; trivial.
-    apply and_assoc.
-    split.
-  (** kernelDataIsolation **)
-    assert (kernelDataIsolation s) as HAncesiso. intuition.
-    unfold kernelDataIsolation in *.
-    intros.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions in *.
-    clear Hpartitions.
-    assert(  (getConfigPages partition2 s') = (getConfigPages partition2 s)) as Hconfig.
-    apply getConfigPagesUpdateUserFlag; trivial.
-    rewrite Hconfig. clear Hconfig.
-    assert (incl (getAccessibleMappedPages partition1 s') (getAccessibleMappedPages partition1 s)).
-    apply getAccessibleMappedPagesUpdateUserFlagFalse; trivial.
-    unfold disjoint in *.
-    intros.
-    unfold incl in *.
-    apply HAncesiso with partition1; trivial.
-    apply H3; trivial.
-    apply and_assoc.
-    split.
-  (** Vertical Sharing **)
-    unfold verticalSharing in *.
-    assert (Hvs : verticalSharing s)  by intuition.
-    clear Hpost Hsplit H0.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hvs parent child); clear Hvs; intros Hvs.
-    assert (getUsedPages child s' = getUsedPages child s) as Husedpage.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite   Husedpage.
-    assert ( getMappedPages parent s' = getMappedPages parent s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd parent (memory s') = StateLib.getPd parent (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd parent (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. apply Hvs;trivial.
-    assert (getChildren parent s' = getChildren parent s) as Hchild.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite <- Hchild. assumption.
-    apply and_assoc.
-    split.
-  (** Consistency **) 
-    assert (Hcons : consistency s) by intuition. 
-    clear Hpost Hsplit H0.     
-    unfold consistency in *.
-    destruct Hcons as (Hpe & Hpd & Hsh1 & Hsh2 & Hcurpartlist & 
-    Hnodupmapped & Hnodupconfig & Hparent & Hsh1struct).
-    split.
-    (** partitionDescriptorEntry **)
-    apply partitionDescriptorEntryUpdateUserFlag;trivial.
-    do 2 rewrite <- and_assoc.
-    split.
-    (** dataStructurePdSh1Sh2asRoot **)
-    repeat split; try  apply dataStructurePdSh1Sh2asRootUpdateUserFlag;intuition.
-    split.
-    (** currentPartitionInPartitionsList **)
-    unfold currentPartitionInPartitionsList in *.    
-    simpl in *. subst. 
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. trivial.
-    split.
-    (** noDupMappedPagesList **)
-    unfold noDupMappedPagesList in *.
-    intros partition HgetPartnewstate.
-    assert ( getMappedPages partition s' = getMappedPages partition s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd partition (memory s') = StateLib.getPd partition (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd partition (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. 
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag;trivial.
-    rewrite HgetPart in HgetPartnewstate.
-    intuition.
-    split.
-    (* noDupConfigPagesList **)
-(*     apply Hnodupmapped;assumption. *)
-    apply getIndirectionsNoDupUpdateUserFlag; intuition.
-    split.
-    (** parentInPartitionList **)
-    unfold parentInPartitionList in *.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart.
-    intros partition HgetParts parent Hroot.
-    generalize (Hparent partition HgetParts); clear Hparent; intros Hparent; trivial.
-    apply  nextEntryIsPPUpdateUserFlag' in  Hroot.
-    apply Hparent; trivial.
-    split.
-    (** accessibleVAIsNotPartitionDescriptor **)
-    unfold s'.
-    intuition. 
-    subst.
-    apply accessibleVAIsNotPartitionDescriptorUpdateUserFlag with level
-    (currentPartition s) currentPD ;trivial.
-    assert(Hget : forall idx : index,
-      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-      isPE ptPDChild idx s /\ 
-      getTableAddrRoot ptPDChild PDidx (currentPartition s) pdChild s) by trivial.     
-    assert(isPE ptPDChild (StateLib.getIndexOfAddr pdChild fstLevel) s /\ 
-            getTableAddrRoot ptPDChild PDidx (currentPartition s) pdChild s)
-    as (_ & Hi).
-    apply Hget; trivial.
-    assumption.
-    apply isAccessibleMappedPage with ptPDChild;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    split.
-    (** accessibleChildPhysicalPageIsAccessibleIntoParent *)
-    intuition.
-    subst.
-    assert(Htrue : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-    unfold s'.
-    assert(exists va : vaddr,
-        isEntryVA ptPDChildSh1 (StateLib.getIndexOfAddr pdChild fstLevel) va s /\
-        beqVAddr defaultVAddr va = derivedPDChild) as 
-        (vaInAncestor & HvaInAncestor & Hnotderived) by trivial.
-    destruct Hcurentparent as (ancestor & Hancestor & Hancestornotnull).
-    assert(Hancestorpart : In ancestor (getPartitions multiplexer s)).
-    unfold parentInPartitionList in *.
-    apply Hparent with (currentPartition s);trivial.
-    assert(Hpde : partitionDescriptorEntry s) by trivial.
-    unfold partitionDescriptorEntry in *.
-    assert(exists entry : page, nextEntryIsPP ancestor PDidx entry s /\ entry <> defaultPage) as (pdAncestor & Hpdancestor & Hpdancesnotnull).
-    apply Hpde;trivial.
-    left;trivial.      
-    apply accessibleChildPhysicalPageIsAccessibleIntoParentUpdate with 
-    ptPDChildSh1 (currentPartition s) currentPD level;
-    trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition;subst;trivial.
-    repeat rewrite andb_true_iff in H.
-    intuition;subst;trivial.
-    exists vaInAncestor;split;trivial.
-    split. intuition.
-    (* noCycleInPartitionTree *)
-    assert(Hdiff : noCycleInPartitionTree s) by trivial.
-    unfold noCycleInPartitionTree in *.
-    intros parent partition Hparts Hparentpart.
-    simpl in *.
-    assert (getPartitions multiplexer s'
-             = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(HgetParent : getAncestors partition s' =
-    getAncestors partition s). 
-    apply getAncestorsUpdateUserFlag;trivial.
-    rewrite HgetParent in *; clear HgetParent.
-    apply Hdiff;trivial.
-    split.
-    intuition.
-    (* configTablesAreDifferent *)
-    assert(Hconfigdiff : configTablesAreDifferent s) by trivial.
-    unfold configTablesAreDifferent in *.
-    simpl in *.
-    fold s'.
-    intros partition1 partition2 Hpart1 Hpart2 Hdiff.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(Hconfig : getConfigPages partition1 s' = getConfigPages partition1 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    assert(Hconfig : getConfigPages partition2 s' = getConfigPages partition2 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    apply Hconfigdiff;trivial.
-    split.
-    intuition.
-    (** isChild **)
-    unfold s' in *.
-    assert(Hchid : isChild s) by intuition.
-    unfold isChild in *.
-    simpl in *.
-    intros partition parent Hparts Hgetparent.
-    rewrite getPartitionsUpdateUserFlag in *;trivial.
-    rewrite getParentUpdateUserFlag in *;trivial.
-    rewrite getChildrenUpdateFlagUser;trivial.
-    apply Hchid;trivial.
-    split.
-    (** isPresentNotDefaultIff **)
-    assert (Hpres : isPresentNotDefaultIff s) by intuition.
-    unfold isPresentNotDefaultIff in *.
-    unfold s'.
-    simpl.
-    intros table idx.
-    rewrite readPhyEntryUpdateUserFlag;trivial.
-    rewrite readPresentUpdateUserFlag;trivial. 
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-    clear Hpost.
-    rename H into Hcond. 
-    assert (H := conj (conj (conj H0 Hfalse) Hsplit)  Hnew).
-    clear H0 Hfalse Hsplit Hnew.
-(** Propagated properties **)
-    {  intuition try eassumption.     
-      * apply nextEntryIsPPUpdateUserFlag ; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);  intros (Htableroot & _). 
-        apply isPEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * unfold s'.
-        assert(ptRefChild <> ptPDChild \/ idxRefChild  <>idxPDChild).
-        apply toApplyPageTablesOrIndicesAreDifferent with descChild pdChild currentPart
-         currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi3 : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi3 idx HP);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;  assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption. 
-     
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-         generalize (Hi idx Hi1); intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(ptSh1Child  <> ptPDChild \/ idxSh1  <>idxPDChild).      
-        apply toApplyPageTablesOrIndicesAreDifferent with  shadow1 pdChild currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-         generalize (Hi1 idx Hi2); intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert( ptSh2Child <> ptPDChild \/ idxSh2 <> idxPDChild).
-        apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-        pdChild   currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(ptConfigPagesList <> ptPDChild \/ idxConfigPagesList <> idxPDChild ).
-        apply toApplyPageTablesOrIndicesAreDifferent with list
-        pdChild   currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * apply nextEntryIsPPUpdateUserFlag;assumption.  
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1); clear H7; intros (H7 & H7').      
-        apply isVEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind. 
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                      isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChild)
-                      by intuition.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                    isEntryVA ptPDChildSh1 idxPDChild va s /\ 
-                    beqVAddr defaultVAddr va = derivedPDChild) by trivial. 
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) 
-        by trivial.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ 
-                    beqVAddr defaultVAddr va = derivedSh2Child) by trivial.
-      destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial. 
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert( Hi5 : exists va : vaddr,
-                      isEntryVA childListSh1 idxConfigPagesList va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChildListSh1) by trivial.
-        destruct Hi5 as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyPDChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh1Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh2Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyConfigPagesList (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial. 
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyDescChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      *  unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      *  unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      *  unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      *  unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      *  unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.      
-      * clear Hnewpost.
-        assert(HisAccess : isAccessibleMappedPageInParent currentPart pdChild phyPDChild s' =
-          isAccessibleMappedPageInParent currentPart pdChild phyPDChild s).
-          { unfold isAccessibleMappedPageInParent.
-            unfold s'.
-            simpl.
-            rewrite getSndShadowUpdateUserFlag;trivial.
-            case_eq( StateLib.getSndShadow currentPart (memory s));
-            intros * Hsh2 ;trivial.
-            assert( Hvirt :  getVirtualAddressSh2 p
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptPDChild idxPDChild
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} pdChild
-                    =
-                            getVirtualAddressSh2 p s pdChild).
-            { unfold getVirtualAddressSh2.
-              assert(HnbL: Some level = StateLib.getNbLevel) by trivial.
-              rewrite <- HnbL;trivial.
-              rewrite getIndirectionUpdateUserFlag;trivial.
-              destruct(getIndirection p pdChild level (nbLevel - 1) s );trivial.
-              simpl.
-              rewrite readVirtualUpdateUserFlag;trivial. }
-              rewrite Hvirt;trivial.
-              case_eq (getVirtualAddressSh2 p s pdChild);
-              intros * Hvainances;trivial.
-              rewrite getParentUpdateUserFlag;trivial.
-              case_eq( StateLib.getParent currentPart (memory s)); 
-              intros * HparentAcestor;trivial.
-              rewrite getPdUpdateUserFlag.
-              case_eq(StateLib.getPd p0 (memory s) );
-              intros * Hpdparentances;trivial.
-              assert( Haccessible : 
-                        getAccessibleMappedPage p1
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptPDChild idxPDChild
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} v= 
-                        getAccessibleMappedPage p1 s v).
-              { symmetry.
-                
-                unfold consistency in *.
-                assert(Hdiff : noCycleInPartitionTree s)
-                by intuition.
-                assert (Hparentpart : parentInPartitionList s ) by  intuition.
-                unfold parentInPartitionList in *.
-                assert(Hancestor : In p0 (getPartitions multiplexer s)).
-                apply Hparentpart with currentPart;trivial.
-                apply nextEntryIsPPgetParent; trivial.
-                subst.
-                apply getAccessibleMappedPageUpdateUserFlagDiffrentPartitions 
-                with (currentPartition s) p0;trivial.
-                intuition.
-                assert(Hget : forall idx : index,
-                        StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                        isPE ptPDChild idx s /\ 
-                        getTableAddrRoot ptPDChild PDidx (currentPartition s) pdChild s) by trivial.
-                destruct Hget with (StateLib.getIndexOfAddr pdChild fstLevel)
-                as (Hpe & Hroot);
-                trivial.
-                 
-                unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-              assert(Hdisjoint : configTablesAreDifferent s) by intuition.
-              unfold configTablesAreDifferent in *.
-              apply Hdisjoint;trivial.
-              unfold not;intros Hii;symmetry in Hii;contradict Hii.
-              unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial. }
-              assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-              unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
-              assert(Hpde : partitionDescriptorEntry s ).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-
-              rewrite Haccessible;trivial.
-              assumption. }
-          rewrite HisAccess.
-          assumption.
-      * (** New property **) 
-        unfold entryUserFlag. unfold s'.
-        cbn.
-        assert( beqPairs (ptPDChild, idxPDChild) (ptPDChild, idxPDChild)
-        beqPage beqIndex = true) as Hpairs.
-        apply beqPairsTrue.  split;trivial.
-        rewrite Hpairs.  cbn. reflexivity.  }
+    assert(Htrue : accessiblePDChild = true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in H0.
+    try repeat rewrite and_assoc in H0.
+    eapply H0.  
     intros [].
 (** writeAccessibleRec : pdChild **)
     eapply bindRev.
     eapply weaken.
+    eapply postAnd.
     eapply WriteAccessibleRec.
+    eapply WriteAccessibleRecPostCondition.
     simpl.
     intros.
     split. 
@@ -2706,904 +1600,62 @@ eapply WP.bindRev.
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst;trivial.
-    intros.    
+    intros.
+    simpl.    
 (** writeAccessible : shadow1 **)
     eapply WP.bindRev.
     eapply WP.weaken.
-    eapply WP.writeAccessible.
-    intros. simpl.
-    assert (exists entry : Pentry,
-      lookup ptSh1Child idxSh1 (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
-    { apply isPELookupEq.
-      unfold propagatedProperties in *.
-      assert (forall idx : index,
-       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-       isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) as H1 by intuition.
-      generalize (H1  idxSh1);clear H1; intros H1.
-      assert (StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1 ) as H2 by intuition.
-      apply H1 in H2. intuition. }
-    destruct Hlookup as (entry & Hlookup).
-    unfold propagatedProperties in *.
-    exists entry ; split;trivial.
-(** Here the first shadow is still accessible, so we summarize this property  **)
-    assert(HpdChildaccess : getAccessibleMappedPage currentPD s shadow1 = Some phySh1Child).
-    { intuition.
-      assert(Heqentry : pa entry =phySh1Child).
-      apply isEntryPageLookupEq with ptSh1Child idxSh1 s;subst;trivial.
-      rewrite <- Heqentry in *.
-      apply isAccessibleMappedPage with ptSh1Child;subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. 
-      subst;trivial. }
-    assert(Hcurparts : In currentPart (getPartitions multiplexer s)).
-    { unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst.
-      assumption. }
-    assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-    { intuition. subst.
-      apply nextEntryIsPPgetPd;trivial. }
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts PPRidx); clear Hpde; intros Hpde.
-    
-    assert(Hcurentparent : (exists entry : page, nextEntryIsPP currentPart PPRidx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 4 right;left;trivial. }
-    clear Hpde.
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts sh2idx); clear Hpde; intros Hpde.
-    
-    assert(Hcurrentsh2 : (exists entry : page, nextEntryIsPP currentPart sh2idx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 2 right;left;trivial. }
-    clear Hpde.
-
-(** Here the first shadow is still accessible, so we prove that in all ancestor this physical 
-page is already accessible **)
-     assert(Hisaccessible : isAccessibleMappedPageInParent currentPart shadow1 phySh1Child s = true).
-           { assert(Hcons : consistency s).
-        { unfold propagatedProperties in *.
-          intuition. }
-        unfold consistency in Hcons.
-        assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-        unfold accessibleChildPhysicalPageIsAccessibleIntoParent in Haccess.
-        apply Haccess with currentPD;intuition. }
-    do 36 rewrite <- and_assoc in H0.
-    destruct H0 as (Hi & Hsplit). 
-    destruct Hi as (Hi & Hfalse). 
-    try repeat rewrite and_assoc in Hi.
-    assert (Hpost1 :=  conj  Hi Hsplit).
-    assert (Hpost := conj Hpost1 Hisaccessible).
-    pattern s in Hpost.
-    match type of Hpost with 
-    | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                entryUserFlag ptSh1Child idxSh1 false s)
-    end.
+    eapply writePhyEntry2.
+    assert(Htrue : accessiblePDChild = true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in Hlegit.
+    eapply Hlegit.
+    eapply H.
+    intros s Hpre.
     simpl.
-    set (s' := {|
-    currentPartition := currentPartition s;
-    memory := add ptSh1Child idxSh1
-              (PE
-                 {|
-                 read := read entry;
-                 write := write entry;
-                 exec := exec entry;
-                 present := present entry;
-                 user := false;
-                 pa := pa entry |}) (memory s) beqPage beqIndex |}) in *.
-    do 8 rewrite and_assoc.             
-    split. 
-  (** partitionsIsolation **) 
-    assert (partitionsIsolation s ) as Hiso. intuition.
-    clear Hpost Hsplit.
-    unfold partitionsIsolation in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hiso parent child1 child2); clear Hiso; intros Hiso. 
-    assert(getChildren parent s' = getChildren parent s) as Hchildren.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite Hchildren in H2, H1. clear Hchildren.
-    assert (getUsedPages child1 s'= getUsedPages child1 s) as Hch1used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch1used. clear Hch1used.
-    assert (getUsedPages child2 s' = getUsedPages child2 s) as Hch2used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch2used. clear Hch2used.
-    apply Hiso; trivial.
-    split.
-  (** kernelDataIsolation **)
-    assert (kernelDataIsolation s) as HAncesiso. intuition.
-    unfold kernelDataIsolation in *.
-    intros.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions in *.
-    clear Hpartitions.
-    assert(  (getConfigPages partition2 s') = (getConfigPages partition2 s)) as Hconfig.
-    apply getConfigPagesUpdateUserFlag; trivial.
-    rewrite Hconfig. clear Hconfig.
-    assert (incl (getAccessibleMappedPages partition1 s') (getAccessibleMappedPages partition1 s)).
-    apply getAccessibleMappedPagesUpdateUserFlagFalse; trivial.
-    unfold disjoint in *.
-    intros.
-    unfold incl in *.
-    apply HAncesiso with partition1; trivial.
-    apply H2; trivial.
-(** Vertical Sharing **)
-    split. unfold verticalSharing in *.
-    assert (Hvs : verticalSharing s)  by intuition.
-    clear Hpost Hsplit.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hvs parent child); clear Hvs; intros Hvs.
-    assert (getUsedPages child s' = getUsedPages child s) as Husedpage.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite   Husedpage.
-    assert ( getMappedPages parent s' = getMappedPages parent s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd parent (memory s') = StateLib.getPd parent (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd parent (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. apply Hvs;trivial.
-    assert (getChildren parent s' = getChildren parent s) as Hchild.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite <- Hchild. assumption.
-    split.
- (** Consistency **) 
-    assert (Hcons : consistency s) by intuition. 
-    clear Hpost Hsplit .     
-    unfold consistency in *.
-    destruct Hcons as (Hpe & Hpd & Hsh1 & Hsh2 & Hcurpartlist & 
-    Hnodupmapped & Hnodupconfig & Hparent & Hsh1struct).
-    split.
-    (** partitionDescriptorEntry **)
-    apply partitionDescriptorEntryUpdateUserFlag;trivial.
-    do 2 rewrite <- and_assoc.
-    split.
-    (** dataStructurePdSh1Sh2asRoot **)
-    repeat split; try  apply dataStructurePdSh1Sh2asRootUpdateUserFlag;intuition.
-    split.
-    (** currentPartitionInPartitionsList **)
-    unfold currentPartitionInPartitionsList in *.    
-    simpl in *. subst. 
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. trivial.
-    split.
-    (** noDupMappedPagesList **)
-    unfold noDupMappedPagesList in *.
-    intros partition HgetPartnewstate.
-    assert ( getMappedPages partition s' = getMappedPages partition s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd partition (memory s') = StateLib.getPd partition (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd partition (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. 
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag;trivial.
-    rewrite HgetPart in HgetPartnewstate.
-    intuition.
-    split.
-    (* noDupConfigPagesList **)
-    apply getIndirectionsNoDupUpdateUserFlag; intuition.
-    split.
-    (** parentInPartitionList **)
-    unfold parentInPartitionList in *.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart.
-    intros partition HgetParts parent Hroot.
-    generalize (Hparent partition HgetParts); clear Hparent; intros Hparent; trivial.
-    apply  nextEntryIsPPUpdateUserFlag' in  Hroot.
-    apply Hparent; trivial.
-    split.
-    (** accessibleVAIsNotPartitionDescriptor **)
-    unfold s'.
-    intuition. 
-    subst.
-    apply accessibleVAIsNotPartitionDescriptorUpdateUserFlag with level
-    (currentPartition s) currentPD ;trivial.
-    assert(Hget : forall idx : index,
-      StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-      isPE ptSh1Child idx s /\ 
-      getTableAddrRoot ptSh1Child PDidx (currentPartition s) shadow1 s) by trivial.     
-    assert(isPE ptSh1Child (StateLib.getIndexOfAddr shadow1 fstLevel) s /\ 
-            getTableAddrRoot ptSh1Child PDidx (currentPartition s) shadow1 s)
-    as (_ & Hi).
-    apply Hget; trivial.
-    assumption.
-    apply isAccessibleMappedPage with ptSh1Child;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    (** accessibleChildPhysicalPageIsAccessibleIntoParent *)
-    split. intuition.
-    subst.
-    assert(Htrue : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-    unfold s'.
-     assert(exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 (StateLib.getIndexOfAddr shadow1 fstLevel) va s /\
-        beqVAddr defaultVAddr va = derivedSh1Child) as 
-        (vaInAncestor & HvaInAncestor & Hnotderived) by trivial.
-   destruct Hcurentparent as (ancestor & Hancestor & Hancestornotnull).
-   assert(Hancestorpart : In ancestor (getPartitions multiplexer s)).
-   unfold parentInPartitionList in *.
-   apply Hparent with (currentPartition s);trivial.
-   assert(Hpde : partitionDescriptorEntry s) by trivial.
-   unfold partitionDescriptorEntry in *.
-   assert(exists entry : page, nextEntryIsPP ancestor PDidx entry s /\ entry <> defaultPage) as (pdAncestor & Hpdancestor & Hpdancesnotnull).
-   apply Hpde;trivial.
-   left;trivial.
-    apply accessibleChildPhysicalPageIsAccessibleIntoParentUpdate with ptSh1ChildFromSh1
-     (currentPartition s) 
-    currentPD level;
-    trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition;subst;trivial.
-    repeat rewrite andb_true_iff in H.
-    intuition;subst;trivial.
-    exists vaInAncestor;split;trivial.
-    split.
-    intuition.
-    subst.
-    (* noCycleInPartitionTree *)
-    assert(Hdiff : noCycleInPartitionTree s) by trivial.
-    unfold noCycleInPartitionTree in *.
-    intros parent partition Hparts Hparentpart.
-    simpl in *.
-    assert (getPartitions multiplexer s'
-             = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(HgetParent : getAncestors partition s' =
-    getAncestors partition s). 
-    apply getAncestorsUpdateUserFlag;trivial.
-    rewrite HgetParent in *.
-    apply Hdiff;trivial.
-    split.
-    intuition.
-    subst.
-    (* configTablesAreDifferent *)
-    assert(Hconfigdiff : configTablesAreDifferent s) by trivial.
-    unfold configTablesAreDifferent in *.
-    simpl in *.
-    fold s'.
-    intros partition1 partition2 Hpart1 Hpart2 Hdiff.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(Hconfig : getConfigPages partition1 s' = getConfigPages partition1 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    assert(Hconfig : getConfigPages partition2 s' = getConfigPages partition2 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    apply Hconfigdiff;trivial.   
-    split.
-    intuition.
-    subst.
-    (** isChild **)
-    unfold s' in *.
-    assert(Hchid : isChild s) by intuition.
-    unfold isChild in *.
-    simpl in *.
-    intros partition parent Hparts Hgetparent.
-    rewrite getPartitionsUpdateUserFlag in *;trivial.
-    rewrite getParentUpdateUserFlag in *;trivial.
-    rewrite getChildrenUpdateFlagUser;trivial.
-    apply Hchid;trivial.
-    split.
-    (** isPresentNotDefaultIff **)
-    assert (Hpres : isPresentNotDefaultIff s) by intuition.
-    unfold isPresentNotDefaultIff in *.
-    unfold s'.
+    eapply Hpre.
     simpl.
-    intros table idx.
-    rewrite readPhyEntryUpdateUserFlag;trivial.
-    rewrite readPresentUpdateUserFlag;trivial.
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-    clear Hpost.
-    rename H into Hcond. 
-    assert (H :=  (conj (conj Hpost1 Hfalse) Hsplit)  ).
-    clear Hpost1 Hfalse Hsplit .
-(** Propagated properties **)
-    {
-      intuition try trivial. 
-      * apply nextEntryIsPPUpdateUserFlag ; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); clear H23; intros (H23 & _). 
-        apply isPEUpdateUserFlag; assumption.
-      *  assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * unfold s'.
-        assert(ptRefChild <> ptSh1Child \/ idxRefChild  <>idxSh1).
-        apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow1 currentPart
-          currentPD PDidx level isPE s; trivial.
-         left;trivial.  
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi3 : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi3 idx HP);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;  assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue; trivial.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * unfold s'. assert( ptSh2Child <> ptSh1Child \/ idxSh2 <> idxSh1).
-        apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-        shadow1   currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(ptConfigPagesList <> ptSh1Child \/ idxConfigPagesList <> idxSh1 ).
-        apply toApplyPageTablesOrIndicesAreDifferent with list
-        shadow1   currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * apply nextEntryIsPPUpdateUserFlag;assumption.  
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1); clear H7; intros (H7 & H7').      
-        apply isVEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                      isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChild)
-                      by intuition.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                    isEntryVA ptPDChildSh1 idxPDChild va s /\ 
-                    beqVAddr defaultVAddr va = derivedPDChild) by trivial. 
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) 
-        by trivial.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ 
-                    beqVAddr defaultVAddr va = derivedSh2Child) by trivial.
-      destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial. 
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert( Hi5 : exists va : vaddr,
-                      isEntryVA childListSh1 idxConfigPagesList va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChildListSh1) by trivial.
-        destruct Hi5 as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyPDChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh1Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh2Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyConfigPagesList (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial. 
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyDescChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.  
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.  
-      * assert(HisAccess : isAccessibleMappedPageInParent currentPart shadow1 phySh1Child s' =
-          isAccessibleMappedPageInParent currentPart shadow1 phySh1Child s).
-          { unfold isAccessibleMappedPageInParent.
-            unfold s'.
-            simpl.
-            rewrite getSndShadowUpdateUserFlag;trivial.
-            case_eq( StateLib.getSndShadow currentPart (memory s));
-            intros * Hsh2 ;trivial.
-            assert( Hvirt :  getVirtualAddressSh2 p
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptSh1Child idxSh1
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} shadow1
-                    =
-                            getVirtualAddressSh2 p s shadow1).
-            { unfold getVirtualAddressSh2.
-              assert(HnbL: Some level = StateLib.getNbLevel) by trivial.
-              rewrite <- HnbL;trivial.
-              rewrite getIndirectionUpdateUserFlag;trivial.
-              destruct(getIndirection p shadow1 level (nbLevel - 1) s );trivial.
-              simpl.
-              rewrite readVirtualUpdateUserFlag;trivial. }
-              rewrite Hvirt;trivial.
-              case_eq (getVirtualAddressSh2 p s shadow1);
-              intros * Hvainances;trivial.
-              rewrite getParentUpdateUserFlag;trivial.
-              case_eq( StateLib.getParent currentPart (memory s)); 
-              intros * HparentAcestor;trivial.
-              rewrite getPdUpdateUserFlag.
-              case_eq(StateLib.getPd p0 (memory s) );
-              intros * Hpdparentances;trivial.
-              assert( Haccessible : 
-                        getAccessibleMappedPage p1
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptSh1Child idxSh1
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} v= 
-                        getAccessibleMappedPage p1 s v).
-              { symmetry.
-                
-                unfold consistency in *.
-                assert(Hdiff : noCycleInPartitionTree s)
-                by intuition.
-                assert (Hparentpart : parentInPartitionList s ) by  intuition.
-                unfold parentInPartitionList in *.
-                assert(Hancestor : In p0 (getPartitions multiplexer s)).
-                apply Hparentpart with currentPart;trivial.
-                apply nextEntryIsPPgetParent; trivial.
-                subst.
-                apply getAccessibleMappedPageUpdateUserFlagDiffrentPartitions 
-                with (currentPartition s) p0;trivial.
-                intuition.
-                assert(Hget : forall idx : index,
-                        StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                        isPE ptSh1Child idx s /\ 
-                        getTableAddrRoot ptSh1Child PDidx (currentPartition s) shadow1 s) by trivial.
-                destruct Hget with (StateLib.getIndexOfAddr shadow1 fstLevel)
-                as (Hpe & Hroot);
-                trivial.
-              
-                unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-              assert(Hdisjoint : configTablesAreDifferent s) by intuition.
-              unfold configTablesAreDifferent in *.
-              apply Hdisjoint;trivial.
-              unfold not;intros Hii;symmetry in Hii;contradict Hii.
-              unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial. }
-              assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-              unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
-              assert(Hpde : partitionDescriptorEntry s ).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-
-              rewrite Haccessible;trivial.
-              assumption. }
-          rewrite HisAccess.
-          assumption.
-(** New property **) 
-      * unfold entryUserFlag. unfold s'.
-        cbn.
-        assert( beqPairs (ptSh1Child, idxSh1) (ptSh1Child, idxSh1) beqPage beqIndex = true) as Hpairs.
-        apply beqPairsTrue.  split;trivial.
-        rewrite Hpairs.  cbn. reflexivity. } 
     intros [].
 (** writeAccessibleRec : shadow 1 **)
-    eapply bindRev.
+    eapply bindRev. (* 
+    apply preAndPost. *) 
     eapply weaken.
+    eapply postAnd.
+    apply preAndPost.
     eapply WriteAccessibleRec.
-    
+    instantiate (1:= fun s => (forall partition : page,
+      In partition (getAncestors currentPart s) ->
+      ~ In phyPDChild (getAccessibleMappedPages partition s))).
+    simpl.    
+    eapply weaken.
+    eapply WriteAccessibleRecPropagateNewProp.
+    simpl; intros.
+    destruct H0 as (H0 & H1).
+    destruct H0 as (H0 & H2).
+    destruct H2 as (H2 &H3).
+    split.
+    eassumption.
+    split. eassumption.
+    split;eassumption.
+    simpl.
+    eapply preAnd.    
+    eapply WriteAccessibleRecPostCondition. 
     simpl.
     intros.
-    split. 
-    instantiate (42 := false).
-        destruct H0 as (((H0  & Huserpd) &Haccesssh1) & Husersh1).
-    assert(H0new := conj( conj H0 Husersh1) Huserpd ).
-    
+    split. split.
+    destruct H0 as (((Ha & Hb) & Hc) & Hd ).
+    eassumption.
+    (*instantiate (41 := false). 
+        destruct H0 as ((((H0  & Huserpd) & Hnewrec ) & Haccesssh1) & Husersh1 ).
+    assert(H0new := conj( conj H0 Husersh1) Huserpd ). 
       repeat rewrite and_assoc in H0new.
-
     unfold propagatedProperties.
-    eapply H0new.
-    instantiate(1:= phySh1Child).
+    eapply H0new.**)
+        instantiate(1:= phySh1Child).
     instantiate(1:= idxSh1).
     instantiate(1:= ptSh1Child).
-    intuition.
+    unfold propagatedProperties in *.
+    intuition;subst;trivial.
         unfold isAncestor.
     left;trivial.
     subst.
@@ -3614,897 +1666,79 @@ page is already accessible **)
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst;trivial.
+    intuition.
+    simpl.    
     intros.
 (** writeAccessible : shadow 2 **)
     eapply WP.bindRev.
     eapply WP.weaken.
-    eapply WP.writeAccessible.
-    intros. simpl.
-    assert (exists entry : Pentry,
-      lookup ptSh2Child idxSh2 (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
-    { apply isPELookupEq.
-      unfold propagatedProperties in *.
-      assert (forall idx : index,
-       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-       isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) as H1 by intuition.
-      generalize (H1  idxSh2);clear H1; intros H1.
-      assert (StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2 ) as H2 by intuition.
-      apply H1 in H2. intuition. }
-    destruct Hlookup as (entry & Hlookup).
-    unfold propagatedProperties in *.
-    exists entry ; split;trivial.
-(** Here the first shadow is still accessible, so we summarize this property  **)
-    assert(HpdChildaccess : getAccessibleMappedPage currentPD s shadow2 = Some phySh2Child).
-    { intuition.
-      assert(Heqentry : pa entry =phySh2Child).
-      apply isEntryPageLookupEq with ptSh2Child idxSh2 s;subst;trivial.
-      rewrite <- Heqentry in *.
-      apply isAccessibleMappedPage with ptSh2Child;subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. 
-      subst;trivial. }
-    assert(Hcurparts : In currentPart (getPartitions multiplexer s)).
-    { unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst.
-      assumption. }
-    assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-    { intuition. subst.
-      apply nextEntryIsPPgetPd;trivial. }
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts PPRidx); clear Hpde; intros Hpde.
-    
-    assert(Hcurentparent : (exists entry : page, nextEntryIsPP currentPart PPRidx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 4 right;left;trivial. }
-    clear Hpde.
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts sh2idx); clear Hpde; intros Hpde.
-    
-    assert(Hcurrentsh2 : (exists entry : page, nextEntryIsPP currentPart sh2idx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 2 right;left;trivial. }
-    clear Hpde.
-
-(** Here the first shadow is still accessible, so we prove that in all ancestor this physical 
-page is already accessible **)
-     assert(Hisaccessible : isAccessibleMappedPageInParent currentPart shadow2 phySh2Child s = true).
-           { assert(Hcons : consistency s).
-        { unfold propagatedProperties in *.
-          intuition. }
-        unfold consistency in Hcons.
-        assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-        unfold accessibleChildPhysicalPageIsAccessibleIntoParent in Haccess.
-        apply Haccess with currentPD;intuition. }
-    
-      do 41 rewrite <- and_assoc in H0.
-
-    destruct H0 as (Hi & Hsplit). 
-    destruct Hi as (Hi & Hfalse). 
-    try repeat rewrite and_assoc in Hi.
-    assert (Hpost1 := conj  Hi Hsplit) .
-    assert (Hpost := conj Hpost1  Hisaccessible).
-    pattern s in Hpost.
-    match type of Hpost with 
-    | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                entryUserFlag ptSh2Child idxSh2 false s)
-    end.
+    eapply writePhyEntry3.
+   assert(Htrue : accessiblePDChild = true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in Hlegit.
+    eapply Hlegit.
+    eapply H.
+    intros s Hpre.
     simpl.
-    set (s' := {|
-    currentPartition := currentPartition s;
-    memory := add ptSh2Child idxSh2
-              (PE
-                 {|
-                 read := read entry;
-                 write := write entry;
-                 exec := exec entry;
-                 present := present entry;
-                 user := false;
-                 pa := pa entry |}) (memory s) beqPage beqIndex |}) in *.
-    do 8 rewrite and_assoc.             
-    split. 
-  (** partitionsIsolation **) 
-    assert (partitionsIsolation s ) as Hiso. intuition.
-    clear Hpost Hsplit.
-    unfold partitionsIsolation in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hiso parent child1 child2); clear Hiso; intros Hiso. 
-    assert(getChildren parent s' = getChildren parent s) as Hchildren.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite Hchildren in H2, H1. clear Hchildren.
-    assert (getUsedPages child1 s'= getUsedPages child1 s) as Hch1used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch1used. clear Hch1used.
-    assert (getUsedPages child2 s' = getUsedPages child2 s) as Hch2used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch2used. clear Hch2used.
-    apply Hiso; trivial.
-    split.
-  (** kernelDataIsolation **)
-    assert (kernelDataIsolation s) as HAncesiso. intuition.
-    unfold kernelDataIsolation in *.
-    intros.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions in *.
-    clear Hpartitions.
-    assert(  (getConfigPages partition2 s') = (getConfigPages partition2 s)) as Hconfig.
-    apply getConfigPagesUpdateUserFlag; trivial.
-    rewrite Hconfig. clear Hconfig.
-    assert (incl (getAccessibleMappedPages partition1 s') (getAccessibleMappedPages partition1 s)).
-    apply getAccessibleMappedPagesUpdateUserFlagFalse; trivial.
-    unfold disjoint in *.
-    intros.
-    unfold incl in *.
-    apply HAncesiso with partition1; trivial.
-    apply H2; trivial.
-(** Vertical Sharing **)
-    split. unfold verticalSharing in *.
-    assert (Hvs : verticalSharing s)  by intuition.
-    clear Hpost Hsplit.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hvs parent child); clear Hvs; intros Hvs.
-    assert (getUsedPages child s' = getUsedPages child s) as Husedpage.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite   Husedpage.
-    assert ( getMappedPages parent s' = getMappedPages parent s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd parent (memory s') = StateLib.getPd parent (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd parent (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. apply Hvs;trivial.
-    assert (getChildren parent s' = getChildren parent s) as Hchild.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite <- Hchild. assumption.
-    split.
- (** Consistency **) 
-    assert (Hcons : consistency s) by intuition. 
-    clear Hpost Hsplit .     
-    unfold consistency in *.
-    destruct Hcons as (Hpe & Hpd & Hsh1 & Hsh2 & Hcurpartlist & 
-    Hnodupmapped & Hnodupconfig & Hparent & Hsh1struct).
-    split.
-    (** partitionDescriptorEntry **)
-    apply partitionDescriptorEntryUpdateUserFlag;trivial.
-    do 2 rewrite <- and_assoc.
-    split.
-    (** dataStructurePdSh1Sh2asRoot **)
-    repeat split; try  apply dataStructurePdSh1Sh2asRootUpdateUserFlag;intuition.
-    split.
-    (** currentPartitionInPartitionsList **)
-    unfold currentPartitionInPartitionsList in *.    
-    simpl in *. subst. 
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. trivial.
-    split.
-    (** noDupMappedPagesList **)
-    unfold noDupMappedPagesList in *.
-    intros partition HgetPartnewstate.
-    assert ( getMappedPages partition s' = getMappedPages partition s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd partition (memory s') = StateLib.getPd partition (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd partition (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. 
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag;trivial.
-    rewrite HgetPart in HgetPartnewstate.
-    intuition.
-    split.
-    (* noDupConfigPagesList **)
-    apply getIndirectionsNoDupUpdateUserFlag; intuition.
-    split.
-    (** parentInPartitionList **)
-    unfold parentInPartitionList in *.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart.
-    intros partition HgetParts parent Hroot.
-    generalize (Hparent partition HgetParts); clear Hparent; intros Hparent; trivial.
-    apply  nextEntryIsPPUpdateUserFlag' in  Hroot.
-    apply Hparent; trivial.
-    split.
-    (** accessibleVAIsNotPartitionDescriptor **)
-    unfold s'. 
-    intuition.
-    subst.
-    apply accessibleVAIsNotPartitionDescriptorUpdateUserFlag with level
-    (currentPartition s) currentPD ;trivial.
-    assert(Hget : forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isPE ptSh2Child idx s /\ 
-      getTableAddrRoot ptSh2Child PDidx (currentPartition s) shadow2 s) by trivial.     
-    assert(isPE ptSh2Child (StateLib.getIndexOfAddr shadow2 fstLevel) s /\ 
-            getTableAddrRoot ptSh2Child PDidx (currentPartition s) shadow2 s)
-    as (_ & Hi).
-    apply Hget; trivial.
-    assumption.
-    apply isAccessibleMappedPage with ptSh2Child;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    (** accessibleChildPhysicalPageIsAccessibleIntoParent *)
-    split.
-    intuition.
-    subst.
-    assert(Htrue : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-    unfold s'.
-     assert(exists va : vaddr,
-        isEntryVA childSh2 (StateLib.getIndexOfAddr shadow2 fstLevel) va s /\
-        beqVAddr defaultVAddr va = derivedSh2Child) as 
-        (vaInAncestor & HvaInAncestor & Hnotderived) by trivial.
-   destruct Hcurentparent as (ancestor & Hancestor & Hancestornotnull).
-   assert(Hancestorpart : In ancestor (getPartitions multiplexer s)).
-   unfold parentInPartitionList in *.
-   apply Hparent with (currentPartition s);trivial.
-   assert(Hpde : partitionDescriptorEntry s) by trivial.
-   unfold partitionDescriptorEntry in *.
-   assert(exists entry : page, nextEntryIsPP ancestor PDidx entry s /\ entry <> defaultPage) as (pdAncestor & Hpdancestor & Hpdancesnotnull).
-   apply Hpde;trivial.
-   left;trivial.
-      
-    apply accessibleChildPhysicalPageIsAccessibleIntoParentUpdate with childSh2 
-    (currentPartition s) currentPD level;
-    trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition;subst;trivial.
-    repeat rewrite andb_true_iff in H.
-    intuition;subst;trivial.
-    exists vaInAncestor;split;trivial.
-    split.
-    intuition.
-    (* noCycleInPartitionTree *)
-    assert(Hdiff : noCycleInPartitionTree s) by trivial.
-    unfold noCycleInPartitionTree in *.
-    intros parent partition Hparts Hparentpart.
-    simpl in *.
-    assert (getPartitions multiplexer s'
-             = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(HgetParent : getAncestors partition s' =
-    getAncestors partition s). 
-    apply getAncestorsUpdateUserFlag;trivial.
-    rewrite HgetParent in *; clear HgetParent.
-    apply Hdiff;trivial.
-    split.
-    intuition.
-    (* configTablesAreDifferent *)
-    assert(Hconfigdiff : configTablesAreDifferent s) by trivial.
-    unfold configTablesAreDifferent in *.
-    simpl in *.
-    fold s'.
-    intros partition1 partition2 Hpart1 Hpart2 Hdiff.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(Hconfig : getConfigPages partition1 s' = getConfigPages partition1 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    assert(Hconfig : getConfigPages partition2 s' = getConfigPages partition2 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    apply Hconfigdiff;trivial.   
-    split.
-    intuition.
-    (** isChild **)
-    unfold s' in *.
-    assert(Hchid : isChild s) by intuition.
-    unfold isChild in *.
-    simpl in *.
-    intros partition parent Hparts Hgetparent.
-    rewrite getPartitionsUpdateUserFlag in *;trivial.
-    rewrite getParentUpdateUserFlag in *;trivial.
-    rewrite getChildrenUpdateFlagUser;trivial.
-    apply Hchid;trivial.
-    split.
-    (** isPresentNotDefaultIff **)
-    assert (Hpres : isPresentNotDefaultIff s) by intuition.
-    unfold isPresentNotDefaultIff in *.
-    unfold s'.
+    eapply Hpre.
     simpl.
-    intros table idx.
-    rewrite readPhyEntryUpdateUserFlag;trivial.
-    rewrite readPresentUpdateUserFlag;trivial.
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-    
-    clear Hpost.
-    rename H into Hcond. 
-    assert (H :=  (conj (conj Hpost1 Hfalse) Hsplit) ).
-    clear Hpost1 Hfalse Hsplit .
-(** Propagated properties **)
-    { intuition try eassumption. 
-      * apply nextEntryIsPPUpdateUserFlag ; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); clear H23; intros (H23 & _). 
-        apply isPEUpdateUserFlag; assumption.
-      *  assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * unfold s'.
-        assert(ptRefChild <> ptSh2Child \/ idxRefChild  <>idxSh2).
-        apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow2 currentPart
-         currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi3 : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi3 idx HP);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;  assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue; trivial.
-      *  assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial.  
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(ptConfigPagesList <> ptSh2Child \/ idxConfigPagesList <> idxSh2 ).
-        apply toApplyPageTablesOrIndicesAreDifferent with list
-        shadow2   currentPart
-        currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        rewrite checkVAddrsEqualityWOOffsetPermut; trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * apply nextEntryIsPPUpdateUserFlag;assumption.  
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1); clear H7; intros (H7 & H7').      
-        apply isVEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                      isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChild)
-                      by intuition.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                    isEntryVA ptPDChildSh1 idxPDChild va s /\ 
-                    beqVAddr defaultVAddr va = derivedPDChild) by trivial. 
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) 
-        by trivial.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ 
-                    beqVAddr defaultVAddr va = derivedSh2Child) by trivial.
-      destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial. 
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert( Hi5 : exists va : vaddr,
-                      isEntryVA childListSh1 idxConfigPagesList va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChildListSh1) by trivial.
-        destruct Hi5 as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyPDChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh1Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh2Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyConfigPagesList (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial. 
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyDescChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * assert(HisAccess : isAccessibleMappedPageInParent currentPart shadow2 phySh2Child s' =
-          isAccessibleMappedPageInParent currentPart shadow2 phySh2Child s).
-          { unfold isAccessibleMappedPageInParent.
-            unfold s'.
-            simpl.
-            rewrite getSndShadowUpdateUserFlag;trivial.
-            case_eq( StateLib.getSndShadow currentPart (memory s));
-            intros * Hsh2 ;trivial.
-            assert( Hvirt :  getVirtualAddressSh2 p
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptSh2Child idxSh2
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} shadow2
-                    =
-                            getVirtualAddressSh2 p s shadow2).
-            { unfold getVirtualAddressSh2.
-              assert(HnbL: Some level = StateLib.getNbLevel) by trivial.
-              rewrite <- HnbL;trivial.
-              rewrite getIndirectionUpdateUserFlag;trivial.
-              destruct(getIndirection p shadow2 level (nbLevel - 1) s );trivial.
-              simpl.
-              rewrite readVirtualUpdateUserFlag;trivial. }
-              rewrite Hvirt;trivial.
-              case_eq (getVirtualAddressSh2 p s shadow2);
-              intros * Hvainances;trivial.
-              rewrite getParentUpdateUserFlag;trivial.
-              case_eq( StateLib.getParent currentPart (memory s)); 
-              intros * HparentAcestor;trivial.
-              rewrite getPdUpdateUserFlag.
-              case_eq(StateLib.getPd p0 (memory s) );
-              intros * Hpdparentances;trivial.
-              assert( Haccessible : 
-                        getAccessibleMappedPage p1
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptSh2Child idxSh2
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} v= 
-                        getAccessibleMappedPage p1 s v).
-              { symmetry.
-                
-                unfold consistency in *.
-     assert(Hdiff : noCycleInPartitionTree s)
-                by intuition.
-                assert (Hparentpart : parentInPartitionList s ) by  intuition.
-                unfold parentInPartitionList in *.
-                assert(Hancestor : In p0 (getPartitions multiplexer s)).
-                apply Hparentpart with currentPart;trivial.
-                apply nextEntryIsPPgetParent; trivial.
-                subst.
-                apply getAccessibleMappedPageUpdateUserFlagDiffrentPartitions 
-                with (currentPartition s) p0;trivial.
-                intuition.
-                assert(Hget : forall idx : index,
-                        StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                        isPE ptSh2Child idx s /\ 
-                        getTableAddrRoot ptSh2Child PDidx (currentPartition s) shadow2 s) by trivial.
-                destruct Hget with (StateLib.getIndexOfAddr shadow2 fstLevel)
-                as (Hpe & Hroot);
-                trivial.
-                unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-              assert(Hdisjoint : configTablesAreDifferent s) by intuition.
-              unfold configTablesAreDifferent in *.
-              apply Hdisjoint;trivial.
-              unfold not;intros Hii;symmetry in Hii;contradict Hii.
-              unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial. }
-              assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-              unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
-              assert(Hpde : partitionDescriptorEntry s ).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-
-              rewrite Haccessible;trivial.
-              assumption. }
-          rewrite HisAccess.
-          assumption.
-(** New property **) 
-      * unfold entryUserFlag. unfold s'.
-        cbn.
-        assert( beqPairs (ptSh2Child, idxSh2) (ptSh2Child, idxSh2) beqPage beqIndex = true) as Hpairs.
-        apply beqPairsTrue.  split;trivial.
-        rewrite Hpairs.  cbn. reflexivity. } 
-    intros [].
+   intros [].
 (** writeAccessibleRec : shadow 2 **)
     eapply bindRev.
     eapply weaken.
+    eapply postAnd.
+    apply preAndPost.    
     eapply WriteAccessibleRec.
     simpl.
+
+
+    eapply andPreAndPost.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phyPDChild (getAccessibleMappedPages partition s)) ).
+    simpl.
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phySh1Child (getAccessibleMappedPages partition s))).
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. } 
+    simpl.
+    eapply preAnd.
+    simpl.
+    eapply WriteAccessibleRecPostCondition.
+    simpl.
     intros.
-    split. 
-    instantiate (42 := false).
+    split. split.  
     instantiate (41 := false).
-        destruct H0 as (((H0  &Hc) 
-        & Hd ) & He).
-
-    assert(H0new := conj( conj H0  He )Hc ).    
-      repeat rewrite and_assoc in H0new.
-
+    instantiate (40 := false).
+    destruct H0 as (((((* ( *)H0  & Huserpd) & Hnewrec ) & Haccesssh1) &  Haccesssh2(* ) &Husersh1  *) ). (* 
+    assert(H0new := conj( conj H0 Husersh1) Huserpd ).
+    repeat rewrite and_assoc in H0new.
     unfold propagatedProperties.
-    eapply H0new.
+   *)  eapply H0.
     instantiate(1:= phySh2Child).
     instantiate(1:= idxSh2).
     instantiate(1:= ptSh2Child).
+    unfold propagatedProperties in *.
     intuition.
     unfold isAncestor;left;trivial.
     subst.
@@ -4515,896 +1749,95 @@ page is already accessible **)
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst;trivial.
+    intuition.
     intros.
     simpl.
 (** writeAccessible : list  **)
     eapply WP.bindRev.
     eapply WP.weaken.
-    eapply WP.writeAccessible.
-    intros. simpl.
-        assert (exists entry : Pentry,
-      lookup ptConfigPagesList idxConfigPagesList (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
-    { apply isPELookupEq.
-      unfold propagatedProperties in *.
-      assert (forall idx : index,
-       StateLib.getIndexOfAddr list fstLevel = idx ->
-       isPE ptConfigPagesList idx s /\ 
-       getTableAddrRoot ptConfigPagesList PDidx currentPart list s) as H1 by intuition.
-      generalize (H1  idxConfigPagesList);clear H1; intros H1.
-      assert (StateLib.getIndexOfAddr list fstLevel = idxConfigPagesList ) as H2 by intuition.
-      apply H1 in H2. intuition. }
-    destruct Hlookup as (entry & Hlookup).
-    unfold propagatedProperties in *.
-    exists entry ; split;trivial.
-(** Here the first shadow is still accessible, so we summarize this property  **)
-    assert(HpdChildaccess : getAccessibleMappedPage currentPD s list = Some phyConfigPagesList).
-    { intuition.
-      assert(Heqentry : pa entry =phyConfigPagesList).
-      apply isEntryPageLookupEq with ptConfigPagesList idxConfigPagesList s;subst;trivial.
-      rewrite <- Heqentry in *.
-      apply isAccessibleMappedPage with ptConfigPagesList;subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. 
-      subst;trivial. }
-    assert(Hcurparts : In currentPart (getPartitions multiplexer s)).
-    { unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst.
-      assumption. }
-    assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-    { intuition. subst.
-      apply nextEntryIsPPgetPd;trivial. }
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts PPRidx); clear Hpde; intros Hpde.
-    
-    assert(Hcurentparent : (exists entry : page, nextEntryIsPP currentPart PPRidx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 4 right;left;trivial. }
-    clear Hpde.
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts sh2idx); clear Hpde; intros Hpde.
-    
-    assert(Hcurrentsh2 : (exists entry : page, nextEntryIsPP currentPart sh2idx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 2 right;left;trivial. }
-    clear Hpde.
-
-(** Here the first shadow is still accessible, so we prove that in all ancestor this physical 
-page is already accessible **)
-     assert(Hisaccessible : isAccessibleMappedPageInParent currentPart list phyConfigPagesList s = true).
-           { assert(Hcons : consistency s).
-        { unfold propagatedProperties in *.
-          intuition. }
-        unfold consistency in Hcons.
-        assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-        unfold accessibleChildPhysicalPageIsAccessibleIntoParent in Haccess.
-        apply Haccess with currentPD;intuition. }
-
-    
-      do 46 rewrite <- and_assoc in H0.
-    destruct H0 as (Hi & Hsplit). 
-    destruct Hi as (Hi & Hfalse). 
-    try repeat rewrite and_assoc in Hi.
-    assert (Hpost1 := conj  Hi Hsplit  ).
-
-    assert (Hpost := conj Hpost1  Hisaccessible).
-    pattern s in Hpost.
-    match type of Hpost with 
-    | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                entryUserFlag ptConfigPagesList idxConfigPagesList false s)
-    end.
+    eapply writeInaccessibleConfigList.
+    assert(Htrue : accessiblePDChild= true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in Hlegit.
+    eapply Hlegit.
+    eapply H.
+    intros s Hpre.
     simpl.
-    set (s' := {|
-    currentPartition := currentPartition s;
-    memory := add  ptConfigPagesList idxConfigPagesList
-              (PE
-                 {|
-                 read := read entry;
-                 write := write entry;
-                 exec := exec entry;
-                 present := present entry;
-                 user := false;
-                 pa := pa entry |}) (memory s) beqPage beqIndex |}) in *.
-    do 8 rewrite and_assoc.             
-    split. 
-  (** partitionsIsolation **) 
-    assert (partitionsIsolation s ) as Hiso. intuition.
-    clear Hpost Hsplit.
-    unfold partitionsIsolation in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hiso parent child1 child2); clear Hiso; intros Hiso. 
-    assert(getChildren parent s' = getChildren parent s) as Hchildren.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite Hchildren in H2, H1. clear Hchildren.
-    assert (getUsedPages child1 s'= getUsedPages child1 s) as Hch1used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch1used. clear Hch1used.
-    assert (getUsedPages child2 s' = getUsedPages child2 s) as Hch2used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch2used. clear Hch2used.
-    apply Hiso; trivial.
-    split.
-  (** kernelDataIsolation **)
-    assert (kernelDataIsolation s) as HAncesiso. intuition.
-    unfold kernelDataIsolation in *.
-    intros.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions in *.
-    clear Hpartitions.
-    assert(  (getConfigPages partition2 s') = (getConfigPages partition2 s)) as Hconfig.
-    apply getConfigPagesUpdateUserFlag; trivial.
-    rewrite Hconfig. clear Hconfig.
-    assert (incl (getAccessibleMappedPages partition1 s') (getAccessibleMappedPages partition1 s)).
-    apply getAccessibleMappedPagesUpdateUserFlagFalse; trivial.
-    unfold disjoint in *.
-    intros.
-    unfold incl in *.
-    apply HAncesiso with partition1; trivial.
-    apply H2; trivial.
-(** Vertical Sharing **)
-    split. unfold verticalSharing in *.
-    assert (Hvs : verticalSharing s)  by intuition.
-    clear Hpost Hsplit.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hvs parent child); clear Hvs; intros Hvs.
-    assert (getUsedPages child s' = getUsedPages child s) as Husedpage.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite   Husedpage.
-    assert ( getMappedPages parent s' = getMappedPages parent s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd parent (memory s') = StateLib.getPd parent (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd parent (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. apply Hvs;trivial.
-    assert (getChildren parent s' = getChildren parent s) as Hchild.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite <- Hchild. assumption.
-    split.
-   (** Consistency **) 
-    assert (Hcons : consistency s) by intuition. 
-    clear Hpost Hsplit .     
-    unfold consistency in *.
-    destruct Hcons as (Hpe & Hpd & Hsh1 & Hsh2 & Hcurpartlist & 
-    Hnodupmapped & Hnodupconfig & Hparent & Hsh1struct).
-    split.
-    (** partitionDescriptorEntry **)
-    apply partitionDescriptorEntryUpdateUserFlag;trivial.
-    do 2 rewrite <- and_assoc.
-    split.
-    (** dataStructurePdSh1Sh2asRoot **)
-    repeat split; try  apply dataStructurePdSh1Sh2asRootUpdateUserFlag;intuition.
-    split.
-    (** currentPartitionInPartitionsList **)
-    unfold currentPartitionInPartitionsList in *.    
-    simpl in *. subst. 
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. trivial.
-    split.
-    (** noDupMappedPagesList **)
-    unfold noDupMappedPagesList in *.
-    intros partition HgetPartnewstate.
-    assert ( getMappedPages partition s' = getMappedPages partition s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd partition (memory s') = StateLib.getPd partition (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd partition (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. 
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag;trivial.
-    rewrite HgetPart in HgetPartnewstate.
-    intuition.
-    split.
-    (* noDupConfigPagesList **)
-    apply getIndirectionsNoDupUpdateUserFlag; intuition.
-    split.
-    (** parentInPartitionList **)
-    unfold parentInPartitionList in *.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart.
-    intros partition HgetParts parent Hroot.
-    generalize (Hparent partition HgetParts); clear Hparent; intros Hparent; trivial.
-    apply  nextEntryIsPPUpdateUserFlag' in  Hroot.
-    apply Hparent; trivial.
-    split.
-    (** accessibleVAIsNotPartitionDescriptor **)
-    unfold s'. 
-    intuition.
-    subst.
-    apply accessibleVAIsNotPartitionDescriptorUpdateUserFlag with level
-    (currentPartition s) currentPD ;trivial.
-    assert(Hget : forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ 
-      getTableAddrRoot ptConfigPagesList PDidx (currentPartition s) list s) by trivial.     
-    assert(isPE ptConfigPagesList (StateLib.getIndexOfAddr list fstLevel) s /\ 
-            getTableAddrRoot ptConfigPagesList PDidx (currentPartition s) list s)
-    as (_ & Hi).
-    apply Hget; trivial.
-    assumption.
-    apply isAccessibleMappedPage with ptConfigPagesList;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    split.
-    intuition.
-    (** accessibleChildPhysicalPageIsAccessibleIntoParent *)
-    subst.
-    assert(Htrue : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-    unfold s'.
-    assert(exists va : vaddr,
-      isEntryVA childListSh1 (StateLib.getIndexOfAddr list fstLevel) va s /\
-      beqVAddr defaultVAddr va = derivedRefChildListSh1) as 
-      (vaInAncestor & HvaInAncestor & Hnotderived) by trivial.
-    destruct Hcurentparent as (ancestor & Hancestor & Hancestornotnull).
-    assert(Hancestorpart : In ancestor (getPartitions multiplexer s)).
-    unfold parentInPartitionList in *.
-    apply Hparent with (currentPartition s);trivial.
-    assert(Hpde : partitionDescriptorEntry s) by trivial.
-    unfold partitionDescriptorEntry in *.
-    assert(exists entry : page, nextEntryIsPP ancestor PDidx entry s /\ entry <> defaultPage) as (pdAncestor & Hpdancestor & Hpdancesnotnull).
-    apply Hpde;trivial.
-    left;trivial.      
-    apply accessibleChildPhysicalPageIsAccessibleIntoParentUpdate with  
-    childListSh1 (currentPartition s) currentPD level;
-    trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition;subst;trivial.
-        repeat rewrite andb_true_iff in H.
-    intuition;subst;trivial.
-    exists vaInAncestor;split;trivial.
-    split.
-    intuition.
-    (* noCycleInPartitionTree *)
-    assert(Hdiff : noCycleInPartitionTree s) by trivial.
-    unfold noCycleInPartitionTree in *.
-    intros parent partition Hparts Hparentpart.
-    simpl in *.
-    assert (getPartitions multiplexer s'
-             = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(HgetParent : getAncestors partition s' =
-    getAncestors partition s). 
-    apply getAncestorsUpdateUserFlag;trivial.
-    rewrite HgetParent in *; clear HgetParent.
-    apply Hdiff;trivial.
-    split.
-    intuition.
-    (* configTablesAreDifferent *)
-    assert(Hconfigdiff : configTablesAreDifferent s) by trivial.
-    unfold configTablesAreDifferent in *.
-    simpl in *.
-    fold s'.
-    intros partition1 partition2 Hpart1 Hpart2 Hdiff.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(Hconfig : getConfigPages partition1 s' = getConfigPages partition1 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    assert(Hconfig : getConfigPages partition2 s' = getConfigPages partition2 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    apply Hconfigdiff;trivial.
-    split.
-    intuition.
-    (** isChild **)
-    unfold s' in *.
-    assert(Hchid : isChild s) by intuition.
-    unfold isChild in *.
-    simpl in *.
-    intros partition parent Hparts Hgetparent.
-    rewrite getPartitionsUpdateUserFlag in *;trivial.
-    rewrite getParentUpdateUserFlag in *;trivial.
-    rewrite getChildrenUpdateFlagUser;trivial.
-    apply Hchid;trivial.
-    split.
-    (** isPresentNotDefaultIff **)
-    assert (Hpres : isPresentNotDefaultIff s) by intuition.
-    unfold isPresentNotDefaultIff in *.
-    unfold s'.
+    eapply Hpre.
     simpl.
-    intros table idx.
-    rewrite readPhyEntryUpdateUserFlag;trivial.
-    rewrite readPresentUpdateUserFlag;trivial.
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-    
-    clear Hpost.
-    rename H into Hcond. 
-    assert (H := conj (conj  Hpost1 Hfalse) Hsplit) .
-    clear Hpost1 Hfalse Hsplit .
-(** Propagated properties **)
-    { intuition try eassumption. 
-      * apply nextEntryIsPPUpdateUserFlag ; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); clear H23; intros (H23 & _). 
-        apply isPEUpdateUserFlag; assumption.
-      *  assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * unfold s'.
-        assert(ptRefChild <> ptConfigPagesList \/ idxRefChild  <>idxConfigPagesList).
-        apply toApplyPageTablesOrIndicesAreDifferent with descChild list currentPart
-          currentPD PDidx level isPE s; trivial.
-         left;trivial. 
-        apply entryUserFlagUpdateUserFlagRandomValue; assumption.
-      * assert(Hi3 : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi3 idx HP);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;  assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply nextEntryIsPPUpdateUserFlag;assumption.  
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1); clear H7; intros (H7 & H7').      
-        apply isVEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                      isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChild)
-                      by intuition.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                    isEntryVA ptPDChildSh1 idxPDChild va s /\ 
-                    beqVAddr defaultVAddr va = derivedPDChild) by trivial. 
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) 
-        by trivial.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ 
-                    beqVAddr defaultVAddr va = derivedSh2Child) by trivial.
-      destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial. 
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert( Hi5 : exists va : vaddr,
-                      isEntryVA childListSh1 idxConfigPagesList va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChildListSh1) by trivial.
-        destruct Hi5 as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyPDChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh1Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phySh2Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyConfigPagesList (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial. 
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse : In phyDescChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.      
-      * assert(HisAccess : isAccessibleMappedPageInParent currentPart list phyConfigPagesList s' =
-          isAccessibleMappedPageInParent currentPart list phyConfigPagesList s).
-          { unfold isAccessibleMappedPageInParent.
-            unfold s'.
-            simpl.
-            rewrite getSndShadowUpdateUserFlag;trivial.
-            case_eq( StateLib.getSndShadow currentPart (memory s));
-            intros * Hsh2 ;trivial.
-            assert( Hvirt :  getVirtualAddressSh2 p
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptConfigPagesList idxConfigPagesList
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} list
-                    =
-                            getVirtualAddressSh2 p s list).
-            { unfold getVirtualAddressSh2.
-              assert(HnbL: Some level = StateLib.getNbLevel) by trivial.
-              rewrite <- HnbL;trivial.
-              rewrite getIndirectionUpdateUserFlag;trivial.
-              destruct(getIndirection p list level (nbLevel - 1) s );trivial.
-              simpl.
-              rewrite readVirtualUpdateUserFlag;trivial. }
-              rewrite Hvirt;trivial.
-              case_eq (getVirtualAddressSh2 p s list);
-              intros * Hvainances;trivial.
-              rewrite getParentUpdateUserFlag;trivial.
-              case_eq( StateLib.getParent currentPart (memory s)); 
-              intros * HparentAcestor;trivial.
-              rewrite getPdUpdateUserFlag.
-              case_eq(StateLib.getPd p0 (memory s) );
-              intros * Hpdparentances;trivial.
-              assert( Haccessible : 
-                        getAccessibleMappedPage p1
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptConfigPagesList idxConfigPagesList
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} v= 
-                        getAccessibleMappedPage p1 s v).
-              { symmetry.
-                
-                unfold consistency in *.
-                assert(Hdiff : noCycleInPartitionTree s)
-                by intuition.
-                assert (Hparentpart : parentInPartitionList s ) by  intuition.
-                unfold parentInPartitionList in *.
-                assert(Hancestor : In p0 (getPartitions multiplexer s)).
-                apply Hparentpart with currentPart;trivial.
-                apply nextEntryIsPPgetParent; trivial.
-                subst.
-                apply getAccessibleMappedPageUpdateUserFlagDiffrentPartitions 
-                with (currentPartition s) p0;trivial.
-                intuition.
-                assert(Hget : forall idx : index,
-                        StateLib.getIndexOfAddr list fstLevel = idx ->
-                        isPE ptConfigPagesList idx s /\ 
-                        getTableAddrRoot ptConfigPagesList PDidx (currentPartition s) list s) by trivial.
-                destruct Hget with (StateLib.getIndexOfAddr list fstLevel)
-                as (Hpe & Hroot);
-                trivial.
-                unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-              assert(Hdisjoint : configTablesAreDifferent s) by intuition.
-              unfold configTablesAreDifferent in *.
-              apply Hdisjoint;trivial.
-              unfold not;intros Hii;symmetry in Hii;contradict Hii.
-              unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial. }
-              assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-              unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
-              assert(Hpde : partitionDescriptorEntry s ).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-
-              rewrite Haccessible;trivial.
-              assumption. }
-          rewrite HisAccess.
-          assumption.
- (** New property **) 
-      * unfold entryUserFlag. unfold s'.
-        cbn.
-        assert( beqPairs (ptConfigPagesList, idxConfigPagesList) (ptConfigPagesList, idxConfigPagesList)
-        beqPage beqIndex = true) as Hpairs.
-        apply beqPairsTrue.  split;trivial.
-        rewrite Hpairs.  cbn. reflexivity. }
     intros [].
 (** writeAccessibleRec : list **)
     eapply bindRev.
     eapply weaken.
+    eapply postAnd.
+    apply preAndPost.    
     eapply WriteAccessibleRec.
     simpl.
+    eapply andPreAndPost.
+     eapply andPreAndPost.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phyPDChild (getAccessibleMappedPages partition s)) ).
+    simpl.
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. } 
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phySh1Child (getAccessibleMappedPages partition s))).
+    simpl.
+   { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }  
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phySh2Child (getAccessibleMappedPages partition s))).
+    simpl.
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }  
+    simpl.    
+    eapply preAnd.
+    eapply WriteAccessibleRecPostCondition.
+    simpl.
     intros.
-    split. 
-    instantiate (42 := false).
+    split. split.  
     instantiate (41 := false).
     instantiate (40 := false).
-    
-        destruct H0 as (((H0  &Hc) 
-        & Hd ) & He).
-
-    assert(H0new := conj( conj H0 He )Hc ).    
-      repeat rewrite and_assoc in H0new.
-
-    unfold propagatedProperties.
-    eapply H0new.
+    instantiate (39 := false).
+    destruct H0 as ((((H0  & Huserpd) & Hnewrec ) & Haccesssh1) & Husersh1 ).
+(*     destruct H0 as (H0 & Hsplit). 
+    assert(H0new := conj( conj H0 Husersh1) Hsplit ).
+    repeat rewrite and_assoc in H0new.
+    unfold propagatedProperties. *)
+    eapply H0.
     instantiate(1:= phyConfigPagesList).
     instantiate(1:= idxConfigPagesList).
     instantiate(1:= ptConfigPagesList).
+    unfold propagatedProperties in *.
     intuition.
     unfold isAncestor;left;trivial.
     subst.
@@ -5415,889 +1848,105 @@ page is already accessible **)
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst;trivial.
+    intuition.
     intros.
     simpl.
-(** writeAccessible : list  **)
+(** writeAccessible : descChild  **)
     eapply WP.bindRev.
     eapply WP.weaken.
-    eapply WP.writeAccessible.
-    intros. simpl.
-    assert (exists entry : Pentry,
-      lookup ptRefChild idxRefChild (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
-    { apply isPELookupEq.
-      unfold propagatedProperties in *.
-      assert (forall idx : index,
-       StateLib.getIndexOfAddr descChild fstLevel = idx ->
-       isPE ptRefChild idx s /\ 
-       getTableAddrRoot ptRefChild PDidx currentPart descChild s) as H1 by intuition.
-      generalize (H1  idxRefChild);clear H1; intros H1.
-      assert (StateLib.getIndexOfAddr descChild fstLevel = idxRefChild ) as H2 by intuition.
-      apply H1 in H2. intuition. }
-    destruct Hlookup as (entry & Hlookup).
-    unfold propagatedProperties in *.
-    exists entry ; split;trivial.
-(** Here the first shadow is still accessible, so we summarize this property  **)
-    assert(HpdChildaccess : getAccessibleMappedPage currentPD s descChild = Some phyDescChild).
-    { intuition.
-      assert(Heqentry : pa entry =phyDescChild).
-      apply isEntryPageLookupEq with ptRefChild idxRefChild s;subst;trivial.
-      rewrite <- Heqentry in *.
-      apply isAccessibleMappedPage with ptRefChild;subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. subst;trivial.
-      repeat rewrite andb_true_iff in Hlegit.
-      intuition. 
-      subst;trivial. }
-    assert(Hcurparts : In currentPart (getPartitions multiplexer s)).
-    { unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      intuition.
-      subst.
-      assumption. }
-    assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-    { intuition. subst.
-      apply nextEntryIsPPgetPd;trivial. }
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts PPRidx); clear Hpde; intros Hpde.
-    
-    assert(Hcurentparent : (exists entry : page, nextEntryIsPP currentPart PPRidx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 4 right;left;trivial. }
-    clear Hpde.
-    assert (Hpde : partitionDescriptorEntry s).
-    { unfold consistency in *. intuition. }
-    unfold partitionDescriptorEntry in *.
-    generalize (Hpde currentPart Hcurparts sh2idx); clear Hpde; intros Hpde.
-    
-    assert(Hcurrentsh2 : (exists entry : page, nextEntryIsPP currentPart sh2idx entry s /\
-     entry <> defaultPage) ).
-    { apply Hpde.
-      do 2 right;left;trivial. }
-    clear Hpde.
-
-(** Here the first shadow is still accessible, so we prove that in all ancestor this physical 
-page is already accessible **)
-     assert(Hisaccessible : isAccessibleMappedPageInParent currentPart descChild phyDescChild s = true).
-           { assert(Hcons : consistency s).
-        { unfold propagatedProperties in *.
-          intuition. }
-        unfold consistency in Hcons.
-        assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-        unfold accessibleChildPhysicalPageIsAccessibleIntoParent in Haccess.
-        apply Haccess with currentPD;intuition. }
-    
-      do 26 rewrite <- and_assoc in H0.
-    destruct H0 as (Hi & Hsplit). 
-    destruct Hi as (Hi & Hfalse). 
-    try repeat rewrite and_assoc in Hi.
-    assert (Hpost1 := conj  Hi Hsplit)  .
-
-    assert (Hpost := conj Hpost1 Hisaccessible).
-    pattern s in Hpost.
-    match type of Hpost with 
-    | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                entryUserFlag ptRefChild idxRefChild false s)
-    end.
+    eapply writeInaccessibleDescChild.
+ assert(Htrue : accessiblePDChild= true).
+    try repeat rewrite  andb_true_iff in Hlegit.  intuition.
+    rewrite Htrue in Hlegit.
+    eapply Hlegit.
+    eapply H.
+    intros s Hpre.
     simpl.
-    set (s' := {|
-    currentPartition := currentPartition s;
-    memory := add  ptRefChild idxRefChild
-              (PE
-                 {|
-                 read := read entry;
-                 write := write entry;
-                 exec := exec entry;
-                 present := present entry;
-                 user := false;
-                 pa := pa entry |}) (memory s) beqPage beqIndex |}) in *.
-    do 8 rewrite and_assoc.             
-    split. 
-  (** partitionsIsolation **) 
-    assert (partitionsIsolation s ) as Hiso. intuition.
-    clear Hpost Hsplit.
-    unfold partitionsIsolation in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hiso parent child1 child2); clear Hiso; intros Hiso. 
-    assert(getChildren parent s' = getChildren parent s) as Hchildren.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite Hchildren in H2, H1. clear Hchildren.
-    assert (getUsedPages child1 s'= getUsedPages child1 s) as Hch1used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch1used. clear Hch1used.
-    assert (getUsedPages child2 s' = getUsedPages child2 s) as Hch2used.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite Hch2used. clear Hch2used.
-    apply Hiso; trivial.
-    split.
-  (** kernelDataIsolation **)
-    assert (kernelDataIsolation s) as HAncesiso. intuition.
-    unfold kernelDataIsolation in *.
-    intros.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial. 
-    rewrite Hpartitions in *.
-    clear Hpartitions.
-    assert(  (getConfigPages partition2 s') = (getConfigPages partition2 s)) as Hconfig.
-    apply getConfigPagesUpdateUserFlag; trivial.
-    rewrite Hconfig. clear Hconfig.
-    assert (incl (getAccessibleMappedPages partition1 s') (getAccessibleMappedPages partition1 s)).
-    apply getAccessibleMappedPagesUpdateUserFlagFalse; trivial.
-    unfold disjoint in *.
-    intros.
-    unfold incl in *.
-    apply HAncesiso with partition1; trivial.
-    apply H2; trivial.
-(** Vertical Sharing **)
-    split. unfold verticalSharing in *.
-    assert (Hvs : verticalSharing s)  by intuition.
-    clear Hpost Hsplit.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. clear Hpartitions.
-    intros.
-    generalize (Hvs parent child); clear Hvs; intros Hvs.
-    assert (getUsedPages child s' = getUsedPages child s) as Husedpage.
-    apply getUsedPagesUpdateUserFlag;trivial.
-    rewrite   Husedpage.
-    assert ( getMappedPages parent s' = getMappedPages parent s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd parent (memory s') = StateLib.getPd parent (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd parent (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. apply Hvs;trivial.
-    assert (getChildren parent s' = getChildren parent s) as Hchild.
-    apply getChildrenUpdateFlagUser;trivial.
-    rewrite <- Hchild. assumption.
-    split.
-   (** Consistency **) 
-    assert (Hcons : consistency s) by intuition. 
-    clear Hpost Hsplit .     
-    unfold consistency in *.
-    destruct Hcons as (Hpe & Hpd & Hsh1 & Hsh2 & Hcurpartlist & 
-    Hnodupmapped & Hnodupconfig & Hparent & Hsh1struct).
-    split.
-    (** partitionDescriptorEntry **)
-    apply partitionDescriptorEntryUpdateUserFlag;trivial.
-    do 2 rewrite <- and_assoc.
-    split.
-    (** dataStructurePdSh1Sh2asRoot **)
-    repeat split; try  apply dataStructurePdSh1Sh2asRootUpdateUserFlag;intuition.
-    split.
-    (** currentPartitionInPartitionsList **)
-    unfold currentPartitionInPartitionsList in *.    
-    simpl in *. subst. 
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite Hpartitions. trivial.
-    split.
-    (** noDupMappedPagesList **)
-    unfold noDupMappedPagesList in *.
-    intros partition HgetPartnewstate.
-    assert ( getMappedPages partition s' = getMappedPages partition s) as Hmaps.
-    unfold getMappedPages.
-    assert (StateLib.getPd partition (memory s') = StateLib.getPd partition (memory s) ) as HgetPd.
-    apply getPdUpdateUserFlag;trivial.
-    rewrite HgetPd.
-    destruct (StateLib.getPd partition (memory s)) ;trivial.
-    apply getMappedPagesAuxUpdateUserFlag;trivial.
-    rewrite Hmaps. 
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag;trivial.
-    rewrite HgetPart in HgetPartnewstate.
-    intuition.
-    split.
-    (* noDupConfigPagesList **)
-    apply getIndirectionsNoDupUpdateUserFlag; intuition.
-    split.
-    (** parentInPartitionList **)
-    unfold parentInPartitionList in *.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart.
-    intros partition HgetParts parent Hroot.
-    generalize (Hparent partition HgetParts); clear Hparent; intros Hparent; trivial.
-    apply  nextEntryIsPPUpdateUserFlag' in  Hroot.
-    apply Hparent; trivial.
-    split.
-    (** accessibleVAIsNotPartitionDescriptor **)
-    unfold s'. 
-    intuition.
-    subst.
-    apply accessibleVAIsNotPartitionDescriptorUpdateUserFlag with level
-    (currentPartition s) currentPD ;trivial.
-    assert(Hget : forall idx : index,
-      StateLib.getIndexOfAddr descChild fstLevel = idx ->
-      isPE ptRefChild idx s /\ 
-      getTableAddrRoot ptRefChild PDidx (currentPartition s) descChild s) by trivial.     
-    assert(isPE ptRefChild (StateLib.getIndexOfAddr descChild fstLevel) s /\ 
-            getTableAddrRoot ptRefChild PDidx (currentPartition s) descChild s)
-    as (_ & Hi).
-    apply Hget; trivial.
-    assumption.
-    apply isAccessibleMappedPage with ptRefChild;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition.
-    subst;trivial.
-    split.
-    intuition.
-    (** accessibleChildPhysicalPageIsAccessibleIntoParent *)
-    subst.
-    assert(Htrue : accessibleChildPhysicalPageIsAccessibleIntoParent s) by intuition.
-    unfold s'.
-    assert(exists va : vaddr,
-        isEntryVA ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel) va s /\
-        beqVAddr defaultVAddr va = derivedRefChild) as 
-      (vaInAncestor & HvaInAncestor & Hnotderived) by trivial.
-    destruct Hcurentparent as (ancestor & Hancestor & Hancestornotnull).
-    assert(Hancestorpart : In ancestor (getPartitions multiplexer s)).
-    unfold parentInPartitionList in *.
-    apply Hparent with (currentPartition s);trivial.
-    assert(Hpde : partitionDescriptorEntry s) by trivial.
-    unfold partitionDescriptorEntry in *.
-    assert(exists entry : page, nextEntryIsPP ancestor PDidx entry s /\ entry <> defaultPage) as (pdAncestor & Hpdancestor & Hpdancesnotnull).
-    apply Hpde;trivial.
-    left;trivial.      
-    apply accessibleChildPhysicalPageIsAccessibleIntoParentUpdate with  
-    ptRefChildFromSh1 (currentPartition s) currentPD level;
-    trivial.
-    repeat rewrite andb_true_iff in Hlegit.
-    intuition;subst;trivial.
-    repeat rewrite andb_true_iff in H.
-    intuition;subst;trivial.
-    exists vaInAncestor;split;trivial.
-    split.
-    intuition.
-    (* noCycleInPartitionTree *)
-    assert(Hdiff : noCycleInPartitionTree s) by trivial.
-    unfold noCycleInPartitionTree in *.
-    intros parent partition Hparts Hparentpart.
-    simpl in *.
-    assert (getPartitions multiplexer s'
-             = getPartitions multiplexer s) as HgetPart.
-             
-
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-       assert(HgetParent : getAncestors partition s' =
-    getAncestors partition s). 
-    apply getAncestorsUpdateUserFlag;trivial.
-    rewrite HgetParent in *; clear HgetParent.
-    apply Hdiff;trivial.
-    split.
-    intuition.
-    (* configTablesAreDifferent *)
-    assert(Hconfigdiff : configTablesAreDifferent s) by trivial.
-    unfold configTablesAreDifferent in *.
-    simpl in *.
-    fold s'.
-    intros partition1 partition2 Hpart1 Hpart2 Hdiff.
-    assert (getPartitions multiplexer s' = getPartitions multiplexer s) as HgetPart.
-    apply getPartitionsUpdateUserFlag; trivial.
-    rewrite HgetPart in *. clear HgetPart.
-    assert(Hconfig : getConfigPages partition1 s' = getConfigPages partition1 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    assert(Hconfig : getConfigPages partition2 s' = getConfigPages partition2 s).
-    apply getConfigPagesUpdateUserFlag;trivial.
-    rewrite Hconfig;clear Hconfig.
-    apply Hconfigdiff;trivial.  
-    split.
-    intuition.
-    (** isChild **)
-    unfold s' in *.
-    assert(Hchid : isChild s) by intuition.
-    unfold isChild in *.
-    simpl in *.
-    intros partition parent Hparts Hgetparent.
-    rewrite getPartitionsUpdateUserFlag in *;trivial.
-    rewrite getParentUpdateUserFlag in *;trivial.
-    rewrite getChildrenUpdateFlagUser;trivial.
-    apply Hchid;trivial.
-    split.
-    (** isPresentNotDefaultIff **)
-    assert (Hpres : isPresentNotDefaultIff s) by intuition.
-    unfold isPresentNotDefaultIff in *.
-    unfold s'.
+    eapply Hpre.
     simpl.
-    intros table idx.
-    rewrite readPhyEntryUpdateUserFlag;trivial.
-    rewrite readPresentUpdateUserFlag;trivial.
-    (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-    clear Hpost.
-    rename H into Hcond. 
-(** Propagated properties **)
-    { intuition try eassumption. 
-      * apply nextEntryIsPPUpdateUserFlag ; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP); clear H23; intros (H23 & _). 
-        apply isPEUpdateUserFlag; assumption.
-      *  assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isPE ptRefChild idx s /\ 
-                    getTableAddrRoot ptRefChild PDidx currentPart descChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr descChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * assert(Hi3 : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi3 idx HP);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;  assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                      isPE ptPDChild idx s /\ 
-                      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by trivial.
-        assert(HP : StateLib.getIndexOfAddr pdChild fstLevel = idx) by
-        intuition.
-        generalize (Hi idx HP);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial.  
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi: forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isPE ptSh1Child idx s /\ 
-                    getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);clear H7;intros (H7 & _).
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi1 : forall idx : index,
-                      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                      isPE ptSh2Child idx s /\ 
-                      getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi1 idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isPEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                      StateLib.getIndexOfAddr list fstLevel = idx ->
-                      isPE ptConfigPagesList idx s /\ 
-                      getTableAddrRoot ptConfigPagesList PDidx currentPart list s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * apply entryPresentFlagUpdateUserFlag;assumption.
-      * apply entryUserFlagUpdateUserFlagSameValue;trivial.
-      * apply nextEntryIsPPUpdateUserFlag;assumption.  
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1); clear H7; intros (H7 & H7').      
-        apply isVEUpdateUserFlag; assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                    isVE ptRefChildFromSh1 idx s /\
-                    getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by trivial.
-        assert(Hi1 :StateLib.getIndexOfAddr descChild fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                      isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChild)
-                      by intuition.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isVE ptPDChildSh1 idx s /\ 
-                    getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr pdChild fstLevel = idx) by trivial. 
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-                    isEntryVA ptPDChildSh1 idxPDChild va s /\ 
-                    beqVAddr defaultVAddr va = derivedPDChild) by trivial. 
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                    isVE ptSh1ChildFromSh1 idx s /\ 
-                    getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by trivial.
-        assert(Hi1 : StateLib.getIndexOfAddr shadow1 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi1);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr,
-        isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) 
-        by trivial.
-        destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                    isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) 
-                    by trivial. 
-        assert(Hi2 : StateLib.getIndexOfAddr shadow2 fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert(Hi : exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ 
-                    beqVAddr defaultVAddr va = derivedSh2Child) by trivial.
-      destruct Hi as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial. 
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);clear H7;intros (H7 & H7').
-        apply isVEUpdateUserFlag;assumption.
-      * assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr list fstLevel = idx ->
-                    isVE childListSh1 idx s /\ 
-                    getTableAddrRoot childListSh1 sh1idx currentPart list s) by trivial.
-        assert(Hi2 : StateLib.getIndexOfAddr list fstLevel = idx) by trivial.
-        generalize (Hi idx Hi2);intros (_ & Htableroot).         
-        unfold getTableAddrRoot in *.
-        destruct Htableroot as (Htrue & Htableroot).
-        split; trivial.
-        intros tableroot Hi3.
-        apply nextEntryIsPPUpdateUserFlag' in Hi3.
-        generalize(Htableroot tableroot Hi3 );clear Htableroot; intros Htableroot.
-        destruct Htableroot as (nbL & Hnbl & stop & Hstop & Hind).
-        exists nbL. split;trivial.
-        exists stop. split; trivial.
-        rewrite <- Hind.
-        apply getIndirectionUpdateUserFlag;trivial. 
-      * assert( Hi5 : exists va : vaddr,
-                      isEntryVA childListSh1 idxConfigPagesList va s /\ 
-                      beqVAddr defaultVAddr va = derivedRefChildListSh1) by trivial.
-        destruct Hi5 as  (va & Hv& Hnotnull).
-        exists va. split; [ apply isEntryVAUpdateUserFlag | ];trivial.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse' : In phyPDChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse'.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse' : In phySh1Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse'.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse' : In phySh2Child (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse'.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial.
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse' : In phyConfigPagesList (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse'.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * apply isEntryPageUpdateUserFlag; trivial. 
-      * assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption.
-        left;trivial.
-      * assert (Hfalse' : In phyDescChild (getConfigPagesAux partition s')); trivial.
-        contradict Hfalse'.
-        assert(  (getConfigPages partition s') = 
-        (getConfigPages partition s)) as Hconfig.
-        apply getConfigPagesUpdateUserFlag; trivial.
-        unfold getConfigPages in Hconfig.
-        inversion Hconfig as [Hconfiginv].
-        rewrite Hconfiginv.
-        unfold not.
-        intros.
-        assert(Hi : forall partition : page,
-        In partition (getPartitions multiplexer s) ->
-        partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False) 
-        by trivial.
-        apply Hi with partition.
-        assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
-        apply getPartitionsUpdateUserFlag; trivial.
-        rewrite Hpartitions in *. assumption. right; assumption.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial.
-      * unfold isPartitionFalse; unfold s'; cbn.
-         rewrite readPDflagUpdateUserFlag;trivial. 
-      * assert(HisAccess : isAccessibleMappedPageInParent currentPart descChild phyDescChild s' =
-          isAccessibleMappedPageInParent currentPart descChild phyDescChild s).
-          { unfold isAccessibleMappedPageInParent.
-            unfold s'.
-            simpl.
-            rewrite getSndShadowUpdateUserFlag;trivial.
-            case_eq( StateLib.getSndShadow currentPart (memory s));
-            intros * Hsh2 ;trivial.
-            assert( Hvirt :  getVirtualAddressSh2 p
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptRefChild idxRefChild
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} descChild
-                    =
-                            getVirtualAddressSh2 p s descChild).
-            { unfold getVirtualAddressSh2.
-              assert(HnbL: Some level = StateLib.getNbLevel) by trivial.
-              rewrite <- HnbL;trivial.
-              rewrite getIndirectionUpdateUserFlag;trivial.
-              destruct(getIndirection p descChild level (nbLevel - 1) s );trivial.
-              simpl.
-              rewrite readVirtualUpdateUserFlag;trivial. }
-              rewrite Hvirt;trivial.
-              case_eq (getVirtualAddressSh2 p s descChild);
-              intros * Hvainances;trivial.
-              rewrite getParentUpdateUserFlag;trivial.
-              case_eq( StateLib.getParent currentPart (memory s)); 
-              intros * HparentAcestor;trivial.
-              rewrite getPdUpdateUserFlag.
-              case_eq(StateLib.getPd p0 (memory s) );
-              intros * Hpdparentances;trivial.
-              assert( Haccessible : 
-                        getAccessibleMappedPage p1
-    {|
-    currentPartition := currentPartition s;
-    memory := add ptRefChild idxRefChild
-                (PE
-                   {|
-                   read := read entry;
-                   write := write entry;
-                   exec := exec entry;
-                   present := present entry;
-                   user := false;
-                   pa := pa entry |}) (memory s) beqPage beqIndex |} v= 
-                        getAccessibleMappedPage p1 s v).
-              { symmetry.
-                
-                unfold consistency in *.
-                assert(Hdiff : noCycleInPartitionTree s)
-                by intuition.
-                assert (Hparentpart : parentInPartitionList s ) by  intuition.
-                unfold parentInPartitionList in *.
-                assert(Hancestor : In p0 (getPartitions multiplexer s)).
-                apply Hparentpart with currentPart;trivial.
-                apply nextEntryIsPPgetParent; trivial.
-                subst.
-                apply getAccessibleMappedPageUpdateUserFlagDiffrentPartitions 
-                with (currentPartition s) p0;trivial.
-                intuition.
-                assert(Hget : forall idx : index,
-                        StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                        isPE ptRefChild idx s /\ 
-                        getTableAddrRoot ptRefChild PDidx (currentPartition s) descChild s) by trivial.
-                destruct Hget with (StateLib.getIndexOfAddr descChild fstLevel)
-                as (Hpe & Hroot);
-                trivial.
-              
-                            unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-              assert(Hdisjoint : configTablesAreDifferent s) by intuition.
-              unfold configTablesAreDifferent in *.
-              apply Hdisjoint;trivial.
-              unfold not;intros Hii;symmetry in Hii;contradict Hii.
-              unfold noCycleInPartitionTree in *.
-                apply Hdiff;trivial.
-                apply parentIsAncestor;trivial.
-                apply nextEntryIsPPgetParent;trivial. }
-
-              assert(Haccess : accessibleChildPhysicalPageIsAccessibleIntoParent s).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-              unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
-              assert(Hpde : partitionDescriptorEntry s ).
-              { unfold propagatedProperties in *.
-                unfold consistency in *.
-                intuition. }
-
-              rewrite Haccessible;trivial.
-              assumption. }
-          rewrite HisAccess.
-          assumption.
-(** New property **) 
-      * unfold entryUserFlag. unfold s'.
-        cbn.
-        assert( beqPairs (ptRefChild, idxRefChild) (ptRefChild, idxRefChild)
-        beqPage beqIndex = true) as Hpairs.
-        apply beqPairsTrue.  split;trivial.
-        rewrite Hpairs.  cbn. reflexivity. }
-    intros [].
+    intros [].    
 (** writeAccessibleRec : descChild **)
     eapply bindRev.
     eapply weaken.
+    eapply postAnd.
+    apply preAndPost.    
     eapply WriteAccessibleRec.
     simpl.
+    eapply andPreAndPost.
+     eapply andPreAndPost.
+     eapply andPreAndPost.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phyPDChild (getAccessibleMappedPages partition s)) ).
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. } 
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phySh1Child (getAccessibleMappedPages partition s))).
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }  
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phySh2Child (getAccessibleMappedPages partition s))).
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }  
+    simpl.
+    instantiate (1:= fun s => (forall partition : page,
+    In partition (getAncestors currentPart s) ->
+    ~ In phyConfigPagesList (getAccessibleMappedPages partition s))).
+    { eapply weaken.
+      eapply WriteAccessibleRecPropagateNewProp.
+      simpl; intros.
+      destruct H0 as (H0 & H1).
+      destruct H0 as (H0 & H2).
+      destruct H2 as (H2 &H3).
+      split.
+      eassumption.
+      split. eassumption.
+      split;eassumption. }  
+    simpl.        
+    eapply preAnd.
+    eapply WriteAccessibleRecPostCondition.
+    simpl.
     intros.
+    split.    
     split. 
-    instantiate (43 := false).
     instantiate (42 := false).
     instantiate (41 := false).
     instantiate (40 := false).
-    
-        destruct H0 as (((H0  &Hc) 
-        & Hd ) & He).
-
-    assert(H0new := conj( conj H0 He )Hc ).    
-      repeat rewrite and_assoc in H0new.
-
-    unfold propagatedProperties.
-    eapply H0new.
+    instantiate (39 := false).
+    destruct H0 as ((((H0  & Huserpd) & Hnewrec ) & Haccesssh1) & Husersh1 ).
+ (*   destruct H0 as (H0 & Hsplit). 
+    assert(H0new := conj( conj H0 Husersh1) Hsplit ).
+    repeat rewrite and_assoc in H0new. *)
+    eapply H0.
+     unfold propagatedProperties in *.
     instantiate(1:= phyDescChild).
     instantiate(1:= idxRefChild).
     instantiate(1:= ptRefChild).
@@ -6311,6 +1960,7 @@ page is already accessible **)
     repeat rewrite andb_true_iff in Hlegit.
     intuition.
     subst;trivial.
+    intuition.
     intros.
     simpl.
 (** IndexZero **)
@@ -6330,6 +1980,8 @@ page is already accessible **)
     eapply initPEntryTableNewProperty.
     { intros. simpl.
       split. split.
+       repeat rewrite  and_assoc in H0.
+       repeat rewrite and_assoc. 
       eassumption.
       unfold propagatedProperties in *.
       split. intuition. intuition.
@@ -6350,13 +2002,141 @@ page is already accessible **)
       omega. }
     intros resinittablepd.
     simpl.
-(** initPEntryTable **)    
+    (** getKidx **)
+  eapply WP.bindRev.
+  eapply WP.weaken.
+  apply  Invariants.getKidx.
+  simpl.
+  intros.
+  eapply H0.
+  simpl.
+  intros kidx.
+    (** getDefaultPage **)
+
     eapply WP.bindRev.
+    eapply WP.weaken.
+    eapply Invariants.getDefaultPage.
+    simpl.
+    intros.
+    eapply H0.
+      simpl.
+  intros defaultPA.
+(** writeKernelPhyEntry **)
+    eapply WP.bindRev.
+    intros.
+    eapply WP.weaken.
+    
+    eapply writeKernelPhyEntry.
+    simpl.
+    intros.
+    pattern s in H0.
+    match type of H0 with 
+    | ?HT s => instantiate (1 := fun tt s => HT s )
+    end.
+    simpl.
+    set (s' :=  {|
+     currentPartition := currentPartition s;
+     memory := add phyPDChild kidx
+                 (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPA |})
+                 (memory s) beqPage beqIndex |}) in *.
+   simpl in *.
+   destruct H0 as (((H0 & Ha1 ) &  Ha2) & Ha3). (* 
+   assert(propagatedProperties  false false false false 
+pdChild currentPart currentPD level ptRefChild descChild idxRefChild true
+ ptPDChild idxPDChild true  ptSh1Child shadow1 idxSh1
+true  ptSh2Child shadow2 idxSh2 true  ptConfigPagesList 
+idxConfigPagesList true 
+currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
+ptSh1ChildFromSh1 derivedSh1Child childSh2
+derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+phySh2Child phyConfigPagesList phyDescChild s'). *)
+split.
+split.
+split.
+split.
+destruct H0. 
+apply propagatedPropertiesUpdateMappedPageData; trivial.
+   rewrite Ha3.
+   apply isPresentNotDefaultIffRightValue.
+   unfold propagatedProperties in * .
+   unfold consistency in *.
+   intuition.
+   unfold propagatedProperties in * .
+   intuition.
+   unfold propagatedProperties in * .
+   intuition.
+   split.
+   {
+  repeat rewrite and_assoc.
+   unfold propagatedProperties in *.   
+   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition. 
+   subst.
+   unfold currentPartitionInPartitionsList in *.    
+   subst;intuition. }
+   try repeat split;trivial; try (  
+    apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition). }
+   intuition.
+   intros.
+   unfold StateLib.readPhyEntry, StateLib.readPresent  in *.
+   cbn.
+   case_eq(beqPairs (phyPDChild, kidx) (phyPDChild, idx) beqPage beqIndex
+   );intros.
+   simpl.
+   subst;split;trivial.
+   assert( lookup phyPDChild idx (removeDup phyPDChild kidx (memory s)
+    beqPage beqIndex) beqPage beqIndex =  
+    lookup phyPDChild idx (memory s) beqPage beqIndex).
+    apply removeDupIdentity.
+    apply beqPairsFalse in H1.
+    intuition.
+    rewrite H2.
+    apply Ha1.
+    trivial.
+    subst.
+    trivial.
+intros [].
+(** initPEntryTable **)    
+
+    eapply weaken.
+    instantiate(1:= fun s : state => 
+    (propagatedProperties false false false false pdChild currentPart
+        currentPD level ptRefChild descChild idxRefChild presentRefChild
+        ptPDChild idxPDChild presentPDChild ptSh1Child shadow1 idxSh1
+        presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList
+        idxConfigPagesList presentConfigPagesList currentShadow1
+        ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild
+        ptSh1ChildFromSh1 derivedSh1Child childSh2 derivedSh2Child
+        childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
+        phySh2Child phyConfigPagesList phyDescChild s /\ ((((forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+         (forall partition : page,
+          In partition (getAncestors currentPart s) ->
+          ~ In phySh1Child (getAccessibleMappedPages partition s))) /\
+        (forall partition : page,
+         In partition (getAncestors currentPart s) ->
+         ~ In phySh2Child (getAccessibleMappedPages partition s))) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+       (forall partition : page,
+        In partition (getAncestors currentPart s) ->
+        ~ In phyDescChild (getAccessibleMappedPages partition s))) /\
+      zero = CIndex 0) /\
+     (forall idx : index,
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\ 
+      StateLib.readPresent phyPDChild idx (memory s) = Some false)).
+      Focus 2.
+      simpl;
+      intuition.  
+      eapply WP.bindRev.
     eapply preAndPost.
     eapply WP.weaken.
     eapply conjPrePost.
-    eapply initPEntryTablePropagateProperties1.
-    eapply initPEntryTableNewProperty.
+    eapply initFstShadowTablePropagateProperties1.
+    eapply initFstShadowNewProperty.
     { intros. simpl.
       split. split.
       eassumption.
@@ -6366,6 +2146,12 @@ page is already accessible **)
       assert (zero = CIndex 0) as Hzero.
       intuition.
       subst.
+      
+      assert(Hor : level <> fstLevel \/ level = fstLevel ) by apply levelDecOrNot.
+      destruct Hor as [Ho | Hor].
+      left;intros.
+      split;trivial.
+      intros.   
       unfold CIndex in H1.
       case_eq (lt_dec 0 tableSize).
       intros.
@@ -6376,9 +2162,24 @@ page is already accessible **)
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
       unfold tableSizeLowerBound in *.
-      omega. }
+      omega.
+      right.
+      split;trivial.
+      intros.
+      unfold CIndex in H1.
+      case_eq (lt_dec 0 tableSize).
+      intros.
+      rewrite H2 in H1.
+      simpl in *. omega.
+      intros.
+      contradict H2.
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.
+       }
     eapply weaken.
-    eapply initPEntryTablePropagateProperties2.
+    eapply initFstShadowPropagateProperties2.
     intros.
     simpl.
     destruct H0 as ((H0 & Hzero) & Hphypd).
@@ -6424,15 +2225,16 @@ page is already accessible **)
     intuition.
     subst.
     assumption.
+    simpl.
 (** initPEntryTable **) 
-    intros resinittablesh1. simpl.
+    intros []. simpl.
     eapply WP.bindRev.
     { eapply preAndPost.
       + eapply preAndPost.
         - eapply WP.weaken.
           eapply conjPrePost.
-          eapply initPEntryTablePropagateProperties1.
-          eapply initPEntryTableNewProperty.
+          eapply initSndShadowTablePropagateProperties1.
+          eapply initSndShadowNewProperty.
           { intros. simpl.
             split. split.
             eassumption.
@@ -6442,6 +2244,11 @@ page is already accessible **)
             assert (zero = CIndex 0) as Hzero.
             intuition.
             subst.
+            assert(Hor : level <> fstLevel \/ level = fstLevel ) by apply levelDecOrNot.
+            destruct Hor as [Ho | Hor].
+            left;intros.
+            split;trivial.
+            intros.   
             unfold CIndex in H1.
             case_eq (lt_dec 0 tableSize).
             intros.
@@ -6452,9 +2259,24 @@ page is already accessible **)
             assert (tableSize > tableSizeLowerBound).
             apply tableSizeBigEnough.
             unfold tableSizeLowerBound in *.
-            omega. }
+            omega.
+            right.
+            split;trivial.
+            intros.
+            unfold CIndex in H1.
+            case_eq (lt_dec 0 tableSize).
+            intros.
+            rewrite H2 in H1.
+            simpl in *. omega.
+            intros.
+            contradict H2.
+            assert (tableSize > tableSizeLowerBound).
+            apply tableSizeBigEnough.
+            unfold tableSizeLowerBound in *.
+            omega.
+             }
         - eapply weaken.
-          eapply initPEntryTablePropagateProperties2.
+          eapply initSndShadowPropagateProperties3.
           intros.
           simpl.
           destruct H0 as ((H0 & Hzero) & Hphypd).
@@ -6499,13 +2321,13 @@ page is already accessible **)
           repeat rewrite andb_true_iff in Hlegit.
           intuition.
           subst.
-          assumption.
+          assumption.          
     + rewrite andAssocHT .
       apply permutHT.
       rewrite  <- andAssocHT.
       apply preAnd.
       eapply weaken.
-      eapply initPEntryTablePropagateProperties2.
+      eapply initSndShadowPropagateProperties2.
       intros.
       simpl.
       destruct H0 as ((H0  & Hzero) & Hphypd).
@@ -6551,13 +2373,13 @@ page is already accessible **)
       intuition.
       subst.
       assumption. }
-    intros resinittablesh2. simpl.
+      
+    intros []. simpl.
 (** initConfigPagesList **)
     eapply WP.bindRev.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply initConfigPagesListPropagateProperties.
-
     intuition.
     eapply initConfigPagesListNewProperty.
     simpl; intros.
@@ -6830,100 +2652,20 @@ page is already accessible **)
     destruct H0.  
     destruct H0 as (H0 & _ & H4).
     intuition.
+    
     assert(Hnoteq : idxPR <> idxPD).
-    { subst.
-      unfold PDidx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+      apply idxPRidxPDNotEq. }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros * Hc2.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros * Hc3 Hc4.
-    contradict Hc4.
-    subst.
-    unfold PDidx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 2 tableSize); intros * Hc5.
-    unfold not; intros Hc6.
-    inversion Hc6 as [Hc7].
-    unfold CIndex in Hc7.
-    case_eq(lt_dec 0 tableSize); intros * Hc8; rewrite Hc8 in *.
-    inversion Hc6.
-    simpl in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    subst.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPRsucNotEqidxPD.  abstract omega.
+    
     assert(Hnoteq : idxPR <> idxPD).
-    { subst.
-      unfold PDidx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
-   
+    
+    { subst.  apply  idxPRidxPDNotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PDidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold PDidx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 0 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 0 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
-    omega.
+
+    apply idxPDsucNotEqidxPR;trivial. abstract omega.
     simpl.
     intros [].
 (** updatePartitionDescriptor : add the page directory into the partition descriptor *)
@@ -7026,94 +2768,15 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxPD <> idxSH1).
-    { subst.
-      unfold PDidx. unfold sh1idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPDidxSh1notEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PDidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh1idx. unfold PDidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 4 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 2 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPDsucNotEqidxSh1; abstract omega.
     assert(Hnoteq : idxPR <> idxPD).
-    { subst.
-      unfold PDidx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    {  subst. apply idxPRidxPDNotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh1idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold PDidx. unfold sh1idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 2 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 4 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+
+    apply idxSh1succNotEqidxPD. abstract omega.
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -7144,96 +2807,16 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxPR <> idxSH1).
-    { subst.
-      unfold PRidx. unfold sh1idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.  apply idxPRidxSh1NotEq. }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh1idx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 4 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 0 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPRsuccNotEqidxSh1.  abstract omega.
+     
     assert(Hnoteq : idxPR <> idxSH1).
-    { subst.
-      unfold sh1idx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPRidxSh1NotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh1idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold PRidx. unfold sh1idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 0 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 4 tableSize); intros; rewrite H17 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.  
-    omega.
-    
+
+    apply idxSh1succNotEqidxPR;trivial. 
     simpl.
     intros [].
 (** updatePartitionDescriptor : add the page directory into the partition descriptor *)
@@ -7338,94 +2921,18 @@ eapply WP.bindRev.
      destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxSH2 <> idxSH1).
-    { subst.
-      unfold sh2idx. unfold sh1idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+      apply idxSh2idxSh1notEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh1idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh1idx. unfold sh2idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 6 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 4 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+ apply idxSh1succNotEqidxSh2; trivial. 
     assert(Hnoteq : idxSH1 <> idxSH2).
-    { subst.
-      unfold sh1idx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+   symmetrynot.    apply idxSh2idxSh1notEq. }
+   
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh2idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh2idx. unfold sh1idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 4 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 6 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+
+    apply idxSh2succNotEqidxSh1;trivial.
     
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
@@ -7457,94 +2964,15 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxPD <> idxSH2).
-    { subst.
-      unfold PDidx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.  apply idxPDidxSh2notEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PDidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh2idx. unfold PDidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 6 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 2 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPDsucNotEqidxSh2;trivial.
+    
     assert(Hnoteq : idxPD <> idxSH2).
-    { subst.
-      unfold sh2idx. unfold PDidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPDidxSh2notEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh2idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold PDidx. unfold sh2idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 2 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 6 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxSh2succNotEqidxPD;trivial.
           eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -7577,94 +3005,16 @@ eapply WP.bindRev.
     destruct H0 as (H0 & _ & H6).
     intuition.
     assert(Hnoteq : idxPR <> idxSH2).
-    { subst.
-      unfold PRidx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+    apply idxPRidxSh2NotEq. }
     now contradict Hnoteq.
-    subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold sh2idx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 6 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 0 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    subst. 
+   
+    apply idxPRsuccNotEqidxSh2; trivial.
     assert(Hnoteq : idxPR <> idxSH2).
-    { subst.
-      unfold PRidx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPRidxSh2NotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh2idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold sh2idx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 0 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 6 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxSh2succNotEqidxPR;trivial.
     simpl; intros [].
     (** updatePartitionDescriptor : add the config list into the partition descriptor *)
     eapply WP.bindRev.
@@ -7769,96 +3119,15 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxSH2 <> idxSH3).
-    { subst.
-      unfold sh2idx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.  apply idxSh2idxSh3notEq. }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh2idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh3idx. unfold sh2idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 8 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 6 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxSh2succNotEqidxSh3; assumption. 
     assert(Hnoteq : idxSH3 <> idxSH2).
-    { subst.
-      unfold sh3idx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. symmetrynot. apply idxSh2idxSh3notEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh3idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh2idx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 6 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 8 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
-    
-      eapply weaken.
+ apply idxSh3succNotEqidxSh2;trivial.
+    eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
     intros.
@@ -7890,93 +3159,14 @@ eapply WP.bindRev.
     intuition.
     assert(Hnoteq : idxSH1 <> idxSH3).
     { subst.
-      unfold sh1idx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+     apply idxSh1idxSh3notEq. }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh1idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh1idx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 8 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 4 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+     apply sh1idxSh3idxNotEq ; trivial.
     assert(Hnoteq : idxSH3 <> idxSH1).
-    { subst.
-      unfold sh3idx. unfold sh1idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. symmetrynot. apply idxSh1idxSh3notEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh3idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh1idx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 4 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 8 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+ apply idxSh3succNotEqidxSh1;trivial. 
           eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -8006,95 +3196,16 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H6).
     intuition.
     assert(Hnoteq : idxPD <> idxSH3).
-    { subst.
-      unfold PDidx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+       apply idxPDidxSh3notEq. }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PDidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold PDidx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 8 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 2 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+ apply idxPDsucNotEqidxSh3;trivial.
     assert(Hnoteq : idxSH3 <> idxPD).
-    { subst.
-      unfold sh3idx. unfold PDidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. symmetrynot. apply idxPDidxSh3notEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh3idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold sh3idx. unfold PDidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 2 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 8 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
-              eapply weaken.
+ apply idxSh3succNotEqidxPDidx;trivial.
+    eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
     intros.
@@ -8122,94 +3233,17 @@ eapply WP.bindRev.
     destruct H0 as (H0 &  H7).
     intuition.
     assert(Hnoteq : idxPR <> idxSH3).
-    { subst.
-      unfold PRidx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+       apply idxPRidxSh3NotEq . 
+      }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    contradict H19.
-    subst.
-    unfold PRidx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 8 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H21.
-    case_eq(lt_dec 0 tableSize); intros; rewrite H20 in *.
-    inversion H21.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPRsuccNotEqidxSh3;trivial.  
     assert(Hnoteq : idxSH3 <> idxPR).
-    { subst.
-      unfold sh3idx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. symmetrynot. apply idxPRidxSh3NotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh3idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    contradict H19.
-    subst.
-    unfold sh3idx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 0 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H21.
-    case_eq(lt_dec 8 tableSize); intros; rewrite H20 in *.
-    inversion H21.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+
+    apply idxSh3succNotEqPRidx;trivial.
 simpl.
 intros [].
       (** updatePartitionDescriptor : add the config list into the partition descriptor *)
@@ -8314,94 +3348,14 @@ intros [].
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxPPR <> idxSH3).
-    { subst.
-      unfold PPRidx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPPRidxSh3NotEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh3idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold sh3idx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 8 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxSh3succNotEqPPRidx;trivial.  
     assert(Hnoteq : idxSH3 <> idxPPR).
-    { subst.
-      unfold sh3idx. unfold PPRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.  symmetrynot. apply idxPPRidxSh3NotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PPRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
-    contradict H13.
-    subst.
-    unfold PPRidx. unfold sh3idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 8 tableSize); intros.
-    unfold not; intros.
-    inversion H14.
-    unfold CIndex in H16.
-    case_eq(lt_dec 10 tableSize); intros; rewrite H15 in *.
-    inversion H16.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega. 
+apply idxPPRsuccNotEqidxSh3;trivial.  
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -8430,94 +3384,15 @@ intros [].
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxSH2 <> idxPPR).
-    { subst.
-      unfold sh1idx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+      apply idxSh2idxPPRnotEq;trivial.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh2idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh2idx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 6 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+apply idxSh2succNotEqidxPPR;trivial.
     assert(Hnoteq : idxPPR <> idxSH2).
-    { subst.
-      unfold PPRidx. unfold sh2idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.   apply idxPPRidxSh2NotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PPRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
-    contradict H15.
-    subst.
-    unfold sh2idx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 6 tableSize); intros.
-    unfold not; intros.
-    inversion H16.
-    unfold CIndex in H18.
-    case_eq(lt_dec 10 tableSize); intros; rewrite H17 in *.
-    inversion H18.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+apply idxPPRsuccNotEqidxSh2;trivial.
           eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -8546,95 +3421,17 @@ intros [].
     destruct H0 as (H0 &  H6).
 
     intuition.
+    
     assert(Hnoteq : idxSH1 <> idxPPR).
-    { subst.
-      unfold sh1idx. unfold PPRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.  apply idxSh1idxPPRnotEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (sh1idx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold sh1idx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 4 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+
+    apply idxSh1succNotEqidxPPR;trivial.
     assert(Hnoteq : idxPPR <> idxSH1).
-    { subst.
-      unfold PPRidx. unfold sh1idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst.    apply idxPPRidxSh1NotEq.  }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PPRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
-    contradict H17.
-    subst.
-    unfold PPRidx. unfold sh1idx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 4 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H19.
-    case_eq(lt_dec 10 tableSize); intros; rewrite H18 in *.
-    inversion H19.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPPRsuccNotEqidxSh1;trivial. 
               eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -8664,94 +3461,15 @@ intros [].
 
     intuition.
     assert(Hnoteq : idxPD <> idxPPR).
-    { subst.
-      unfold PRidx. unfold sh3idx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPDidxPPRNotEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PDidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    contradict H19.
-    subst.
-    unfold PDidx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H21.
-    case_eq(lt_dec 2 tableSize); intros; rewrite H20 in *.
-    inversion H21.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+ apply idxPDsucNotEqidxPPR;trivial. 
     assert(Hnoteq : idxPPR <> idxPD).
-    { subst.
-      unfold PPRidx. unfold PDidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. 
+      apply idxPPRidxPDNotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PPRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
-    contradict H19.
-    subst.
-    unfold PPRidx. unfold PDidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 2 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H21.
-    case_eq(lt_dec 10 tableSize); intros; rewrite H20 in *.
-    inversion H21.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPPRsuccNotEqidxPD;trivial.
     eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -8778,1754 +3496,118 @@ intros [].
       repeat right;trivial. }
        do 6 destruct H0.    
     destruct H0 as (H0 &  H8).
-    intuition.
+    intuition. 
     assert(Hnoteq : idxPR <> idxPPR).
-    { subst.
-      unfold PRidx. unfold PPRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. apply idxPRidxPPRNotEq.  }
     now contradict Hnoteq.
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    contradict H21.
-    subst.
-    unfold PRidx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H23.
-    case_eq(lt_dec 0 tableSize); intros; rewrite H22 in *.
-    inversion H23.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+
+    apply idxPRsucNotEqidxPPR;trivial.
     assert(Hnoteq : idxPPR <> idxPR).
-    { subst.
-      unfold PPRidx. unfold PRidx.
-      apply indexEqFalse ;
-      assert (tableSize > tableSizeLowerBound).
-      apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega.  apply tableSizeBigEnough.
-      unfold tableSizeLowerBound in *.
-      omega. apply tableSizeBigEnough. omega. }
+    { subst. symmetrynot. apply idxPRidxPPRNotEq. }
     subst.
-    unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PPRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    omega.
-    unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
-    contradict H21.
-    subst.
-    unfold PPRidx. unfold PRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 0 tableSize); intros.
-    unfold not; intros Hfalse.
-    inversion Hfalse.
-    unfold CIndex in H23.
-    case_eq(lt_dec 10 tableSize); intros; rewrite H22 in *.
-    inversion H23.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    omega.
-    omega.
-    omega.
+    apply idxPPRsuccNotEqidxPR;trivial. 
     simpl.
-    intros []. 
+    intros [].
+
 (**  writeVirEntry **)
     eapply bindRev.
-    eapply weaken.
-    eapply WP.writeVirEntry.
-    simpl; intros.
-   repeat rewrite and_assoc  in H0.
+     eapply weaken.
+    eapply writeVirEntryPD;trivial.
+    eapply H.
+    intros.
+    simpl.
+    repeat rewrite and_assoc  in H0.
+    destruct H0.
+    split.
    unfold propagatedProperties in *.
-    destruct H0 as (H0 & Hnew).
-    do 53 rewrite <- and_assoc in H0.
-    destruct H0 as (H0 & Hsplit).
-    destruct H0 as (H0 & Hfalse). 
-    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
-    try repeat rewrite and_assoc in Hpost. 
-    clear H0 Hfalse Hnew Hsplit.      
-    pattern s in Hpost.
-    match type of Hpost with 
-    |?HT s => instantiate (1 := fun tt s => HT s /\ 
-                                isEntryVA ptPDChildSh1 idxPDChild descChild s)
-    end.
-    simpl in *.
-    split. 
-    unfold propagatedProperties in *.
-    assert(Hget : forall idx : index,
-                  StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                  isVE ptPDChildSh1 idx s /\ 
-                  getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s)
-      by intuition.
-    assert (Hve :isVE ptPDChildSh1 idxPDChild s).
-    apply Hget.
-    intuition.
-    unfold isVE in Hve.
-    case_eq( lookup ptPDChildSh1 idxPDChild (memory s) beqPage beqIndex);
-    intros; rewrite H0 in *; try now contradict Hve.
-    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
-    assert(Hpartitions : getPartitions multiplexer
-            {|
-            currentPartition := currentPartition s;
-            memory := add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})
-                        (memory s) beqPage beqIndex |} = 
-                        getPartitions multiplexer
-            s).
-    apply getPartitionsAddDerivation with v0;trivial.
-    unfold isPartitionFalse in *.
-    intuition.
-    do 3 rewrite <- and_assoc .
-    split.
-    (** partitionsIsolation **)
-    do 2 rewrite and_assoc.
-    split.
-    assert (Hiso : partitionsIsolation s) by intuition.
-    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
-    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
-    unfold isPartitionFalse in *.
-    assumption.
-    (** kernelDataIsolation **)
-    split.
-    assert (Hkdi : kernelDataIsolation s) by intuition.
-    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
-    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
-    unfold isPartitionFalse in *.
-    assumption.
-    (** VerticalSharing **)
-    split.
-    assert (Hvs : verticalSharing s) by intuition.
-    apply verticalSharingUpdtateSh1Structure with v0; trivial.
-    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
-    unfold isPartitionFalse in *.
-    assumption.
-    (** consistency **)
-    assert (Hcons : consistency s ) by intuition.
-    apply consistencyUpdtateSh1Structure with v0; trivial.
-    unfold consistency in *. 
-    assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
-    unfold isPartitionFalse in *.
-    assumption.
-    (** Propagate properties **)
-    { assert(Hconfig :forall partition,  getConfigPagesAux partition
-            {|
-            currentPartition := currentPartition s;
-            memory := add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |}) 
-                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
-      { intros.
-        apply getConfigPagesAuxAddDerivation with v0;trivial. }
-     intuition try trivial. 
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isPEAddDerivation with v0; trivial. 
-      assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                  isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
-      by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isPE ptPDChild idx s /\ 
-                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
-       intuition.
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                  isPE ptSh1Child idx s /\ 
-                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr descChild fstLevel = idx ->
-       isVE ptRefChildFromSh1 idx s /\
-       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-       isVE ptPDChildSh1 idx s /\
-       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-       isVE ptSh1ChildFromSh1 idx s /\
-       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-       isVE childSh2 idx s /\
-       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA childSh2 idxSh2  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr list fstLevel = idx ->
-       isVE childListSh1 idx s /\
-       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with list
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial. 
-      right;trivial.
-    +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
-                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
-                idxSh1 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 pdChild currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-    + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
-                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 pdChild currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
-                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
-                 idxConfigPagesList
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with list pdChild currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
-                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
-                 idxRefChild  (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild pdChild currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-    + apply isPartitionFalseAddDerivation.
-(*     + apply entryUserFlagAddDerivation with v0;trivial.  *)
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
-      apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
-      apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
-      exists idxValue.
-      rewrite <- Hidx.
-      apply readIndexAddDerivation with v0; trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial. }
-(** New property to propagate **)
-    unfold isEntryVA.
-    cbn.
-    assert(Htrue : beqPairs (ptPDChildSh1, idxPDChild) (ptPDChildSh1, idxPDChild)
-           beqPage beqIndex = true).
-    { apply beqPairsTrue.
-      split; trivial. }
-    rewrite Htrue.
-    cbn;trivial. 
+   eassumption.
+   eapply H1.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
     eapply weaken.
-    eapply WP.writeVirEntry.
-    simpl; intros.
-    destruct H0 as (H0 & Hnew).
-    do 55 rewrite <- and_assoc in H0.
-    destruct H0 as (H0 & Hsplit).
-    destruct H0 as (H0 & Hfalse). 
-    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
-    try repeat rewrite and_assoc in Hpost. 
-    clear H0 Hfalse Hnew Hsplit.      
-    pattern s in Hpost.
-    match type of Hpost with 
-    |?HT s => instantiate (1 := fun tt s => HT s /\ 
-                                isEntryVA ptSh1ChildFromSh1 idxSh1 descChild s)
-    end.
-    simpl in *.
-    split. 
-    unfold propagatedProperties in *.
-    assert(Hget : forall idx : index,
-                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                  isVE ptSh1ChildFromSh1 idx s /\ 
-                  getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s)
-      by intuition.
-    assert (Hve :isVE ptSh1ChildFromSh1 idxSh1 s).
-    apply Hget.
-    intuition.
-    unfold isVE in Hve.
-    case_eq( lookup ptSh1ChildFromSh1 idxSh1 (memory s) beqPage beqIndex);
-    intros; rewrite H0 in *; try now contradict Hve.
-    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
-    assert(Hpartitions : getPartitions multiplexer
-            {|
-            currentPartition := currentPartition s;
-            memory := add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})
-                        (memory s) beqPage beqIndex |} = 
-                        getPartitions multiplexer
-            s).
-    apply getPartitionsAddDerivation with v0;trivial.
-    unfold isPartitionFalse in *.
-    intuition.
-    do 3 rewrite <- and_assoc .
-    assert(Hispart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s ) by intuition.
-    split.    
-    (** partitionsIsolation **)
-    do 2 rewrite and_assoc.
+    eapply writeVirEntrySh1;trivial.
+    eapply H.
+    intros.
+    simpl.
+    repeat rewrite and_assoc  in H0.
+    destruct H0.
     split.
-    assert (Hiso : partitionsIsolation s) by intuition.
-    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
-    (** kernelDataIsolation **)
-    split.
-    assert (Hkdi : kernelDataIsolation s) by intuition.
-    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
-    (** VerticalSharing **)
-    split.
-    assert (Hvs : verticalSharing s) by intuition.
-    apply verticalSharingUpdtateSh1Structure with v0; trivial.
-    (** consistency **)
-    assert (Hcons : consistency s ) by intuition.
-    apply consistencyUpdtateSh1Structure with v0; trivial.
-    (** Propagate properties **)
-    { assert(Hconfig :forall partition,  getConfigPagesAux partition
-            {|
-            currentPartition := currentPartition s;
-            memory := add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |}) 
-                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
-      { intros.
-        apply getConfigPagesAuxAddDerivation with v0;trivial. }
-     intuition try trivial. 
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isPEAddDerivation with v0; trivial. 
-      assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                  isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
-      by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isPE ptPDChild idx s /\ 
-                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
-       intuition.
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                  isPE ptSh1Child idx s /\ 
-                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr descChild fstLevel = idx ->
-       isVE ptRefChildFromSh1 idx s /\
-       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild
-      shadow1   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-       isVE ptPDChildSh1 idx s /\
-       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-       isVE ptSh1ChildFromSh1 idx s /\
-       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-       isVE childSh2 idx s /\
-       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA childSh2 idxSh2  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-      shadow1   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr list fstLevel = idx ->
-       isVE childListSh1 idx s /\
-       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with list
-      shadow1   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial. 
-      right;trivial.
-    + apply isPartitionFalseAddDerivation.
-(*     +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
-                (add ptPDChildSh1 idxPDChild (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
-                idxSh1 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 pdChild currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial. *)
-    + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
-                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 shadow1 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
-                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
-                 idxConfigPagesList
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with list shadow1 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
-                (add ptSh1ChildFromSh1 idxSh1(VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
-                 idxRefChild  (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow1 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
-                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
-                 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with pdChild shadow1 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial.  *)
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
-      apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
-      apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
-      exists idxValue.
-      rewrite <- Hidx.
-      apply readIndexAddDerivation with v0; trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    +
-       apply isEntryVASameValue;trivial. }
-      
-(** New property to propagate **)
-    unfold isEntryVA.
-    cbn.
-    assert(Htrue : beqPairs (ptSh1ChildFromSh1, idxSh1) (ptSh1ChildFromSh1, idxSh1) 
-    beqPage beqIndex = true).
-    { apply beqPairsTrue.
-      split; trivial. }
-    rewrite Htrue.
-    cbn;trivial. 
+   unfold propagatedProperties in *.
+   eassumption.
+   eapply H1.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
     eapply weaken.
-    eapply WP.writeVirEntry.
-    simpl; intros.
-    destruct H0 as (H0 & Hnew).
-    do 57 rewrite <- and_assoc in H0.
-    destruct H0 as (H0 & Hsplit).
-    destruct H0 as (H0 & Hfalse). 
-    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
-    try repeat rewrite and_assoc in Hpost. 
-    clear H0 Hfalse Hnew Hsplit.      
-    pattern s in Hpost.
-    match type of Hpost with 
-    |?HT s => instantiate (1 := fun tt s => HT s /\ 
-                                isEntryVA childSh2 idxSh2 descChild s)
-    end.
-    simpl in *.
-    split. 
-    unfold propagatedProperties in *.
-    assert(Hget : forall idx : index,
-                  StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-                  isVE childSh2 idx s /\ 
-                  getTableAddrRoot childSh2 sh1idx currentPart shadow2 s)
-      by intuition.
-    assert (Hve :isVE childSh2 idxSh2  s).
-    apply Hget.
-    intuition.
-    unfold isVE in Hve.
-    case_eq( lookup childSh2 idxSh2  (memory s) beqPage beqIndex);
-    intros; rewrite H0 in *; try now contradict Hve.
-    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
-    assert(Hpartitions : getPartitions multiplexer
-            {|
-            currentPartition := currentPartition s;
-            memory := add childSh2 idxSh2  (VE {| pd := false; va := descChild |})
-                        (memory s) beqPage beqIndex |} = 
-                        getPartitions multiplexer
-            s).
-    apply getPartitionsAddDerivation with v0;trivial.
-    unfold isPartitionFalse in *.
-    intuition.
-    do 3 rewrite <- and_assoc .
-    assert(Hispart : isPartitionFalse childSh2 idxSh2  s ) by intuition.
-    split.    
-    (** partitionsIsolation **)
-    do 2 rewrite and_assoc.
+    eapply writeVirEntrySh2;trivial.
+    eapply H.
+    intros.
+    simpl.
+    repeat rewrite and_assoc  in H0.
+    destruct H0.
     split.
-    assert (Hiso : partitionsIsolation s) by intuition.
-    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
-    (** kernelDataIsolation **)
-    split.
-    assert (Hkdi : kernelDataIsolation s) by intuition.
-    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
-    (** VerticalSharing **)
-    split.
-    assert (Hvs : verticalSharing s) by intuition.
-    apply verticalSharingUpdtateSh1Structure with v0; trivial.
-    (** consistency **)
-    assert (Hcons : consistency s ) by intuition.
-    apply consistencyUpdtateSh1Structure with v0; trivial.
-    (** Propagate properties **)
-    { assert(Hconfig :forall partition,  getConfigPagesAux partition
-            {|
-            currentPartition := currentPartition s;
-            memory := add childSh2 idxSh2  (VE {| pd := false; va := descChild |}) 
-                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
-      { intros.
-        apply getConfigPagesAuxAddDerivation with v0;trivial. }
-     intuition try trivial. 
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isPEAddDerivation with v0; trivial. 
-      assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                  isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
-      by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isPE ptPDChild idx s /\ 
-                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
-       intuition.
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                  isPE ptSh1Child idx s /\ 
-                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr descChild fstLevel = idx ->
-       isVE ptRefChildFromSh1 idx s /\
-       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild
-      shadow2   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-       isVE ptPDChildSh1 idx s /\
-       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-       isVE ptSh1ChildFromSh1 idx s /\
-       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-       isVE childSh2 idx s /\
-       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA childSh2 idxSh2  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-      shadow1   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr list fstLevel = idx ->
-       isVE childListSh1 idx s /\
-       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with list
-      shadow2   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial. 
-      right;trivial. 
-   +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
-                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
-                idxSh1 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 shadow2 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-    + apply isPartitionFalseAddDerivation. 
-(*     + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
-                (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 shadow1 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial. *)
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    + assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
-                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
-                 idxConfigPagesList
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with list shadow2 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
-                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
-                 idxRefChild  (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild shadow2 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
-                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
-                 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with pdChild shadow2 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial.  *)
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
-      apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
-      apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
-      exists idxValue.
-      rewrite <- Hidx.
-      apply readIndexAddDerivation with v0; trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isEntryVASameValue;trivial.
-    + apply isEntryVASameValue;trivial.
-    }
-      
-(** New property to propagate **)
-    unfold isEntryVA.
-    cbn.
-    assert(Htrue : beqPairs (childSh2, idxSh2) (childSh2, idxSh2) beqPage beqIndex
- = true).
-    { apply beqPairsTrue.
-      split; trivial. }
-    rewrite Htrue.
-    cbn;trivial. 
+   unfold propagatedProperties in *.
+   eassumption.
+   eapply H1.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
     eapply weaken.
-    eapply WP.writeVirEntry.
-    simpl; intros.
-    destruct H0 as (H0 & Hnew).
-    do 59 rewrite <- and_assoc in H0.
-    destruct H0 as (H0 & Hsplit).
-    destruct H0 as (H0 & Hfalse). 
-    assert (Hpost := conj (conj H0 Hsplit)  Hnew).
-    try repeat rewrite and_assoc in Hpost. 
-    clear H0 Hfalse Hnew Hsplit.      
-    pattern s in Hpost.
-    match type of Hpost with 
-    |?HT s => instantiate (1 := fun tt s => HT s /\ 
-                                isEntryVA  childListSh1 idxConfigPagesList descChild s)
-    end.
-    simpl in *.
-    split. 
-    unfold propagatedProperties in *.
-    assert(Hget : forall idx : index,
-                  StateLib.getIndexOfAddr list fstLevel = idx ->
-                  isVE childListSh1 idx s /\ 
-                  getTableAddrRoot childListSh1 sh1idx currentPart list s)
-      by intuition.
-    assert (Hve :isVE childListSh1 idxConfigPagesList  s).
-    apply Hget.
-    intuition.
-    unfold isVE in Hve.
-    case_eq( lookup childListSh1 idxConfigPagesList  (memory s) beqPage beqIndex);
-    intros; rewrite H0 in *; try now contradict Hve.
-    case_eq v ; intros;rewrite H1 in *; try now contradict Hve.
-    assert(Hpartitions : getPartitions multiplexer
-            {|
-            currentPartition := currentPartition s;
-            memory := add childListSh1 idxConfigPagesList  (VE {| pd := false; va := descChild |})
-                        (memory s) beqPage beqIndex |} = 
-                        getPartitions multiplexer
-            s).
-    apply getPartitionsAddDerivation with v0;trivial.
-    unfold isPartitionFalse in *.
-    intuition.
-    do 3 rewrite <- and_assoc .
-    assert(Hispart : isPartitionFalse childListSh1 idxConfigPagesList  s ) by intuition.
-    split.    
-    (** partitionsIsolation **)
-    do 2 rewrite and_assoc.
+    eapply writeVirEntryList;trivial.
+    eapply H.
+    intros.
+    simpl.
+    repeat rewrite and_assoc  in H0.
+    destruct H0.
     split.
-    assert (Hiso : partitionsIsolation s) by intuition.
-    apply partitionsIsolationUpdtateSh1Structure with v0; trivial.
-    (** kernelDataIsolation **)
-    split.
-    assert (Hkdi : kernelDataIsolation s) by intuition.
-    apply kernelDataIsolationUpdtateSh1Structure with v0; trivial.
-    (** VerticalSharing **)
-    split.
-    assert (Hvs : verticalSharing s) by intuition.
-    apply verticalSharingUpdtateSh1Structure with v0; trivial.
-    (** consistency **)
-    assert (Hcons : consistency s ) by intuition.
-    apply consistencyUpdtateSh1Structure with v0; trivial.
-    (** Propagate properties **)
-    { assert(Hconfig :forall partition,  getConfigPagesAux partition
-            {|
-            currentPartition := currentPartition s;
-            memory := add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |}) 
-                        (memory s) beqPage beqIndex |} = getConfigPagesAux partition s).
-      { intros.
-        apply getConfigPagesAuxAddDerivation with v0;trivial. }
-     intuition try trivial. 
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isPEAddDerivation with v0; trivial. 
-      assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
-                  isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s)
-      by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isPE ; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                    StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-                    isPE ptPDChild idx s /\ 
-                    getTableAddrRoot ptPDChild PDidx currentPart pdChild s ) by
-       intuition.
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-                  StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                  isPE ptSh1Child idx s /\ 
-                  getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s ) by
-       intuition. 
-      apply isPEAddDerivation with v0; trivial.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isPE; trivial.
-    + apply entryPresentFlagAddDerivation with v0; trivial.
-    + apply entryUserFlagAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr descChild fstLevel = idx ->
-       isVE ptRefChildFromSh1 idx s /\
-       getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxRefChild v0 isVE; trivial.
-    + assert (Hi : exists va : vaddr,
-         isEntryVA ptRefChildFromSh1 idxRefChild va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChild ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild
-      list   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-       isVE ptPDChildSh1 idx s /\
-       getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxPDChild v0 isVE; trivial.
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-       isVE ptSh1ChildFromSh1 idx s /\
-       getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh1 v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1ChildFromSh1 idxSh1  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh1Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1
-      pdChild   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-       isVE childSh2 idx s /\
-       getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxSh2 v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA childSh2 idxSh2  va s /\ 
-         beqVAddr defaultVAddr va = derivedSh2Child ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2
-      shadow1   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isVEAddDerivation with v0; trivial. 
-      assert (Hi : forall idx : index,
-       StateLib.getIndexOfAddr list fstLevel = idx ->
-       isVE childListSh1 idx s /\
-       getTableAddrRoot childListSh1 sh1idx currentPart list s) by intuition.
-      apply Hi; trivial.
-    + apply getTableRootAddDerivation with idxConfigPagesList v0 isVE; trivial.
-(*     + assert (Hi : exists va : vaddr,
-         isEntryVA  childListSh1 idxConfigPagesList  va s /\ 
-         beqVAddr defaultVAddr va = derivedRefChildListSh1 ) by intuition.
-      destruct Hi as (va & Hva & Hderiv).
-      exists va;split;trivial.
-      apply isEntryVAAddDerivation; trivial.
-      apply toApplyPageTablesOrIndicesAreDifferent with list
-      shadow2   currentPart
-      currentShadow1 sh1idx level isVE s ;trivial.
-      right;left; trivial.
-      rewrite checkVAddrsEqualityWOOffsetPermut ;trivial. *)
-    + apply isEntryPageAddDerivation with v0; trivial.    
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      right;trivial.
-    + apply isEntryPageAddDerivation with v0; trivial.
-    + rewrite Hpartitions in *.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial.
-      left;trivial.
-    + generalize (Hconfig partition);clear Hconfig; intros Hconfig.
-      rewrite Hconfig in *; clear Hconfig.
-      rewrite Hpartitions in *;clear Hpartitions.
-      assert(Hi : forall partition : page,
-      In partition (getPartitions multiplexer s) ->
-      partition = phyDescChild \/ In phyDescChild (getConfigPagesAux partition s) -> False)
-      by intuition.
-      apply Hi with partition;trivial. 
-      right;trivial. 
-   +  assert (HisPart : isPartitionFalse ptSh1ChildFromSh1 idxSh1 s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptSh1ChildFromSh1 idxSh1
-                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptSh1ChildFromSh1 
-                idxSh1 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow1 list currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-   + assert (HisPart : isPartitionFalse childSh2 idxSh2 s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
-                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with shadow2 list currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial. 
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    + apply isPartitionFalseAddDerivation.
-    (* assert (HisPart : isPartitionFalse childListSh1 idxConfigPagesList s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag childListSh1 idxConfigPagesList
-                (add childSh2 idxSh2 (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag childListSh1
-                 idxConfigPagesList
-                (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with list shadow2 currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
-     rewrite Hreadflag;trivial.*)
-(*     + apply entryUserFlagAddDerivation with v0;trivial. *)
-    +  assert (HisPart : isPartitionFalse ptRefChildFromSh1 idxRefChild s) by trivial.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptRefChildFromSh1 idxRefChild
-                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptRefChildFromSh1
-                 idxRefChild  (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with descChild list currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-   +  assert (HisPart : isPartitionFalse ptPDChildSh1 idxPDChild s) by intuition.
-       unfold isPartitionFalse in *.
-       simpl in *.
-       assert(Hreadflag : StateLib.readPDflag ptPDChildSh1 idxPDChild
-                (add childListSh1 idxConfigPagesList (VE {| pd := false; va := descChild |})        
-                (memory s) beqPage beqIndex) = StateLib.readPDflag ptPDChildSh1 idxPDChild
-                 (memory s)).
-      apply  readPDflagAddDerivation.
-      apply toApplyPageTablesOrIndicesAreDifferent with pdChild list currentPart 
-            currentShadow1 sh1idx level isVE  s;trivial.
-     right;left;trivial.
-     subst.
-     rewrite Hreadflag;trivial.
-(*     + apply entryUserFlagAddDerivation with v0;trivial.  *)
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = 
-              Some defaultPage) by intuition.
-      rewrite <- Hi with idx.
-      apply readPhyEntryAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
-      apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
-      apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
-      exists idxValue.
-      rewrite <- Hidx.
-      apply readIndexAddDerivation with v0; trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isVAAddDerivation with v0;trivial.
-    + apply nextEntryIsPPAddDerivation with v0;trivial.
-    + apply isEntryVASameValue;trivial.
-    + apply isEntryVASameValue;trivial.
-    + apply isEntryVASameValue;trivial.
-    }
-      
-(** New property to propagate **)
-    unfold isEntryVA.
-    cbn.
-    assert(Htrue : beqPairs (childListSh1, idxConfigPagesList) (childListSh1, idxConfigPagesList)
-     beqPage beqIndex
- = true).
-    { apply beqPairsTrue.
-      split; trivial. }
-    rewrite Htrue.
-    cbn;trivial. 
+   unfold propagatedProperties in *.
+   eassumption.
+   eapply H1.
  intros [].
-(**  writeVirEntry **)   
-    admit. (** TODO : To be finished *)
+(**  writePDflag **)  
+eapply WP.bindRev.
+eapply weaken.
+eapply WP.writePDflag.
+simpl.
+intros. 
+assert(Hget : forall idx : index,
+          StateLib.getIndexOfAddr descChild fstLevel = idx ->
+          isVE ptRefChildFromSh1 idx s /\ 
+          getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s).
+{ 
+unfold propagatedProperties in *.
+unfold newPropagatedProperties in *.  intuition. }
+assert (Hve :isVE ptRefChildFromSh1 idxRefChild s).
+{ 
+unfold propagatedProperties in *.
+unfold newPropagatedProperties in *. 
+apply Hget.
+intuition. }
+unfold isVE in Hve.
+case_eq( lookup ptRefChildFromSh1 idxRefChild (memory s) beqPage beqIndex);
+intros; rewrite H1 in *; try now contradict Hve.
+case_eq v ; intros;rewrite H2 in *; try now contradict Hve.
+exists v0;split;trivial.
+subst.
+instantiate(1:= fun _ s =>  partitionsIsolation s /\
+kernelDataIsolation s /\
+verticalSharing s /\
+consistency s).
+simpl.
+
+unfold propagatedProperties in *.
+unfold newPropagatedProperties in *. 
+    apply createPartitionPostcondition with 
+    zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR pdChild
+currentPart currentPD level ptRefChild descChild ptPDChild idxPDChild ptSh1Child shadow1 idxSh1 ptSh2Child
+shadow2 idxSh2 ptConfigPagesList idxConfigPagesList currentShadow1 derivedRefChild ptPDChildSh1 ptSh1ChildFromSh1
+childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition.
+
+    intros []. 
+   eapply WP.weaken. eapply WP.ret .
+   simpl. intuition.
  - intros HNotlegit. 
    eapply WP.weaken. eapply WP.ret .
    simpl. intuition.
@@ -10534,4 +3616,4 @@ intros [].
       simpl. intuition.
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
-Admitted.
+      Qed.

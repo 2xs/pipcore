@@ -63,6 +63,10 @@ false = checkVAddrsEqualityWOOffset nbLevel shadow2 list level /\
 (Kidx =? nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex) = false /\
 (Kidx =? nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex) = false /\
 (Kidx =? nth (length list - (nbLevel - 1 + 2)) list defaultIndex) = false /\
+beqVAddr defaultVAddr pdChild = false /\ 
+beqVAddr defaultVAddr shadow1 = false /\
+beqVAddr defaultVAddr shadow2 = false /\ 
+beqVAddr defaultVAddr list = false /\
 currentPart = currentPartition s /\
 nextEntryIsPP currentPart PDidx currentPD s /\
 (forall idx : index,

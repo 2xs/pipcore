@@ -79,6 +79,19 @@ destruct ( defaultPage =? p0) ;trivial.
 destruct (StateLib.Level.pred l ); trivial.
 Qed.
 
+Lemma getIndirectionUpdateCurrentPartition1 p a l phyVA stop s:
+getIndirection p a l stop s =
+getIndirection p a l stop {| currentPartition := phyVA; memory := memory s |} .
+Proof. 
+revert p a l.
+induction stop;simpl; trivial.
+intros.
+destruct ( StateLib.Level.eqb l fstLevel); trivial.
+destruct (StateLib.readPhyEntry p (StateLib.getIndexOfAddr a l) (memory s)); trivial.
+destruct ( defaultPage =? p0) ;trivial.
+destruct (StateLib.Level.pred l ); trivial.
+Qed.
+
 Lemma getMappedPageUpdateCurrentPartition phyVA p s a :
  getMappedPage p s a =
  getMappedPage p {| currentPartition := phyVA; memory := memory s |} a.
@@ -169,13 +182,13 @@ Qed.
 
 Lemma getTrdShadowsUpdateCurrentPartition  s:
 forall phyVA p2 : page,
-getTrdShadows p2 s nbPage = 
-getTrdShadows p2 {| currentPartition := phyVA; memory := memory s |} nbPage.
+getTrdShadows p2 s (nbPage+1) = 
+getTrdShadows p2 {| currentPartition := phyVA; memory := memory s |} (nbPage+1).
 Proof.
 induction nbPage; simpl; trivial.
 intros.
 destruct ( StateLib.getMaxIndex ); trivial.
-destruct (StateLib.readPhyEntry p2 i (memory s)); trivial.
+destruct (StateLib.readPhysical p2 i (memory s)); trivial.
 destruct (p =? defaultPage ); trivial.
 f_equal.
 apply IHn.
@@ -195,7 +208,7 @@ destruct(  getConfigTablesLinkedList partition (memory s) ); trivial.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
-do 7 f_equal. 
+do 3 f_equal. 
 clear p partition p0 p1.
 revert phyVA p2.
 apply getTrdShadowsUpdateCurrentPartition. 
@@ -498,6 +511,45 @@ simpl in *.
 apply H;trivial.
 Qed.
 
+Lemma getVirtualAddressSh1UpdateCurrentPartition sh1 phyVA va s :
+getVirtualAddressSh1 sh1 s va  = 
+getVirtualAddressSh1 sh1 {| currentPartition := phyVA; memory := memory s |} va.
+Proof.
+unfold getVirtualAddressSh1.
+simpl.
+destruct(StateLib.getNbLevel );trivial.
+rewrite <- getIndirectionUpdateCurrentPartition with  sh1 va l phyVA s;
+trivial.
+Qed.
+
+Lemma isDerivedUpdateCurrentPartition parent va phyVA s :
+isDerived parent va s -> 
+isDerived parent va  {| currentPartition := phyVA; memory := memory s |}.
+Proof.
+unfold isDerived.
+intros.
+simpl in *.
+destruct (getFstShadow parent (memory s) );try now contradict H.
+rewrite <- getVirtualAddressSh1UpdateCurrentPartition with p phyVA va s;
+trivial.
+Qed.   
+
+Lemma physicalPageNotDerivedUpdateCurrentPartition phyVA s :
+physicalPageNotDerived s ->
+physicalPageNotDerived {| currentPartition := phyVA; memory := memory s |}.
+Proof.
+unfold physicalPageNotDerived.
+intros.
+rewrite <- getChildrenUpdateCurrentDescriptor in *.
+simpl in *.
+rewrite <- getMappedPageUpdateCurrentPartition in *.
+rewrite <- getPartitionsUpdateCurrentDescriptor in *.
+apply H with  parent va pdParent child pdChild vaInChild ;trivial.
+unfold not;intros.
+apply H2.
+apply isDerivedUpdateCurrentPartition;trivial.
+Qed.
+
 Lemma activateChild descChild vaNotNulll currPart
 root isMultiplexer nbL  ptpd lastIndex phyVA pd: 
 {{ fun s : state =>((((((((((((partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s) /\
@@ -584,7 +636,7 @@ split.
         + apply dataStructurePdSh1Sh2asRootUpdateCurrentDescriptor; intuition. 
         + apply dataStructurePdSh1Sh2asRootUpdateCurrentDescriptor; intuition.
         + apply dataStructurePdSh1Sh2asRootUpdateCurrentDescriptor; intuition.
-        + destruct Hcons as (_ & _& _& _ & Hpartlist & _ & _ ).
+        + 
           unfold currentPartitionInPartitionsList in *.
           simpl in *.
           rewrite <- getPartitionsUpdateCurrentDescriptor with s phyVA multiplexer.
@@ -592,7 +644,10 @@ split.
           subst.
           apply VAisChild with nbL pd descChild ptpd; trivial.
           unfold getPartitions in *.
-          apply childrenPartitionInPartitionList with (currentPartition s); trivial. 
+          apply childrenPartitionInPartitionList with (currentPartition s); trivial.
+          unfold  consistency in *. intuition. subst. 
+          unfold currentPartitionInPartitionsList in *.
+          intuition. 
         + unfold noDupMappedPagesList in *.
           destruct Hcons as (_ & _& _& _ & _ & Hnodup & _ ).        
           intros. 
@@ -616,8 +671,8 @@ split.
           unfold nextEntryIsPP in *.
           simpl in *. assumption.
        + apply accessibleVAIsNotPartitionDescriptorUpdateCurrentDescriptor; intuition.
-       + destruct Hcons as (_ & _& _& _ & _ & _ & _ & _ & _ & Haccess).
-         unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
+       + assert(Haccess : accessibleChildPageIsAccessibleIntoParent s) by intuition.
+         unfold accessibleChildPageIsAccessibleIntoParent in *.
          simpl.
          intros.
          rewrite  <-getPartitionsUpdateCurrentDescriptor in H.
@@ -638,9 +693,74 @@ split.
          StateLib.readPresent table idx (memory s) = Some false <->
          StateLib.readPhyEntry table idx (memory s) = Some defaultPage) by trivial.
          apply Hcons;trivial.
-       +     (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)}
-Admitted.
+       + apply physicalPageNotDerivedUpdateCurrentPartition;intuition.
+       + unfold multiplexerWithoutParent in *.
+          simpl in *. intuition.
+       + assert (Hisparent : isParent s) by intuition.
+          unfold isParent in *. simpl in *.
+          intros partition parent Hpart Hchild .
+          rewrite <- getPartitionsUpdateCurrentDescriptor in Hpart.
+          rewrite <- getChildrenUpdateCurrentDescriptor in Hchild.
+          apply Hisparent;trivial.
+      +  assert(Hnodup : noDupPartitionTree s) by intuition.
+         unfold noDupPartitionTree in *.
+         rewrite <- getPartitionsUpdateCurrentDescriptor;trivial.
+      + assert(Hwell :  wellFormedFstShadow s) by intuition.
+         unfold wellFormedFstShadow in *.
+          intros.
+          rewrite <- getVirtualAddressSh1UpdateCurrentPartition.
+          apply Hwell with partition pg pd0;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in *;trivial.
+          rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.
+       + assert(Hwell :  wellFormedSndShadow s) by intuition.
+         unfold wellFormedSndShadow in *.
+          intros.
+          rewrite getVirtualAddressSh2UpdateCurrentPartition in *.
+          apply Hwell with partition pg pd0;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in *;trivial.
+          rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.
+       +  assert (Hwell :  wellFormedShadows sh1idx s ) by intuition.
+          unfold wellFormedShadows in *.
+          intros. 
+          assert(Hgoal : exists indirection2 : page, getIndirection structroot va nbL0 stop s = Some indirection2 /\
+                  (defaultPage =? indirection2) = false).
+          apply Hwell with partition pdroot indirection1;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial. 
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
+         + assert (Hwell :  wellFormedShadows sh2idx s ) by intuition.
+          unfold wellFormedShadows in *.
+          intros.
+          assert(Hgoal :exists indirection2 , getIndirection structroot va nbL0 stop s = Some indirection2 /\
+                  (defaultPage =? indirection2) = false).
+          apply Hwell with partition pdroot indirection1;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.            
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
+         + assert(Hcur :  currentPartitionIsNotDefaultPage s) by intuition.
+            unfold currentPartitionIsNotDefaultPage in *.
+            simpl in *.
+            assert( isEntryPage ptpd lastIndex phyVA s) as Hmapphy by intuition.
+            assert(Hconsprent : isPresentNotDefaultIff s).
+            { unfold consistency in *.
+              intuition. }
+            unfold isPresentNotDefaultIff in *.
+            assert(Hread : StateLib.readPhyEntry ptpd lastIndex  (memory s) <> Some defaultPage).
+            unfold not;intros.
+            apply Hconsprent in H.
+            rewrite entryPresentFlagReadPresent with s ptpd lastIndex  true in H ;
+            trivial.
+            now contradict H.
+            unfold isEntryPage in Hmapphy.
+           unfold StateLib.readPhyEntry in Hread. 
+           destruct ( lookup ptpd lastIndex  (memory s) beqPage beqIndex);simpl in *;
+           try now contradict Hmapphy.
+           destruct v;try now contradict Hmapphy.
+           subst.
+           contradict Hread.
+           f_equal.
+           trivial. }
+Qed.
 
 Lemma activateParent parent currPart root descChild :
 {{ fun s : state =>
@@ -741,7 +861,7 @@ split.
            simpl in *. assumption.
      + apply accessibleVAIsNotPartitionDescriptorUpdateCurrentDescriptor; intuition.
      + destruct Hcons as (_ & _& _& _ & _ & _ & _ & _ & _ & Haccess).
-       unfold accessibleChildPhysicalPageIsAccessibleIntoParent in *.
+       unfold accessibleChildPageIsAccessibleIntoParent in *.
        simpl.
        intros.
        rewrite  <-getPartitionsUpdateCurrentDescriptor in H.
@@ -762,7 +882,62 @@ split.
          StateLib.readPresent table idx (memory s) = Some false <->
          StateLib.readPhyEntry table idx (memory s) = Some defaultPage) by trivial.
          apply Hcons;trivial.
-       +     (** physicalPageNotDerived **)
-    admit. (* physicalPageNotDerived *)
-         }
-Admitted.
+      + apply physicalPageNotDerivedUpdateCurrentPartition;intuition.
+      + unfold multiplexerWithoutParent in *.
+          simpl in *. intuition.
+      + assert (Hisparent : isParent s) by intuition.
+          unfold isParent in *. simpl in *.
+          intros partition parent1 Hpart Hchild .
+          rewrite <- getPartitionsUpdateCurrentDescriptor in Hpart.
+          rewrite <- getChildrenUpdateCurrentDescriptor in Hchild.
+          apply Hisparent;trivial.
+      +  assert(Hnodup : noDupPartitionTree s) by intuition.
+         unfold noDupPartitionTree in *.
+         rewrite <- getPartitionsUpdateCurrentDescriptor;trivial.
+      + assert(Hwell :  wellFormedFstShadow s) by intuition.
+         unfold wellFormedFstShadow in *.
+          intros.
+          rewrite <- getVirtualAddressSh1UpdateCurrentPartition.
+          apply Hwell with partition pg pd;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in *;trivial.
+          rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.
+       + assert(Hwell :  wellFormedSndShadow s) by intuition.
+         unfold wellFormedSndShadow in *.
+          intros.
+          rewrite getVirtualAddressSh2UpdateCurrentPartition in *.
+          apply Hwell with partition pg pd;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in *;trivial.
+          rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.
+       +  assert (Hwell :  wellFormedShadows sh1idx s ) by intuition.
+          unfold wellFormedShadows in *.
+          intros.
+          assert(Hgoal : exists indirection2 : page,getIndirection structroot va nbL stop s = Some indirection2 /\
+                  (defaultPage =? indirection2) = false).
+          apply Hwell with partition pdroot indirection1;trivial.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
+       +  assert (Hwell :  wellFormedShadows sh2idx s ) by intuition.
+          unfold wellFormedShadows in *.
+          intros. simpl in *.
+          rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
+           rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial. 
+           
+            apply Hwell with partition pdroot indirection1;trivial. 
+         + assert(Hcurdef :  currentPartitionIsNotDefaultPage s) by intuition.
+            unfold currentPartitionIsNotDefaultPage in *.
+            simpl in *.
+            assert(Hpde : partitionDescriptorEntry s) by intuition.
+            unfold partitionDescriptorEntry in *.
+            assert(exists entry : page, nextEntryIsPP (currentPartition s) PPRidx entry s /\ entry <> defaultPage) as
+            Hexist.
+            apply Hpde. 
+            unfold currentPartitionInPartitionsList in *.
+            intuition.
+            do 4 right;left;trivial.
+            destruct Hexist as (entry & Hentry & Hnotnull).
+            assert(entry= parent).
+            apply getParentNextEntryIsPPEq with (currentPartition s) s;trivial.
+            rewrite nextEntryIsPPgetParent in *;trivial.
+            subst;trivial. }
+Qed.

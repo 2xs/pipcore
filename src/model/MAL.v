@@ -95,6 +95,11 @@ Definition writePhyEntry (paddr : page) (idx : index)(addr : page) (p u r w e: b
   modify (fun s => {| currentPartition := s.(currentPartition);
   memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  s.(memory) beqPage beqIndex|} ).
 
+Definition writeKernelPhyEntry (paddr : page) (idx : index)(addr : page) ( p u r w e: bool) :=
+  modify (fun s => {| currentPartition := s.(currentPartition);
+  memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  
+  s.(memory) beqPage beqIndex|} ).
+
 
 Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
   perform s := get in

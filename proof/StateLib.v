@@ -296,6 +296,19 @@ match getNbLevel  with
                end
 end.
 
+(** The [getVirtualAddressSh2] function returns the virtual address stored into the 
+    parent **)
+Definition getVAInParent partition s va: option vaddr :=
+match getSndShadow partition (memory s) with 
+|Some sh2 => match getVirtualAddressSh2 sh2 s va with 
+             | Some vainparent =>  if (VAddr.eqbList defaultVAddr vainparent) 
+                                     then None 
+                                     else Some vainparent
+             | _ => None
+             end
+| _ => None
+end. 
+
 (** The [getVirtualAddressSh1] function returns the virtual address stored into the first
    shadow structure which corresponds to a given virtual address **)
 Definition getVirtualAddressSh1 sh1 s va: option vaddr :=
@@ -336,7 +349,7 @@ match bound with
 |0 => []
 |S bound1 => match getMaxIndex with 
             |None => []
-            |Some maxindex =>  match readPhyEntry sh3 maxindex s.(memory) with 
+            |Some maxindex =>  match readPhysical sh3 maxindex s.(memory) with 
                                 |None => [sh3]
                                 |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getTrdShadows addr s bound1
                                end
@@ -448,10 +461,10 @@ match getPd partition s.(memory),
       getFstShadow partition s.(memory), 
       getSndShadow partition s.(memory), 
       getConfigTablesLinkedList partition s.(memory)  with 
-| Some pd , Some sh1, Some sh2 , Some sh3  => (pd::getIndirections pd s)++
-                         (sh1::getIndirections sh1 s)++
-                         (sh2::getIndirections sh2 s )++
-                         (sh3::getTrdShadows sh3 s nbPage)
+| Some pd , Some sh1, Some sh2 , Some sh3  => (getIndirections pd s)++
+                         (getIndirections sh1 s)++
+                         (getIndirections sh2 s )++
+                         (getTrdShadows sh3 s (nbPage+1))
 |_,_,_,_ => []
 end.
 
@@ -736,6 +749,22 @@ readPDflag ptPDChildSh1 idxPDChild (memory s) = None.
 Definition isAncestor  currentPart descParent s :=
 ( currentPart = descParent \/ In descParent (getAncestors currentPart s)).
 
+Definition isWellFormedFstShadow nbL table  s:= 
+(nbL <> fstLevel /\ 
+(forall idx, readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+readPresent table idx (memory s) = Some false )) \/ 
+(nbL = fstLevel /\ 
+( forall idx : index, 
+(readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+readPDflag table idx (memory s) = Some false) ).
+
+Definition isWellFormedSndShadow nbL table  s:= 
+(nbL <> fstLevel /\ (
+forall idx, readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+readPresent table idx (memory s) = Some false )) \/ 
+(nbL = fstLevel /\ ( forall idx : index, 
+(readVirtual table idx (memory s) = Some defaultVAddr) ) ).
+
 (** The [isDerived] funtion returns true if a physical page is derived 
     into the given partition , this physical page is associated to the given 
     virtual address [va] **)
@@ -747,5 +776,38 @@ match getFstShadow partition (memory s) with
    | _ => False
   end
 | None => False
-end. 
+end.
 
+Lemma  pageDec :
+forall x y : page, {x = y} + {x <> y}.
+Proof.
+intros.
+destruct x; destruct y.
+assert({p = p0} + {p <> p0}).
+apply Nat.eq_dec.
+destruct H.
+left.
+subst.
+f_equal.
+apply proof_irrelevance.
+right.
+contradict n.
+inversion n.
+subst;trivial.
+Qed.
+
+Fixpoint closestAncestorAux part1 part2 s bound : option page :=
+match bound  with
+| 0 => None
+| S bound1 => match getParent part1 (memory s) with
+              | Some parent => match in_dec pageDec part2 
+                                    (getPartitionAux parent s (nbPage+1)) with 
+                               | left _  => Some parent
+                               | _ =>  closestAncestorAux parent part2 s bound1
+                               end 
+              | None =>  Some multiplexer 
+              end 
+end.
+
+Definition closestAncestor part1 part2 s := 
+closestAncestorAux part1 part2 s (nbPage+1).

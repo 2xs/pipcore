@@ -56,11 +56,23 @@ presentConfigPagesList = true /\ presentSh1 = true /\ presentSh2 = true ->
       true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true
       currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild ptSh1ChildFromSh1 derivedSh1Child
       childSh2 derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child
-      phyConfigPagesList phyDescChild s /\
+      phyConfigPagesList phyDescChild s /\ (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phySh1Child (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phySh2Child (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) ->
+     ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)) /\
     zero = CIndex 0 /\
-    (forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage) /\
-    (forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage) /\
-    (forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage) /\
+    isWellFormedSndShadow level phySh2Child s /\
+    isWellFormedFstShadow level phySh1Child s /\
+    (forall idx : index,
+     StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+     StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
     StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
     (forall idx : index,
      idx <> CIndex (tableSize - 1) ->
@@ -94,11 +106,23 @@ Internal.updatePartitionDescriptor table1 idxroot value1 value2
       true ptSh1Child shadow1 idxSh1 true ptSh2Child shadow2 idxSh2 true ptConfigPagesList idxConfigPagesList true
       currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild ptSh1ChildFromSh1 derivedSh1Child
       childSh2 derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child
-      phyConfigPagesList phyDescChild s /\
+      phyConfigPagesList phyDescChild s /\  (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phySh1Child (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phySh2Child (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) ->
+     ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+    (forall partition : page,
+     In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)) /\
     zero = CIndex 0 /\
-    (forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage) /\
-    (forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage) /\
-    (forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage) /\
+    isWellFormedSndShadow level phySh2Child s /\
+    isWellFormedFstShadow level phySh1Child s /\
+    (forall idx : index,
+     StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+     StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
     StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
     (forall idx : index,
      idx <> CIndex (tableSize - 1) ->
@@ -116,7 +140,7 @@ eapply bindRev.
    eapply WP.writeVirtual.
    simpl;intros.
    try repeat rewrite and_assoc in H.
-    subst.
+    subst. 
    pattern s in H.
     match type of H with 
     | ?HT s => instantiate (1 := fun tt s => HT s )
@@ -125,30 +149,26 @@ eapply bindRev.
    split.
    intuition.
     apply propagatedPropertiesUpdateMappedPageData; trivial.
+   unfold propagatedProperties in *.  
+   assert(Hcurpart1 : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
     split.
     intuition.
-(*     split.
-    unfold propagatedProperties in *.
-  unfold consistency in *.
-  assert(Hin : currentPartitionInPartitionsList s)by
-  intuition.
-
-  apply mappedPageIsNotPTable with currentPart currentPD isPE PDidx 
-  pdChild idxPDChild s ;
-  intuition.
-  subst.
-  unfold currentPartitionInPartitionsList.
-  trivial.
-  subst.
-  unfold currentPartitionInPartitionsList.
-  trivial.
-  intuition. *)
   assert(getPartitions multiplexer {|
       currentPartition := currentPartition s;
       memory := add table1 idxroot (VA value2) (memory s) beqPage beqIndex |} = 
       getPartitions multiplexer s) as Hpartions.
     {
-      apply getPartitionsUpdateMappedPageData ; trivial.
+      apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition.
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
       + intuition.
@@ -174,126 +194,120 @@ eapply bindRev.
     unfold propagatedProperties in *.
     unfold consistency in *.
     intuition.
-    assert(Htableroot1 : forall idx : index,
-          StateLib.getIndexOfAddr va1 fstLevel = idx ->
-          isPE pt1 idx s /\ getTableAddrRoot pt1 PDidx (currentPartition s) va1 s) by intuition.
+    assert(Hprop : table1 <> phySh2Child). 
+    {
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
     intuition.
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptSh2Child pt1  idxSh2  
+    idxVa1   shadow2 va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+    assert(Hprop2 : table1 <> phySh1Child). 
+    { destruct H.
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+        apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptSh1Child pt1  idxSh1  
+    idxVa1   shadow1 va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+    assert(Hprop3 : table1 <> phyPDChild).
+    {    
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptPDChild pt1  idxPDChild  
+    idxVa1   pdChild va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+     assert(Hprop4 : table1 <> phyConfigPagesList).
+    {    
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptConfigPagesList pt1  idxConfigPagesList  
+    idxVa1   list va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+    split.
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
+    intuition.
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    split. 
+    assert (Htable : (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-    rewrite <- Htable.
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
     symmetry.
     apply readPhyEntryUpdateMappedPageData; trivial.
-    unfold propagatedProperties in *.
-    unfold consistency in *.
-    unfold not.
-    intros Hfalse.
-    intuition.
-    symmetry in Hfalse.
-    contradict Hfalse.
-    subst.
-
-         apply readMappedPageDataUpdateMappedPageData 
-    with  (currentPartition s)  ptSh2Child pt1 
-    (StateLib.getIndexOfAddr shadow2 fstLevel)  
-    (StateLib.getIndexOfAddr va1 fstLevel)
-       shadow2 va1 level s; trivial.
-    rewrite checkVAddrsEqualityWOOffsetPermut.
-    assumption. } 
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-      rewrite <- Htable.
-      symmetry.
-     apply readPhyEntryUpdateMappedPageData; trivial.
-    unfold propagatedProperties in *.
-    unfold consistency in *.
-    unfold not.
-    intros Hfalse.
-    intuition.
-    symmetry in Hfalse.
-    contradict Hfalse.
-    subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptSh1Child pt1 
-      (StateLib.getIndexOfAddr shadow1 fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         shadow1 va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-      rewrite <- Htable.
-      symmetry.
-      apply readPhyEntryUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptPDChild pt1 
-      (StateLib.getIndexOfAddr pdChild fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         pdChild va1 level s; trivial.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
-      
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial.
+    split. 
    assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
     by intuition.
     { rewrite <- Htable.
       apply readPhysicalUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+ }  split.
+    intros.
        assert (Htable : StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr)
     by intuition.
     { rewrite <- Htable.
-      apply readVirtualUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+      apply readVirtualUpdateMappedPageData; trivial. }
+      split.
+      intros.
      assert (Htable : exists idxValue : index, 
      StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
     by intuition.
@@ -301,25 +315,12 @@ eapply bindRev.
     exists idxValue.
     { rewrite <- Htable.
       apply readIndexUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
+      } 
+    assert(Htableroot1 : forall idx : index,
+      StateLib.getIndexOfAddr va1 fstLevel = idx ->
+      isPE pt1 idx s /\ getTableAddrRoot pt1 PDidx (currentPartition s) va1 s) by intuition.
       intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+      
     assert(Hpart : In partition (getPartitions multiplexer s)) by trivial.
     apply Hconfig in Hpart.
     now contradict Hpart.
@@ -375,130 +376,139 @@ eapply bindRev.
   subst.
   pattern s in H.
   simpl in *.
+  split.
+  split.
   intuition.
   subst.
    apply propagatedPropertiesUpdateMappedPageData; trivial.
-     assert (Htable : forall idx : index, StateLib.readPhyEntry phySh2Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-      rewrite <- Htable.
-      symmetry.
-      apply readPhyEntryUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptSh2Child pt1 
-      (StateLib.getIndexOfAddr shadow2 fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         shadow2 va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. } 
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phySh1Child idx (memory s) = Some defaultPage)
-    by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-      rewrite <- Htable.
-      symmetry.
-      apply readPhyEntryUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptSh1Child pt1 
-      (StateLib.getIndexOfAddr shadow1 fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         shadow1 va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
+   unfold propagatedProperties in *. 
+    assert(Hcurpart1 : In currentPart (getPartitions multiplexer s)).
+   {unfold consistency in *. 
+   intuition; 
+   subst;
+   unfold currentPartitionInPartitionsList in *;   
+   subst;intuition. }
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition.  (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*) 
+   split. apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition. (** New Prop*)  
+  
+  split. intuition.
+      assert(Hprop : table1 <> phySh2Child). 
+    {
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptSh2Child pt1  idxSh2  
+    idxVa1   shadow2 va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
       assumption. }
-    assert (Htable : forall idx : index, StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage)
+    assert(Hprop2 : table1 <> phySh1Child). 
+    { destruct H.
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+        apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptSh1Child pt1  idxSh1  
+    idxVa1   shadow1 va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+    assert(Hprop3 : table1 <> phyPDChild).
+    {    
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptPDChild pt1  idxPDChild  
+    idxVa1   pdChild va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+     assert(Hprop4 : table1 <> phyConfigPagesList).
+    {    
+    unfold propagatedProperties in *.
+    unfold consistency in *.
+    unfold not.
+    intros Hfalse.
+    intuition.
+    symmetry in Hfalse.
+    contradict Hfalse.
+    apply readMappedPageDataUpdateMappedPageData 
+    with currentPart  ptConfigPagesList pt1  idxConfigPagesList  
+    idxVa1   list va1 level s; trivial.
+    unfold consistency in *.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    intuition.
+    subst.
+    intuition.
+        rewrite checkVAddrsEqualityWOOffsetPermut.
+      assumption. }
+    split.
+    apply isWellFormedSndShadowUpdateMappedPageData;trivial.
+    intuition.
+    split.
+    apply isWellFormedFstShadowUpdateMappedPageData;trivial.
+    intuition.
+    split. 
+    assert (Htable : (forall idx : index,
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
-    { generalize (Htable idx); clear Htable; intros Htable.
-      rewrite <- Htable.
-      symmetry.
-      apply readPhyEntryUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptPDChild pt1 
-      (StateLib.getIndexOfAddr pdChild fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         pdChild va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }  
+    intros.
+    generalize (Htable idx); clear Htable; intros Htable.
+    destruct Htable as (Htable1 & Htable2).
+    rewrite <- Htable1.
+    rewrite <- Htable2.
+    split. 
+    symmetry.
+    apply readPhyEntryUpdateMappedPageData; trivial.
+    symmetry.
+    apply readPresentUpdateMappedPageData;trivial.
+    split. 
    assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
     by intuition.
     { rewrite <- Htable.
       apply readPhysicalUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+ }  split.
+    intros.
        assert (Htable : StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr)
     by intuition.
     { rewrite <- Htable.
-      apply readVirtualUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
-      intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+      apply readVirtualUpdateMappedPageData; trivial. }
+      split.
+      intros.
      assert (Htable : exists idxValue : index, 
      StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
     by intuition.
@@ -506,25 +516,9 @@ eapply bindRev.
     exists idxValue.
     { rewrite <- Htable.
       apply readIndexUpdateMappedPageData; trivial.
-      unfold propagatedProperties in *.
-      unfold consistency in *.
-      unfold not.
-      intros Hfalse.
+      }
       intuition.
-      symmetry in Hfalse.
-      contradict Hfalse.
-      subst.
-      apply readMappedPageDataUpdateMappedPageData 
-      with  (currentPartition s)  ptConfigPagesList pt1 
-      (StateLib.getIndexOfAddr list fstLevel)  
-      (StateLib.getIndexOfAddr va1 fstLevel)
-         list va1 level s; trivial.
-      unfold consistency in *.
-      unfold currentPartitionInPartitionsList in *.
-      subst.
-      intuition.
-      rewrite checkVAddrsEqualityWOOffsetPermut.
-      assumption. }
+      intuition. 
 Qed. 
 
 
@@ -720,4 +714,1520 @@ assert (Hmemory :  lookup table succidx1 (removeDup table succidx2 (memory s) be
   now contradict H2.  }
 rewrite Hmemory; assumption.
 Qed.
+    Lemma idxPRsucNotEqidxPPR : PRidx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+    
+    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = PPRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PRidx. unfold PPRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 10 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed. 
+     Lemma idxPPRsuccNotEqidxPR : PPRidx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PPRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.    
+    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = PRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PPRidx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 0 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 10 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed. 
+Lemma idxPRidxPPRNotEq : PRidx <> PPRidx.
+    Proof.  
+      unfold PRidx. unfold PPRidx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+      apply tableSizeBigEnough.
+      abstract omega. Qed. 
+
+    Lemma idxPPRsuccNotEqidxPD : PPRidx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PPRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    
+    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = PDidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PPRidx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 10 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
+    Proof. 
+      unfold PPRidx. unfold PDidx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega. apply tableSizeBigEnough. abstract omega. Qed. 
+    Lemma idxPDsucNotEqidxPPR :  PDidx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PDidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    
+    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = PPRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PDidx. unfold PPRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 10 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 2 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+ Lemma idxPDidxPPRNotEq : PDidx <> PPRidx.
+    Proof. 
+      unfold PRidx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+      apply tableSizeBigEnough.
+      abstract omega. Qed.
+
+ Lemma idxPPRidxSh1NotEq : PPRidx <> sh1idx.
+    Proof. 
+      unfold PPRidx. unfold sh1idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega. apply tableSizeBigEnough. abstract omega. Qed.
+   
+    Lemma idxPPRsuccNotEqidxSh1 : PPRidx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PPRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    
+    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh1idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PPRidx. unfold sh1idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 10 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    abstract omega.
+    Qed. 
+
+    Lemma idxSh1succNotEqidxPPR : sh1idx < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh1idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    
+    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PPRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold PPRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 10 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 4 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+Lemma idxSh1idxPPRnotEq : sh1idx <> PPRidx.
+    Proof.  
+      unfold sh1idx. unfold PPRidx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+      apply tableSizeBigEnough.
+      abstract omega. Qed.
+
+    Lemma idxPPRsuccNotEqidxSh2 : PPRidx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh2idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PPRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.    
+    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh2idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PPRidx. unfold sh2idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 6 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 10 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    abstract omega.
+    Qed. 
+
+Lemma idxPPRidxSh2NotEq : PPRidx <> sh2idx. Proof. 
+      unfold PPRidx. unfold sh2idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+      apply tableSizeBigEnough.
+      abstract omega. Qed.
+    Lemma idxSh2succNotEqidxPPR : sh2idx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ sh2idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh2idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.    
+    assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PPRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh2idx. unfold PPRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 10 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 6 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed. 
+
+Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
+    Proof.  
+      unfold sh1idx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+      apply tableSizeBigEnough.
+      abstract omega. Qed.
+
+    Lemma idxPPRsuccNotEqidxSh3 : PPRidx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh3idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PPRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh3idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PPRidx. unfold sh3idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 8 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 10 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    abstract omega.
+    Qed. 
+
+    Lemma idxSh3succNotEqPPRidx : sh3idx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ sh3idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh3idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PPRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold PPRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 10 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 8 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed. 
+
+ Lemma idxPPRidxSh3NotEq : PPRidx <> sh3idx.
+    Proof.  
+      unfold PPRidx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.
+       apply tableSizeBigEnough. abstract omega. Qed.
+
+    Lemma idxSh3succNotEqPRidx : sh3idx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh3idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 0 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 8 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+    Lemma idxPRsuccNotEqidxSh3 : PRidx < tableSize - 1 -> exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh3idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 8 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+    Lemma  idxPRidxSh3NotEq : PRidx <> sh3idx.
+    Proof.  
+    (* *)
+      unfold PRidx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega. apply tableSizeBigEnough. abstract omega. Qed.  
+
+    Lemma idxSh3succNotEqidxPDidx : sh3idx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh3idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PDidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold PDidx. unfold sh3idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 8 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+
+    Lemma idxPDsucNotEqidxSh3 : PDidx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PDidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    abstract omega.
+    unfold CIndex.
+    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh3idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 8 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 2 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    abstract omega.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    abstract omega.
+    abstract omega.
+    Qed.
+
+    Lemma idxPDidxSh3notEq : PDidx <> sh3idx.
+    Proof. 
+(*    
+ *)      unfold PDidx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      abstract omega. apply tableSizeBigEnough. abstract omega.
+      Qed. 
+
+    Lemma idxSh3succNotEqidxSh1 : 
+    sh3idx < tableSize - 1 -> 
+     exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+     Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh3idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = sh1idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold sh1idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 8 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    Qed.
+    Lemma sh1idxSh3idxNotEq : sh1idx < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh1idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = sh3idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold sh3idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 8 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 4 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.
+    Lemma idxSh1idxSh3notEq :  sh1idx <> sh3idx.
+     Proof. 
+      unfold sh1idx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega.
+      Qed. 
+
+    Lemma idxSh3succNotEqidxSh2 : sh3idx < tableSize - 1 ->
+    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = sh2idx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh3idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+    assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = sh2idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold sh2idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 6 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 8 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    Qed.
+
+    Lemma idxSh2succNotEqidxSh3 : sh2idx < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ sh2idx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh2idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
+     assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = sh3idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh3idx. unfold sh2idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 8 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 6 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.
+ 
+    Lemma idxSh2idxSh3notEq : sh2idx <> sh3idx .
+    Proof.  
+      unfold sh2idx. unfold sh3idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega. 
+     Qed.
+     
+   Lemma  idxSh2succNotEqidxPR : sh2idx < tableSize - 1 -> 
+   exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+   Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh2idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh2idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 0 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 6 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.   
+    
+        Lemma idxPRsuccNotEqidxSh2 : PRidx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh2idx -> False). 
+    Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh2idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh2idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 6 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.
+        Lemma idxPRidxSh2NotEq : PRidx <> sh2idx.
+    Proof.
+      unfold PRidx. unfold sh2idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega.
+      Qed.   
+
+          Lemma idxSh2succNotEqidxPD : sh2idx < tableSize - 1 -> 
+     exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+     Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh2idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
+    assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PDidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh2idx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 6 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    
+    omega.
+    Qed.
+
+        Lemma idxPDsucNotEqidxSh2 : 
+    PDidx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh2idx -> False).
+    Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PDidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+   
+   
+    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh2idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh2idx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 6 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 2 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed. 
+
+ 
+    Lemma idxPDidxSh2notEq : PDidx <> sh2idx .
+    Proof.  
+      unfold PDidx. unfold sh2idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega. Qed.
+
+          Lemma idxSh2succNotEqidxSh1 : 
+    sh2idx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+    Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh2idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
+      assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = sh1idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold sh2idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 6 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    Qed.
+    
+        Ltac symmetrynot :=
+  match goal with
+    | [ |- ?x <> ?y ] => unfold not ; intro Hk ; symmetry in Hk ;contradict Hk
+  end.
+
+  
+      Lemma idxSh1succNotEqidxSh2 : 
+    sh1idx < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = sh2idx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh1idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    
+     assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = sh2idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold sh2idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 6 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 4 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.	
+
+    Lemma idxSh2idxSh1notEq : sh2idx <> sh1idx. Proof.  
+      unfold sh2idx. unfold sh1idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega. Qed.
+      
+    Lemma idxSh1succNotEqidxPR : 
+    sh1idx < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ sh1idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh1idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PRidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.
+        Lemma idxPRsuccNotEqidxSh1 :
+    PRidx + 1 < tableSize -> 
+(*     PRidx + 1< tableSize - 1 ->  *)
+    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh1idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh1idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    Qed.
+Lemma idxPRidxSh1NotEq : PRidx <> sh1idx.
+    Proof. 
+      unfold PRidx. unfold sh1idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega.
+      Qed.
+      
+          Lemma idxSh1succNotEqidxPD : 
+    sh1idx + 1 < tableSize -> 
+    exists succidx2 : index, StateLib.Index.succ sh1idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    Proof.  
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (sh1idx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PDidx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 4 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+(*     omega.
+    
+    
+    contradict H13.
+    subst.
+    unfold PDidx. unfold sh1idx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros.
+    unfold not; intros.
+    inversion H14.
+    unfold CIndex in H16.
+    case_eq(lt_dec 4 tableSize); intros; rewrite H15 in *.
+    inversion H16. *)
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    Qed. 
+    
+        Lemma  idxPDsucNotEqidxSh1 : 
+    PDidx + 1 < tableSize -> 
+    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh1idx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PDidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh1idx)
+    by trivial.
+    contradict Hi.
+    subst.
+    unfold sh1idx. unfold PDidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 4 tableSize); intros.
+    unfold not; intros Hii.
+    inversion Hii as (Hi2).
+    unfold CIndex in Hi2.
+    case_eq(lt_dec 2 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+    simpl in *. 
+    inversion Hii.
+    omega.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    Qed.
+
+    Lemma idxPDidxSh1notEq : 
+     PDidx <> sh1idx.
+     Proof.
+      unfold PDidx. unfold sh1idx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega.
+      Qed. 
+      
+          Lemma idxPDsucNotEqidxPR : 
+    PDidx + 1 < tableSize -> 
+     exists succidx2 : index, StateLib.Index.succ PDidx = Some succidx2 /\ (succidx2 = PRidx -> False).
+     Proof.
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PDidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    
+    assert(Hii : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = PRidx)
+
+by trivial.
+    contradict Hii.
+    subst.
+    unfold PDidx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 0 tableSize); intros.
+    unfold not; intros Hi.
+    inversion Hi.
+    assert(Hii : CIndex 2 + 1 = 0) by trivial.
+    unfold CIndex in Hii.
+    case_eq(lt_dec 0 tableSize); intros Hi1 Hi2;  rewrite Hi2 in *.
+    inversion Hi.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    omega.
+    omega.
+    Qed.
+    
+        Lemma idxPRsucNotEqidxPD : 
+    PRidx + 1 < tableSize -> 
+    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = PDidx -> False).
+    Proof. 
+    unfold StateLib.Index.succ.
+    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    eexists.
+    split.
+    instantiate (1:= CIndex (PRidx + 1)).
+    f_equal.
+    unfold CIndex .
+    case_eq (lt_dec(PRidx + 1) tableSize); intros * Hc2.
+    f_equal.
+    apply proof_irrelevance.
+    omega.
+    unfold CIndex.
+    case_eq(lt_dec (PRidx + 1) tableSize ); intros * Hc3 Hc4.
+    contradict Hc4.
+    subst.
+    unfold PDidx. unfold PRidx.
+    unfold CIndex at 3.
+    case_eq (lt_dec 2 tableSize); intros * Hc5.
+    unfold not; intros Hc6.
+    inversion Hc6 as [Hc7].
+    unfold CIndex in Hc7.
+    case_eq(lt_dec 0 tableSize); intros * Hc8; rewrite Hc8 in *.
+    inversion Hc6.
+    simpl in *.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    subst.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    omega.
+    
+    omega.
+    Qed.
+
+        Lemma idxPRidxPDNotEq : PRidx <> PDidx.
+    Proof.  
+      unfold PDidx. unfold PRidx.
+      apply indexEqFalse ;
+      assert (tableSize > tableSizeLowerBound).
+      apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega.  apply tableSizeBigEnough.
+      unfold tableSizeLowerBound in *.
+      omega. apply tableSizeBigEnough. omega.
+      Qed.
 

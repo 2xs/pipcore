@@ -76,6 +76,9 @@ Import List.ListNotations.
                         partition) *)
 Definition createPartition (descChild pdChild shadow1Child shadow2Child 
                             ConfigPagesList :vaddr) : LLI bool :=
+if (beqVAddr defaultVAddr descChild) 
+then ret false
+else 
   (** Get the number of MMU levels *) 
   perform nbL := getNbLevel in
   (** Check if virtual addresses are equal *)
@@ -96,8 +99,13 @@ Definition createPartition (descChild pdChild shadow1Child shadow2Child
   perform kmapPD := checkKernelMap pdChild in
   perform kmapSh1 := checkKernelMap shadow1Child in
   perform kmapSh2 := checkKernelMap shadow2Child in
-  perform kmapList := checkKernelMap ConfigPagesList in
-  if negb kmapPR && negb kmapPD && negb kmapSh1 && negb kmapSh2 && negb kmapList
+  perform kmapList := checkKernelMap ConfigPagesList in 
+  perform defPD :=  compareVAddrToNull pdChild in
+  perform defSh1 := compareVAddrToNull shadow1Child in
+  perform defSh2 := compareVAddrToNull shadow2Child in
+  perform defList := compareVAddrToNull ConfigPagesList in 
+  if negb kmapPR && negb kmapPD && negb kmapSh1 && negb kmapSh2 && negb kmapList && negb
+  defPD && negb defSh1 && negb defSh2 && negb defList
   then
     (** Get the current partition  *)
     perform currentPart := getCurPartition in
@@ -235,30 +243,34 @@ Definition createPartition (descChild pdChild shadow1Child shadow2Child
 
         (**  Set all given pages as not accessible *)
         writeAccessible ptPDChildFromPD idxPDChild false ;;
-        writeAccessibleRec nbPage pdChild currentPart false ;;
+        writeAccessibleRec pdChild currentPart false ;;
         
         writeAccessible ptSh1ChildFromPD idxSh1Child false ;;
-        writeAccessibleRec nbPage shadow1Child currentPart false ;;
+        writeAccessibleRec shadow1Child currentPart false ;;
          
         writeAccessible ptSh2ChildFromPD idxSh2Child false ;;
-        writeAccessibleRec nbPage shadow2Child currentPart false;;
+        writeAccessibleRec shadow2Child currentPart false;;
         
         writeAccessible ptConfigPagesList idxConfigPagesList false ;;
-        writeAccessibleRec nbPage ConfigPagesList currentPart false;;
+        writeAccessibleRec ConfigPagesList currentPart false;;
         
         writeAccessible ptDescChildFromPD idxDescChild false ;; 
-        writeAccessibleRec nbPage descChild currentPart false;;
+        writeAccessibleRec descChild currentPart false;;
         (** Set all given pages as not accessible in all ancestors **)
 
         perform zero := MALInternal.Index.zero in
         (** Initialize phyPDChild table *)
         initPEntryTable phyPDChild zero;;
-
+        (** Add the kernel mapping *)
+        perform kidx := getKidx in
+        perform  kernel := getDefaultPage in
+        writeKernelPhyEntry phyPDChild kidx kernel false false false false false ;; 
         (** Initialize phySh1Child table *)
-        initPEntryTable phySh1Child zero;;
+        initFstShadow phySh1Child nbL zero;;
+
 
         (** Initialize phySh2Child table *)
-        initPEntryTable phySh2Child zero;;
+        initSndShadow phySh2Child nbL zero;;
 
         (** Initialize phyConfigPagesList table *)
         initConfigPagesList phyConfigPagesList zero ;;
@@ -301,10 +313,7 @@ Definition createPartition (descChild pdChild shadow1Child shadow2Child
         writeVirEntry ptSh2ChildFromSh1 idxSh2Child descChild ;; 
         (**  Set the virtual address list as derived by the new child *)
         writeVirEntry ptConfigPagesListFromSh1 idxConfigPagesList descChild ;;
-        (** Add the kernel mapping *)
-        perform kidx := getKidx in
-        perform  kernel := readPhyEntry currentPD kidx in
-        writePhyEntry phyPDChild kidx kernel true false false true false ;; 
+
         
         (** Set the virtual address descChild as a partition (new child) in parent *)
         writePDflag ptDescChildFromSh1 idxDescChild true ;; 
@@ -472,7 +481,7 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
         (** mark the newPageIntoConfigPagesList page as not accessible into its parent  *)
         writeAccessible pt idx false ;;
         (** mark the newPageIntoConfigPagesList as not accessible into its ancestors  *)
-        writeAccessibleRec nbPage fstVA currentPart false;;
+        writeAccessibleRec fstVA currentPart false;;
         (** next Virtual address *)
         perform zeroI := getStoreFetchIndex in 
         perform nextVA := fetchVirtual fstVA zeroI in
@@ -528,11 +537,11 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
                 writePhyEntry phySh2Child idx physh2addr true true true true true ;;(**  same for sh2 *) 
                 (**  Set used pages as inaccessible *)
                 writeAccessible phy idxFstVA false ;;
-                writeAccessibleRec nbPage fstVA currentPart false;;
+                writeAccessibleRec fstVA currentPart false;;
                 writeAccessible physh1 idxSndVA false ;;
-                writeAccessibleRec nbPage sndVA currentPart false;;
+                writeAccessibleRec sndVA currentPart false;;
                 writeAccessible physh2 idxThdVA false ;;
-                writeAccessibleRec nbPage thdVA currentPart false;;
+                writeAccessibleRec thdVA currentPart false;;
                 (** Set used pages as derived *)
                 perform currentShadow1 := getFstShadow currentPart in
                 setDerived fstVA currentShadow1 descChild nbL ;;
@@ -899,11 +908,11 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
 
       (** Update properties now : user uccess *)
       writeAccessible parentPT vaPtVaToCollectFromPDChildIndex true ;;
-      writeAccessibleRec nbPage vaPtVaToCollectFromPDChild currentPart true;;
+      writeAccessibleRec vaPtVaToCollectFromPDChild currentPart true;;
       writeAccessible parentSh1 vaPtVaToCollectFromSh1ChildIndex true ;;
-      writeAccessibleRec nbPage vaPtVaToCollectFromSh1Child currentPart true;;
+      writeAccessibleRec vaPtVaToCollectFromSh1Child currentPart true;;
       writeAccessible parentSh2 vaPtVaToCollectFromSh2ChildIndex true ;;
-      writeAccessibleRec nbPage vaPtVaToCollectFromSh2Child currentPart true;;
+      writeAccessibleRec vaPtVaToCollectFromSh2Child currentPart true;;
       (** Get the first shadow of the current partition *)
       perform currentShadow1 := getFstShadow currentPart in
       (** Get page table and shadow tables *)
