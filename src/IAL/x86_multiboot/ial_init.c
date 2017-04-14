@@ -37,12 +37,11 @@
  */
 
 #include "debug.h"
-#include "x86pci.h"
-#include "x86int.h"
-#include "x86hw.h"
 #include "port.h"
 #include "pic8259.h"
 #include "fpinfo.h"
+#include "ial_defines.h"
+#include "x86int.h"
 
 uint32_t timer_ticks = 0;
 
@@ -69,13 +68,13 @@ extern void idtFlush (void* idt_ptr);
 void
 idtSetGate (uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
 {
-  idt_entries[num].base_lo = base & 0xFFFF;
-  idt_entries[num].base_hi = (base >> 16) & 0xFFFF;
-
-  idt_entries[num].sel = sel;
-  idt_entries[num].always0 = 0;
-
-  idt_entries[num].flags = flags;
+	idt_entries[num].base_lo = base & 0xFFFF;
+	idt_entries[num].base_hi = (base >> 16) & 0xFFFF;
+	
+	idt_entries[num].sel = sel;
+	idt_entries[num].always0 = 0;
+	
+	idt_entries[num].flags = flags;
 }
 
 /**
@@ -87,31 +86,31 @@ remapIrq (void)
 {
 #define PIC1_OFFSET	0x20
 #define PIC2_OFFSET	0x28
-
+	
 #ifdef KEEP_PIC_MASK
-  uint8_t a1, a2;
-  /* save masks */
-  a1 = inb (PIC1_DATA);
-  a2 = inb (PIC2_DATA);
+	uint8_t a1, a2;
+	/* save masks */
+	a1 = inb (PIC1_DATA);
+	a2 = inb (PIC2_DATA);
 #endif
-
-  /* starts the initialization sequence (in cascade mode) */
-  outb (PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-  outb (PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-  outb (PIC1_DATA, PIC1_OFFSET);
-  outb (PIC2_DATA, PIC2_OFFSET);
-  outb (PIC1_DATA, 0x04);	/* there is a slave PIC at IRQ2 */
-  outb (PIC2_DATA, 0x02);	/* Slave PIC its cascade identity */
-  outb (PIC1_DATA, ICW4_8086);
-  outb (PIC2_DATA, ICW4_8086);
-
-  /* masks */
+	
+	/* starts the initialization sequence (in cascade mode) */
+	outb (PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+	outb (PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+	outb (PIC1_DATA, PIC1_OFFSET);
+	outb (PIC2_DATA, PIC2_OFFSET);
+	outb (PIC1_DATA, 0x04);	/* there is a slave PIC at IRQ2 */
+	outb (PIC2_DATA, 0x02);	/* Slave PIC its cascade identity */
+	outb (PIC1_DATA, ICW4_8086);
+	outb (PIC2_DATA, ICW4_8086);
+	
+	/* masks */
 #ifdef KEEP_PIC_MASK
-  outb (PIC1_DATA, a1);
-  outb (PIC2_DATA, a2);
+	outb (PIC1_DATA, a1);
+	outb (PIC2_DATA, a2);
 #else
-  outb (PIC1_DATA, 0);
-  outb (PIC2_DATA, 0);
+	outb (PIC1_DATA, 0);
+	outb (PIC2_DATA, 0);
 #endif
 }
 
@@ -140,8 +139,10 @@ bindIrq (void)
 	IRQ_IDT(13);
 	IRQ_IDT(14);
 	IRQ_IDT(15);
-
-  idtFlush (& idt_ptr);
+	
+	idtFlush (& idt_ptr);
+	
+	IAL_DEBUG (INFO, "Flushed IDT with hard. int entries\n");
 }
 
 /**
@@ -151,11 +152,11 @@ bindIrq (void)
 void
 bindIsr (void)
 {
-  /*
-   * Some segment selector stuff :
-   * - Faults are in kernel level, flag is then 0x8E, because we won't explicitely trigger them from userland.
-   * - But pipcalls may be triggered on purpose from userland (well, they sould always be, in fact), so our flags are 0xEE.
-   */
+	/*
+	 * Some segment selector stuff :
+	 * - Faults are in kernel level, flag is then 0x8E, because we won't explicitely trigger them from userland.
+	 * - But pipcalls may be triggered on purpose from userland (well, they sould always be, in fact), so our flags are 0xEE.
+	 */
 	
 #define KERN_IDT(X) { extern void isr ## X(); idtSetGate(X, (uint32_t) isr ## X, 0x08, 0x8E); }
 #define USER_IDT(X) { extern void isr ## X(); idtSetGate (X, (uint32_t) isr ## X, 0x08, 0xEE); }
@@ -193,7 +194,7 @@ bindIsr (void)
 	KERN_IDT(29);
 	KERN_IDT(30);
 	KERN_IDT(31);
-
+	
 	/* User-mode IDT entries */
 	USER_IDT(48);
 	USER_IDT(49);
@@ -403,8 +404,9 @@ bindIsr (void)
 	USER_IDT(253);
 	USER_IDT(254);
 	USER_IDT(255);
-
-  idtFlush (& idt_ptr);
+	
+	idtFlush (& idt_ptr);
+	IAL_DEBUG (INFO, "Flushed IDT with fault and soft. int entries\n");
 }
 
 /**
@@ -414,10 +416,11 @@ bindIsr (void)
 void
 initIdt (void)
 {
-  idt_ptr.limit = sizeof (idt_entry_t) * 256 - 1;
-  idt_ptr.base = (uint32_t) & idt_entries;
-
-  memset (&idt_entries, 0, sizeof (idt_entries));
+	idt_ptr.limit = sizeof (idt_entry_t) * 256 - 1;
+	idt_ptr.base = (uint32_t) & idt_entries;
+	
+	memset (&idt_entries, 0, sizeof (idt_entries));
+	IAL_DEBUG (INFO, "Interrupt Descriptor Table setup complete\n");
 }
 
 /**
@@ -429,14 +432,16 @@ initIdt (void)
 void
 timerPhase (uint32_t hz)
 {
-//  int divisor = 1193180 / hz;	/* Calculate our divisor */
-  uint32_t divisor = 2600000 / hz;
-  if (divisor > 0xffff) divisor = 0xffff;
-  if (divisor < 1) divisor = 1;
-
-  outb (0x43, 0x36);			/* Set our command byte 0x36 */
-  outb (0x40, divisor & 0xFF);	/* Set low byte of divisor */
-  outb (0x40, divisor >> 8);	/* Set high byte of divisor */
+	//  int divisor = 1193180 / hz;	/* Calculate our divisor */
+	uint32_t divisor = 2600000 / hz;
+	if (divisor > 0xffff) divisor = 0xffff;
+	if (divisor < 1) divisor = 1;
+	
+	outb (0x43, 0x36);			/* Set our command byte 0x36 */
+	outb (0x40, divisor & 0xFF);	/* Set low byte of divisor */
+	outb (0x40, divisor >> 8);	/* Set high byte of divisor */
+	
+	IAL_DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
 }
 
 /**
@@ -446,15 +451,12 @@ timerPhase (uint32_t hz)
 void
 initInterrupts (void)
 {
-  initIdt ();
-  bindIsr ();
-  remapIrq ();
-  bindIrq ();
-  probeHardware ();
-  enumeratePci ();
-  extern uint32_t hwcount;
-  DEBUG (INFO, "Probed %d devices.\n", hwcount);
-  timerPhase (100);
-  timer_ticks = 0;
+	IAL_DEBUG (INFO, "Initializing interrupts, IAL %s \"On Steroids\" version %s\n", IAL_PREFIX, IAL_VERSION);
+	initIdt ();
+	bindIsr ();
+	remapIrq ();
+	bindIrq ();
+	timerPhase (100);
+	timer_ticks = 0;
 }
 

@@ -167,6 +167,8 @@ uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  */
 uint32_t readAccessible(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -177,7 +179,11 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
 	
 	/* Now return the accessible flag */
-	return entry->user;
+	uint32_t ret = entry->user;
+	
+	enable_paging();
+	
+	return ret;
 }
 
 /*!
@@ -189,6 +195,8 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
  */
 void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -197,6 +205,8 @@ void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 	
 	/* Write the flag */
 	entry->user = value;
+	
+	enable_paging();
 	
 	/* Return so we avoid the warning */
 	return;
@@ -249,6 +259,8 @@ updateRootPartition(uint32_t partition)
  */
 uint32_t readPresent(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -258,8 +270,12 @@ uint32_t readPresent(uint32_t table, uint32_t index)
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
 	
+	uint32_t res = entry->present;
+	
+	enable_paging();
+	
 	/* Now return the present flag */
-	return entry->present;
+	return res;
 }
 
 /*!
@@ -271,6 +287,8 @@ uint32_t readPresent(uint32_t table, uint32_t index)
  */
 void writePresent(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -279,6 +297,8 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
 	
 	/* Write the flag */
 	entry->present = value;
+	
+	enable_paging();
 	
 	/* Return so we avoid the warning */
 	return;
@@ -294,6 +314,8 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
  */
 void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	uint32_t curval = *(uint32_t*)dest;
 	uint32_t curAddr = (uint32_t)curval & 0xFFFFFFFE;
@@ -302,6 +324,8 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 		*(uint32_t*)dest = curAddr | 0x00000001;
 	else
 		*(uint32_t*)dest = curAddr;
+	
+	enable_paging();
 	
 	return;
 }
@@ -315,8 +339,12 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
  */
 uint32_t readPDflag(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	uint32_t curval = *(uint32_t*)dest;
+	
+	enable_paging();
 	
 	return (curval & 0x00000001);
 }

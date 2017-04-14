@@ -37,7 +37,7 @@ global isr%1
 isr%1:
 	cli
 	push byte 0
-	push byte %1
+	push %1
 	jmp isrCommonStub
 %endmacro
 
@@ -46,7 +46,7 @@ isr%1:
 global isr%1
 isr%1:
 	cli
-	push byte %1
+	push %1
 	jmp isrCommonStub
 %endmacro
 
@@ -60,9 +60,11 @@ irq%1:
 	jmp irqCommonStub
 %endmacro
 
+; Define generic interrupt handler as part of C code
+extern genericHandler
+
 ; Generic handlers for any kind of interrupt (same behavior)
 %macro DEFINE_HANDLER 1
-extern %1Handler
 
 ; Common stub for interrupt : push registers, switch to kernel land, call to the C-level handler, restore the registers, fix the stack and get back to business
 %1CommonStub:
@@ -76,7 +78,7 @@ extern %1Handler
 	mov fs, ax
 	mov gs, ax
 ; call c handler (&ctx)
-	call %1Handler
+	call genericHandler
 	add esp, 4
 ; restore
 	mov ds, si
@@ -90,8 +92,8 @@ extern %1Handler
 %endmacro
 
 ; Declaration of the stubs for IRQ and fault handlers
-DEFINE_HANDLER isr
 DEFINE_HANDLER irq
+DEFINE_HANDLER isr
 
 [GLOBAL idtFlush]
 idtFlush:
@@ -222,5 +224,5 @@ IRQ_STUB 15 , 47
 %assign i 48
 %rep 208
 ISR_NOERRCODE i
-%assign i i+1 
+%assign i i+1
 %endrep

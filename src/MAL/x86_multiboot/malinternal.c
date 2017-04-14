@@ -41,13 +41,22 @@
 #include "mal.h"
 #include "structures.h"
 
-
 /*!
  * \fn uint32_t defaultAddr()
  * \brief Returns the default null address.
  * \return The null address.
  */
 uint32_t defaultAddr(void)
+{
+	return 0;
+}
+
+/*!
+ * \fn uint32_t defaultVAddr()
+ * \brief Returns the default null Vaddress.
+ * \return The null Vaddress.
+ */
+uint32_t defaultVAddr(void)
 {
 	return 0;
 }

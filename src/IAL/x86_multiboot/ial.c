@@ -40,17 +40,17 @@
 #include "debug.h"
 #include "ial.h"
 #include "x86int.h"
-#include "x86hw.h"
 #include "port.h"
 #include "pic8259.h"
+#include "libc.h"
 #include "maldefines.h"
 
 #define MAX_VINT (uint32_t)0x100
 
 #define ASSERT(u) \
 	if (!(u)){ \
-		kprintf("[%s:%d] Assert failed: " #u, __FILE__, __LINE__); \
-		panic(); \
+		kprintf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \
+		panic(0); \
 	}
 
 #ifndef NULL
@@ -72,17 +72,119 @@ extern int checkChild(const uintptr_t partition, const uint32_t l1, const uintpt
 int
 isKernel (uint32_t cs)
 {
-  return cs == 8;
+	return cs == 8;
 }
+
+void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
+{
+	DEBUG(TRACE, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
+		  GENERAL_REG(is, eax),
+		  GENERAL_REG(is, ebx),
+		  GENERAL_REG(is, ecx),
+		  GENERAL_REG(is, edx));
+	DEBUG(TRACE, "               edi=%x, esi=%x, ebp=%x, esp=%x\n",
+		  GENERAL_REG(is, edi),
+		  GENERAL_REG(is, esi),
+		  GENERAL_REG(is, ebp),
+		  OPTIONAL_REG(is, useresp));
+	if(isKernel(OPTIONAL_REG(is, cs)))
+	{
+		DEBUG(TRACE, "               cs=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	} else {
+		DEBUG(TRACE, "               cs=%x, ss=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, ss),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	}
+}
+
+uint32_t saveCaller(int_ctx_t *is)
+{
+	IAL_DEBUG(INFO, "Saving interrupted state matching registers at %x\n", is);
+	
+	/* Copy the interrupted info into the caller's stack / VIDT buffer */
+	if((*PIPFLAGS & 0x00000001) == 0x1) /* VCLI set */
+	{
+		IAL_DEBUG(INFO, "VCLI flag is set; saving into context buffer at %x\n", VIDT_CTX_BUFFER);
+		memcpy((void*)VIDT_CTX_BUFFER, is, SIZEOF_CTX);
+		/* dumpRegs((int_ctx_t*)VIDT_CTX_BUFFER); */
+		dumpRegs(VIDT_CTX_BUFFER, TRACE);
+		
+		/* Partition is interrupted when it shouldn't be, this is tricky */
+		*(uintptr_t*)(VIDT_CTX_BUFFER - sizeof(uintptr_t)) = *PIPFLAGS;
+		
+		return (uint32_t)VIDT_CTX_BUFFER;
+	}
+	else
+	{
+		IAL_DEBUG(INFO, "VCLI flag is not set; saving into stack at %x\n", OPTIONAL_REG(is, useresp));
+		memcpy((void*)(OPTIONAL_REG(is, useresp) - SIZEOF_CTX), is, SIZEOF_CTX);
+		
+		/* Update resume (int. 0) interrupt ESP to point to our newly updated stack */
+		VIDT_INT_ESP_SET(0, OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
+		IAL_DEBUG(INFO, "Set resume stack to %x.\n", OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
+		
+		dumpRegs((void*)(OPTIONAL_REG(is, useresp)) - SIZEOF_CTX, TRACE);
+
+		/* Push current state as well, which is stored into 0xFFFFFFFC */
+		*(uintptr_t*)(OPTIONAL_REG(is, useresp) - SIZEOF_CTX - sizeof(uintptr_t)) = *PIPFLAGS;
+		
+		return (uint32_t)(OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
+	}
+
+	
+	
+	
+	/* Change interrupt level */
+	/* IAL_DEBUG(DEBUG, "Changing interrupt level : was %d\n", INTLEVEL_GET);
+	INTLEVEL_SET(OPTIONAL_REG(is, int_no));
+	IAL_DEBUG(DEBUG, "Changing interrupt level : is now %d\n", INTLEVEL_GET); */
+}
+
+void saveCallgateCaller(gate_ctx_t* ctx)
+{
+	IAL_DEBUG(TRACE, "Building dummy context info from callgate context %x\n", ctx);
+	/* Build dummy context structure */
+	int_ctx_t is;
+	
+	/* Copy general register info */
+	memcpy((void*)&(is.regs), &(ctx->regs), sizeof(pushad_regs_t));
+	
+	/* TODO : the following & and * play is crap, I should consider removing that "const" attribute someday */
+	
+	/* Copy EIP */
+	*(uintptr_t*)(&(is.eip)) = ctx->eip;
+	
+	/* Fake useresp to unify resume() behavior */
+	*(uintptr_t*)(&(is.useresp)) = ctx->regs.esp;
+	
+	/* We should also get EFLAGS somewhere... */
+	uint32_t eflags;
+	__asm volatile("PUSHF; POP %%EAX; MOV %%EAX, %0"
+				   : "=r"(eflags));
+	
+	*(uintptr_t*)(&(is.eflags)) = eflags;
+	
+	/* Remaining stuff might be crap; whatever, save caller using this structure */
+	saveCaller(&is);
+}
+
 /**
- * \fn void panic (void)
+ * \fn void panic (int_ctx_t *is)
  * \brief Just a loop acting like a kernel panic
  */
-void
-panic (void)
-{
-  krn_puts ("guru meditation\n");
-  __asm__ ("cli; hlt");
+void panic (int_ctx_t *is)
+{	
+	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
+	if(is) {
+		dumpRegs(is, CRITICAL);
+	}
+	DEBUG(CRITICAL, "\tSystem halted. ~\n");
+	__asm volatile("cli; hlt;");
 	for(;;);
 }
 
@@ -234,37 +336,6 @@ saveCurrentUserContext(uint32_t eip, uint32_t eflags, const pushad_regs_t *regs,
 }
 
 /**
- * \fn static void saveUserIntContext(int_ctx_t* ctx, unsigned index)
- * \brief Saves interrupted user context
- * \param ctx Target context list
- * \param index Index into the list
- */
-static void
-saveUserIntContext(int_ctx_t* ctx, unsigned index)
-{
-	/* In interrupt handlers, the esp pointer present in pusha regs
-	 * is kernelland. We give only userland regs to saveUserCtx*/
-	pushad_regs_t regs = ctx->regs;
-	regs.esp = ctx->useresp;
-
-	saveCurrentUserContext(ctx->eip, ctx->eflags, &regs, index);
-}
-
-/**
- * \fn static void saveUserGateContext(gate_ctx_t* gs, unsigned index)
- * \brief Saves interrupted user context during a callgate access
- * \param gs Target context list
- * \param index Index into the list
- */
-static void
-saveUserGateContext(gate_ctx_t* gs, unsigned index)
-{
-	/* We'll save this one only when a callgate triggers
-	 * a fault in caller, so */
-	saveCurrentUserContext(gs->eip, 0, &gs->regs, index);
-}
-
-/**
  * \fn void yieldRootPartition(void)
  * \brief Sends a null signal to root partition
  * \warning This is insane.
@@ -274,139 +345,108 @@ void yieldRootPartition(void)
 	dispatch2(getRootPartition(), 0, 0, 0, 0);
 }
 
-/* \fn irqHandler (int_ctx_t *is)
-	\brief Interrupt handler logic
-	\param is Interrupt context 
-*/
-void
-irqHandler(int_ctx_t *is)
-{
-	uint32_t vint;
-
-	/* Acknowledge*/
-	if (is->int_no >= 40)
-		outb (PIC2_COMMAND, PIC_EOI);
-	outb (PIC1_COMMAND, PIC_EOI);
-
-	/* Increment timer ticks */
-	if (is->int_no == 32)
-		timer_ticks++;
-
-	if (isKernel(is->cs))
-	{
-	/* We might get there mostly when handling the first 
-	 * instruction of a callgate (cli).
-	 * When handling a callgate, we consider that current_partition
-	 * variable holds a reference to the calling partition.
-	 * Therefore, to keep current_partition consistent we cannot allow context 
-	 * switch during callgate handling. */
-		DEBUG (ERROR, "Skipping hw interrupt while kernelland\n");
-		return;
-	}
-
-	/* Our virtual interrupt number, skipping reset/resume */
-	vint = is->int_no + 1;
-	if (vint >= MAX_VINT)
-	{
-		DEBUG(ERROR, "Invalid interrupt %d ?\n", vint);
-		return;
-	}
-
-	/* If partition is multiplexer and interrupts are cleared,
-	 * skip & resume context w/o saving */
-	if ( !isInterruptHandled(getRootPartition(), vint))
-	{
-		DEBUG(WARNING, "Skipping unhandled interrupt %d\n", vint);
-		return;
-	}
-	/* Save userland interrupt context */
-	saveUserIntContext(is, INT_CTX);
-
-	/* Dispatch interrupt to multiplexer w/ int_no as first argument */
-	dispatch2(getRootPartition(), vint, is->int_no, 0, 0);
-	ASSERT(0);
-}
-
 /**
- * \fn isrHandler(registers_t regs)
+ * \fn genericHandler(registers_t regs)
  * \param regs Registers
  * \brief Generic handler for ISR
  */
 void
-isrHandler (int_ctx_t *is)
+genericHandler (int_ctx_t *is)
 {
-	uint32_t from, to, vint;
-	uint32_t data1 = is->err_code, data2 = 0;
-	uint8_t isRoot = getCurPartition() == getRootPartition();
-
-	DEBUG(WARNING, "Handling exception %d from %sland at eip %X\n",
-		is->int_no, isKernel(is->cs)?"kernel":"user", is->eip);
-
-	/* Some page fault debugging */
-	if (is->int_no == 14)
+	uint32_t vint, target, from, data1, data2;
+	
+	data1 = 0;
+	
+	/* A bit of the handling is different with hardware interrupts */
+	if(INT_IRQ(is->int_no))
 	{
-		data2 = readCR2();
-
-		DEBUGRAW ("\e[91m");
-		DEBUG (CRITICAL, "Page fault, Faulting EIP: %x\n", is->eip);
-		DEBUG (CRITICAL, "page is %s, tried to %s from %s at address %x\n",
-			(data1&1) ? "present" : "missing", (data1&2)? "write" : "read", 
-			(data1&4) ? "userland" : "kernel land", data2);
-		DEBUGRAW ("\e[91m");
-	}
-	/* Check for kernel faults */
-	if (isKernel (is->cs))
-	{ 
-		if(is->int_no < 32)	// CPU ISR in kernel land?
+		IAL_DEBUG(TRACE, "Got hardware interrupt %d.\n", is->int_no);
+		/* Acknowledge hardware interrupt */
+		if (is->int_no >= 40)
+			outb (PIC2_COMMAND, PIC_EOI);
+		outb (PIC1_COMMAND, PIC_EOI);
+		
+		/* Ignore kernel-land IRQ */
+		if (isKernel(is->cs))
 		{
-			DEBUGRAW ("\e[91m");
-			DEBUG (CRITICAL, "Fault in kernel land! Mesovisor must have done "
-					"something wrong. Now panicking kernel.\n");
-			DEBUGRAW ("\e[0m");
-			panic ();
+			IAL_DEBUG (TRACE, "Ignoring kernel-land IRQ.\n");
+			return;
 		}
-		/* TODO: isr handling ?*/
-		ASSERT(0);
+		
+		IAL_DEBUG(TRACE, "Current partition is %x, root partition is %x.\n", PARTITION_CURRENT, PARTITION_ROOT);
+		
+		/* Special case : root partition might be running - TODO : remove this when it gets stable */
+		/*if(PARTITION_CURRENT == PARTITION_ROOT)
+		{
+			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is running.\n");
+			return;
+		}*/
+		
+		/* Special case : root partition might be VCLI'd - check this */
+		uintptr_t rootVidt = readVidt(PARTITION_ROOT);
+		
+		IAL_DEBUG(TRACE, "Root VIDT at %x.\n", rootVidt);
+		uint32_t flags = readPhysical(rootVidt, getTableSize()-1); /* *(uint32_t*)(rootVidt + 0x1000 - sizeof(uint32_t)); */
+		IAL_DEBUG(TRACE, "Root VIDT flags are set to %x.\n", flags);
+		if(flags & 0x1)
+		{
+			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is busy.\n");
+			return;
+		}
+		
+		/* Set target as root partition */
+		target = PARTITION_ROOT;
+		from = PARTITION_CURRENT;
+		
+	} else {
+		IAL_DEBUG(TRACE, "Got fault interrupt %d.\n", is->int_no);
+		
+		/* Page Fault */
+		if(is->int_no == 0xE)
+		{
+			uint32_t cr2;
+			__asm volatile("MOV %%CR2, %0;":"=r"(cr2));
+			IAL_DEBUG (TRACE, "CR2 set to %x.\n", cr2);
+			data1 = cr2;
+			dumpRegs(is, CRITICAL);
+		}
+		
+		if(is->int_no == 0xD)
+		{
+			IAL_DEBUG (CRITICAL, "Protection fault error code set to %x.\n", is->err_code);
+			IAL_DEBUG (CRITICAL, "Partition %x faulted at EIP %x.\n", PARTITION_CURRENT, is->eip);
+			dumpRegs(is, CRITICAL);
+		}
+
+		
+		/* Kernel faults should not happen. Panic. */
+		if (isKernel(is->cs))
+		{
+			IAL_DEBUG (CRITICAL, "Encountered fault within kernel. Halting system.\n");
+			panic(is);
+		}
+
+		/* Set target as parent partition */
+		
+		/* Get PAddr of Parent Partition */
+		target = readPhysicalNoFlags(PARTITION_CURRENT, PPRidx()+1);
+		/* Get VAddr of caller in parent partition */
+		from = readPhysicalNoFlags(PARTITION_CURRENT, indexPR());
+	}
+	
+	/* Our virtual interrupt number, skipping reset/resume */
+	vint = is->int_no + 1;
+	if (vint >= MAX_VINT)
+	{
+		IAL_DEBUG(ERROR, "Invalid interrupt number %x ?\n", vint);
 		return;
 	}
-
-	vint = is->int_no+1;
-	if (vint >= MAX_VINT){
-		DEBUG(WARNING, "Skipping invalid vint %d\n", vint);
-		return;
-	}
-	/* whom should we dispatch to */
-	if (isRoot)
-	{
-		to = getRootPartition();
-		from = 0;
-	}
-	else{
-		/* paddr of parent partition */
-		to = readPhysicalNoFlags(getCurPartition(), PPRidx()+1);
-		/* vaddr of faulty partition in parent */
-		from = readPhysicalNoFlags(to, indexPR());
-	}
-	/* Save faulty context */
-	saveUserIntContext(is, ISR_CTX);
-
-	/* If parent don't handle isr */
-	if (!isInterruptHandled(to, vint))
-	{
-		/* if a multiplexer fault gets unhandled, panic */
-		if (isRoot && vint <= 32)
-		{
-			DEBUG(CRITICAL, "Multiplexer fault unhandled\n");
-			panic();
-		}
-		/* TODO: check for double fault in root */
-		DEBUG(WARNING, "Unhandled fault in %x\n", getCurPartition());
-		yieldRootPartition();
-	}
-
-	/* Dispatch fault */
-	dispatch2(to, vint, data1, data2, from);
-	ASSERT(0);
+	
+	/* Current partition has been interrupted. Save its state. */
+	uint32_t stackAddr = saveCaller(is);
+	
+	//ASSERT(0);
+	dispatch2(target, vint, data1, stackAddr, from);
 }
 
 /*! \fn dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t data1, uint32_t data2)
@@ -421,85 +461,53 @@ void
 dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 			  uint32_t data1, uint32_t data2,
 			  gate_ctx_t *ctx
-){
-	uint32_t from, to;
-	uint32_t cur = getCurPartition();
-	uint32_t fault;
+)
+{
+	uint32_t to, from;
+	
+	/* First, save caller context */
+	IAL_DEBUG(TRACE, "Userland called dispatch(); saving context\n");
+	saveCallgateCaller(ctx);
+	
+	/* Perform some sanity checks */
+	ASSERT(vint < MAX_VINT);
 
-	DEBUG(TRACE, "dispatchGlue(%d) %x -> %x\n", vint, getCurPartition(), descriptor);
-
-	/* FIXME: This function should return to caller context with some 
-	 *		  error code when notifying */
-	if (vint >= MAX_VINT)
-	{
-		DEBUG(ERROR, "Invalid vint %d\n", vint);
-		return;
-	}
-	/** 
-	 * If the calling partition is dispatching a fault to it's parent,
-	 * save it's context the same way we do for 'real' exceptions.
-	 */
-	fault = (descriptor == 0 && ((vint > 0 && vint <= 32) || vint >= 64));
-	if (fault){
-		saveUserGateContext(ctx, ISR_CTX);
-	}
-	else if (notify == 1)
-	{
-	/* Save calling context on a call of notify() */
-		if (descriptor == 0)
-			saveUserGateContext(ctx, NOTIF_PARENT_CTX);
-		else
-			saveUserGateContext(ctx, NOTIF_CHILD_CTX);
-	}
-
-	/* A child notifies it's parent */
+	/* Identify caller and recipient */
 	if (descriptor == 0)
 	{
-		if (cur == getRootPartition()){
-			DEBUG(CRITICAL, "multiplexer has no parent\n");
-			return;
-		} 
-		/* paddr of parent partition's descriptor */
-		to = readPhysicalNoFlags(getCurPartition(), PPRidx()+1);
-		/* vaddr of child in parent's partition */
-		from = readPhysicalNoFlags(getCurPartition(), indexPR());
+		/* A child is notifying a parent of something */
+		if (PARTITION_CURRENT == PARTITION_ROOT){
+			IAL_DEBUG(CRITICAL, "Root partition has no parent; incoherent behavior, halting\n");
+			panic(0);
+		}
+		/* Get PAddr of Parent Partition */
+		to = readPhysicalNoFlags(PARTITION_CURRENT, PPRidx()+1);
+		/* Get VAddr of caller in parent partition */
+		from = readPhysicalNoFlags(PARTITION_CURRENT, indexPR());
 	}
 	/* A parent notifies a child */
 	else {
-		if (!checkChild(getCurPartition(), getNbLevel(), descriptor))
+		if (!checkChild(PARTITION_CURRENT, getNbLevel(), descriptor))
 		{
-			DEBUG(WARNING, "Partition %x tried to access invalid child %x",
-				getCurPartition(), descriptor);
+			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\n", getCurPartition(), descriptor);
 			return;
 		}
-		/* TODO: checkChild should return paddr of child descriptor */
-		to = readPaddr(getCurPartition(), descriptor);
-		DEBUG(TRACE, "dispatch to child %x\n", to);
-		/* identify parent by 0 */
+		
+		/* Get the physical address of child descriptor */
+		to = readPaddr(PARTITION_CURRENT, descriptor);
+		
+		IAL_DEBUG(TRACE, "Dispatching to child %x\n", to);
+		
+		/* Identify parent by 0 */
 		from = 0;
+		
 		/* re-enable interrupts in caller (TODO: may I?)*/
 		*(uint32_t*) 0xfffffffc &= ~1;
 	}
-
-	if (!isInterruptHandled(to, vint))
-	{
-		if (fault)
-		{
-			/* A child fault was not handled by its parent.
-			 * we should not return to the faulty context */
-			/* FIXME: what should we do ?*/
-			yieldRootPartition();
-		}
-		DEBUG(CRITICAL, "Unhandled int, back to caller\n");
-		return;
-	}
-
-	DEBUG(TRACE, "dispatchGlue(from %x, to %x, int %d, data %x %x)\n",
-		from, to, vint, data1, data2);
- 
-	/* go dispatch */
+	
+	/* Perform the dispatch thingy */
 	dispatch2(to, vint, data1, data2, from);
-
+	
 	/* dispatch always suceeds !*/
 	ASSERT(0);
 }
@@ -518,28 +526,34 @@ void
 dispatch2 (uint32_t partition, uint32_t vint,
 		uint32_t data1, uint32_t data2, uint32_t caller)
 {
+	IAL_DEBUG(TRACE, "Requested dispatch of VINT %d to partition %x, caller is %x.\n", vint, partition, caller);
 	uint32_t vidt, eip, esp, vflags;
-
-	/* vint must be validate before calling dispatch */
+	
+	/* Check interrupt range */
 	ASSERT(vint < MAX_VINT);
-
-	/* vidt must be present */
-	ASSERT((vidt=readVidt(partition)) != (uint32_t)-1);
-
-	/* gather interrupt handler & vflags infos from vidt */
+	
+	/* Check VIDT validity */
+	if(!((vidt=readVidt(partition)) != (uint32_t)-1))
+	{
+		IAL_DEBUG(CRITICAL, "0ops. Partition=%x, vint=%x, caller=%x\n", partition, vint, caller);
+		ASSERT(0);
+	}
+	
+	/* Read VIDT info */
 	readVidtInfo(vidt, vint, &eip, &esp, &vflags);
-
-	/* mask vint in partition's vidt */
+	
+	/* VCLI the partition */
+	IAL_DEBUG(TRACE, "Dispatch2: VCLI'd vidt @%x.\n", vidt);
 	writePhysical(vidt, getTableSize()-1, vflags|1);
-
+	
 	/* Activate partition */
-	DEBUG(TRACE, "Activate partition %x\n", partition);
+	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory.\n", partition);
 	activate(readPhysicalNoFlags(partition, indexPD () + 1));
 	updateCurPartition (partition);
-
-	/* switch to userland */
+	
+	/* Switch execution to userland */
 	extern void dispatchAsm(uintptr_t eip, uintptr_t esp, uint32_t data1,
-				uint32_t data2, uint32_t caller);
+							uint32_t data2, uint32_t caller);
 	dispatchAsm (eip, esp, data1, data2, caller);
 }
 
@@ -547,81 +561,90 @@ dispatch2 (uint32_t partition, uint32_t vint,
  * \fn void resume (uint32_t descriptor, user_ctx_role_t ctxNo)
  * \brief 		Activate a partition and switch to context
  * \param descriptor	The partition to resume (0 for parent)
- * \param ctxNo 	Index of context to resume */
-void resume (uint32_t descriptor, user_ctx_role_t ctxNo)
+ * \param pipflags 	PipFlags value */
+void resume (uint32_t descriptor, uint32_t pipflags)
 {
-	uint32_t partition, vidt, ctxValid;
-	user_ctx_t *ctx;
-
-	if (ctxNo >= INVALID_CTX ){
-		DEBUG(WARNING, "partition %x tried to resume context %d\n",
-			getCurPartition(), ctxNo);
-		yieldRootPartition();
-	}
-
-	/* Child tries to resume it's parent. ie, return from notify */
+	uintptr_t to, from;
+	
+	IAL_DEBUG(TRACE, "Partition asked for a resume.\n");
+	
+	/* On a resume() call we consider the parent's job done - forget about the context ? */
+	
 	if (descriptor == 0)
 	{
-		/* Multiplexer is it's own parent there */
-		if (getCurPartition() == getRootPartition())
-		{
-			partition = getRootPartition();
-			/* multiplexer can resume any of it's contexes */
-		}
-		else
-		{
-			/* Parent's descriptor */
-			partition = readPhysicalNoFlags(getCurPartition(), PPRidx()+1);
-			/* only the parent's notify context can be resumed there */
-			if (ctxNo != NOTIF_CHILD_CTX){
-				DEBUG(WARNING, "Child partition %x tried to resume"
-					" it's parent w/o notify context",
-					getCurPartition());
-				yieldRootPartition();
-			}
+		/* A child is resuming a parent */
+		if (PARTITION_CURRENT == PARTITION_ROOT){
+			IAL_DEBUG(CRITICAL, "Root partition has no parent; trying to resume herself\n");
+			to = PARTITION_ROOT;
+			from = PARTITION_ROOT;
+		} else {
+			/* Get PAddr of Parent Partition */
+			to = readPhysicalNoFlags(PARTITION_CURRENT, PPRidx()+1);
+			/* Get VAddr of caller in parent partition */
+			from = readPhysicalNoFlags(PARTITION_CURRENT, indexPR());
 		}
 	}
-	/* A parent tries to resume one of his childs */
-	else{
-		if (!checkChild(getCurPartition(), getNbLevel(), descriptor))
-		{
-			DEBUG(WARNING, "Partition %x tried to access invalid child %x",
-				getCurPartition(), descriptor);
-			yieldRootPartition();
-		}
-		/* FIXME: checkChild should just return paddr of child */
-		partition = readPaddr(getCurPartition(), descriptor);
-	}
-
-	DEBUG(TRACE, "partition %x resuming context %d of %x\n",
-		getCurPartition(), ctxNo, partition);
-
-	/* Resume interrupts in caller */
-	*(uint32_t*)0xfffffffc &= ~1;
-
-	/* Now find & check resume context. (FIXME FIXME: this is very crade ) */
-	vidt=readVidt(partition);
-	ASSERT(vidt != (uint32_t)-1);
-	ctx = (user_ctx_t*)(0x800 + 0x40*(ctxNo));
-	ctxValid = readPhysical(vidt, (uint32_t)(&ctx->valid)>>2);
-	if (!ctxValid)
+	else if (descriptor == 0xFFFFFFFF)
 	{
-		DEBUG(WARNING, 
-			"Partition %x tries to resume invalid ctx %d at %x\n",
-			getCurPartition(), ctxNo, (uint32_t)ctx);
-		/* Just resume the multiplexer to trigger some yielding */
-		yieldRootPartition();
+		/* A child kernel is resuming itself */
+		to = PARTITION_CURRENT;
+		from = PARTITION_CURRENT;
 	}
+	/* A parent notifies a child */
+	else {
+		if (!checkChild(PARTITION_CURRENT, getNbLevel(), descriptor))
+		{
+			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\n", getCurPartition(), descriptor);
+			return;
+		}
+		
+		/* Get the physical address of child descriptor */
+		to = readPaddr(PARTITION_CURRENT, descriptor);
+		
+		IAL_DEBUG(TRACE, "Resuming child %x\n", to);
 
-	/* Activate target partition */
-	activate(readPhysicalNoFlags(partition, indexPD () + 1));
-	updateCurPartition (partition);
+		/* Identify parent by 0 */
+		from = 0;
+		
+		/* re-enable interrupts in caller (TODO: may I?)*/
+		*(uint32_t*) 0xfffffffc &= ~1;
+	}
+	
+	/* Activate partition */
+	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory\n", to);
+	activate(readPhysicalNoFlags(to, indexPD () + 1));
+	updateCurPartition (to);
+	
+	/* Get interrupted context info - FIXME: stack only ? */
+	uintptr_t int_ctx;
+	IAL_DEBUG(TRACE, "PIPFLAGS is %x\n", *PIPFLAGS);
+	if(VIDT_VCLI)
+	{
+		int_ctx = (uintptr_t)VIDT_CTX_BUFFER;
+		IAL_DEBUG(TRACE, "Interrupted context should be at %x\n", VIDT_CTX_BUFFER);
+	} else
+	{
+		int_ctx = VIDT_INT_ESP(0);
+		IAL_DEBUG(TRACE, "Interrupted context should be at %x\n", int_ctx);
+	}
+	int_ctx_t* intctx = (int_ctx_t*)int_ctx;
+	dumpRegs(intctx, TRACE);
+	/* dumpRegs(intctx); */
 
-	/* FIXME: what the heck */
-	ctx = (user_ctx_t*)((uint32_t)ctx|0xfffff000);
-	/* We now have a valid context to resume. */
-	ctx->valid = 0;
-
+	/* Build user context from interrupted context */
+	user_ctx_t ctxToResume;
+	ctxToResume.eip = intctx->eip;
+	ctxToResume.pipflags = pipflags; /* VSTI */
+	ctxToResume.eflags = intctx->eflags;
+	memcpy((void*)&(ctxToResume.regs), &(intctx->regs), sizeof(pushad_regs_t));
+	ctxToResume.regs.esp = intctx->useresp;
+	ctxToResume.valid = 0;
+	
+	IAL_DEBUG(TRACE, "Going back to userland.\n");
+	
 	extern void resumeAsm(user_ctx_t*);
-	resumeAsm(ctx);
+	resumeAsm(&ctxToResume);
+	
+	ASSERT(0);
 }
+
