@@ -217,6 +217,8 @@ void cleanPage(uintptr_t paddr)
  */
 uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t write, uint32_t execute)
 {
+	disable_paging();
+	
 	// First check is we can do this
 	uint32_t checkright = checkRights(read, write, execute);
 	if(checkright == 0)
@@ -228,6 +230,8 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t wr
 	
 	// Change the RW bit
 	entry->rw = write;
+	
+	enable_paging();
 	
 	return 1;
 }

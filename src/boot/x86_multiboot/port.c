@@ -39,12 +39,12 @@
 #include "port.h"
 #include "ial.h"
 #include "mal.h"
-#include "x86hw.h"
 #include "x86int.h"
 #include "debug.h"
+#include "pic8259.h"
 
 /* Get hardware index from IO-to-Hardware table */
-extern uint16_t io_to_hardware[X86_MAX_IO];
+//extern uint16_t io_to_hardware[X86_MAX_IO];
 
 /* check wether the current partition can access 
  * given ioport according to its access mask
@@ -52,17 +52,21 @@ extern uint16_t io_to_hardware[X86_MAX_IO];
 static uint32_t
 ioAccessValid(uint16_t port)
 {
-	uint32_t iomask, hwidx;
+	/*uint32_t iomask, hwidx;
 
-	/* sanity check port */
 	if (port >= X86_MAX_IO)
 		return 0;
 
-	/* access rights */
 	iomask = readPhysical(getCurPartition(), PPRidx());
-	hwidx = (uint32_t)(io_to_hardware[port]);
+	hwidx = (uint32_t)(io_to_hardware[port]);*/
 
-	return (iomask >> hwidx) & 1;
+	/* return (iomask >> hwidx) & 1; */
+	if(port == PIC1_COMMAND ||
+	   port == PIC2_COMMAND ||
+	   port == PIC1_DATA	||
+	   port == PIC2_DATA)
+		return 0;
+	else return 1; // For now, allow any IO. TODO : fix this according to new IAL
 }
 
 /**
@@ -150,9 +154,11 @@ uint32_t inl(uint16_t port)
 void
 faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
 {
-	DEBUG(WARNING, "faulting to parent, cur part is %x\n", 
+	/*DEBUG(WARNING, "faulting to parent, cur part is %x\n",
 		getCurPartition());
-	dispatchGlue(0, FAULT_FORBIDDEN, 0, data1, data2, ctx);
+	dispatchGlue(0, FAULT_FORBIDDEN, 0, data1, data2, ctx); */
+	DEBUG(CRITICAL, "Forbidden IO access on PIC (port %x, value %x)\n", data1, data2);
+	return;
 }
 
 /**
@@ -165,6 +171,8 @@ faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
  */
 void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
+	/* if(getCurPartition() == 0x01C07000)
+		DEBUG(CRITICAL, "Port %x, Char : %c (%x)\n", port, value, value); */
 	if (!ioAccessValid(port))
 	{
 		faultToParent(port, value, ctx);
@@ -258,8 +266,9 @@ void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 {
-	uint32_t ret = 0;
 
+	uint32_t ret = 0;
+	
 	if (!ioAccessValid(port))
 	{
 		faultToParent(port|0xf0000000, 0, ctx);
@@ -267,7 +276,8 @@ uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 	else{
 		ret = (uint32_t)inb((uint16_t)port);
 	}
-
+	/* if(getCurPartition() == 0x01C07000)
+		DEBUG(CRITICAL, "INB Port %x returns %d\n", port, ret); */
 	return ret;
 }
 
@@ -324,6 +334,13 @@ uint32_t inlGlue(uint32_t port, gate_ctx_t *ctx)
  */
 uint32_t timerGlue(void)
 {
-	extern uint32_t timer_ticks;
-	return timer_ticks;
+	/* extern uint32_t timer_ticks;
+	return timer_ticks; */
+	// DEBUG(CRITICAL, "Requested RDTSC !\n");
+	uint32_t ret1, ret2;
+	__asm volatile("RDTSC; \
+					MOV %%EAX, %0; \
+					MOV %%EDX, %1"
+				   : "=r"(ret1), "=r"(ret2));
+	return ret1; /* Get RET2 from EDX */
 }

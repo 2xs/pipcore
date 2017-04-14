@@ -83,6 +83,7 @@ uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Director
 void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, setting its contents to 0x00000000
 
 uint32_t defaultAddr(void); //!< Default address, should be 0x00000000
+uint32_t defaultVAddr(void); //!< Default address, should be 0x00000000, youpi
 uint32_t getTableSize(void); //!< Table size
 uint32_t getMaxIndex(void); //!< Table size
 uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.

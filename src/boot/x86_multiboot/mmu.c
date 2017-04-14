@@ -350,11 +350,9 @@ void initMmu()
 
     /* Map first partition info as user-accessible */
     extern pip_fpinfo* fpinfo;
-    extern uintptr_t fpInfoEnd;
     uintptr_t fpInfoBegin = (uintptr_t)fpinfo;
 
-    for(uint32_t fpi_addr = (uint32_t)fpInfoBegin; fpi_addr <= (uint32_t)fpInfoEnd; fpi_addr += 0x1000)
-        mapPageWrapper(kernelDirectory, (uint32_t)fpi_addr, (uint32_t)fpi_addr, 1);
+	mapPageWrapper(kernelDirectory, (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
 	
     // Map the first free page into our kernel's virtual address space
     mapPageWrapper(kernelDirectory, (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
@@ -417,6 +415,8 @@ void initMmu()
 	// Create fake IDT at 0xFFFFF000
 	uint32_t* virt_intv = allocPage();
 	mapPageWrapper(kernelDirectory, (uint32_t)virt_intv, 0xFFFFF000, 1);
+	
+	mapPageWrapper(kernelDirectory, (uint32_t)0xB8000, 0xFFFFE000, 1);
 	
 	// Fill Virtu. IDT info
 	extern uint32_t __multiplexer;

@@ -62,7 +62,7 @@ void panic(); //!< Interface for kernel panic
 void enableInterrupts(); //!< Interface for interrupt activation
 void disableInterrupts(); //!< Interface for interrupt desactivation
 void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, user_ctx_role_t ctxNo); //!< Resume interrupted partition
+void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
 
 // FIXME: move this away
 #include <x86int.h>

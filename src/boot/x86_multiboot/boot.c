@@ -45,7 +45,6 @@
 #include "ial.h"
 #include "git.h"
 #include "fpinfo.h"
-#include "x86hw.h"
 
 /* Some debugging output if PIPDEBUG is set */
 #include "debug.h"
@@ -106,6 +105,10 @@ void spawnFirstPartition()
 	
 	*(uint32_t*)usrStack = 0x0;
 	
+	/* Set VCLI flag ! */
+	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
+	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
+	
 	// Send virtual IRQ 0 to partition
 	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)fpinfo, 0);
 }
@@ -161,7 +164,6 @@ int c_main(struct multiboot *mbootPtr)
 	
 	DEBUG(INFO, "-> Initializing first partition info.\n");
 	uintptr_t info_str = fillFpInfo();
-    fillHardwareInfo((pip_fpinfo*)info_str);
 
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
