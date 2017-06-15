@@ -39,11 +39,12 @@
 #include <stdint.h>
 #include "mal.h"
 #include "structures.h"
+#include "debug.h"
 
-
-static uint32_t current_partition; /* Current partition's CR3 */
-static uint32_t root_partition; /* Multiplexer's partition descriptor */
-
+uint32_t current_partition; /* Current partition's CR3 */
+uint32_t root_partition; /* Multiplexer's partition descriptor */
+uint32_t next_pid = 0;
+extern uint32_t pcid_enabled;
 /*!	\fn void enable_paging()
 	\brief enables paging
 	\post paging mechanism is enabled
@@ -228,7 +229,14 @@ uint32_t getCurPartition(void)
 void
 updateCurPartition (uint32_t descriptor)
 {
+	extern uint32_t pcid_enabled;
 	current_partition = descriptor;
+	if(readPhysical(descriptor, 12) == 0x0 && pcid_enabled)
+	{
+		writePhysical(descriptor, 12, next_pid);
+		DEBUG(TRACE, "Registered partition descriptor %x as PID %d.\n", descriptor, next_pid);
+		next_pid++;
+	}
 }
 
 /*! \fn uint32_t getRootPartition()

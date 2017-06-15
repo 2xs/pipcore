@@ -41,6 +41,7 @@
 #include "mal.h"
 #include "debug.h"
 #include "libc.h"
+#include "ial.h"
 
 /*!	\fn void activate(uintptr_t dir)
 	\brief activates the virtual space dir
@@ -53,8 +54,7 @@ void activate(uintptr_t dir)
 	page_directory_t* d = (page_directory_t*)dir;
 	asm volatile("mov %0, %%cr3"
 				 :
-				 : "r"(&(d->tablesPhysical)));
-	
+				 : "r"(dir));
 	// Switch on paging
 	enable_paging();
 }

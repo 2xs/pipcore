@@ -32,51 +32,47 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file x86hw.h
+ * \brief x86 hardware structures
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef __X86_HARDWARE__
+#define __X86_HARDWARE__
 
 #include <stdint.h>
+#include "fpinfo.h"
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+#define X86_MAX_HARDWARE    0xFF
+#define X86_MAX_IO          0xFFFF
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
+enum x86_hw_type {TYPE_BUILTIN, TYPE_PCI, TYPE_UNK};
+enum x86_res_range {RANGE_NULL, RANGE_MEM, RANGE_IO};
+typedef enum x86_hw_type x86_hw_type_t;
+typedef enum x86_res_range x86_res_range_t;
 
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2,
-			  gate_ctx_t *ctx);
-
-/* Partition-to-pid structure */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
+struct x86_resource {
+	x86_res_range_t type;
+	uintptr_t begin, end;
 };
 
-typedef struct partition_id pip_pid;
+typedef struct x86_resource x86_resource_t;
 
+struct x86_hardware {
+    char name[64];
+	x86_hw_type_t type;
+	x86_resource_t resources[6];
+    uint32_t data; /* Optional data */
+} x86_hardware;
+
+typedef struct x86_hardware x86_hardware_t;
+
+uint16_t io_to_hardware[X86_MAX_IO]; // Mapping from IO-Port to hardware index
+x86_hardware_t hardware_list[X86_MAX_HARDWARE]; // x86 hardware
+
+void probeHardware(); //!< Trigger the platform-specific hardware probe
+void addHardware(char* name, uintptr_t membegin, uintptr_t memend, uint16_t iobegin, uint16_t ioend, x86_hw_type_t type); //!< Adds the given hardware to the probed hardware list
+void addHardwareFromExisting(x86_hardware_t* info); //!< Adds the given hardware to the probed hardware list
+void addResourceRange(x86_hardware_t* info, x86_res_range_t type, uint32_t begin, uint32_t end); //!< Adds the given hardware to the probed hardware list
+void mapIo(x86_hardware_t* hw, uint16_t hwindex); //!< Map IO range to given hardware
+void fillHardwareInfo(pip_fpinfo* fpinfo); //!< Fill hardware info in First Partition Info page
 #endif
