@@ -32,51 +32,114 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file x86int.h
+ * \brief x86 interrupts include file for x86 IAL
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef IAL_STRUCT_H
+#define IAL_STRUCT_H
 
 #include <stdint.h>
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+/**
+ * \struct idt_entry_struct
+ * \brief Interrupt Descriptor Table entry
+ */
+struct idt_entry_struct
+{
+    uint16_t base_lo; //!< Lower bytes of handler address
+    uint16_t sel; //!< Selector
+    uint8_t  always0; //!< ?
+    uint8_t  flags; //!< Interrupt handler flags (Required Privilege Level etc)
+    uint16_t base_hi; //!< Higher bytes of handler address
+} __attribute__((packed));
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
+typedef struct idt_entry_struct idt_entry_t;
 
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
+/**
+ * \struct idt_ptr_struct
+ * \brief IDT pointer structure
+ */
+struct idt_ptr_struct
+{
+    uint16_t limit; //!< Address limit
+    uint32_t base; //!< IDT pointer base
+} __attribute__((packed));
 
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2,
-			  gate_ctx_t *ctx);
+typedef struct idt_ptr_struct idt_ptr_t;
 
-/* Partition-to-pid structure */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
+extern void irq0(); //!< IRQ 0
+extern void irq1(); //!< IRQ 1
+extern void irq2(); //!< IRQ 2
+extern void irq3(); //!< IRQ 3
+extern void irq4(); //!< IRQ 4
+extern void irq5(); //!< IRQ 5
+extern void irq6(); //!< IRQ 6
+extern void irq7(); //!< IRQ 7
+extern void irq8(); //!< IRQ 8
+extern void irq9(); //!< IRQ 9
+extern void irq10(); //!< IRQ 10
+extern void irq11(); //!< IRQ 11
+extern void irq12(); //!< IRQ 12
+extern void irq13(); //!< IRQ 13
+extern void irq14(); //!< IRQ 14
+extern void irq15(); //!< IRQ 15
 
-typedef struct partition_id pip_pid;
+/**
+ * \struct registers
+ * \brief Registers structure for x86
+ */
+typedef struct pushad_regs_s
+{
+    uint32_t edi; //!< General register EDI
+    uint32_t esi; //!< General register ESI
+    uint32_t ebp; //!< EBP
+    uint32_t esp; //!< Stack pointer
+    uint32_t ebx; //!< General register EBX
+    uint32_t edx; //!< General register EDX
+    uint32_t ecx; //!< General register ECX
+    uint32_t eax; //!< General register EAX
+} pushad_regs_t;
+
+/**
+ * \struct int_stack_s
+ * \brief Stack context from interrupt/exception
+ */
+typedef const struct int_stack_s
+{
+    pushad_regs_t regs;//!< Interrupt handler saved regs
+    uint32_t int_no; //!< Interrupt number
+    uint32_t err_code; //!< Interrupt error code
+    uint32_t eip; //!< Execution pointer
+    uint32_t cs; //!< Code segment
+    uint32_t eflags; //!< CPU flags
+    /* only present when we're coming from userland */
+    uint32_t useresp; //!< User-mode ESP
+    uint32_t ss; //!< Stack segment
+} int_ctx_t ;
+
+/** 
+ * \struct gate_stack_s
+ * \brief Stack context from callgate
+ */
+typedef const struct gate_stack_s
+{
+	pushad_regs_t regs;
+	uint32_t eip;
+} gate_ctx_t;
+
+/**
+ * \struct user_ctx_s
+ * \brief User saved context
+ */
+typedef struct user_ctx_s
+{
+	uint32_t eip;
+	uint32_t pipflags;
+	uint32_t eflags;
+	pushad_regs_t regs;
+	uint32_t valid;
+	uint32_t nfu[4];
+} user_ctx_t;
 
 #endif

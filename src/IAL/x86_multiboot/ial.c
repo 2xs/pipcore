@@ -46,6 +46,10 @@
 #include "maldefines.h"
 
 #define MAX_VINT (uint32_t)0x100
+#define MAX_PCID 4096
+
+uint32_t next_pcid = 1; /* Next available PCID */
+extern uint32_t pcid_enabled;
 
 #define ASSERT(u) \
 	if (!(u)){ \
@@ -178,7 +182,7 @@ void saveCallgateCaller(gate_ctx_t* ctx)
  * \brief Just a loop acting like a kernel panic
  */
 void panic (int_ctx_t *is)
-{	
+{
 	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
 	if(is) {
 		dumpRegs(is, CRITICAL);
@@ -422,7 +426,7 @@ genericHandler (int_ctx_t *is)
 		/* Kernel faults should not happen. Panic. */
 		if (isKernel(is->cs))
 		{
-			IAL_DEBUG (CRITICAL, "Encountered fault within kernel. Halting system.\n");
+			IAL_DEBUG (CRITICAL, "Encountered fault (%x) within kernel. Halting system.\n", is->int_no);
 			panic(is);
 		}
 
@@ -548,8 +552,11 @@ dispatch2 (uint32_t partition, uint32_t vint,
 	
 	/* Activate partition */
 	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory.\n", partition);
-	activate(readPhysicalNoFlags(partition, indexPD () + 1));
 	updateCurPartition (partition);
+	if(pcid_enabled)
+		activate(readPhysicalNoFlags(partition, indexPD () + 1) | readPhysical(partition, 12));
+	else
+		activate(readPhysicalNoFlags(partition, indexPD () + 1));
 	
 	/* Switch execution to userland */
 	extern void dispatchAsm(uintptr_t eip, uintptr_t esp, uint32_t data1,
@@ -612,8 +619,11 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	
 	/* Activate partition */
 	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory\n", to);
-	activate(readPhysicalNoFlags(to, indexPD () + 1));
 	updateCurPartition (to);
+	if(pcid_enabled)
+		activate(readPhysicalNoFlags(to, indexPD () + 1) | readPhysical(to, 12));
+	else
+		activate(readPhysicalNoFlags(to, indexPD () + 1));
 	
 	/* Get interrupted context info - FIXME: stack only ? */
 	uintptr_t int_ctx;

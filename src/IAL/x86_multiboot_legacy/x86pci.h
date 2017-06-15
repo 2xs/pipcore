@@ -32,51 +32,52 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file x86pci.h
+ * \brief x86 PCI hardware defines
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef __X86_PCI__
+#define __X86_PCI__
 
-#include <stdint.h>
+#define PCI_CONFIG_ADDRESS  0xCF8
+#define PCI_CONFIG_DATA     0xCFC
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
-
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2,
-			  gate_ctx_t *ctx);
-
-/* Partition-to-pid structure */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
+struct pci_config_address {
+    uint8_t null_entry : 2;
+    uint8_t reg_number : 6;
+    uint8_t fun_number : 3;
+    uint8_t dev_number : 5;
+    uint8_t bus_number : 8;
+    uint8_t reserved : 7;
+    uint8_t enable : 1;
 };
 
-typedef struct partition_id pip_pid;
+static char* PCI_CLASSES[18] = {
+    "Old PCI device",
+    "Mass Storage Controller",
+    "Network Controller",
+    "Display Controller",
+    "Multimedia Controller",
+    "Memory Controller",
+    "Bridge Device",
+    "Simple Communication Controller",
+    "Base System Peripherals",
+    "Input Device",
+    "Docking Station",
+    "Processor",
+    "Serial Bus Controller",
+    "Wireless Controller",
+    "Intelligent I/O Controller",
+    "Satellite Communication Controller",
+    "Encryption/Decryption Controller",
+    "Data Acquisition and Signal Processing Controller",
+};
+
+typedef struct pci_config_address PCI_CONFIG_ADDRESS_STRUCT;
+
+uint16_t pciConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset); //!< Read a word from a PCI bus
+uint16_t pciCheckVendor(uint8_t bus, uint8_t slot); //!< Extract a vendor from a PCI bus/slot
+void enumeratePci(); //!< Enumerate connected PCI devices
+char* getVendorName(uint32_t vendor); //!< Get vendor name from id
 
 #endif
