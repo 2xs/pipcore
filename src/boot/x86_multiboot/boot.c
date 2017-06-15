@@ -88,7 +88,7 @@ void spawnFirstPartition()
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", multiplexer_cr3);
 
 	// Prepare kernel stack for multiplexer
-	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0x1E00000, *krnStack = /*allocPage()*/(uint32_t*)0x300000;
+	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)0x300000;
 	setKernelStack((uint32_t)krnStack);
 
 	DEBUG(TRACE, "kernel stack is %x\n", krnStack);
@@ -99,18 +99,16 @@ void spawnFirstPartition()
 	
 	// Set user stack into virq
 	uint32_t target = (uint32_t)(virq) + sizeof(uint32_t);
-	*(uint32_t*)target = (uint32_t)usrStack;
+	writePhysical(target, 0x1, (uint32_t)usrStack);
 	
 	DEBUG(TRACE, "user stack is %x\n", usrStack);
-	
-	*(uint32_t*)usrStack = 0x0;
 	
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
 	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
 	
 	// Send virtual IRQ 0 to partition
-	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)fpinfo, 0);
+	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 }
 
 /**
@@ -121,16 +119,12 @@ uintptr_t fillFpInfo()
 {
 	extern uint32_t __end;
 	extern uint32_t ramEnd;
-	// Allocate page
-	uint32_t* pgFpinfo = allocPage();
+
+	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo);
 	
 	// Fill first partition info structure
-	fpinfo = (pip_fpinfo*)pgFpinfo;
-	fpinfo->magic = FPINFO_MAGIC;
-	fpinfo->membegin = (uint32_t)&__end;
-	fpinfo->memend = ramEnd;
-	strcpy(fpinfo->revision, GIT_REVISION);
 
+	
 	return (uintptr_t)fpinfo;
 }
 
@@ -158,19 +152,16 @@ int c_main(struct multiboot *mbootPtr)
 	initInterrupts();
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();
+	
 	// Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);
-	
-	DEBUG(INFO, "-> Initializing first partition info.\n");
-	uintptr_t info_str = fillFpInfo();
 
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
-
+	
 	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
-	fixFpInfo();
 	spawnFirstPartition();
 
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
