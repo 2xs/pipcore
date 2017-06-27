@@ -59,7 +59,6 @@ int printf(const char *format, ...);
  * \brief Strings for debugging output.
  */
 
-#define DEBUG_HARD 0
 #define CRITICAL	1 //!< Critical output
 #define	ERROR		2 //!< Error output
 #define WARNING		3 //!< Warning output
@@ -72,7 +71,7 @@ int printf(const char *format, ...);
 
 
 #ifndef LOGLEVEL
-#define LOGLEVEL TRACE + 1
+#define LOGLEVEL TRACE
 #endif
 
 /**
@@ -83,7 +82,7 @@ int printf(const char *format, ...);
 /**
  * \brief Defines the appropriate DEBUG behavior.
  */
-#define DEBUG(l,a,...) if(l <= LOGLEVEL){printf(#l " [%s:%d] \n\r" a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define DEBUG(l,a,...) if(l <= LOGLEVEL){printf(#l " [%s:%d]" a "\r\n", __FILE__, __LINE__, ##__VA_ARGS__);}
 /* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
 
 /**

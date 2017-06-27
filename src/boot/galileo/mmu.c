@@ -318,9 +318,9 @@ void initMmu()
 {
     /* Create the Kernel Page Directory */
     kernelDirectory = (page_directory_t*)allocPage(); // kmalloc(sizeof(page_directory_t));
-    DEBUG(DEBUG_HARD, "Kernel directory is at %x\n", kernelDirectory);
+    DEBUG(TRACE, "Kernel directory is at %x\n", kernelDirectory);
     memset(kernelDirectory, 0, sizeof(page_directory_t));
-    DEBUG(DEBUG_HARD, "Kernel directory set\n");
+    DEBUG(TRACE, "Kernel directory set\n");
 
     /* Map the kernel space */
     uint32_t curAddr = 0;
@@ -342,7 +342,7 @@ void initMmu()
     }
 
     mapPageWrapper(kernelDirectory, 0xB8000, 0xB8000, 1);
-    DEBUG(DEBUG_HARD, "Kernel directory WRAPPED\n");
+    DEBUG(TRACE, "Kernel directory WRAPPED\n");
 
     /*
      * We'll also self-test the MMU on boot.
@@ -352,35 +352,35 @@ void initMmu()
      * Find the magic at that virtual address then.
      */
     uint32_t *testPage = allocPage();
-    DEBUG(DEBUG_HARD, "testPage address is %x\n",*testPage);
+    DEBUG(TRACE, "testPage address is %x\n",*testPage);
 
 
     uint32_t *testPageVirt = (uint32_t*)0x0CAFE000;
 
-    DEBUG(DEBUG_HARD, "MMU self-test\n");
+    DEBUG(TRACE, "MMU self-test\n");
     *testPage = 0xDEADBEEF;
-    DEBUG(DEBUG_HARD, "paddr=%x, vaddr=%x\n", testPage, testPageVirt);
+    DEBUG(TRACE, "paddr=%x, vaddr=%x\n", testPage, testPageVirt);
 
 
     mapPageWrapper(kernelDirectory, (uint32_t)testPage, (uint32_t)testPageVirt, 0);
-    DEBUG(DEBUG_HARD,"Kernel Directory wrapped\n");
+    DEBUG(TRACE,"Kernel Directory wrapped\n");
     mapPageWrapper(kernelDirectory, (uint32_t)kernelDirectory, (uint32_t)kernelDirectory, 0);
-    DEBUG(DEBUG_HARD,"Kernel Directory wrapped\n");
+    DEBUG(TRACE,"Kernel Directory wrapped\n");
 
     /* Map first partition info as user-accessible */
     extern pip_fpinfo* fpinfo;
     mapPageWrapper(kernelDirectory, (uint32_t)fpinfo, (uint32_t)fpinfo, 1);
-    DEBUG(DEBUG_HARD,"Map first partition info as user-accessible\n");
+    DEBUG(TRACE,"Map first partition info as user-accessible\n");
 
     // Map the first free page into our kernel's virtual address space
     mapPageWrapper(kernelDirectory, (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
-    DEBUG(DEBUG_HARD,"Map the first free page into our kernel's virtual address space\n");
+    DEBUG(TRACE,"Map the first free page into our kernel's virtual address space\n");
 
     /* Our Kernel Page Directory is created, write its address into CR3. */
     activate((uint32_t)kernelDirectory);
 
 
-    DEBUG(DEBUG_HARD,"Write the address of kernel into CR3\n");
+    DEBUG(TRACE,"Write the address of kernel into CR3\n");
     DEBUG(TRACE, "found value %x, expected 0xDEADBEEF\n", *testPageVirt);
     if(*testPageVirt == 0xDEADBEEF){
         DEBUG(INFO, "Self-test succeeded.\n");
@@ -389,7 +389,7 @@ void initMmu()
     DEBUG(INFO, "Reversing self-test mapping\n");
     mapPageWrapper(kernelDirectory, (uint32_t)testPageVirt, (uint32_t)testPageVirt, 1);
 
-    DEBUG(DEBUG_HARD, "Welcome to virtual memory world\n");
+    DEBUG(TRACE, "Welcome to virtual memory world\n");
 
     /* TODO : check the correctness of this. The initial state of the system HAS to be correct, this is just a hackfix right now */
 

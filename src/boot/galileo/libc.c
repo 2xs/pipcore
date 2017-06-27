@@ -50,8 +50,8 @@
  */
 void * memset( void * ptr, int value, size_t num )
 {
-	char *temp = (char*) ptr;
-	for(; num != 0; num--) *temp++ = value;
+	unsigned char *temp = (unsigned char*) ptr;
+	for(; num != 0; num--) *temp++ = (unsigned char)value;
 	return ptr;
 }
 
