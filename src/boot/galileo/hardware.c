@@ -48,7 +48,8 @@
 
 void setupHardware()
 {
-    initGalileoSerialPort(DEBUG_SERIAL_PORT);
+    if(PIP_DEBUG_MODE)
+        initGalileoSerialPort(DEBUG_SERIAL_PORT);
     DEBUG(INFO, "-> Initializing SERIAL PORT.\n");
     initGalileoGPIO();
     DEBUG(INFO,"-> Initializing GPIO.\n");

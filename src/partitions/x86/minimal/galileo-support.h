@@ -4,14 +4,14 @@
 
 #ifndef __GALILEO_SUPPORT__
 #define __GALILEO_SUPPORT__
-#include "port.h"
+#include "pip/io.h"
 
 #define CLIENT_SERIAL_PORT 0
 #define DEBUG_SERIAL_PORT 1
 
 
 #ifndef NULL
-#define NULL (void *)0
+	#define NULL (void *)0
 #endif
 
 #define configASSERT( x ) if( ( x ) == 0 ) for(;;);
@@ -25,7 +25,6 @@
 typedef uint32_t uintn_t;
 
 
-
 void initializeGalileoUART(uint32_t portnumber);
 
 void initGalileoSerialPort(uint32_t portnumber);
@@ -34,32 +33,29 @@ void initGalileoSerialPort(uint32_t portnumber);
 
 
 #ifndef TRUE
-#define TRUE ( 1 )
+	#define TRUE ( 1 )
 #endif
 
 #ifndef FALSE
-#define FALSE ( 0 )
+	#define FALSE ( 0 )
 #endif
 
 #ifndef true
-#define true  TRUE
+	#define true  TRUE
 #endif
 
 #ifndef false
-#define false FALSE
+	#define false FALSE
 #endif
 
 #ifndef OK
-#define OK TRUE
+	#define OK TRUE
 #endif
 
 
 //---------------------------------------------------------------------
 // Serial port support definitions
 //---------------------------------------------------------------------
-
-static uint32_t galileoSerialPortInitialized = FALSE;
-
 
 
 #define CLIENT_SERIAL_PORT 				0
@@ -110,110 +106,25 @@ static uint32_t galileoSerialPortInitialized = FALSE;
 #define MMCONFIG_BASE	EC_BASE
 #define MMIO_PCI_ADDRESS(bus,dev,fn,reg) ( \
         (EC_BASE) + \
-        ((bus) << 20) + \
-        ((dev) << 15) + \
-        ((fn)  << 12) + \
-        (reg))
+		((bus) << 20) + \
+		((dev) << 15) + \
+		((fn)  << 12) + \
+		(reg))
 
 //---------------------------------------------------------------------
 // MMIO read/write/set/clear/modify macros
 //---------------------------------------------------------------------
-#define mem_read(base, offset, size) ({ \
-        volatile uint32_t a = (base) + (offset); \
-        volatile uint64_t v; \
-        switch (size) { \
-        case 1: \
-        v = (uint8_t)(*((uint8_t *)a)); \
-        break; \
-        case 2: \
-        v = (uint16_t)(*((uint16_t *)a)); \
-        break; \
-        case 4: \
-        v = (uint32_t)(*((uint32_t *)a)); \
-        break; \
-        case 8: \
-        v = (uint64_t)(*((uint64_t *)a)); \
-        break; \
-        default: \
-        halt(); \
-        } \
-        v; \
+#define mem_read(base, offset, size)({\
+        volatile uint64_t r;\
+        r = mmioRead(base,offset,size);\
+        r;\
         })
-
 // No cache bypass necessary -- MTRRs should handle this
-#define mem_write(base, offset, size, value) { \
-    volatile uint32_t a = (base) + (offset); \
-    switch (size) { \
-        case 1: \
-                *((uint8_t *)a) = (uint8_t)(value); \
-        break; \
-        case 2: \
-                *((uint16_t *)a) = (uint16_t)(value); \
-        break; \
-        case 4: \
-                *((uint32_t *)a) = (uint32_t)(value); \
-        break; \
-        case 8: \
-                *((uint64_t *)a) = (uint64_t)(value); \
-        break; \
-        default: \
-                 halt(); \
-    } \
-}
+#define mem_write(base, offset, size, value) mmioWrite(base,offset,size,value);
 
-#define mem_set(base, offset, size, smask) { \
-    volatile uint32_t a = (base) + (offset); \
-    switch (size) { \
-        case 1: \
-                *((uint8_t *)a) = (uint8_t)((*((uint8_t *)a)) | (smask)); \
-        break; \
-        case 2: \
-                *((uint16_t *)a) = (uint16_t)((*((uint16_t *)a)) | (smask)); \
-        break; \
-        case 4: \
-                *((uint32_t *)a) = (uint32_t)((*((uint32_t *)a)) | (smask)); \
-        break; \
-        case 8: \
-                *((uint64_t *)a) = (uint64_t)((*((uint64_t *)a)) | (smask)); \
-        break; \
-    } \
-}
-
-#define mem_clear(base, offset, size, cmask) { \
-    volatile uint32_t a = (base) + (offset); \
-    switch (size) { \
-        case 1: \
-                *((uint8_t *)a) = (uint8_t)((*((uint8_t *)a) & ~(cmask))); \
-        break; \
-        case 2: \
-                *((uint16_t *)a) = (uint16_t)((*((uint16_t *)a) & ~(cmask))); \
-        break; \
-        case 4: \
-                *((uint32_t *)a) = (uint32_t)((*((uint32_t *)a) & ~(cmask))); \
-        break; \
-        case 8: \
-                *((uint64_t *)a) = (uint64_t)((*((uint64_t *)a) & ~(cmask))); \
-        break; \
-    } \
-}
-
-#define mem_modify(base, offset, size, cmask, smask) { \
-    volatile uint32_t a = (base) + (offset); \
-    switch (size) { \
-        case 1: \
-                *((uint8_t *)a) = (uint8_t)((*((uint8_t *)a) & ~(cmask)) | (smask)); \
-        break; \
-        case 2: \
-                *((uint16_t *)a) = (uint16_t)((*((uint16_t *)a) & ~(cmask)) | (smask)); \
-        break; \
-        case 4: \
-                *((uint32_t *)a) = (uint32_t)((*((uint32_t *)a) & ~(cmask)) | (smask)); \
-        break; \
-        case 8: \
-                *((uint64_t *)a) = (uint64_t)((*((uint64_t *)a) & ~(cmask)) | (smask)); \
-        break; \
-    } \
-
+#define mem_set(base, offset, size, smask) mmioSet(base,offset,size,smask);
+#define mem_clear(base, offset, size, cmask) mmioClear(base,offset,size,cmask);
+#define mem_modify(base, offset, size, cmask, smask) mmioModify(base,offset,size,cmask,smask);
 
 //---------------------------------------------------------------------
 // 82C54 PIT (programmable interval timer) definitions
@@ -229,6 +140,8 @@ static uint32_t galileoSerialPortInitialized = FALSE;
 void vGalileoPrintc(char c);
 uint8_t ucGalileoGetchar();
 void vGalileoPuts(const char *string);
+void initializeGalileoPort(uint32_t portnumber);
+void initializeGalileoUART(uint32_t portnumber);
 
 
 

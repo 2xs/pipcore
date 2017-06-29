@@ -63,4 +63,5 @@ uint32_t cg_inw(uint32_t port); //!< Inw callgate method
 void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
 void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
 uint32_t cg_inl(uint32_t port); //!< Inl callgate method
+
 #endif

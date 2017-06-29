@@ -42,27 +42,27 @@
 #include "x86hw.h"
 #include "x86int.h"
 #include "debug.h"
-
+#include "galileo-support.h"
 /* Get hardware index from IO-to-Hardware table */
 extern uint16_t io_to_hardware[X86_MAX_IO];
 
 /* check wether the current partition can access
  * given ioport according to its access mask
  * returns 1 when access is allowed */
-static uint32_t
+    static uint32_t
 ioAccessValid(uint16_t port)
 {
-	uint32_t iomask, hwidx;
+    uint32_t iomask, hwidx;
 
-	/* sanity check port */
-	if (port >= X86_MAX_IO)
-		return 0;
+    /* sanity check port */
+    if (port >= X86_MAX_IO)
+        return 0;
 
-	/* access rights */
-	iomask = readPhysical(getCurPartition(), PPRidx());
-	hwidx = (uint32_t)(io_to_hardware[port]);
+    /* access rights */
+    iomask = readPhysical(getCurPartition(), PPRidx());
+    hwidx = (uint32_t)(io_to_hardware[port]);
 
-	return (iomask >> hwidx) & 1;
+    return (iomask >> hwidx) & 1;
 }
 
 /**
@@ -84,7 +84,7 @@ void outb(uint16_t port, uint8_t value)
  */
 void outw(uint16_t port, uint16_t value)
 {
-	asm volatile ("outw %1, %0" : : "dN" (port), "a" (value));
+    asm volatile ("outw %1, %0" : : "dN" (port), "a" (value));
 }
 
 /**
@@ -93,8 +93,8 @@ void outw(uint16_t port, uint16_t value)
  */
 void halt()
 {
-	asm volatile("jmp halt;\
-                  ret;");
+    asm volatile("jmp halt;\
+            ret;");
 }
 
 /**
@@ -105,7 +105,7 @@ void halt()
  */
 void outl(uint16_t port, uint32_t value)
 {
-	asm volatile ("outl %1, %0" : : "dN" (port), "a" (value));
+    asm volatile ("outl %1, %0" : : "dN" (port), "a" (value));
 }
 
 /**
@@ -116,9 +116,9 @@ void outl(uint16_t port, uint32_t value)
  */
 uint8_t inb(uint16_t port)
 {
-   uint8_t ret;
-   asm volatile("inb %1, %0" : "=a" (ret) : "dN" (port));
-   return ret;
+    uint8_t ret;
+    asm volatile("inb %1, %0" : "=a" (ret) : "dN" (port));
+    return ret;
 }
 
 /**
@@ -129,9 +129,9 @@ uint8_t inb(uint16_t port)
  */
 uint16_t inw(uint16_t port)
 {
-   uint16_t ret;
-   asm volatile ("inw %1, %0" : "=a" (ret) : "dN" (port));
-   return ret;
+    uint16_t ret;
+    asm volatile ("inw %1, %0" : "=a" (ret) : "dN" (port));
+    return ret;
 }
 
 
@@ -143,9 +143,9 @@ uint16_t inw(uint16_t port)
  */
 uint32_t inl(uint16_t port)
 {
-	uint32_t ret;
-	asm volatile ("inl %1, %0" : "=a" (ret) : "dN" (port));
-	return ret;
+    uint32_t ret;
+    asm volatile ("inl %1, %0" : "=a" (ret) : "dN" (port));
+    return ret;
 }
 
 /**
@@ -157,12 +157,12 @@ uint32_t inl(uint16_t port)
  * \return This function does not return.
  * \note The parent partition should resume the caller on its own
  */
-void
+    void
 faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
 {
-	DEBUG(WARNING, "faulting to parent, cur part is %x\n",
-		getCurPartition());
-	dispatchGlue(0, FAULT_FORBIDDEN, 0, data1, data2, ctx);
+    DEBUG(WARNING, "faulting to parent, cur part is %x\n",
+            getCurPartition());
+    dispatchGlue(0, FAULT_FORBIDDEN, 0, data1, data2, ctx);
 }
 
 /**
@@ -175,13 +175,13 @@ faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
  */
 void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port, value, ctx);
-	}
-	else{
-		outb((uint16_t)port, (uint8_t)(value&0xff));
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port, value, ctx);
+    }
+    else{
+        outb((uint16_t)port, (uint8_t)(value&0xff));
+    }
 }
 
 /**
@@ -194,13 +194,13 @@ void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port, value, ctx);
-	}
-	else{
-		outw((uint16_t)port, (uint16_t)(value&0xffff));
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port, value, ctx);
+    }
+    else{
+        outw((uint16_t)port, (uint16_t)(value&0xffff));
+    }
 }
 
 /**
@@ -213,13 +213,13 @@ void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port, value, ctx);
-	}
-	else{
-		outl((uint16_t)port, value);
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port, value, ctx);
+    }
+    else{
+        outl((uint16_t)port, value);
+    }
 }
 
 /**
@@ -232,30 +232,30 @@ void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
-	/* Convert vaddr to paddr */
-	uintptr_t vad = (uintptr_t)value;
-	uintptr_t offset = (uintptr_t)value & 0x00000FFF;
-	uintptr_t idxPd = getIndexOfAddr(vad, 1);
-	uintptr_t idxPt = getIndexOfAddr(vad, 0);
-	uintptr_t pd = readPhysical(getCurPartition(), 2);
-	uintptr_t pt = readPhysical(pd, idxPd);
-	uintptr_t pad = readPhysical(pt, idxPt) | offset;
+    /* Convert vaddr to paddr */
+    uintptr_t vad = (uintptr_t)value;
+    uintptr_t offset = (uintptr_t)value & 0x00000FFF;
+    uintptr_t idxPd = getIndexOfAddr(vad, 1);
+    uintptr_t idxPt = getIndexOfAddr(vad, 0);
+    uintptr_t pd = readPhysical(getCurPartition(), 2);
+    uintptr_t pt = readPhysical(pd, idxPd);
+    uintptr_t pad = readPhysical(pt, idxPt) | offset;
 
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port, (uint32_t)pad, ctx);
-	}
-	else
-	{
-		DEBUG(TRACE, "Writing physical address ");
-		DEBUGHEX(pad);
-		DEBUGRAW(" of virtual address ");
-		DEBUGHEX(vad);
-		DEBUGRAW(" to IO port ");
-		DEBUGHEX(port);
-		DEBUGRAW("\n");
-		outb((uint16_t)port, (uint32_t)pad);
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port, (uint32_t)pad, ctx);
+    }
+    else
+    {
+        DEBUG(CRITICAL, "Writing physical address ");
+        DEBUGHEX(pad);
+        DEBUGRAW(" of virtual address ");
+        DEBUGHEX(vad);
+        DEBUGRAW(" to IO port ");
+        DEBUGHEX(port);
+        DEBUGRAW("\n");
+        outb((uint16_t)port, (uint32_t)pad);
+    }
 }
 
 /**
@@ -268,17 +268,17 @@ void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 {
-	uint32_t ret = 0;
+    uint32_t ret = 0;
 
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port|0xf0000000, 0, ctx);
-	}
-	else{
-		ret = (uint32_t)inb((uint16_t)port);
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port|0xf0000000, 0, ctx);
+    }
+    else{
+        ret = (uint32_t)inb((uint16_t)port);
+    }
 
-	return ret;
+    return ret;
 }
 
 /**
@@ -291,17 +291,17 @@ uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
  */
 uint32_t inwGlue(uint32_t port, gate_ctx_t *ctx)
 {
-	uint32_t ret = 0;
+    uint32_t ret = 0;
 
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port|0xf0000000, 0, ctx);
-	}
-	else{
-		ret = (uint32_t)inw((uint16_t)port);
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port|0xf0000000, 0, ctx);
+    }
+    else{
+        ret = (uint32_t)inw((uint16_t)port);
+    }
 
-	return ret;
+    return ret;
 }
 
 /**
@@ -314,17 +314,153 @@ uint32_t inwGlue(uint32_t port, gate_ctx_t *ctx)
  */
 uint32_t inlGlue(uint32_t port, gate_ctx_t *ctx)
 {
-	uint32_t ret = 0;
+    uint32_t ret = 0;
 
-	if (!ioAccessValid(port))
-	{
-		faultToParent(port|0xf0000000, 0, ctx);
-	}
-	else{
-		ret = inl((uint16_t)port);
-	}
+    if (!ioAccessValid(port))
+    {
+        faultToParent(port|0xf0000000, 0, ctx);
+    }
+    else{
+        ret = inl((uint16_t)port);
+    }
 
-	return ret;
+    return ret;
+}
+
+
+/**
+ * \fn uint32_t writeMMIOGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+uintptr_t writeMMIOGlue(uintptr_t dst, uintptr_t src ,gate_ctx_t *ctx)
+{
+    DEBUG(CRITICAL,"Access to writeMMIOGlue\n");
+    dst = *((volatile uint32_t  *)(src));
+
+    return dst;
+}
+
+
+/**
+ * \fn uint32_t mmioReadGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+uint64_t mmioReadGlue(uint32_t base, uint32_t offset, uint32_t size,gate_ctx_t *ctx)
+{
+    uint64_t ret = 0;
+
+
+      /*
+       if (!ioAccessValid())
+       {
+       faultToParent(port|0xf0000000, 0, ctx);
+       }
+       else{
+       }*/
+    ret = mem_read(base,offset,size);
+
+    return ret;
+}
+
+
+/**
+ * \fn uint32_t mmioReadGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+void mmioWriteGlue(uint32_t base, uint32_t offset, uint32_t size, uint8_t value, gate_ctx_t *ctx)
+{
+    /*
+       if (!ioAccessValid(port))
+       {
+       faultToParent(port|0xf0000000, 0, ctx);
+       }
+       else{
+       }
+       */
+    mem_write(base,offset,size,value);
+
+}
+
+
+/**
+ * \fn uint32_t mmioReadGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+void mmioSetGlue(uint32_t base,uint32_t offset, uint32_t size, uint8_t smask,  gate_ctx_t *ctx)
+{
+    /*
+       if (!ioAccessValid(port))
+       {
+       faultToParent(port|0xf0000000, 0, ctx);
+       }
+       else{
+       ret = mem_set(base,offset,size,smask);
+       }
+       */
+    mem_set(base,offset,size,smask);
+
+}
+
+
+/**
+ * \fn uint32_t mmioReadGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+void mmioClearGlue(uint32_t base,uint32_t offset, uint32_t size, uint8_t cmask,gate_ctx_t *ctx)
+{
+    /*
+       if (!ioAccessValid(port))
+       {
+       faultToParent(port|0xf0000000, 0, ctx);
+       }
+       else{
+       mem_clear(base,offset,size,cmask);
+       }*/
+    mem_clear(base,offset,size,cmask);
+
+
+}
+
+/**
+ * \fn uint32_t mmioReadGlue(uint32_t port, gate_ctx_t *ctx)
+ * \brief Glue function for inl callgate
+ * \param port Target IO port
+ * \param ctx Interrupted context
+ * \return IO port read value
+ * \note Trigger a fault in parent partition if not authorized
+ */
+void mmioModifyGlue (uint32_t base,uint32_t offset, uint32_t size, uint8_t cmask,uint8_t smask, gate_ctx_t *ctx)
+{
+     /*
+       if (!ioAccessValid(port))
+       {
+       faultToParent(port|0xf0000000, 0, ctx);
+       }
+       else{
+       }
+       */
+    //mem_modify(base,offset,size,cmask,smask);
+
 }
 
 /**
@@ -334,6 +470,8 @@ uint32_t inlGlue(uint32_t port, gate_ctx_t *ctx)
  */
 uint32_t timerGlue(void)
 {
-	extern uint32_t timer_ticks;
-	return timer_ticks;
+    extern uint32_t timer_ticks;
+    return timer_ticks;
 }
+
+

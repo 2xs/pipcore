@@ -10,7 +10,7 @@
 //---------------------------------------------------------------------
 // HPET support definitions
 //---------------------------------------------------------------------
-#define hpetUSE_HPET_TIMER_NUMBER			( 1 )	  // 0 = false, 1 = true
+#define hpetUSE_HPET_TIMER_NUMBER			(0 )	  // 0 = false, 1 = true
 
 #define hpetUSE_HPET_TIMER_NUMBER_0			( 1 )	  // 0 = false, 1 = true
 #define hpetUSE_HPET_TIMER_NUMBER_1	 		( 1 )	  // 0 = false, 1 = true

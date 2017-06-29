@@ -39,7 +39,7 @@
 #include "debug.h"
 #include "serial.h"
 #include <stdint.h>
-#include "libc.h"
+//#include "libc.h"
 #include <stdarg.h>
 #include "galileo-support.h"
 uint32_t buffer[64]; // temporary buffer for benchmarking
@@ -54,7 +54,7 @@ void krn_puts(char *c)
    int i = 0;
    while (c[i])
    {
-       vGalileoPrintc(c[i++]);
+       writeSerial(c[i++]);
    }
 }
 
@@ -63,7 +63,7 @@ void krn_puts(char *c)
  * \brief Writes an hexadecimal number to the serial output
  * \param n The number to write
  */
-void puthex(int n)
+void mputhex(int n)
 {
     int tmp;
 

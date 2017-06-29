@@ -56,31 +56,44 @@ extern void *cg_addVAddr;
 extern void *cg_dispatchGlue;
 extern void *cg_timerGlue;
 extern void *cg_resume;
+extern void *cg_mmioReadGlue;
+extern void *cg_mmioWriteGlue;
+extern void *cg_mmioSetGlue;
+extern void *cg_mmioClearGlue;
+extern void *cg_mmioModifyGlue;
+extern void *cg_writeMMIOGlue;
+
 
 struct gdt_entry_s {
-	void *handler;
-	unsigned nargs;
-	unsigned rpl;
-	unsigned segment;
+    void *handler;
+    unsigned nargs;
+    unsigned rpl;
+    unsigned segment;
 };
 
 struct gdt_entry_s gdtEntries[] = {
-	{&cg_outbGlue, 		2, 0x3, 0x08},
-	{&cg_inbGlue, 		1, 0x3, 0x08},
-	{&cg_outwGlue, 		2, 0x3, 0x08},
-	{&cg_inwGlue, 		1, 0x3, 0x08},
-	{&cg_outlGlue, 		2, 0x3, 0x08},
-	{&cg_inlGlue, 		1, 0x3, 0x08},
+    {&cg_outbGlue, 		2, 0x3, 0x08},
+    {&cg_inbGlue, 		1, 0x3, 0x08},
+    {&cg_outwGlue, 		2, 0x3, 0x08},
+    {&cg_inwGlue, 		1, 0x3, 0x08},
+    {&cg_outlGlue, 		2, 0x3, 0x08},
+    {&cg_inlGlue, 		1, 0x3, 0x08},
+    {&cg_mmioReadGlue, 	3, 0x3, 0x08},
+    {&cg_mmioWriteGlue, 4, 0x3, 0x08},
+    {&cg_mmioSetGlue, 	4, 0x3, 0x08},
+    {&cg_mmioClearGlue, 4, 0x3, 0x08},
+    {&cg_mmioModifyGlue,5, 0x3, 0x08},
+    {&cg_writeMMIOGlue,2, 0x3, 0x08},
 
-	{&cg_createPartition, 	5, 0x3, 0x08},
-	{&cg_countToMap, 	2, 0x3, 0x08},
-	{&cg_prepare, 		4, 0x3, 0x08},
-	{&cg_addVAddr, 		6, 0x3, 0x08},
-	{&cg_dispatchGlue, 	5, 0x3, 0x08},
+    {&cg_outaddrlGlue, 	2, 0x3, 0x08},
+    {&cg_createPartition, 	5, 0x3, 0x08},
+    {&cg_countToMap, 	2, 0x3, 0x08},
+    {&cg_prepare, 		4, 0x3, 0x08},
+    {&cg_addVAddr, 		6, 0x3, 0x08},
+    {&cg_dispatchGlue, 	5, 0x3, 0x08},
 
-	{&cg_outaddrlGlue, 	2, 0x3, 0x08},
-	{&cg_timerGlue, 	0, 0x3, 0x08},
-	{&cg_resume, 		2, 0x3, 0x08},
+    {&cg_timerGlue, 	0, 0x3, 0x08},
+    {&cg_resume, 		2, 0x3, 0x08},
 };
 
 #define CG_COUNT (sizeof(gdtEntries)/sizeof(struct gdt_entry_s))
@@ -123,20 +136,20 @@ void gdtSetGate(int num, unsigned long base, unsigned long limit, unsigned char 
  */
 void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t segment)
 {
-	callgate_t gate;
-	gate.dpl = rpl & 0x3; /* We require ring-level 3, so that our call-gate may be used from user-land */
-	gate.zero = 0 & 0x1; /* Zero value */
-	gate.present = 1 & 0x1; /* Callgate is present */
-	gate.type = 0xC & 0xF; /* Call-gate type */
-	gate.selector = segment & 0xFFFF; /* Segment selector for ring-level 1 */
-	gate.reserved = 0x00 & 0x3;
-	gate.args = args & 0x1F;
-	uint32_t addr = (uint32_t)(handler);
-	gate.offset_low = (uint16_t)(addr & 0xFFFF);
-	gate.offset_high = (uint16_t)((addr >> 16) & 0xFFFF);
-	memcpy(&(gdt[num]), &gate, sizeof(struct gdt_entry)); /* Install call-gate into GDT */
-	
-	return;
+    callgate_t gate;
+    gate.dpl = rpl & 0x3; /* We require ring-level 3, so that our call-gate may be used from user-land */
+    gate.zero = 0 & 0x1; /* Zero value */
+    gate.present = 1 & 0x1; /* Callgate is present */
+    gate.type = 0xC & 0xF; /* Call-gate type */
+    gate.selector = segment & 0xFFFF; /* Segment selector for ring-level 1 */
+    gate.reserved = 0x00 & 0x3;
+    gate.args = args & 0x1F;
+    uint32_t addr = (uint32_t)(handler);
+    gate.offset_low = (uint16_t)(addr & 0xFFFF);
+    gate.offset_high = (uint16_t)((addr >> 16) & 0xFFFF);
+    memcpy(&(gdt[num]), &gate, sizeof(struct gdt_entry)); /* Install call-gate into GDT */
+
+    return;
 }
 
 /**
@@ -148,18 +161,18 @@ void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t s
  */
 void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
 {
-	uint32_t base = (uint32_t) &tssEntry;
-	uint32_t limit = sizeof(tssEntry);
+    uint32_t base = (uint32_t) &tssEntry;
+    uint32_t limit = sizeof(tssEntry);
 
-	gdtSetGate(num, base, limit, 0xE9, 0x00);
+    gdtSetGate(num, base, limit, 0xE9, 0x00);
 
-	memset(&tssEntry, 0, sizeof(tssEntry));
+    memset(&tssEntry, 0, sizeof(tssEntry));
 
-	tssEntry.ss0 = ss0;
-	tssEntry.esp0 = esp0;
+    tssEntry.ss0 = ss0;
+    tssEntry.esp0 = esp0;
 
-	tssEntry.cs = 0x0B;
-	tssEntry.ss = tssEntry.ds = tssEntry.es = tssEntry.fs = tssEntry.gs = 0x13;
+    tssEntry.cs = 0x0B;
+    tssEntry.ss = tssEntry.ds = tssEntry.es = tssEntry.fs = tssEntry.gs = 0x13;
 }
 
 /**
@@ -169,7 +182,7 @@ void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
  */
 void setKernelStack (uint32_t stack)
 {
-	tssEntry.esp0 = stack;
+    tssEntry.esp0 = stack;
 }
 
 /**
@@ -178,34 +191,36 @@ void setKernelStack (uint32_t stack)
  */
 void gdtInstall(void)
 {
-	unsigned i;
-	struct gdt_entry_s *e;
+    unsigned i;
+    struct gdt_entry_s *e;
 
-	gp.limit = (sizeof(struct gdt_entry) * (gdtEntriesCount)) - 1;
-	gp.base = (uint32_t)&gdt;
+    gp.limit = (sizeof(struct gdt_entry) * (gdtEntriesCount)) - 1;
+    gp.base = (uint32_t)&gdt;
 
-	gdtSetGate(0, 0, 0, 0, 0);
+    gdtSetGate(0, 0, 0, 0, 0);
 
-	/* segment selectors */
-	/* User code segment  */
-	gdtSetGate(1, 0, 0xFFFFF, 0x9A, 0xC0);
-	/* User data segment  */
-	gdtSetGate(2, 0, 0xFFFFF, 0x92, 0xC0);
-	/* Kernel code segment */
-	gdtSetGate(3, 0, 0xFFFFF, 0xFA, 0xC0);
-	/* Kernel data segment */
-	gdtSetGate(4, 0, 0xFFFFF, 0xF2, 0xC0);
+    /* segment selectors */
+    /* User code segment  */
+    gdtSetGate(1, 0, 0xFFFFF, 0x9A, 0xC0);
+    /* User data segment  */
+    gdtSetGate(2, 0, 0xFFFFF, 0x92, 0xC0);
+    /* Kernel code segment */
+    gdtSetGate(3, 0, 0xFFFFF, 0xFA, 0xC0);
+    /* Kernel data segment */
+    gdtSetGate(4, 0, 0xFFFFF, 0xF2, 0xC0);
 
-	writeTss(5, 0x10, 0x0);
-	for (i=0;i<CG_COUNT; i++)
-	{
-		e = &gdtEntries[i];
-		buildCallgate(6+i, e->handler, e->nargs, e->rpl, e->segment);
-	}
-	
-	DEBUG(INFO, "Callgate set-up\n");
+    writeTss(5, 0x10, 0x0);
 
-	gdtFlush();
-	tssFlush();
+    DEBUG(TRACE,"SIZE OF THE GDT ENTRIES : %d\n",CG_COUNT);
+    for (i=0;i<CG_COUNT; i++)
+    {
+        e = &gdtEntries[i];
+        buildCallgate(6+i, e->handler, e->nargs, e->rpl, e->segment);
+    }
+
+    DEBUG(INFO, "Callgate set-up\n");
+
+    gdtFlush();
+    tssFlush();
 }
 

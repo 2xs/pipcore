@@ -266,10 +266,6 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
     // Gets size of structure
     multiboot_memory_map_t* mmap = (multiboot_memory_map_t*)mmap_ptr;
 
-    DEBUGRAW("LENGTH : ");
-    DEBUGDEC(len);
-    DEBUGRAW("\n");
-
     uint32_t num = 1;
 
     extern uint32_t code;

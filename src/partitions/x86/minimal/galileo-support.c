@@ -37,20 +37,25 @@
  */
 #include <stdint.h>
 #include "debug.h"
-#include <libc.h>
+//#include <libc.h>
 #include "galileo-support.h"
-#include "port.h"
+#include "pip/io.h"
+#include "pip/api.h"
+
 
 static uint16_t usIRQMask = 0xfffb;
 static uint32_t UART_PCI_Base = 0UL;
 static uint32_t UART_MMIO_Base = 0UL;
 
+#define INITED 0xDEAD
+static uint32_t galileoSerialPortInitialized = 0;
+
 
 void initGalileoSerialPort(uint32_t portnumber)
 {
-    if(galileoSerialPortInitialized == 0){
+    if(galileoSerialPortInitialized != INITED){
         initializeGalileoUART(portnumber);
-        galileoSerialPortInitialized = 1;
+        galileoSerialPortInitialized = INITED ;
     }
 }
 
@@ -92,6 +97,7 @@ void initializeGalileoUART(uint32_t portnumber)
 	mem_write(base, R_UART_LCR, 1, (uint8_t) (lcr & ~B_UARY_LCR_DLAB));
 
 	mem_write(base, R_UART_IER, 1, 0);
+
  }
 
  /*-----------------------------------------------------------------------
@@ -100,7 +106,7 @@ void initializeGalileoUART(uint32_t portnumber)
   */
  void vGalileoPrintc(char c)
  {
-	if (galileoSerialPortInitialized)
+	if (galileoSerialPortInitialized == INITED)
 	{
 		while((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_TXRDY) == 0);
 	 	mem_write(UART_MMIO_Base, R_UART_BAUD_THR, 1, c);
@@ -111,7 +117,7 @@ void initializeGalileoUART(uint32_t portnumber)
  uint8_t ucGalileoGetchar()
  {
 	uint8_t c = 0;
-	if (galileoSerialPortInitialized)
+	if (galileoSerialPortInitialized == INITED)
 	{
 		if((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_RXRDY) != 0)
 		 	c  = mem_read(UART_MMIO_Base, R_UART_BAUD_THR, 1);
@@ -122,12 +128,10 @@ void initializeGalileoUART(uint32_t portnumber)
 
  void vGalileoPuts(const char *string)
  {
-	if (galileoSerialPortInitialized)
+	if (galileoSerialPortInitialized == INITED)
 	{
 	    while(*string)
 	    	vGalileoPrintc(*string++);
 	}
-
-
  }
  /*-----------------------------------------------------------*/

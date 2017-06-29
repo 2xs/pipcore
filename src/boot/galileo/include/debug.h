@@ -59,6 +59,9 @@ int printf(const char *format, ...);
  * \brief Strings for debugging output.
  */
 
+
+#define PIP_DEBUG_MODE 0
+
 #define CRITICAL	1 //!< Critical output
 #define	ERROR		2 //!< Error output
 #define WARNING		3 //!< Warning output

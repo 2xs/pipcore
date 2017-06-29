@@ -150,7 +150,7 @@ void fixFpInfo()
  * \param mboot_ptr Pointer to the multiboot structure, should be on %EBX after boot0.s
  * \return Should not return.
  */
-#include "mal.h"
+
 int c_main(uint32_t magic, struct multiboot *mbootPtr)
 {
 

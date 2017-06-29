@@ -123,8 +123,15 @@ CG_GLUE_CTX outwGlue		, 2
 CG_GLUE_CTX inwGlue		, 1
 CG_GLUE_CTX outlGlue 		, 2
 CG_GLUE_CTX inlGlue 		, 1
-CG_GLUE_CTX outaddrlGlue 	, 2
 CG_GLUE_CTX dispatchGlue	, 5
+CG_GLUE_CTX mmioReadGlue    , 3
+CG_GLUE_CTX mmioWriteGlue   , 4
+CG_GLUE_CTX mmioSetGlue     , 4
+CG_GLUE_CTX mmioClearGlue   , 4
+CG_GLUE_CTX mmioModifyGlue  , 5
+CG_GLUE_CTX writeMMIOGlue 	, 2
+
+CG_GLUE_CTX outaddrlGlue 	, 2
 
 ; Those ones won't trigger a fault in caller
 CG_GLUE createPartition		, 5
