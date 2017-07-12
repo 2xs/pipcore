@@ -32,85 +32,30 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file pic8259.h
+ * \brief x86 PIC 8259 defines
  */
 
+#ifndef PIC8259_H
+#define PIC8259_H
 
-#ifndef __SCR__
-#define __SCR__
+#define PIC1		0x20	/* IO base address for master PIC */
+#define PIC2		0xA0	/* IO base address for slave PIC */
+#define PIC1_COMMAND	PIC1
+#define PIC1_DATA	(PIC1+1)
+#define PIC2_COMMAND	PIC2
+#define PIC2_DATA	(PIC2+1)
+#define ICW1_ICW4	0x01	/* ICW4 (not) needed */
+#define ICW1_SINGLE	0x02	/* Single (cascade) mode */
+#define ICW1_INTERVAL4	0x04	/* Call address interval 4 (8) */
+#define ICW1_LEVEL	0x08	/* Level triggered (edge) mode */
+#define ICW1_INIT	0x10	/* Initialization - required! */
 
-#include <stdint.h>
-#include <stdarg.h>
-#include "mal.h"
-#include "ial_defines.h"
+#define ICW4_8086	0x01	/* 8086/88 (MCS-80/85) mode */
+#define ICW4_AUTO	0x02	/* Auto (normal) EOI */
+#define ICW4_BUF_SLAVE	0x08	/* Buffered mode/slave */
+#define ICW4_BUF_MASTER	0x0C	/* Buffered mode/master */
+#define ICW4_SFNM	0x10	/* Special fully nested (not) */
+#define PIC_EOI		0x20
 
-/**
- * \brief Strings for debugging output.
- */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
-
-#define True 1
-#define False 0
-
-#ifdef PIPDEBUG
-
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
-
-/**
- * \brief Defines the appropriate DEBUGRAW behavior. 
- */
-#define DEBUGRAW(a) krn_puts(a)
-
-/**
- * \brief Defines the appropriate DEBUG behavior.
- */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
-
-/**
- * \brief Defines the appropriate DEBUGHEX behavior.
- */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
-
-#endif
-
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
-
-void counter_update(uint32_t begin);
-void display_time();
-
-void kprintf(char *fmt, ...);
-
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
 #endif

@@ -32,85 +32,137 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file malinternal.c
+ * \brief This file contains some internal defines for MAL interface with Coq.
+ * \warning These functions are roughly documented as their signification is quite straightforward. See mal.h for more information.
  */
-
-
-#ifndef __SCR__
-#define __SCR__
 
 #include <stdint.h>
-#include <stdarg.h>
 #include "mal.h"
-#include "ial_defines.h"
+#include "structures.h"
 
-/**
- * \brief Strings for debugging output.
+/*!
+ * \fn uint32_t defaultAddr()
+ * \brief Returns the default null address.
+ * \return The null address.
  */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
+uint32_t defaultAddr(void)
+{
+	return 0;
+}
 
-#define True 1
-#define False 0
-
-#ifdef PIPDEBUG
-
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
-
-/**
- * \brief Defines the appropriate DEBUGRAW behavior. 
+/*!
+ * \fn uint32_t defaultVAddr()
+ * \brief Returns the default null Vaddress.
+ * \return The null Vaddress.
  */
-#define DEBUGRAW(a) krn_puts(a)
+uint32_t defaultVAddr(void)
+{
+	return 0;
+}
 
-/**
- * \brief Defines the appropriate DEBUG behavior.
+uint32_t kernelIndex(void)
+{
+	extern uint32_t __code;
+	return getIndexOfAddr((uint32_t)(&__code), 1);
+}
+
+uint32_t indexPR(void)
+{
+	return 0;
+}
+
+uint32_t zero(void)
+{
+	return 0;
+}
+
+
+uint32_t indexPD(void)
+{
+	return 2;
+}
+
+uint32_t indexSh1(void)
+{
+	return 4;
+}
+
+uint32_t indexSh2(void)
+{
+	return 6;
+}
+
+uint32_t indexSh3(void)
+{
+	return 8;
+}
+
+uint32_t PPRidx(void)
+{
+	return 10;
+}
+
+/*!
+ * \fn uint32_t addressEquals(uint32_t addr, uint32_t addr2)
+ * \param addr Address to check
+ * \param addr2 Address to compare to
+ * \brief Checks if an address given is equal to another given.
+ * \return 0 is not equal, 1 otherwise.
  */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
+uint32_t addressEquals(uint32_t addr, uint32_t addr2)
+{
+	return (addr == addr2);
+}
 
-/**
- * \brief Defines the appropriate DEBUGHEX behavior.
- */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
+int geb(const uint32_t a, const uint32_t b)
+{
+	return a >= b;
+}
 
-#endif
+int gtb(const uint32_t a, const uint32_t b)
+{
+	return a > b;
+}
 
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
+int leb(const uint32_t a, const uint32_t b)
+{
+	return a <= b;
+}
 
-void counter_update(uint32_t begin);
-void display_time();
+int ltb(const uint32_t a, const uint32_t b)
+{
+	return a < b;
+}
 
-void kprintf(char *fmt, ...);
+int eqb(const uint32_t a, const uint32_t b)
+{
+	return a == b;
+}
 
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
-#endif
+uint32_t inc(uint32_t val)
+{
+	return ++val;
+}
+
+uint32_t sub(uint32_t val)
+{
+	return --val;
+}
+
+uint32_t mul3(uint32_t v)
+{
+	return 3 * v;
+}
+
+uint32_t getMaxIndex(void)
+{
+       return getTableSize() - 1;
+}
+
+
+uint32_t nbPage()
+{
+	extern uint32_t maxPages;
+	return maxPages;
+}

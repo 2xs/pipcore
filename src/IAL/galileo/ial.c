@@ -45,8 +45,6 @@
 #include "libc.h"
 #include "maldefines.h"
 #include "ial_defines.h"
-
-
 #define MAX_VINT (uint32_t)0x100
 #define MAX_PCID 4096
 
@@ -55,7 +53,7 @@ extern uint32_t pcid_enabled;
 
 #define ASSERT(u) \
 	if (!(u)){ \
-		kprintf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \
+		printf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \
 		panic(0); \
 	}
 

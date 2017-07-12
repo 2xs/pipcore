@@ -32,85 +32,96 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file libc.c
+ * \brief Pseudo-libC implementation
+ * \warning Some of these implementations are unsafe. We know. We're not proud of this.
  */
 
-
-#ifndef __SCR__
-#define __SCR__
-
+#include "libc.h"
 #include <stdint.h>
-#include <stdarg.h>
-#include "mal.h"
-#include "ial_defines.h"
 
 /**
- * \brief Strings for debugging output.
+ * \fn memset ( void * ptr, int value, size_t num )
+ * \brief Sets a memory space with a single, fixed value
+ * \param ptr Pointer to the memory space
+ * \param value The value to write
+ * \param num The amount of memory to write to
+ * \return Pointer to the memory space
  */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
 
-#define True 1
-#define False 0
+void *memset(void *ptr, int value, size_t num)
+{
+    unsigned char* temp=ptr;
+    while(num--)
+        *temp++ = (unsigned char)value;
+    return ptr;
+}
+/**
+ * \fn void *strcpy(char* dest, const char* src)
+ * \brief String copy
+ */
+void *strcpy(char* dest, const char* src)
+{
+	char *p = dest;
 
-#ifdef PIPDEBUG
+	while ((*p++ = *src++));
 
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
+	return dest;
+}
 
 /**
- * \brief Defines the appropriate DEBUGRAW behavior. 
+ * \fn memcpy ( void * destination, const void * source, size_t num )
+ * \brief Copies data from source to destination
+ * \param destination Destination address
+ * \param source Source address
+ * \param num Size of data to copy
+ * \return Pointer to the destination address
  */
-#define DEBUGRAW(a) krn_puts(a)
+void * memcpy ( void * destination, const void * source, size_t num )
+{
+	uint32_t i;
+	uint8_t *src;
+	uint8_t *dest;
+	src = (uint8_t*) source;
+	dest = (uint8_t*) destination;
+	for(i=0; i<num; i++)
+	{
+		*dest = *src;
+		dest++;
+		src++;
+	}
+	return destination;
+}
 
 /**
- * \brief Defines the appropriate DEBUG behavior.
+ * \fn strcat(char* dest, const char* source)
+ * \brief Concatenates a source string into a destination string, assuming the destination string buffer is large enough.
+ * \param dest Destination string buffer
+ * \param source Source string buffer
+ * \return Destination string buffer, containing the concatenated strings.
  */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
+char* strcat(char* dest, const char* source)
+{
+        int idx, i, j;
+
+        for(idx=0; *(dest+idx) != '\0'; idx++) {}
+        for(i=0; *(source+i) != '\0'; i++) {}
+
+	for(j = 0; j<(i+1); j++) {
+		*(dest + idx + j) = *(source + j);
+	}
+	return dest;
+}
 
 /**
- * \brief Defines the appropriate DEBUGHEX behavior.
+ * \fn int strlen(char* str)
+ * \brief String length
  */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
-
-#endif
-
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
-
-void counter_update(uint32_t begin);
-void display_time();
-
-void kprintf(char *fmt, ...);
-
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
-#endif
+int strlen(char* str)
+{
+	int i = 0;
+	while(str[i] != '\0')
+		i++;
+	
+	return i;
+}

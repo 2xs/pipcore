@@ -32,85 +32,52 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file structures.h
+ * \brief x86 MAL structures
  */
 
-
-#ifndef __SCR__
-#define __SCR__
+#ifndef STRUCT_H
+#define STRUCT_H
 
 #include <stdint.h>
-#include <stdarg.h>
-#include "mal.h"
-#include "ial_defines.h"
+
+#define PAGE_SIZE 4096 //!< Page size
 
 /**
- * \brief Strings for debugging output.
+ * \struct page_table_entry
+ * \brief Page Table entry structure
  */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
-
-#define True 1
-#define False 0
-
-#ifdef PIPDEBUG
-
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
+typedef struct page_table_entry
+{
+	uint32_t present:1;
+	uint32_t rw:1;
+	uint32_t user:1;
+	uint32_t pwt:1;
+	uint32_t pcd:1;
+	uint32_t accessed:1;
+	uint32_t dirty:1;
+	uint32_t pat:1;
+	uint32_t global:1;
+	uint32_t unused:3;
+	uint32_t frame:20;
+}__attribute__((packed)) page_table_entry_t;
 
 /**
- * \brief Defines the appropriate DEBUGRAW behavior. 
+ * \struct page_table
+ * \brief Page Table structure
  */
-#define DEBUGRAW(a) krn_puts(a)
+typedef struct page_table
+{
+    page_table_entry_t pages[1024]; //!< Page Table Entries in this Page Table
+}__attribute__((packed)) page_table_t;
 
 /**
- * \brief Defines the appropriate DEBUG behavior.
+ * \struct page_directory
+ * \brief Page Directory structure
  */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
+typedef struct page_directory
+{
+    uint32_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
+}__attribute__((packed)) page_directory_t;
 
-/**
- * \brief Defines the appropriate DEBUGHEX behavior.
- */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
-
-#endif
-
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
-
-void counter_update(uint32_t begin);
-void display_time();
-
-void kprintf(char *fmt, ...);
-
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
 #endif

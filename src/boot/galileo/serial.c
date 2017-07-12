@@ -32,85 +32,62 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file serial.c
+ * \brief Serial driver for debugging purposes
  */
+#include "serial.h"
+#include "port.h"
 
-
-#ifndef __SCR__
-#define __SCR__
-
-#include <stdint.h>
-#include <stdarg.h>
-#include "mal.h"
-#include "ial_defines.h"
+#define PORT 0x3f8 //!< Serial port COM1 number
+ 
+/**
+ * \fn void initSerial()
+ * \brief Initializes the serial port
+ */
+void initSerial() {
+       outb(PORT + 1, 0x00);    // Disable all interrupts
+       outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+       outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+       outb(PORT + 1, 0x00);    //                  (hi byte)
+       outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+       outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+       outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+}
 
 /**
- * \brief Strings for debugging output.
+ * \fn int serialReceived()
+ * \brief Checks whether we received some data on the serial port
+ * \return 1 if some data is available, 0 else
  */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
-
-#define True 1
-#define False 0
-
-#ifdef PIPDEBUG
-
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
+int serialReceived() {
+       return inb(PORT + 5) & 1;
+}
 
 /**
- * \brief Defines the appropriate DEBUGRAW behavior. 
+ * \fn char readSerial()
+ * \brief Gets a character from the serial port
+ * \return The character
  */
-#define DEBUGRAW(a) krn_puts(a)
+char readSerial() {
+       while (serialReceived() == 0);
+       return inb(PORT);
+}
 
 /**
- * \brief Defines the appropriate DEBUG behavior.
+ * \fn int isTransmitEmpty()
+ * \brief Checks whether our serial line buffer is empty or not
+ * \return 0 if it's not empty, 1 else
  */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
-
+int isTransmitEmpty() {
+       return inb(PORT + 5) & 0x20;
+}
+ 
 /**
- * \brief Defines the appropriate DEBUGHEX behavior.
+ * \fn void writeSerial(char a)
+ * \brief Writes a character into the serial port
+ * \param a The character to write
  */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
-
-#endif
-
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
-
-void counter_update(uint32_t begin);
-void display_time();
-
-void kprintf(char *fmt, ...);
-
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
-#endif
+void writeSerial(char a) {
+       while (isTransmitEmpty() == 0);
+       outb(PORT,a);
+}

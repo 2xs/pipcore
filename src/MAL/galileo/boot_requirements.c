@@ -58,13 +58,13 @@ void activate(uintptr_t dir)
 					: "=r"(prevCR3)
 					:);
 
-	DEBUG(TRACE,"Pevious CR3 : %x\n",prevCR3);
+	//DEBUG(TRACE,"Pevious CR3 : %x",prevCR3 );
     asm volatile("mov %0, %%cr3"
     				:
     				: "r"(d));
 	// Switch on paging
-	DEBUG(TRACE,"CR3 regs %x\n",d);
-	DEBUG(TRACE,"Switching on paging\n");
+	//DEBUG(TRACE,"CR3 regs %x",d);
+	//DEBUG(TRACE,"Switching on paging");
 	enable_paging();
 }
 

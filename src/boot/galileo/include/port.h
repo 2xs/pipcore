@@ -32,85 +32,34 @@
 /*******************************************************************************/
 
 /**
- * \file debug.h
- * \brief Include file for debugging output
+ * \file port.h
+ * \brief Include file for IO-ports operations
  */
 
-
-#ifndef __SCR__
-#define __SCR__
+#ifndef __PORT__
+#define __PORT__
 
 #include <stdint.h>
-#include <stdarg.h>
-#include "mal.h"
-#include "ial_defines.h"
 
-/**
- * \brief Strings for debugging output.
- */
-#define CRITICAL	0 //!< Critical output
-#define	ERROR		1 //!< Error output
-#define WARNING		2 //!< Warning output
-#define	INFO		3 //!< Information output
-#define LOG		4 //!< Log output
-#define TRACE		5 //!< Annoying, verbose output
+#define FAULT_FORBIDDEN		64
 
-#define True 1
-#define False 0
+void outb(uint16_t port, uint8_t value); //!< IO port write byte
+void outw(uint16_t port, uint16_t value); //!< IO port write word
+void outl(uint16_t port, uint32_t value); //!< IO port write word
+uint8_t inb(uint16_t port); //!< IO port read byte
+uint16_t inw(uint16_t port); //!< IO port read word
+uint32_t inl(uint16_t port); //!< IO port read word
+void halt(); //!< halt function
 
-#ifdef PIPDEBUG
 
-#ifndef LOGLEVEL
-#define LOGLEVEL TRACE
-#endif
+/* Call-gate IO methods */
+void cg_outb(uint32_t port, uint32_t value); //!< Outb callgate method
+uint32_t cg_inb(uint32_t port); //!< Inb callgate method
 
-/**
- * \brief Defines the appropriate DEBUGRAW behavior. 
- */
-#define DEBUGRAW(a) krn_puts(a)
+void cg_outw(uint32_t port, uint32_t value); //!< Outw callgate method
+uint32_t cg_inw(uint32_t port); //!< Inw callgate method
 
-/**
- * \brief Defines the appropriate DEBUG behavior.
- */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
-/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
-
-/**
- * \brief Defines the appropriate DEBUGHEX behavior.
- */
-#define DEBUGHEX(a) puthex(a)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(a) putdec(a)
-#else
-/**
- * \brief Defines the appropriate DEBUG behavior. 
- */
-#define DEBUG(...)
-#define DEBUGRAW(...)
-/**
- * \brief Defines the appropriate DEBUGHEX behavior. 
- */
-#define DEBUGHEX(...)
-/**
- * \brief Defines the appropriate DEBUGDEC behavior. 
- */
-#define DEBUGDEC(...)
-
-#endif
-
-void krn_puts(char *c);
-void kaput(char c);
-void puthex(int n);
-void putdec(int n);
-
-void counter_update(uint32_t begin);
-void display_time();
-
-void kprintf(char *fmt, ...);
-
-#define BENCH_BEGIN counter_update(1)
-#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
+void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
+void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
+uint32_t cg_inl(uint32_t port); //!< Inl callgate method
 #endif

@@ -61,7 +61,8 @@
 
 /* GDT configuration */
 #include "gdt.h"
-
+#include "galileo-support.h"
+#include "hardware.h"
 /* Include serial only if we're in debug mode */
 #ifdef PIPDEBUG
 #include "serial.h"
@@ -105,10 +106,11 @@ void spawnFirstPartition()
 	
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
-	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
+
+	printf("Starting partition\n");
+	DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
 	
 	// Send virtual IRQ 0 to partition
-	for(;;);
 	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 }
 
@@ -143,9 +145,13 @@ void fixFpInfo()
  * \param mboot_ptr Pointer to the multiboot structure, should be on %EBX after boot0.s
  * \return Should not return.
  */
+
+uint32_t debugGDB = 1;
 int c_main(struct multiboot *mbootPtr)
 {
-	initSerial();
+	while(debugGDB);
+	setupHardware();
+	printf("Starting Pip\n\r");
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
 	
 	// Install GDT & IDT
@@ -161,11 +167,11 @@ int c_main(struct multiboot *mbootPtr)
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
-	
+
 	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();
 
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
-	for(;;);
+
 	return 0xCAFECAFE;
 } 
