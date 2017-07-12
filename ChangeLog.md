@@ -24,6 +24,9 @@
 - Proof work-in-progress.
 	- The "createPartition" service is now fully proved.
 
+- Port integration
+    - The Intel Galileo Gen. 2 port is now available.
+
 ## Known issues
 
 - coq2c compilation on Debian 9 might fail due to an issue with Debian's GCC configuration, enabling PIE by default. 
