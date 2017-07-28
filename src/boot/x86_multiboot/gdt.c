@@ -58,6 +58,8 @@ extern void *cg_timerGlue;
 extern void *cg_resume;
 extern void *cg_removeVAddr;
 extern void *cg_mappedInChild;
+extern void *cg_deletePartition;
+extern void *cg_collect;
 
 struct gdt_entry_s {
 	void *handler;
@@ -67,24 +69,26 @@ struct gdt_entry_s {
 };
 
 struct gdt_entry_s gdtEntries[] = {
-	{&cg_outbGlue, 		2, 0x3, 0x08},
-	{&cg_inbGlue, 		1, 0x3, 0x08},
-	{&cg_outwGlue, 		2, 0x3, 0x08},
-	{&cg_inwGlue, 		1, 0x3, 0x08},
-	{&cg_outlGlue, 		2, 0x3, 0x08},
-	{&cg_inlGlue, 		1, 0x3, 0x08},
+	{&cg_outbGlue, 		2, 0x3, 0x08}, /* 0x30 */
+	{&cg_inbGlue, 		1, 0x3, 0x08}, /* 0x38 */
+	{&cg_outwGlue, 		2, 0x3, 0x08}, /* 0x40 */
+	{&cg_inwGlue, 		1, 0x3, 0x08}, /* 0x48 */
+	{&cg_outlGlue, 		2, 0x3, 0x08}, /* 0x50 */
+	{&cg_inlGlue, 		1, 0x3, 0x08}, /* 0x58 */
 
-	{&cg_createPartition, 	5, 0x3, 0x08},
-	{&cg_countToMap, 	2, 0x3, 0x08},
-	{&cg_prepare, 		4, 0x3, 0x08},
-	{&cg_addVAddr, 		6, 0x3, 0x08},
-	{&cg_dispatchGlue, 	5, 0x3, 0x08},
+	{&cg_createPartition, 	5, 0x3, 0x08}, /* 0x60 */
+	{&cg_countToMap, 	2, 0x3, 0x08}, /* 0x68 */
+	{&cg_prepare, 		4, 0x3, 0x08}, /* 0x70 */
+	{&cg_addVAddr, 		6, 0x3, 0x08}, /* 0x78 */
+	{&cg_dispatchGlue, 	5, 0x3, 0x08}, /* 0x80 */
 
-	{&cg_outaddrlGlue, 	2, 0x3, 0x08},
-	{&cg_timerGlue, 	0, 0x3, 0x08},
-	{&cg_resume, 		2, 0x3, 0x08},
-	{&cg_removeVAddr, 	2, 0x3, 0x08},
-	{&cg_mappedInChild,	1, 0x3, 0x08},
+	{&cg_outaddrlGlue, 	2, 0x3, 0x08}, /* 0x88 */
+	{&cg_timerGlue, 	0, 0x3, 0x08}, /* 0x90 */
+	{&cg_resume, 		2, 0x3, 0x08}, /* 0x98 */
+	{&cg_removeVAddr, 	2, 0x3, 0x08}, /* 0xA0 */
+	{&cg_mappedInChild,	1, 0x3, 0x08}, /* 0xA8 */
+	{&cg_deletePartition,1,0x3, 0x08}, /* 0xB0 */
+	{&cg_collect,		1, 0x3, 0x08}, /* 0xB8 */
 };
 
 #define CG_COUNT (sizeof(gdtEntries)/sizeof(struct gdt_entry_s))

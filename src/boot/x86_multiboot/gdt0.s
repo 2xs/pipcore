@@ -134,5 +134,7 @@ CG_GLUE addVAddr		, 6
 CG_GLUE resume			, 2
 CG_GLUE removeVAddr		, 2
 CG_GLUE	mappedInChild	, 1
+CG_GLUE	deletePartition	, 1
+CG_GLUE	collect			, 2
 
 CG_GLUE_NOARG  timerGlue
