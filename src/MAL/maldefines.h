@@ -40,45 +40,62 @@
 #define __MAL_DEFINES__
 
 #include "mal.h"
+#include <stdint.h>
 
-/* --- Defines for Coq --- */
-#define readVirtual readPhysical
-#define readVirEntry readPhysicalNoFlags
-#define readPhyEntry readPhysicalNoFlags
-#define writeVirtual writePhysical
-#define writeVirEntry writePhysical
-#define writePhyEntry writePhysicalWithLotsOfFlags
+/* --- Defines for Coq --- 
 #define readIndex readPhysical
 #define writeIndex writePhysical
-#define getNbLevel getNbIndex
-#define tableSize getTableSize
 #define fetchVirtual readTableVirtual
-#define storeVirtual writeTableVirtual
-#define getDefaultVAddr defaultAddr
-#define getDefaultPage defaultAddr
 #define fstLevel zero
-#define coq_Kidx kernelIndex
 #define coq_PRidx zero
 #define coq_PDidx indexPD
 #define sh1idx indexSh1
 #define sh2idx indexSh2
 #define sh3idx indexSh3
 #define coq_PRPidx PPRidx
-#define getKidx kernelIndex
+#define lIndex
 #define getPRidx zero
-#define getPDidx indexPD
-#define getSh1idx indexSh1
-#define getSh2idx indexSh2
-#define getSh3idx indexSh3
-#define getPPRidx PPRidx
 #define getStoreFetchIndex zero
 #define beq_index addressEquals
 #define beq_page addressEquals
 #define beq_vaddr addressEquals
+uint32_t nbPage();
+*/
+
+/* Defines for Digger */
+typedef uintptr_t page;
+typedef uintptr_t vaddr;
+typedef char bool;
+typedef uint32_t index;
+typedef uint32_t level;
+typedef uint32_t count;
+
+#define true    1
+#define false   0
+
+#define getSh1idx indexSh1
+#define getSh2idx indexSh2
+#define getSh3idx indexSh3
+#define writeVirEntry writePhysical
+#define writePhyEntry writePhysicalWithLotsOfFlags
+#define readVirtual readPhysical
+#define readVirEntry readPhysicalNoFlags
+#define readPhyEntry readPhysicalNoFlags
+#define writeVirtual writePhysical
+#define getPDidx indexPD
+#define getPPRidx PPRidx
+#define getNbLevel getNbIndex
+#define getKidx kernelIndex
+#define getDefaultVAddr defaultAddr
+#define getDefaultPage defaultAddr
+#define getMultiplexer getRootPartition
 #define pred sub
 #define succ inc
-#define eqbList addressEquals
-#define getMultiplexer getRootPartition
+#define Page_eqb    eqb
+#define VAddr_eqbList addressEquals
+#define coq_N   1000
+#define fstLevel zero()
+#define tableSize getTableSize()
 
 uint32_t nbPage();
 

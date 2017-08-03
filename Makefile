@@ -48,8 +48,8 @@ SRC_DIR=src
 PROOF_DIR=proof
 
 COQMAKEFILE=Makefile.coq
-COQ2C_DIR=tools/coq2c
-COQ2C=$(COQ2C_DIR)/coq2c
+DIGGER_DIR=tools/digger
+DIGGER=$(DIGGER_DIR)/digger
 
 UNAME_S := $(shell uname -s)
 
@@ -123,13 +123,43 @@ makefile.autocoq:
 $(JSONS): makefile.autocoq $(VCODESOURCES)
 	make -f makefile.autocoq src/model/Extraction.vo
 
-$(COQ2C):
-	make -C $(COQ2C_DIR)
+$(DIGGER):
+	make -C $(DIGGER_DIR)
 
 # Extract C code from source and move it into the build directory
-extract: $(COQ2C) $(TARGET_DIR) $(JSONS)
-	$(COQ2C) -m MAL.json -m MALInternal.json -i stdint.h -I maldefines.h Internal.json -o $(TARGET_DIR)/Internal.c -O $(TARGET_DIR)/Internal.h
-	$(COQ2C) -m MAL.json -m MALInternal.json -m Internal.json -i stdint.h -I maldefines.h -I Internal.h Services.json -o $(TARGET_DIR)/Services.c
+extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+		-m MALInternal.Count									\
+		-m MALInternal.Index									\
+		-m MALInternal.Level									\
+	    -m MALInternal -d :MALInternal.json            \
+	    -m MAL -d :MAL.json                            \
+	    -m ADT -m Nat                                                 \
+	    -q maldefines.h                                               \
+	    Internal.json -o $(TARGET_DIR)/Internal.c
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+		-m MALInternal.Count									\
+		-m MALInternal.Index									\
+		-m MALInternal.Level									\
+	    -m MALInternal -d :MALInternal.json            \
+	    -m MAL -d :MAL.json                            \
+	    -m ADT -m Nat                                                 \
+	    -q maldefines.h                                               \
+	    --header                                                      \
+	    Internal.json -o $(TARGET_DIR)/Internal.h
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+		-m MALInternal.Count									\
+		-m MALInternal.Index									\
+		-m MALInternal.Level									\
+	    -m MALInternal -d :MALInternal.json            \
+	    -m MAL -d :MAL.json                            \
+	    -m ADT -m Nat                                                 \
+	    -m Internal -d :Internal.json                  \
+	    -q maldefines.h -q Internal.h                                 \
+	    Services.json -o $(TARGET_DIR)/Services.c
 
 proofs: makefile.autocoq $(VSOURCES)
 	make -f makefile.autocoq
