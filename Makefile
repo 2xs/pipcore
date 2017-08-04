@@ -126,40 +126,40 @@ $(JSONS): makefile.autocoq $(VCODESOURCES)
 $(DIGGER):
 	make -C $(DIGGER_DIR)
 
-# Extract C code from source and move it into the build directory
+# Extract C code from Coq source
 extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-		-m MALInternal.Count									\
-		-m MALInternal.Index									\
-		-m MALInternal.Level									\
-	    -m MALInternal -d :MALInternal.json            \
-	    -m MAL -d :MAL.json                            \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
 	    -m ADT -m Nat                                                 \
 	    -q maldefines.h                                               \
-	    Internal.json -o $(TARGET_DIR)/Internal.c
+	    --ignore coq_N                                                \
+	    Internal.json                                                 \
+	    | $(SED) -e 's/nbPage/nbPage()/g'                             \
+	             -e 's/nbLevel/nbLevel()/g'                           \
+	      > $(TARGET_DIR)/Internal.c
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-		-m MALInternal.Count									\
-		-m MALInternal.Index									\
-		-m MALInternal.Level									\
-	    -m MALInternal -d :MALInternal.json            \
-	    -m MAL -d :MAL.json                            \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
 	    -m ADT -m Nat                                                 \
 	    -q maldefines.h                                               \
+	    --ignore coq_N                                                \
 	    --header                                                      \
 	    Internal.json -o $(TARGET_DIR)/Internal.h
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-		-m MALInternal.Count									\
-		-m MALInternal.Index									\
-		-m MALInternal.Level									\
-	    -m MALInternal -d :MALInternal.json            \
-	    -m MAL -d :MAL.json                            \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
 	    -m ADT -m Nat                                                 \
-	    -m Internal -d :Internal.json                  \
+	    -m Internal -d :Internal.json                                 \
 	    -q maldefines.h -q Internal.h                                 \
-	    Services.json -o $(TARGET_DIR)/Services.c
+	    Services.json                                                 \
+	    | $(SED) -e 's/nbPage/nbPage()/g'                             \
+	             -e 's/nbLevel/nbLevel()/g'                           \
+	             -e 's/defaultVAddr/defaultVAddr()/g'                 \
+	      > $(TARGET_DIR)/Services.c
 
 proofs: makefile.autocoq $(VSOURCES)
 	make -f makefile.autocoq

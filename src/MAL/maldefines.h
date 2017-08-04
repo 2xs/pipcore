@@ -42,60 +42,76 @@
 #include "mal.h"
 #include <stdint.h>
 
-/* --- Defines for Coq --- 
-#define readIndex readPhysical
-#define writeIndex writePhysical
-#define fetchVirtual readTableVirtual
-#define fstLevel zero
-#define coq_PRidx zero
-#define coq_PDidx indexPD
-#define sh1idx indexSh1
-#define sh2idx indexSh2
-#define sh3idx indexSh3
-#define coq_PRPidx PPRidx
-#define lIndex
-#define getPRidx zero
-#define getStoreFetchIndex zero
-#define beq_index addressEquals
-#define beq_page addressEquals
-#define beq_vaddr addressEquals
-uint32_t nbPage();
-*/
-
-/* Defines for Digger */
-typedef uintptr_t page;
-typedef uintptr_t vaddr;
+/* bool */
 typedef char bool;
-typedef uint32_t index;
-typedef uint32_t level;
-typedef uint32_t count;
 
 #define true    1
 #define false   0
 
-#define getSh1idx indexSh1
-#define getSh2idx indexSh2
-#define getSh3idx indexSh3
-#define writeVirEntry writePhysical
-#define writePhyEntry writePhysicalWithLotsOfFlags
-#define readVirtual readPhysical
-#define readVirEntry readPhysicalNoFlags
-#define readPhyEntry readPhysicalNoFlags
-#define writeVirtual writePhysical
-#define getPDidx indexPD
-#define getPPRidx PPRidx
-#define getNbLevel getNbIndex
-#define getKidx kernelIndex
-#define getDefaultVAddr defaultAddr
+/* Page */
+typedef uintptr_t page;
+
 #define getDefaultPage defaultAddr
-#define getMultiplexer getRootPartition
-#define pred sub
-#define succ inc
-#define Page_eqb    eqb
-#define VAddr_eqbList addressEquals
-#define coq_N   1000
-#define fstLevel zero()
+#define Page_eqb       eqb
+
+/* VAddr */
+typedef uintptr_t vaddr;
+
+#define getDefaultVAddr defaultAddr
+#define VAddr_eqbList   addressEquals
+
+/* Index */
+typedef uint32_t index;
+
+#define getSh1idx  indexSh1
+#define getSh2idx  indexSh2
+#define getSh3idx  indexSh3
+#define getPRidx   zero
+#define getPDidx   indexPD
+#define getPPRidx  PPRidx
+#define getNbLevel getNbIndex
+#define getKidx    kernelIndex
+
+#define Index_succ inc
+#define Index_pred sub
+#define Index_eqb  eqb
+#define Index_zero zero
+#define Index_geb  geb
+#define Index_gtb  gtb
+#define Index_leb  leb
+#define Index_ltb  ltb
+
+/* Level */
+typedef uint32_t level;
+
+#define fstLevel  zero()
 #define tableSize getTableSize()
+
+#define Level_succ inc
+#define Level_pred sub
+#define Level_eqb  eqb
+#define Level_gtb  gtb
+
+/* Count */
+typedef uint32_t count;
+
+#define Count_succ inc
+#define Count_geb  geb
+#define Count_zero zero
+#define Count_mul3 mul3
+
+/* Miscellaneous */
+#define writeVirEntry      writePhysical
+#define writePhyEntry      writePhysicalWithLotsOfFlags
+#define readVirtual        readPhysical
+#define readVirEntry       readPhysicalNoFlags
+#define readPhyEntry       readPhysicalNoFlags
+#define writeVirtual       writePhysical
+#define getMultiplexer     getRootPartition
+#define getStoreFetchIndex zero
+#define fetchVirtual       readTableVirtual
+
+#define coq_N   1000
 
 uint32_t nbPage();
 
