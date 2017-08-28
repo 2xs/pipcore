@@ -75,6 +75,11 @@ The kernel is divided into four parts.
 Pip can already boot on real hardware. If available, the first serial output (COM1) should be used for debugging output.
 The required configuration is 38400 bauds, 8 bits, no parity, one stop bit. You can also enable automatic line feed and carriage return in Minicom (2.7+) for user-friendly output.
 
+## Debugging with Bochs
+Although QEMU is the reference x86 emulator for Pip, a configuration file for the Bochs emulator is also provided. Serial output is supported through a "bochscom" fifo created through the `mkfifo bochscom` command, and emulation can be started by invoking `bochs -q`.
+
+Note that you need to generate Pip's ISO image through `make grub` before running Bochs.
+
 ## Compiling on Linux
 The compilation on Linux should be as easy as to install the i386-elf toolchain as well as the other requirements, and use the Makefile to generate a binary image. 
 Use your favourite package manager to install i386 gcc (gcc-multilib), haskell-stack, QEMU, Coq, NASM, Doxygen and GRUB.
