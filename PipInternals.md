@@ -1,4 +1,4 @@
-#PipInternals
+# PipInternals
 
 Pip enables the user to create a collection of memory partitions, with a
 hierarchical organisation where a parent partition can manage the memory
@@ -6,7 +6,7 @@ of its child partitions.
 
 ## Memory management :
 ### The description of all primitives
-Pip exports 7 primitives related to memory management:
+Pip exports 8 primitives related to memory management:
 
 * `createPartition`: creates a new child partition, given five free pages (which will become Partition Descriptor, Page Directory, Shadow 1, 2 and linked list)
 * `deletePartition`: deletes the given child partition
@@ -15,6 +15,7 @@ Pip exports 7 primitives related to memory management:
 * `prepare`: prepares a child partition for page map, given the required amount of pages (see pageCount)
 * `collect`: retrieves the empty indirection tables, and gives them back to the caller
 * `pageCount`: returns the amount of pages required to perform a prepare operation
+* `mappedInChild`: checks whether a page has been derivated in a child partition or not
 
 Pip also exports the primitives `dispatch` and `resume` that are discussed below and are related to control flow.
 
@@ -116,114 +117,34 @@ Therefore, a parent partition should take care of managing the execution
 flow of its children partitions.
 
 #### Pipflags
-For now, pipflags holds only the `vcli` flag (bit 0), which enables a partition to mask virtual interrupts.
+For now, pipflags holds only the `vcli` flag (bit 0), which enables a partition to mask virtual interrupts, and the `stack fault` flag, which is set when the interrupted stack overflowed.
 
 #### Saved contexts
-To enable the creation of userland schedulers, the Pip kernel needs to save the execution contexts in several places:
+When an interrupt occurs, the interrupted context can be saved in two different places according to the current state of the partition :
+- If the VCLI flag is not set, Pip tries to push the interrupted context info onto the interrupted stack; if the stack overflows, the context is instead pushed onto the VIDT's context buffer, which is located at offset 0xF0C from the beginning of the VIDT, and sets the `stack fault` flag
+- If the VCLI flag is set, Pip pushes the interrupted context info onto the VIDT's context buffer.
 
-- occurence of an hardware interrupt
-- occurence of an exception
-- on a call to notify
-
-Saved context for x86 architecture:
-
-	00:	eip		Instruction pointer
-	04:	pipflags	Saved pip flags
-	08:	eflags		Saved eflags
-	0C:	registers	8 general purpose registers
-	2C:	valid		Indicates context presence
-	30:	nfu		Padding
-	40:
-
-The contexts are saved in the partition's vidt.
-There are 4 contexts slots in the vidt.
-
-	0: INT_CTX: 		The partition was interrupted
-	1: ISR_CTX: 		The partition triggered a fault
-	2: NOTIF_CHILD_CTX:  	The partition called notify on a child
-	3: NOTIF_PARENT_CTX:  	The partition called notify on its parent
-
-When saving a context, pip sets the `valid` flag to indicate 
-the presence of a valid context.
-
-If a partition needs to implement some complex scheduling, ie. for the 
-implementation of inter-process-communication, it should take care of 
-saving/resuming the contexts of its children. (The parent can always access
-its child vidt thanks to vertical sharing).
+The interrupted context's stack can be found at entry ESP(0) of the interrupted partition's VIDT, from which the interrupted context info can be found as well.
 
 #### On occurence of an hardware interrupt
-- If kernelland, return
-- if root partition don't handle the interruption (vcli is set, or no handler is registered):
-    return
-- Save context of current partition (`INT_CTX`)
-- Dispatch interruption to the root partition
+- If the interrupt happens in kernel-land, it is ignored
+- If the root partition has no handler registered for this interrupt, it is ignored as well
+- The current partition's context is saved and interrupted
+- The root partition is notified of the signal
 
 #### On occurence of an exception
-- If kernelland: panic
-- If current partition is root: `dest` = root partition
-- Else: `dest` = parent of current_partition
-- Save context of current partition (`ISR_CTX`)
-- If exception is not handled by `dest`:  yield root partition
-- Else: dispatch exception to `dest`
+- Kernel-land exceptions trigger a panic
+- If the current partition is the root partition, it is notified to itself
+- Else, the target partition is the parent partition
+- The interrupted context is saved
+- The target partition is notified
 
 #### Context switching
 To resume a child context, a pip-service has been added: `resume`
 This service allows a parent partition to activate a child partition and 
 switch to one of its contexts.
-ie. `resume(part_no, INT_CTX)` to activate child partition `part_no` and
-	resume its interrupted context.
-
-When a context is resumed, its `valid` flag is zeroed.
-
-The resume service also allows a child partition to resume its parent's
-`NOTIF_CHILD_CTX` at the end of a notify handler.
-This is the current `viret` implementation.
-
-If the `NOTIF_CHILD_CTX` of the parent is not valid, pip will yield the root
-partition instead (by dispatching vint 0 on root partition).
-
-### Saved contexts usage
-#### `INT_CTX` & `ISR_CTX`
-While a partition is executing, the first two contexts (`INT_CTX` and `ISR_CTX`)
-might be written by the kernel at any time. (For example when hardware interruptions occurs.)
-
-Hence it can not be manipulated atomically by the partition itself. Only the
-parent of a partition can manipulate these two.
-
-(An exception exists for the root partition which has no parent and must handle
-these two contexts itself. It's possible there because the root partition can
-globally mask interrupts when `vcli` flag is set in its PipFlags)
-
-When a fault is triggered by a partition (P2), it is dispatched to it's parent (P1).
-P1 exception handler should look like:
-
-	- Identify the faulty child using the `caller` argument of the interrupt handler
-	Either:
-	- Read/fix ISR_CTX in child's vidt.
-	- Resume(child, ISR_CTX)
-	Or:
- 	- Stop/delete partition
-
-If no exception handler was present in P1, P1 can still detect the fault before
-resuming P2, by checking the `valid` flag of child's `ISR_CTX`.
-
-#### `NOTIF_PARENT_CTX`
-The `NOTIF_PARENT_CTX` is saved when a partition call `notify` on its parent.
-It is to be resumed by the parent at end of its notify handler.
-Typically, the notify handler of the parent should just end with a
-`resume(caller, NOTIF_PARENT_CTX)` to continue execution of the child. 
-
-#### `NOTIF_CHILD_CTX`
-The `NOTIF_CHILD_CTX` is saved when a partition call `notify` on one of its children.
-This context is to be manipulated by the partition itself and should be handled with great care.
-
-Indeed, as said in the 'Context switching' part, a child is allowed to trigger a switch to 
-this context by calling `viret`. 
-
-Therefore, before activating a child partition, the parent must always ensure that its own `NOTIF_CHILD_CTX`
-is either invalid, or corresponds to the child partition that is beeing activated. 
-Otherwise, a child partition could call `resume(0, NOTIF_CHILD_CTX)` and restore a `NOTIF_CHILD_CTX` that was 
-meant to another child partition.
+ie. `resume(part_no, 0)` to activate child partition `part_no` and
+	resume its interrupted context, resetting or not the VCLI flag.
 
 #### Dispatch
 The `dispatch` service allows a partition to dispatch an interrupt to a child partition or to its parent.
@@ -236,24 +157,12 @@ PipFlags:
 - In the calling partition: If target is a child, `vcli` = 0
 - In the target partition:  `vcli` = 1
 
-#### Notify
-The `notify` service allows a partition to trigger an interrupt in a child partition or in its parent.
-It is similar to the `dispatch` and rely on the same kernel primitives, but provides a different behavior.
-Unlike `dispatch`, this function triggers a context saving in the caller (`NOTIF_CHILD_CTX`/`NOTIF_PARENT_CTX`),
-and should return to the caller after it has been handled by the callee. 
-
-PipFlags: 
-
-- In the calling partition: If target is a child, `vcli` = 0;
-- In the target partition:  `vcli` = 1
-
 #### Resume
 The `resume` service activates another partition, and restores the execution of the specified saved context.
 This function is meant to be called from an interrupt/notify handler, and never returns to the caller.
 Arguments are: target partition, and context to resume.
 
 This service is usually used by a parent when implementing the scheduling of its child partitions. 
-When called by a child on its parent, only the `NOTIF_CHILD_CTX` context is allowed.
 
 PipFlags:
 
