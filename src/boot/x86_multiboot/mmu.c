@@ -44,6 +44,7 @@
 #include "structures.h"
 #include "fpinfo.h"
 #include "git.h"
+#include "hdef.h"
 #include <libc.h>
 
 page_directory_t *kernelDirectory=0; //!< The kernel's page directory
@@ -286,7 +287,10 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
     }
 }
 
-/* Marks the whole kernel area as global, preventing TLB invalidations */
+/**
+ * \fn void mark_kernel_global()
+ * \brief Marks the whole kernel area as global, preventing TLB invalidations
+ */
 void mark_kernel_global()
 {
 	#define GLOBAL_BIT (1 << 8)
@@ -338,7 +342,26 @@ void initMmu()
 		curAddr += PAGE_SIZE;
 	}
 
-    mapPageWrapper(kernelDirectory, 0xB8000, 0xB8000, 1);
+	/* Map each platform-specific device */
+	/* uint32_t vga = 0xB8000;
+	for(vga = 0xB8000; vga < 0xC0000; vga += 0x1000)
+		mapPageWrapper(kernelDirectory, vga, vga | 0xC0000000, 1); */
+	uint32_t hid;
+	/* Parse each specific hardware entry */
+	for(hid = 0; hid < HSPEC_COUNT; hid++)
+	{
+		DEBUG(CRITICAL, "x86: adding mapping for %s\n", pshw[hid].name);
+		uintptr_t base = pshw[hid].paddr_base;
+		uintptr_t limit = pshw[hid].limit;
+		uintptr_t vbase = pshw[hid].vaddr_base;
+		
+		uintptr_t cur_off;
+		for(cur_off = 0x0; cur_off < limit; cur_off += 0x1000)
+		{
+			mapPageWrapper(kernelDirectory, base + cur_off, vbase + cur_off, 1);
+		}
+	}
+	
 	mark_kernel_global();
 	
 	/* First, pseudo-prepare kernel directory, removing potential page tables from free page list */

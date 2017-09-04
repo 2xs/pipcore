@@ -447,7 +447,10 @@ timerPhase (uint32_t hz)
 	IAL_DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
 }
 
-/* Initializes CPU-specific features */
+/**
+ * \fn void initCpu()
+ * \brief Initializes CPU-specific features
+ */
 void initCpu()
 {
 	IAL_DEBUG(CRITICAL, "Identifying CPU model and features...\n");

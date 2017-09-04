@@ -61,6 +61,10 @@ extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
 
+/**
+ * \struct gdt_entry_s
+ * \brief Global Descriptor Table callgate entry structure
+ */
 struct gdt_entry_s {
 	void *handler;
 	unsigned nargs;
