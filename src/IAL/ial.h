@@ -71,10 +71,24 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 			  uint32_t data1, uint32_t data2,
 			  gate_ctx_t *ctx);
 
-/* Partition-to-pid structure */
+/**
+ * \struct partition_id
+ * \brief Partition-to-PartitionID structure
+ */
 struct partition_id {
 	uint32_t partition;
 	uint32_t id;
+};
+
+/**
+ * \struct hardware_def
+ * \brief Platform-specific hardware memory range definition
+ */
+struct hardware_def {
+	const char*	name;
+	uintptr_t	paddr_base;
+	uintptr_t	vaddr_base;
+	uintptr_t	limit;
 };
 
 typedef struct partition_id pip_pid;
