@@ -56,17 +56,17 @@ will cover this in the next section, "\textit{Hello World tutorial}".
 In order to make partition development easier, we also provide a userland library available at \texttt{https://github.com/2xs/libpip}.
 This library, LibPip, provides method useful for calling Pip's API, or managing Pip's data structures. It should also provide, in a near future, a way for partitions to communicate.
 
-\index{coqcsrc}\marginlabel{CoqC source:}
+\index{coqcsrc}\marginlabel{Digger source:}
 As said previously, we use an extractor to convert Coq code into C code. The source is included in Pip's main repository as a submodule, run "\texttt{git submodule init}" and "\texttt{git submodule update}" to fetch it.
 
 \section{Preparing for the build}
-\subsection{Building CoqC}
+\subsection{Building Digger}
 First of all, you need to compile the Extractor. This step is \textbf{mandatory}.
-The CoqC extractor is compiled through the stack tool. The compilation is straightforward.
+The Digger extractor is compiled through the stack tool. The compilation is straightforward.
 \begin{itemize}
 \item Open a terminal emulator
 \item Go to Pip's repository folder
-\item Navigate to the \texttt{tools/coq2c} folder
+\item Navigate to the \texttt{tools/digger} folder
 \item Import the submodule via the commands "\texttt{git submodule init}" then "\texttt{git submodule update}"
 \item Type in "\texttt{make}"
 \end{itemize}
