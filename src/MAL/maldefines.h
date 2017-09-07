@@ -59,6 +59,7 @@ typedef uintptr_t vaddr;
 
 #define getDefaultVAddr defaultAddr
 #define VAddr_eqbList   addressEquals
+#define beqVAddr        addressEquals
 
 /* Index */
 typedef uint32_t index;
@@ -103,6 +104,7 @@ typedef uint32_t count;
 /* Miscellaneous */
 #define writeVirEntry      writePhysical
 #define writePhyEntry      writePhysicalWithLotsOfFlags
+#define writeKernelPhyEntry writePhyEntry
 #define readVirtual        readPhysical
 #define readVirEntry       readPhysicalNoFlags
 #define readPhyEntry       readPhysicalNoFlags
