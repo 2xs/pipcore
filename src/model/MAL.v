@@ -35,7 +35,7 @@
      Memory Abstraction Layer : is the interface exposed to services to read and
     write data into physical memory  *)
 Require Export Model.MALInternal. 
-Require Import Model.ADT Model.Hardware Model.Lib.
+Require Import Model.ADT Model.Hardware Model.Lib Model.MMU.
 Require Import Arith Bool NPeano List Omega.
 
 (** Memory access : read and write functions for each data type "vaddr", "page", 
@@ -94,6 +94,11 @@ Definition writeVirEntry (paddr : page) (idx : index)(addr : vaddr) :=
 Definition writePhyEntry (paddr : page) (idx : index)(addr : page) (p u r w e: bool) :=
   modify (fun s => {| currentPartition := s.(currentPartition);
   memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  s.(memory) beqPage beqIndex|} ).
+
+Definition writeKernelPhyEntry (paddr : page) (idx : index)(addr : page) ( p u r w e: bool) :=
+  modify (fun s => {| currentPartition := s.(currentPartition);
+  memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  
+  s.(memory) beqPage beqIndex|} ).
 
 
 Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
@@ -224,7 +229,7 @@ Definition activate (phyPartition : page) : LLI unit :=
   memory := s.(memory)|} ).
 
 (***************************** STORE AND FETCH ****************************)
-(** The 'comparePageToNull' returns true if the given page is equal to the fixed
+(* (** The 'comparePageToNull' returns true if the given page is equal to the fixed
     default page (null) *) 
 Definition comparePageToNull (p :page) : LLI bool :=
   perform nullPaddr := getDefaultPage in
@@ -253,7 +258,7 @@ Definition  translate (pd : page) (va : vaddr) (l : level)  :=
   perform isNull := comparePageToNull lastTable in
   if isNull then getDefaultPage else
   perform idx :=  getIndexOfAddr va fstLevel in
-  readPhyEntry lastTable idx.
+  readPhyEntry lastTable idx. *)
 
 (** The 'getPd' function returns the page directory of a given partition *)
 Definition getPd partition :=

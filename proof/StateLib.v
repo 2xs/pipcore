@@ -34,7 +34,7 @@
 (** * Summary 
     This file contains required functions to define properties about a given state *) 
 Require Import Model.ADT Model.Hardware Model.Lib Model.MAL Bool.
-Require Import Coq.Program.Equality Arith List Omega.
+Require Import ProofIrrelevance  Coq.Program.Equality Arith List Omega.
 Import List.ListNotations.
 Module Index.
 Definition geb (a b : index) : bool := b <=? a.
@@ -207,6 +207,39 @@ let entry :=  lookup paddr idx memory beqPage beqIndex  in
   | None => None
  end. 
 
+(** The [readIndex] function returns the index stored into a given table 
+    at a given position in memory. The table should contain only indices 
+    (The type [I] is already defined in [Model.ADT]) *)
+Definition readIndex  (paddr : page) (idx : index) memory : option index :=
+let entry :=  lookup paddr idx memory beqPage beqIndex  in 
+  match entry with
+  | Some (I indexValue) => Some indexValue
+  | Some _ => None
+  | None => None
+ end. 
+ 
+ (** The [readVirtual] function returns the virtual address strored into a given table 
+    at a given position in memory. The table should contain a virtual address at this position 
+    (The type [VA] is already defined in [Model.ADT]) *)
+Definition readVirtual (paddr : page) (idx : index) memory : option vaddr :=
+let entry :=  lookup paddr idx memory beqPage beqIndex  in 
+  match entry with
+  | Some (VA addr) => Some addr
+  | Some _ => None
+  | None => None
+ end. 
+
+(** The [readVirEntry] function returns the virtual address strored into a given table 
+    at a given position in memory. The table should contain a VEntry at this position 
+    (The type [VEntry] is already defined in [Model.ADT]) *)
+Definition readVirEntry (paddr : page) (idx : index) memory : option vaddr :=
+let entry :=  lookup paddr idx memory beqPage beqIndex  in 
+  match entry with
+  | Some (VE addr) => Some (va addr)
+  | Some _ => None
+  | None => None
+ end. 
+ 
 (** The [getDefaultPage] function returns the value of the default page *)
 Definition getDefaultPage := defaultPage.
 
@@ -232,47 +265,108 @@ then Some pd
     end
    end. 
 
+(* (* Inductive option (A : Type) : Type :=  Some : A -> option A | None : option A. *)
+Inductive optionPage (p : page) : page :=  
+|SomePage : page -> optionPage p
+|SomeDefault : optionPage p
+| NonePage  : optionPage p. *)
+Inductive optionPage : Type:= 
+|SomePage : page -> optionPage
+|SomeDefault :  optionPage
+|NonePage : optionPage
+.
 (** The [getMappedPage] function returns the physical page stored into a leaf node, 
    which corresponds to a given virtual address, if the present flag is equal to true **)
-Definition getMappedPage pd s va: option page :=
+Definition getMappedPage pd s va: optionPage  :=
+match getNbLevel  with 
+ |None => NonePage
+ |Some level => let idxVA := getIndexOfAddr va fstLevel  in 
+               match getIndirection pd va level (nbLevel - 1) s with 
+                | Some tbl =>  if defaultPage =? tbl
+                                   then NonePage 
+                                   else match (readPresent tbl idxVA s.(memory)) with 
+                                         | Some false => SomeDefault
+                                         |Some true => match readPhyEntry tbl idxVA s.(memory)  with 
+                                                       | Some a => SomePage a
+                                                       | _ => NonePage
+                                                       end
+                                         |_ => NonePage
+                                         end
+                | _ => NonePage
+               end
+end.
+
+(** The [getVirtualAddressSh2] function returns the virtual address stored into the 
+    second shadow structure which corresponds to a given virtual address **)
+Definition getVirtualAddressSh2 sh2 s va: option vaddr :=
 match getNbLevel  with 
  |None => None
  |Some level => let idxVA := getIndexOfAddr va fstLevel  in 
-               match getIndirection pd va level (nbLevel - 1) s with 
-                | Some tbl => match (readPresent tbl idxVA s.(memory)) with 
-                               |Some true => readPhyEntry tbl idxVA s.(memory) 
-                               | _ =>  None 
-                              end
+               match getIndirection sh2 va level (nbLevel - 1) s with 
+                | Some tbl =>  if defaultPage =? tbl
+                                   then None 
+                                   else readVirtual tbl idxVA s.(memory) 
+                | _ => None
+               end
+end.
+
+(** The [getVirtualAddressSh2] function returns the virtual address stored into the 
+    parent **)
+Definition getVAInParent partition s va: option vaddr :=
+match getSndShadow partition (memory s) with 
+|Some sh2 => match getVirtualAddressSh2 sh2 s va with 
+             | Some vainparent =>  if (VAddr.eqbList defaultVAddr vainparent) 
+                                     then None 
+                                     else Some vainparent
+             | _ => None
+             end
+| _ => None
+end. 
+
+(** The [getVirtualAddressSh1] function returns the virtual address stored into the first
+   shadow structure which corresponds to a given virtual address **)
+Definition getVirtualAddressSh1 sh1 s va: option vaddr :=
+match getNbLevel  with 
+ |None => None
+ |Some level => let idxVA := getIndexOfAddr va fstLevel  in 
+               match getIndirection sh1 va level (nbLevel - 1) s with 
+                | Some tbl =>  if defaultPage =? tbl
+                                   then None 
+                                   else readVirEntry tbl idxVA s.(memory) 
                 | _ => None
                end
 end.
 
 (** The [getAccessibleMappedPage] function returns the physical page stored into a leaf node, 
    which corresponds to a given virtual address, if the present and user flags are equal to true **)
-Definition getAccessibleMappedPage pd s va: option page :=
+Definition getAccessibleMappedPage pd s va: optionPage :=
 match getNbLevel  with 
- |None => None
+ |None => NonePage
  |Some level =>let idxVA := getIndexOfAddr va fstLevel  in 
                match getIndirection pd va level (nbLevel - 1) s with 
-                | Some tbl => match (readPresent tbl idxVA s.(memory)),
-                                    (readAccessible tbl idxVA s.(memory)) with 
-                               |Some true, Some true => readPhyEntry tbl idxVA s.(memory) 
-                               | _, _ =>  None 
-                              end
-                | _ => None
+                | Some tbl => if defaultPage =? tbl
+                                   then NonePage 
+                                   else  match (readPresent tbl idxVA s.(memory)),
+                                                   (readAccessible tbl idxVA s.(memory)) with 
+                                           |Some true, Some true => match readPhyEntry tbl idxVA s.(memory)  with 
+                                                       | Some a => SomePage a
+                                                       | _ => NonePage
+                                                       end
+                                           | _, _ =>  NonePage 
+                                          end
+                | _ => NonePage
                end
 end.
 
-(** The [geTrdShadows] returns physical pages used to keep informations about configuration pages 
-    TODO : We NEED the description of configuration pages list.
-    TODO : Rename function
+(** The [geTrdShadows] returns physical pages used to keep informations about 
+    configuration pages 
 *)
 Fixpoint getTrdShadows (sh3 : page) s bound :=
 match bound with 
 |0 => []
 |S bound1 => match getMaxIndex with 
             |None => []
-            |Some maxindex =>  match readPhyEntry sh3 maxindex s.(memory) with 
+            |Some maxindex =>  match readPhysical sh3 maxindex s.(memory) with 
                                 |None => [sh3]
                                 |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getTrdShadows addr s bound1
                                end
@@ -281,20 +375,20 @@ end.
 
 (** The [checkChild] function returns true if the given virtual address corresponds 
     to a child of the given partition 
-    TODO : Need to detail the shadow1 data structure 
     *)
 Definition checkChild partition level (s:state) va : bool :=
 let idxVA :=  getIndexOfAddr va fstLevel in 
 match getFstShadow partition s.(memory)  with 
-| Some sh1  => match getIndirection sh1 va level (nbLevel -1) s with 
-                            |Some tbl => if tbl =? defaultPage 
-                                            then false 
-                                            else match readPDflag tbl idxVA s.(memory) with 
-                                                  |Some flag => flag
-                                                  |None => false
-                                                  end
-                            |None => false 
-                            end
+| Some sh1  => 
+   match getIndirection sh1 va level (nbLevel -1) s with 
+    |Some tbl => if tbl =? defaultPage 
+                    then false 
+                    else match readPDflag tbl idxVA s.(memory) with 
+                          |Some true => true
+                          |_ => false
+                          end
+    |None => false 
+    end
 | _ => false
 end.
 
@@ -342,8 +436,14 @@ Fixpoint getAllVAddrAux (levels: nat) : list (list index) :=
   end.
 
 (** The [getAllVAddr] function returns the list of all virtual addresses *)
-Definition getAllVAddr := map CVaddr (getAllVAddrAux (S nbLevel)).
-  
+Definition getAllVAddr :=map CVaddr (getAllVAddrAux (S nbLevel)).
+
+Definition checkOffset0 (va : vaddr) :bool :=
+if ( nth nbLevel va  defaultIndex  =? CIndex 0 ) then true else false .
+
+Definition getAllVAddrWithOffset0 :=filter checkOffset0 getAllVAddr.
+
+
 (** The [getPdsVAddr] function returns the list of virtual addresses used as 
     partition descriptor into a given partition *)
 Definition getPdsVAddr partition l1 (vaList : list vaddr) s :=
@@ -351,24 +451,24 @@ filter (checkChild partition l1 s) vaList.
 
 (** The [getMappedPagesOption] function Return all physical pages marked as 
     present into a partition *)
-Definition getMappedPagesOption (pd : page) (vaList : list vaddr) s : list (option page) :=
+Definition getMappedPagesOption (pd : page) (vaList : list vaddr) s : list optionPage :=
 map (getMappedPage pd s) vaList.
 
 (** The [getAccessibleMappedPagesOption] function Return all physical pages 
     marked as present and accessible into a partition *)
-Definition getAccessibleMappedPagesOption (pd : page) (vaList : list vaddr) s : list (option page) :=
+Definition getAccessibleMappedPagesOption (pd : page) (vaList : list vaddr) s : list optionPage :=
 map (getAccessibleMappedPage pd s) vaList.
 
 (** The [filterOption] function Remove option type from list *)
-Fixpoint filterOption (l : list (option page)) := 
+Fixpoint filterOption (l : list (optionPage)) := 
 match l with 
 | [] => []
-| Some a :: l1 => a:: filterOption l1
-|None :: l1 => filterOption l1
+| SomePage a :: l1 => a:: filterOption l1
+| _ :: l1 => filterOption l1
 end.
 
 (** The [getMappedPagesAux] function removes option type from mapped pages list *)
-Definition getMappedPagesAux (pd :page)  (vaList : list vaddr) s : list page := 
+Definition getMappedPagesAux (pd :page)  (vaList : list vaddr) s : list page  := 
 filterOption (getMappedPagesOption pd vaList s).
 
 (** The [getAccessibleMappedPagesAux] function removes option type from 
@@ -379,15 +479,14 @@ filterOption (getAccessibleMappedPagesOption pd vaList s).
 (** The [getConfigPagesAux] function returns all configuration pages of a 
     given partition *)
 Definition getConfigPagesAux (partition : page) (s : state) : list page := 
-let vaList := getAllVAddr in 
 match getPd partition s.(memory), 
       getFstShadow partition s.(memory), 
       getSndShadow partition s.(memory), 
       getConfigTablesLinkedList partition s.(memory)  with 
-| Some pd , Some sh1, Some sh2 , Some sh3  => (pd::getIndirections pd s)++
-                         (sh1::getIndirections sh1 s)++
-                         (sh2::getIndirections sh2 s )++
-                         (sh3::getTrdShadows sh3 s nbPage)
+| Some pd , Some sh1, Some sh2 , Some sh3  => (getIndirections pd s)++
+                         (getIndirections sh1 s)++
+                         (getIndirections sh2 s )++
+                         (getTrdShadows sh3 s (nbPage+1))
 |_,_,_,_ => []
 end.
 
@@ -398,7 +497,7 @@ partition :: (getConfigPagesAux partition s).
 Definition getMappedPages (partition : page) s : list page :=
   match getPd partition s.(memory) with
     |None => []
-    |Some pd => let vaList := getAllVAddr in getMappedPagesAux pd vaList s
+    |Some pd => let vaList := getAllVAddrWithOffset0 in getMappedPagesAux pd vaList s
   end.
 
 (** The [getAccessibleMappedPages] function Returns all present and 
@@ -406,7 +505,7 @@ Definition getMappedPages (partition : page) s : list page :=
 Definition getAccessibleMappedPages (partition : page) s : list page :=
   match getPd partition s.(memory) with
     |None => []
-    |Some pd => let vaList := getAllVAddr in getAccessibleMappedPagesAux pd vaList s
+    |Some pd => let vaList := getAllVAddrWithOffset0 in getAccessibleMappedPagesAux pd vaList s
   end.
   
 (** The [getUsedPages] function Returns all used pages (present and config pages)
@@ -435,11 +534,11 @@ Qed.
 
 (** The [getChildren] function Returns all children of a given partition *)
 Definition getChildren (partition : page) s := 
-nodup eqPageDec (let vaList := getAllVAddr in 
+let vaList := getAllVAddrWithOffset0 in 
 match getNbLevel, getPd partition s.(memory) with 
 |Some l1,Some pd => getMappedPagesAux pd (getPdsVAddr partition l1 vaList s) s
 |_, _ => []
-end).
+end.
 
 
 (** The [getPartitionsAux] function returns all pages marked as descriptor partition *)
@@ -529,6 +628,70 @@ match Index.succ idxroot with
 | _ => False 
 end.
 
+(** The [entryPresentFlag] proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [PP] and the present flag stored into 
+    this entry is equal to a given flag [flag] *)
+Definition entryPresentFlag table idx flag s:= 
+match lookup table idx s.(memory) beqPage beqIndex with 
+| Some (PE entry) => flag =  entry.(present)
+| _ => False
+end. 
+
+(** The [entryPDFlag]  proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [VE] and the pd flag stored into 
+    this entry is equal to a given flag [flag] *)
+Definition entryPDFlag table idx flag s:= 
+match lookup table idx s.(memory) beqPage beqIndex with 
+| Some (VE entry) => flag =  entry.(pd)
+| _ => False
+end. 
+
+(** The [entryUserFlag] proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [VE] and the user flag stored into 
+    this entry is equal to a given flag [flag] *)
+Definition entryUserFlag table idx flag s:= 
+match lookup table idx s.(memory) beqPage beqIndex with 
+| Some (PE entry) => flag =  entry.(user)
+| _ => False
+end. 
+
+(** The [VEDerivation] proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [VE] and the given boolean value 
+    [res] specifies if the virtual address stored into  
+    this entry is equal or not to the default virtual address *)
+Definition VEDerivation table idx (res : bool) s:= 
+match lookup table idx s.(memory) beqPage beqIndex with 
+| Some (VE entry) => ~ (beqVAddr entry.(va) defaultVAddr) = res
+| _ => False
+end. 
+
+(** The [isEntryVA] proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [VE] and the virtual address
+    stored into this entry is equal to a given virtual address [v1] *)
+Definition isEntryVA table idx v1 s:=
+ match lookup table idx (memory s) beqPage beqIndex with 
+ | Some (VE entry)  => entry.(va) = v1
+ | _ => False
+ end.
+
+(** The [isVA'] proposition reutrns True if the entry at position [idx]
+    into the given physical page [table] is type of [VA] and the virtual address
+    stored into this entry is equal to a given virtual address [v1] *)
+Definition isVA' table idx v1 s:=
+ match lookup table idx (memory s) beqPage beqIndex with 
+ | Some (VA entry)  => entry = v1
+ | _ => False
+ end.
+
+(** The [isEntryPage] proposition reutrns True if the entry at position [idx]
+    into the given page [table] is type of [PE] and physical page stored into this entry 
+    is equal to a given physical page [page1]*)
+Definition isEntryPage table idx page1 s:=
+ match lookup table idx (memory s) beqPage beqIndex with 
+ | Some (PE entry)  => entry.(pa) = page1
+ | _ => False
+ end.
+ 
 (** The [getTableAddrRoot'] proposition returns True if the given physical page [table]
 is a configuration table into different structures (pd, shadow1 or shadow2). This table should be associated to the 
 given virtual address [va]  *)
@@ -552,4 +715,128 @@ Definition getTableAddrRoot table idxroot currentPart va s : Prop :=
 (** The [getAllPages] returns the list of all physical pages *)
 Definition getAllPages: list page:= 
 map CPage (seq 0 nbPage ).
+
+(** The [getPDFlag] checks if the given virtual address corresponds to a partition
+    descriptor **)
+Definition getPDFlag sh1 va s :=
+let idxVA := getIndexOfAddr va fstLevel in
+match getNbLevel with
+|Some nbL =>  match getIndirection sh1 va nbL (nbLevel - 1) s with
+  | Some tbl =>
+      if tbl =? defaultPage
+      then false
+      else
+       match readPDflag tbl idxVA (memory s) with
+       | Some true => true
+       | Some false => false
+       | None => false
+       end
+  | None => false
+  end
+| None => false
+end.
+
+(** The [isAccessibleMappedPageInParent] function returns true if the given physical
+    page is accessible in the parent of the given partition **)
+Definition isAccessibleMappedPageInParent partition va accessiblePage s  :=
+match getSndShadow partition (memory s) with 
+| Some sh2 => 
+  match  getVirtualAddressSh2 sh2 s va  with 
+   | Some vaInParent => 
+     match getParent partition (memory s) with 
+      | Some parent => 
+        match getPd parent (memory s) with 
+         | Some pdParent => 
+           match getAccessibleMappedPage pdParent s vaInParent with 
+            | SomePage sameAccessiblePage => accessiblePage =? sameAccessiblePage
+            | _ => false
+           end
+         | None => false
+        end
+    | None => false
+           end
+| None => false
+           end
+| None => false
+end.
+
+(** The [isPartitionFalse] returns true if the partition descriptor flag of a given
+     entry is equal to false or there is no data stored into this entry **)  
+Definition isPartitionFalse ptPDChildSh1 idxPDChild s :=
+readPDflag ptPDChildSh1 idxPDChild (memory s) = Some false \/
+readPDflag ptPDChildSh1 idxPDChild (memory s) = None.
+
+(** The [isAncestor] funtion returns true if the given partitions are equal 
+    or the descParent partition is an ancestor of currentPart **)
+Definition isAncestor  currentPart descParent s :=
+( currentPart = descParent \/ In descParent (getAncestors currentPart s)).
+
+Definition isWellFormedFstShadow nbL table  s:= 
+(nbL <> fstLevel /\ 
+(forall idx, readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+readPresent table idx (memory s) = Some false )) \/ 
+(nbL = fstLevel /\ 
+( forall idx : index, 
+(readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+readPDflag table idx (memory s) = Some false) ).
+
+Definition isWellFormedSndShadow nbL table  s:= 
+(nbL <> fstLevel /\ (
+forall idx, readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+readPresent table idx (memory s) = Some false )) \/ 
+(nbL = fstLevel /\ ( forall idx : index, 
+(readVirtual table idx (memory s) = Some defaultVAddr) ) ).
+
+(** The [isDerived] funtion returns true if a physical page is derived 
+    into the given partition , this physical page is associated to the given 
+    virtual address [va] **)
+Definition isDerived partition va  s  :=
+match getFstShadow partition (memory s) with 
+| Some sh1 => 
+  match  getVirtualAddressSh1 sh1 s va  with 
+   | Some va0 => beqVAddr defaultVAddr va0 = false
+   | _ => False
+  end
+| None => False
+end.
+
+Lemma  pageDec :
+forall x y : page, {x = y} + {x <> y}.
+Proof.
+intros.
+destruct x; destruct y.
+assert({p = p0} + {p <> p0}).
+apply Nat.eq_dec.
+destruct H.
+left.
+subst.
+f_equal.
+apply proof_irrelevance.
+right.
+contradict n.
+inversion n.
+subst;trivial.
+Qed.
+
+Fixpoint closestAncestorAux part1 part2 s bound : option page :=
+match bound  with
+| 0 => None
+| S bound1 => match getParent part1 (memory s) with
+              | Some parent => match in_dec pageDec part2 
+                                    (getPartitionAux parent s (nbPage+1)) with 
+                               | left _  => Some parent
+                               | _ =>  closestAncestorAux parent part2 s bound1
+                               end 
+              | None =>  Some multiplexer 
+              end 
+end.
+
+Definition closestAncestor part1 part2 s := 
+closestAncestorAux part1 part2 s (nbPage+1).
+
+
+Ltac symmetrynot :=
+match goal with
+| [ |- ?x <> ?y ] => unfold not ; let Hk := fresh in intro Hk ; symmetry in Hk ;contradict Hk
+end.
 

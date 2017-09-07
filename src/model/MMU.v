@@ -31,86 +31,51 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-(**  * Summary 
-      The Abstraction Data Type : In this file we define types used by memory Services *)
-Require Import List Bool Arith Omega. 
-Import List.ListNotations.
+(** * Summary 
+     Memory Management Unit : the specification of the translation of 
+     virtual memory addresses to physical addresses *)
 
-(* BEGIN SIMULATION
+Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal .
+Require Import Arith Bool NPeano List Omega.
+(** The 'comparePageToNull' returns true if the given page is equal to the fixed
+    default page (null) *) 
+Definition comparePageToNull (p :page) : LLI bool :=
+  perform nullPaddr := getDefaultPage in
+  MALInternal.Page.eqb nullPaddr p.
+(** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
+Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
+  ret ( nth ((length va) - (l + 2)) va defaultIndex ).
 
-Definition nbLevel := 2.
-Definition tableSize := 12.
-Definition nbPage := 100.
-Lemma nbLevelNotZero: nbLevel > 0.
-Proof. unfold nbLevel; auto. Qed.
-Lemma tableSizeNotZero : tableSize <> 0.
-Proof. unfold tableSize; auto. Qed.
+Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
+  perform s := get in
+  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  match entry with
+  | Some (PE a) => ret a.(pa)
+  | Some _ => undefined 9
+  | None => undefined 8
+  end.
 
+(** The 'getTableAddrAux' returns the reference to the last page table  *)
+Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
+  match timeout with
+  | 0 => getDefaultPage
+  |S timeout1 =>
+  perform isFstLevel := MALInternal.Level.eqb l fstLevel in 
+    if isFstLevel 
+    then  ret pd 
+    else
+      perform idx :=  getIndexOfAddr va l in
+      perform addr :=  readPhyEntry pd idx in 
+      perform isNull := comparePageToNull addr in
+      if isNull then getDefaultPage else
+      perform p := MALInternal.Level.pred l in
+      translateAux timeout1 addr va p
+  end .
 
-   END SIMULATION *)
-
-(* BEGIN NOT SIMULATION *)
-Axiom tableSize nbLevel nbPage: nat.
-Axiom nbLevelNotZero: nbLevel > 0.
-Axiom nbPageNotZero: nbPage > 0.
-
-(* Axiom tableSizeNotZero : tableSize <> 0. *)
-
-Axiom tableSizeIsEven : Nat.Even tableSize.
-(* END NOT SIMULATION *)
-Definition tableSizeLowerBound := 14.  
-Axiom tableSizeBigEnough : tableSize > tableSizeLowerBound. (* to be fixed on count **) 
-Record index := {
-  i :> nat ;
-  Hi : i < tableSize }.
-
-Record page := { 
-  p :> nat;
-  Hp : p < nbPage }.
-
-Definition paddr := (page * index)%type.
-
-Record vaddr := {
-  va :> list index ;
-  Hva : length va = nbLevel + 1}.
-
-Record level := {
-  l :> nat ;
-  Hl : l < nbLevel }.
-
-Record count := {
-  c :> nat ;
-  Hnb : c <= (3*nbLevel) + 1  ;
- }.
-
-Parameter index_d : index.
-Parameter page_d : page.
-Parameter level_d : level.
-
-Require Import Coq.Program.Tactics.
-
-Program Definition CIndex  (p : nat) : index := 
-if (lt_dec p tableSize) then 
-Build_index p _ else index_d.
-
-
-Program Definition CPage (p : nat) : page := 
-if (lt_dec p nbPage) then Build_page p _ else  page_d.
-
-Program Definition CVaddr (l: list index) : vaddr := 
-if ( Nat.eq_dec (length l)  (nbLevel+1))  
-  then Build_vaddr l _
-  else Build_vaddr (repeat (CIndex 0) (nbLevel+1)) _.
-
-(* BEGIN NOT SIMULATION *)
-
-Next Obligation.
-apply repeat_length.
-Qed. 
-
-(* END NOT SIMULATION *)
-
-
-Program Definition CLevel ( a :nat) : level := 
-if lt_dec a nbLevel then  Build_level a _ 
-else level_d .
+(** The 'translate' *)
+Definition  translate (pd : page) (va : vaddr) (l : level)  :=
+  perform lastTable := translateAux nbLevel pd va l in 
+  perform isNull := comparePageToNull lastTable in
+  if isNull then getDefaultPage else
+  perform idx :=  getIndexOfAddr va fstLevel in
+  readPhyEntry lastTable idx.

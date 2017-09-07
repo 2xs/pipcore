@@ -55,7 +55,7 @@
            for mapping
     Step 7 "deletePartition" : The multiplexer deletes the child and gets 
             all used pages back *) 
-Require Import List Core.Services Model.Hardware Isolation IsolationInternal 
+Require Import List Core.Services Model.Hardware Isolation  
 Model.ADT Model.MALInternal Model.MAL.
 Import List.ListNotations.
 
@@ -148,7 +148,7 @@ Eval vm_compute in  createPartition.
 
 Definition countToPrepare := 
 createPartition;;
-Services.countToPrepare (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)])
+Services.countToMap (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)])
                            (CVaddr [(CIndex 2); (CIndex 3);(CIndex 0)]).
 (** countToPrepare test : OK *)
 Eval vm_compute in  countToPrepare.
@@ -174,6 +174,10 @@ Services.addVAddr (CVaddr [(CIndex 2); (CIndex 9); (CIndex 0)])
 (** addVaddr test : OK *)
 Eval vm_compute in addVAddr. 
 
+Definition mapInChild := 
+addVAddr ;; Services.mappedInChild (CVaddr [(CIndex 2); (CIndex 9); (CIndex 0)]).
+Eval vm_compute in mapInChild. 
+ 
 Definition removeVAddr := 
 addVAddr ;;
 Services.removeVAddr (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)])

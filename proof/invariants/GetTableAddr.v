@@ -63,9 +63,16 @@ getTableAddr indirection va l
  }}.
 Proof.
 unfold Internal.getTableAddr.
-revert l indirection.
-induction nbLevel; simpl.
-+ intros. admit.
+assert(Hsize : nbLevel   <= nbLevel) by omega.
+assert (Hlevel : l < nbLevel).
+destruct l. simpl;omega.
+revert Hsize Hlevel.
+revert indirection l.
+generalize nbLevel at 1 3 4.
+induction n; simpl.
++ intros. destruct l.
+  simpl in *.
+  omega.  
 + intros.
   eapply WP.bindRev.
   eapply WP.weaken.
@@ -191,7 +198,11 @@ induction nbLevel; simpl.
         split.
         + pattern s in H. eapply H.
         + clear IHn.
-          destruct H as ( ((Hp & (Hprp & HPD & Hsh1 & Hsh2 & Hcprpl& HmappedNodup) & Hcp & Hroot & currentpd & Hcurpd & Hpdnotnull  &   [Hindirection | Hindirection] ) & Hidx)). 
+           destruct H as ( (( Hp & (Hprp & HPD & Hsh1 & Hsh2 & Hcprpl& HmappedNodup) 
+           & Hcp & Hroot & currentpd & Hcurpd & Hpdnotnull  &   [Hindirection | Hindirection]) 
+            & Hlvl) & Hidx). 
+(*           destruct H as ((Hp & (* (Hprp & HPD & Hsh1 & Hsh2 & Hcprpl& HmappedNodup) *) Hcons 
+          & Hcp & Hroot & currentpd & Hcurpd & Hpdnotnull   (* &   [Hindirection | Hindirection]  *) ) & Hidx)).  *)
           - subst. destruct Hindirection. subst. 
             eapply fstIndirectionContainsPENbLevelGT1;try eassumption.
             symmetry; trivial.  
@@ -484,7 +495,7 @@ induction nbLevel; simpl.
         (** next step **)
         unfold hoareTriple in *.
         intros.
-        generalize (IHn levelpred nextindirection s);clear IHn;intro IHn.
+        generalize (IHn nextindirection levelpred  );clear IHn;intro IHn.
         subst.
         +  assert ( P s /\
       consistency s /\
@@ -500,7 +511,7 @@ induction nbLevel; simpl.
              getIndirection tableroot va nbL stop s = Some nextindirection /\
              nextindirection <> defaultPage /\ levelpred = CLevel (nbL - stop)))) ).
         { clear IHn.
-          destruct H as ( ((((( Hp & Hcons & Hcurpart & Hroot &  H8) & H1 ) & H2 ) & H3 ) & H4)).
+          destruct H as ( ((((( Hp & Hcons & Hcurpart & Hroot &  H8) & H1 ) & H2 ) & H3 ) & H4)& Hbidon).
           split;trivial. split;trivial.
           split;trivial. split;trivial. 
           destruct H8 as ( pd & idxpd & H7).
@@ -519,7 +530,8 @@ induction nbLevel; simpl.
             split.
             rename H3 into H2.  
             unfold isEntryPage in H2.
-            case_eq (lookup indirection (StateLib.getIndexOfAddr va l)  (memory s) beqPage beqIndex);intros;rewrite H0 in H2;  
+            case_eq (lookup indirection (StateLib.getIndexOfAddr va l)  (memory s) beqPage beqIndex);
+            [intros v H0 | intros H0];rewrite H0 in H2;  
             [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict H2 | 
                             now contradict H2| now contradict H2| now contradict H2 ] | now contradict H2] .
             subst.
@@ -531,7 +543,7 @@ induction nbLevel; simpl.
             unfold not.
             intros.
             apply beq_nat_false in H4.
-            rewrite H0 in H4. 
+            rewrite H in H4. 
             now contradict H4.
             apply levelPredMinus1. symmetry;trivial. trivial.
             
@@ -555,7 +567,8 @@ induction nbLevel; simpl.
             subst.
             unfold isEntryPage in H3.
             
-            case_eq (lookup indirection (StateLib.getIndexOfAddr va (CLevel (nbL - stop)))  (memory s) beqPage beqIndex); intros ; rewrite H0 in H3; 
+            case_eq (lookup indirection (StateLib.getIndexOfAddr va (CLevel (nbL - stop)))  
+            (memory s) beqPage beqIndex); [intros v H0 | intros H0]; rewrite H0 in H3; 
             [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict H3 | 
                             now contradict H3| now contradict H3| now contradict H3] | now contradict H3] .
             subst.
@@ -571,9 +584,9 @@ induction nbLevel; simpl.
            intros n0 Hfalse.
            rewrite Hfalse  in Hnotfstlevel.
            unfold StateLib.getNbLevel in Hnbl.
-           case_eq ( gt_dec nbLevel 0).
-           intros .
-           rewrite H1 in Hnbl.
+           case_eq ( gt_dec nbLevel 0);
+           [intros v H | intro H] .
+           rewrite H in Hnbl.
            inversion Hnbl. clear Hnbl. subst.
            simpl in *.
            contradict Hfalse.
@@ -599,10 +612,56 @@ induction nbLevel; simpl.
              destruct nbL.
              simpl in *. omega.       }
              
-           rewrite H0.
+           rewrite H.
            apply levelPredMinus1 ;trivial. symmetry; assumption. 
            }
-               - apply IHn in H0.  assumption. } 
-            Admitted.
-
+  - apply IHn in H0.
+    * assumption.
+    * assert ( false = Level.eqb l fstLevel) by intuition.
+      destruct H.
+      clear IHn.
+      clear H H0.               
+      symmetry in H1. 
+      apply levelPredMinus1 in H2;trivial.
+      unfold CLevel in H2.
+      case_eq (lt_dec (l - 1) nbLevel);
+      intros; rewrite H in *.
+      destruct levelpred.
+      inversion H2.
+      subst.
+      clear H2.
+      simpl.
+      destruct l.
+      simpl in *.
+      assert (0 < nbLevel) by apply nbLevelNotZero.
+      apply levelEqBEqNatFalse0 in H1.
+      simpl in *.
+      omega.
+      destruct l.
+      simpl in *.
+      omega.
+    * assert ( false = Level.eqb l fstLevel) by intuition.
+      destruct H.
+      clear IHn.
+      clear H H0.               
+      symmetry in H1. 
+      apply levelPredMinus1 in H2;trivial.
+      unfold CLevel in H2.
+      case_eq (lt_dec (l - 1) nbLevel);
+      intros; rewrite H in *.
+      destruct levelpred.
+      inversion H2.
+      subst.
+      clear H2.
+      simpl.
+      destruct l.
+      simpl in *.
+      assert (0 < nbLevel) by apply nbLevelNotZero.
+      apply levelEqBEqNatFalse0 in H1.
+      simpl in *.
+      omega.
+      destruct l.
+      simpl in *.
+      omega. }
+Qed.
            
