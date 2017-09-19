@@ -34,7 +34,7 @@
 /**
  * \file mmu.c
  * \brief MMU early-boot configuration
- */ 
+ */
 
 #include "mmu.h"
 #include "multiboot.h"
@@ -45,6 +45,7 @@
 #include "fpinfo.h"
 #include "git.h"
 #include <libc.h>
+#include "galileo-support.h"
 
 page_directory_t *kernelDirectory=0; //!< The kernel's page directory
 
@@ -73,12 +74,12 @@ void mapPageC(uintptr_t pd, uintptr_t p, uintptr_t v, uint8_t user)
 	uintptr_t ptEntry = (v >> 12) & 0x000003FF;
 	page_table_t *pt;
 	pt = (page_table_t*)(((page_directory_t*)pd)->tablesPhysical[pdIdx]);
-	
+
 	/*
 	 * Let's just get the Page Table address, shall we ?
 	 */
 	pt = (page_table_t*)((uintptr_t)pt & 0xFFFFF000);
-	
+
 	/*
 	 * Check if we have an existing Page Table here.
 	 * If not, create it.
@@ -89,28 +90,22 @@ void mapPageC(uintptr_t pd, uintptr_t p, uintptr_t v, uint8_t user)
 		 ((page_directory_t*)pd)->tablesPhysical[pd_idx] = (uintptr_t)pt | 0x7; // Page Table is present, read & write, user-mode.  */
 		return;
 	}
-	
+
 	/*
 	 * Now we should have a Page Table. Find the corresponding Page Table Entry.
 	 */
 	page_table_entry_t pte = pt->pages[ptEntry];
-	
-	
+
+
 	/*
 	 * Configure it, and we're done.
 	 */
     pte.present = 1;
     pte.rw = 1;
     pte.user = user;
-    pte.pwt = 1;
-    pte.pcd = 1;
-    pte.accessed = 0;
-    pte.dirty = 0;
     pte.pat = 0;
-    pte.global = 0;
-    pte.unused = 0;
     pte.frame = (uintptr_t)p >> 12 ;
-
+    
 
 	pt->pages[ptEntry] = pte;
 
@@ -130,14 +125,14 @@ void prepareC(uintptr_t pd, uintptr_t v, uintptr_t* pageList)
 	uintptr_t pdIdx = (v & 0xFFC00000) >> 22;
 	page_table_t *pt;
 	pt = (page_table_t*)(((page_directory_t*)pd)->tablesPhysical[pdIdx]);
-	
+
 	pt = (page_table_t*)((uintptr_t)pt & 0xFFFFF000);
-	
+
 	if(!pt)
 	{
 		pt = (page_table_t*)(*((uintptr_t*)pageList));
 		((page_directory_t*)pd)->tablesPhysical[pdIdx] = (uintptr_t)pt | 0x7;
-		
+
 		/* Now update mappings into the given CR3 */
 		mapPageC(pd, (uintptr_t)pt, (uintptr_t)pt, 0);
 	}
@@ -155,7 +150,7 @@ uint32_t pageCountMapPageC(uintptr_t pd, uintptr_t vaddr)
 	uintptr_t pdIdx = (vaddr & 0xFFC00000) >> 22;
 	page_table_t *pt = (page_table_t*)(((page_directory_t*)pd)->tablesPhysical[pdIdx]);
 	pt = (page_table_t*)((uintptr_t)pt & 0xFFFFF000);
-	
+
 	if(!pt)
 		return 1;
 	else
@@ -179,7 +174,7 @@ void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8
 	// Allocate entry for prepare, and shadowed pages
         list[0] = (uint32_t)allocPage();
     }
-    
+
     prepareC(pdAddr, vaddr, list);
     mapPageC(pdAddr, paddr, vaddr, user);
 }
@@ -324,10 +319,10 @@ void mark_kernel_global()
 			writeTableVirtual((uint32_t)kern_pt, i, kern_pte | GLOBAL_BIT);
 		}
 	}
-	
+
 	/* Mark kernel PT as global */
 	writeTableVirtual((uint32_t)kernelDirectory, pd_idx, kern_pt | GLOBAL_BIT);
-	
+
 	return;
 }
 
@@ -370,7 +365,7 @@ void initMmu()
 
     mapPageWrapper(kernelDirectory, 0xB8000, 0xB8000, 1);
 	//mark_kernel_global();
-	
+
     DEBUG(TRACE,"pseudo-prepare kernel directory, removing page table from free page list");
 	/* First, pseudo-prepare kernel directory, removing potential page tables from free page list */
 	uint32_t j = 0;
@@ -385,25 +380,25 @@ void initMmu()
 		}
 	}
 
-    mapPageWrapper(kernelDirectory, (uint32_t)kernelDirectory, (uint32_t)kernelDirectory, 0);
+   
     DEBUG(TRACE,"Map a linear memory space using page allocator");
 	/* Map a linear memory space using page allocator \o/ */
 	curAddr = (uint32_t)&end;
 	uint32_t pg;
-	
+
     DEBUG(TRACE,"Map first partition info as user-accessible");
     /* Map first partition info as user-accessible */
     extern pip_fpinfo* fpinfo;
-	
+
 	fpinfo = (pip_fpinfo*)allocPage();
 	DEBUG(TRACE, "Allocated FpInfo to %x", fpinfo);
     uintptr_t fpInfoBegin = (uintptr_t)fpinfo;
-	
+
 	mapPageWrapper(kernelDirectory, (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
     DEBUG(TRACE,"Map the first free page into our kernel's virtual address space");
     // Map the first free page into our kernel's virtual address space
     mapPageWrapper(kernelDirectory, (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
-	
+
 	/* TODO : check the correctness of this. The initial state of the system HAS to be correct, this is just a hackfix right now */
     DEBUG(TRACE,"Build environment for the main partition");
     /* Now we have to build a proper environment for main partition */
@@ -412,25 +407,25 @@ void initMmu()
     uint32_t* sh2 = allocPage();
     uint32_t* sh3 = allocPage(); // Allocate shadow list
     *sh3 = 2; // TODO: fill sh3 with each indirection table
-	
+
 	/* At this point we're still in physical memory, so we can use writeVirtual, which won't tamper with CR0/CR3 configuration */
-	
+
     for(uint32_t i = 1; i < 1024; i++)
     {
         uint32_t* ptsh1 = allocPage();
 		memset(ptsh1, 0x0, PAGE_SIZE);
-			
+
         uint32_t* ptsh2 = allocPage();
 		memset(ptsh2, 0x0, PAGE_SIZE);
-		
+
         //*(sh1 + (uint32_t)(i * sizeof(uint32_t))) = (uint32_t)ptsh1;
         //*(sh2 + (uint32_t)(i * sizeof(uint32_t))) = (uint32_t)ptsh2;
 		writeTableVirtualNoFlags((uint32_t)sh1, i, (uint32_t)ptsh1);
 		writeTableVirtualNoFlags((uint32_t)sh2, i, (uint32_t)ptsh2);
     }
-	
+
 	DEBUG(TRACE, "Page allocation ends at %x, multiplexer descriptor is %x", firstFreePage, partitionDescriptor);
-	
+
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 0, (uintptr_t)partitionDescriptor); // Store descriptor into descriptor
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 1, (uintptr_t)partitionDescriptor);
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 2, (uintptr_t)kernelDirectory); // Store page directory into descriptor
@@ -443,7 +438,7 @@ void initMmu()
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 9, (uintptr_t)sh3);
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 10, (uintptr_t)0xFFFFFFFF); // Store IO mask into descriptor, allowing any IO
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 11, (uintptr_t)0); //parent paddr: null for multiplexer
-	
+
 	// Current partition is now our descriptor
 	extern uint32_t current_partition;
 	current_partition = (uint32_t)partitionDescriptor;
@@ -454,23 +449,25 @@ void initMmu()
 	uint32_t* virt_intv = allocPage();
 	mapPageWrapper(kernelDirectory, (uint32_t)virt_intv, 0xFFFFF000, 1);
 	mapPageWrapper(kernelDirectory, (uint32_t)0xB8000, 0xFFFFE000, 1);
-	
+
 	// Fill Virtu. IDT info
 	extern uint32_t __multiplexer;
 	*virt_intv = (uint32_t)(&__multiplexer); // Multiplexer load addr
-	
+
 	DEBUG(TRACE, "Building linear memory space");
-	
+
     DEBUG(TRACE,"Build the multiplexer stack");
 	/* Build a multiplexer stack */
 	mapPageWrapper(kernelDirectory, (uint32_t)allocPage(), 0xFFFFD000, 1);
-	
+
     DEBUG(TRACE,"Map first partition info");
 	/* Map first partition info */
 	mapPageWrapper(kernelDirectory, (uint32_t)fpinfo, 0xFFFFC000, 1);
+
+
+
 	
-	/* Map UART */
-	extern uint32_t UART_MMIO_Base;
+
 
 
 	/* We should be done with page allocation and stuff : the remaining pages should be available as memory for the partition */
@@ -479,17 +476,36 @@ void initMmu()
 		mapPageC((uintptr_t)kernelDirectory, pg, curAddr, 1);
 		curAddr += 0x1000;
 	}
-	mapPageWrapper(kernelDirectory,(uint32_t)UART_MMIO_Base,UART_MMIO_Base,1);
+
+
+
 	/* Fix first partition info */
 	fpinfo->membegin = (uint32_t)&end;
 	fpinfo->memend = curAddr;
 	fpinfo->magic = FPINFO_MAGIC;
 	strcpy(fpinfo->revision, GIT_REVISION);
-	
+
 	/* At this point, page allocator is empty. */
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x", fpinfo->membegin, fpinfo->memend);
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
+
+		/* Map UART */
+	DEBUG(TRACE,"Mapping UART for serial output\r\n");
+	extern uint32_t UART_MMIO_Base;
+	int index;
+	for(index = 0;index <= 0x1C;index+=0x4){
+			mapPageWrapper(kernelDirectory,(uint32_t)(UART_MMIO_Base+index),(uint32_t)(UART_MMIO_Base+index),1);
+	}
+
+
+    extern uint32_t UART_PCI_Base;
+
+
+	for(index = 0;index <= 0x1C;index+=0x4){
+		mapPageWrapper(kernelDirectory,(uint32_t)(UART_PCI_Base+index),(UART_PCI_Base+index),1);
+	}
+
 
 
 	activate((uint32_t)kernelDirectory);

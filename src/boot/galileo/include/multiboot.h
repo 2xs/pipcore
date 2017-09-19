@@ -113,12 +113,12 @@ struct multiboot
  * \brief Memory map structure
  */
 typedef struct multiboot_memory_map {
-    uint32_t size; //!< Size of this entry
-    uint32_t base_addr_low; //!< Lower bytes of the base address
-    uint32_t base_addr_high; //!< Higher bytes of the base address
-    uint32_t length_low; //!< Lower bytes of the length
-    uint32_t length_high; //!< Higher bytes of the length
-    uint32_t type; //!< Memory type
+    unsigned int size; //!< Size of this entry
+    unsigned int base_addr_low; //!< Lower bytes of the base address
+    unsigned int base_addr_high; //!< Higher bytes of the base address
+    unsigned int length_low; //!< Lower bytes of the length
+    unsigned int length_high; //!< Higher bytes of the length
+    unsigned int type; //!< Memory type
 } multiboot_memory_map_t;
 
 

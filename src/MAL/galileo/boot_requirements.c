@@ -54,14 +54,11 @@ void activate(uintptr_t dir)
 	// Set CR3 to the address of our Page Directory
 	page_directory_t* d = (page_directory_t*)dir;
 
-	asm volatile ("mov %%cr3,%0"
-					: "=r"(prevCR3)
-					:);
 
 	//DEBUG(TRACE,"Pevious CR3 : %x",prevCR3 );
     asm volatile("mov %0, %%cr3"
     				:
-    				: "r"(d));
+    				: "r"((uint32_t) d | 0x18));
 	// Switch on paging
 	//DEBUG(TRACE,"CR3 regs %x",d);
 	//DEBUG(TRACE,"Switching on paging");

@@ -41,9 +41,9 @@
 #include "galileo-support.h"
 #include "port.h"
 
-uint16_t usIRQMask = 0xfffb;
-uint32_t UART_PCI_Base = 0UL;
-uint32_t UART_MMIO_Base = 0UL;
+volatile uint16_t usIRQMask = 0xfffb;
+volatile uint32_t UART_PCI_Base = 0UL;
+volatile uint32_t UART_MMIO_Base = 0UL;
 
 
 void initGalileoSerialPort(uint32_t portnumber)

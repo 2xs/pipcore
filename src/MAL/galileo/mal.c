@@ -68,10 +68,9 @@ void enable_paging()
 {
 	uint32_t cr0;
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
-	//DEBUG(TRACE,"CR0 : %x",cr0);
-    cr0 |= (CR0_PE | CR0_NE | CR0_WP | CR0_PG);
-    cr0 &= ~(CR0_MP | CR0_EM | CR0_TS | CR0_AM | CR0_NW | CR0_CD);
-	//DEBUG(TRACE,"CR0 : %x",cr0);
+
+    cr0 = (CR0_PE | CR0_PG );
+    cr0 &= ~(CR0_MP | CR0_EM | CR0_TS | CR0_AM | CR0_NW | CR0_CD | CR0_WP);
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
 
 	//DEBUG(TRACE,"PAGING ENABLED\r\n");
@@ -88,7 +87,7 @@ void disable_paging()
 	asm volatile("mov %%cr0, %0": "=r"(cr0));
 	
 	// Disable paging bit
-    cr0 &= ~(CR0_PE | CR0_NE | CR0_WP | CR0_PG);
+    cr0 &= ~(CR0_PG);
     //cr0 &= ~(CR0_MP | CR0_EM | CR0_TS | CR0_AM | CR0_NW | CR0_CD);
 	asm volatile("mov %0, %%cr0":: "r"(cr0));
 	//DEBUG(TRACE,"PAGING DISABLED\r\n");

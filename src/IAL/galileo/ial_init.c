@@ -509,12 +509,11 @@ void initCpu()
 	uint32_t cr4;
 	
 	/* PGE check */
-	//if(edx & CPUID_FEAT_EDX_PGE)
-	if(0)
+	if(edx & CPUID_FEAT_EDX_PGE)
 	{
 		IAL_DEBUG(CRITICAL, "PGE supported, enabling CR4.PGE\n");
 		__asm volatile("MOV %%CR4, %0" : "=r"(cr4));
-		cr4 |= (1 << 7); /* Enable Page Global as well */
+		cr4 |= ((1 << 7)); /* Enable Page Global as well */
 		__asm volatile("MOV %0, %%CR4" :: "r"(cr4));
 	} else {
 		IAL_DEBUG(CRITICAL, "PGE unsupported, Global Page feature will be unavailable\n");
@@ -549,6 +548,6 @@ initInterrupts (void)
 	bindIrq ();
 	timerPhase (400);
 	timer_ticks = 0;
-	//initCpu();
+	initCpu();
 }
 

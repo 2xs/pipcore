@@ -1,3 +1,4 @@
+
 ###############################################################################
 #  © Université Lille 1, The Pip Development Team (2015-2016)                 #
 #                                                                             #
@@ -37,11 +38,10 @@ UNAME_S := $(shell uname -s)
 
 # Use /usr/bin packages in Linux, MacPorts in Darwin
 ifeq ($(UNAME_S),Linux)
-PATH_GCC=/home/mahckr/Documents/these/Coding/reworkIAL/compiler/cross
 AS=nasm
-CC=$(PATH_GCC)/bin/i386-elf-gcc
-LD=$(PATH_GCC)/bin/i386-elf-ld
-AR=$(PATH_GCC)/bin/i386-elf-ar
+CC=gcc
+LD=ld
+AR=ar
 QEMU=qemu-system-i386
 GDB=gdb
 EXTRACTOR=tools/extractor/Extractor.Linux64
@@ -63,12 +63,11 @@ QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std 
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 
-LIBGCC=$(PATH_GCC)/lib/gcc/i386-elf/7.1.0/
+LIBGCC=/usr/lib/gcc/x86_64-pc-linux-gnu/7.1.1/32/
 
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -no-pie
-LDFLAGS=-L$(LIBGCC) -lgcc -L$(LIBGCC)
-
-PLATFORM=multiboot
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -fno-stack-protector -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-pic -no-pie
+LDFLAGS=-L$(LIBGCC) -melf_i386 -lgcc 
+PLATFORM=galileo
 ARCHITECTURE=x86

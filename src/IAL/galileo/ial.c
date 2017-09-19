@@ -53,7 +53,7 @@ extern uint32_t pcid_enabled;
 
 #define ASSERT(u) \
 	if (!(u)){ \
-		printf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \
+		printf("[%s:%d] Assert failed: " #u "\r\n", __FILE__, __LINE__); \
 		panic(0); \
 	}
 
@@ -81,24 +81,24 @@ isKernel (uint32_t cs)
 
 void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 {
-	DEBUG(TRACE, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
+	DEBUG(TRACE, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\r\n",
 		  GENERAL_REG(is, eax),
 		  GENERAL_REG(is, ebx),
 		  GENERAL_REG(is, ecx),
 		  GENERAL_REG(is, edx));
-	DEBUG(TRACE, "               edi=%x, esi=%x, ebp=%x, esp=%x\n",
+	DEBUG(TRACE, "               edi=%x, esi=%x, ebp=%x, esp=%x\r\n",
 		  GENERAL_REG(is, edi),
 		  GENERAL_REG(is, esi),
 		  GENERAL_REG(is, ebp),
 		  OPTIONAL_REG(is, useresp));
 	if(isKernel(OPTIONAL_REG(is, cs)))
 	{
-		DEBUG(TRACE, "               cs=%x, eip=%x, int=%x\n",
+		DEBUG(TRACE, "               cs=%x, eip=%x, int=%x\r\n",
 			  OPTIONAL_REG(is, cs),
 			  OPTIONAL_REG(is, eip),
 			  OPTIONAL_REG(is, int_no));
 	} else {
-		DEBUG(TRACE, "               cs=%x, ss=%x, eip=%x, int=%x\n",
+		DEBUG(TRACE, "               cs=%x, ss=%x, eip=%x, int=%x\r\n",
 			  OPTIONAL_REG(is, cs),
 			  OPTIONAL_REG(is, ss),
 			  OPTIONAL_REG(is, eip),
@@ -108,12 +108,12 @@ void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 
 uint32_t saveCaller(int_ctx_t *is)
 {
-	IAL_DEBUG(INFO, "Saving interrupted state matching registers at %x\n", is);
+	IAL_DEBUG(INFO, "Saving interrupted state matching registers at %x\r\n", is);
 	
 	/* Copy the interrupted info into the caller's stack / VIDT buffer */
 	if((*PIPFLAGS & 0x00000001) == 0x1) /* VCLI set */
 	{
-		IAL_DEBUG(INFO, "VCLI flag is set; saving into context buffer at %x\n", VIDT_CTX_BUFFER);
+		IAL_DEBUG(INFO, "VCLI flag is set; saving into context buffer at %x\r\n", VIDT_CTX_BUFFER);
 		memcpy((void*)VIDT_CTX_BUFFER, is, SIZEOF_CTX);
 		/* dumpRegs((int_ctx_t*)VIDT_CTX_BUFFER); */
 		dumpRegs(VIDT_CTX_BUFFER, TRACE);
@@ -125,12 +125,12 @@ uint32_t saveCaller(int_ctx_t *is)
 	}
 	else
 	{
-		IAL_DEBUG(INFO, "VCLI flag is not set; saving into stack at %x\n", OPTIONAL_REG(is, useresp));
+		IAL_DEBUG(INFO, "VCLI flag is not set; saving into stack at %x\r\n", OPTIONAL_REG(is, useresp));
 		memcpy((void*)(OPTIONAL_REG(is, useresp) - SIZEOF_CTX), is, SIZEOF_CTX);
 		
 		/* Update resume (int. 0) interrupt ESP to point to our newly updated stack */
 		VIDT_INT_ESP_SET(0, OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
-		IAL_DEBUG(INFO, "Set resume stack to %x.\n", OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
+		IAL_DEBUG(INFO, "Set resume stack to %x.\r\n", OPTIONAL_REG(is, useresp) - SIZEOF_CTX);
 		
 		dumpRegs((void*)(OPTIONAL_REG(is, useresp)) - SIZEOF_CTX, TRACE);
 
@@ -144,14 +144,14 @@ uint32_t saveCaller(int_ctx_t *is)
 	
 	
 	/* Change interrupt level */
-	/* IAL_DEBUG(DEBUG, "Changing interrupt level : was %d\n", INTLEVEL_GET);
+	/* IAL_DEBUG(DEBUG, "Changing interrupt level : was %d\r\n", INTLEVEL_GET);
 	INTLEVEL_SET(OPTIONAL_REG(is, int_no));
-	IAL_DEBUG(DEBUG, "Changing interrupt level : is now %d\n", INTLEVEL_GET); */
+	IAL_DEBUG(DEBUG, "Changing interrupt level : is now %d\r\n", INTLEVEL_GET); */
 }
 
 void saveCallgateCaller(gate_ctx_t* ctx)
 {
-	IAL_DEBUG(TRACE, "Building dummy context info from callgate context %x\n", ctx);
+	IAL_DEBUG(TRACE, "Building dummy context info from callgate context %x\r\n", ctx);
 	/* Build dummy context structure */
 	int_ctx_t is;
 	
@@ -183,11 +183,11 @@ void saveCallgateCaller(gate_ctx_t* ctx)
  */
 void panic (int_ctx_t *is)
 {
-	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
+	DEBUG(CRITICAL, "Pip kernel panic - something happened\r\n");
 	if(is) {
 		dumpRegs(is, CRITICAL);
 	}
-	DEBUG(CRITICAL, "\tSystem halted. ~\n");
+	DEBUG(CRITICAL, "\tSystem halted. ~\r\n");
 	__asm volatile("cli; hlt;");
 	for(;;);
 }
@@ -215,14 +215,14 @@ readPaddr(uint32_t partition, uint32_t vaddr)
 	/* read table addr & check if present */
 	t = (uint32_t)readPhysical(readPD(partition), (vaddr>>22) & 0x3ff);
 	if ((t & 1) == 0){
-		DEBUG(TRACE, "no addr %x at idx 0\n", vaddr);
+		DEBUG(TRACE, "no addr %x at idx 0\r\n", vaddr);
 		return (uint32_t)-1;
 	}
 
 	/* read vidt physicall addr & check if present */
 	v = (uint32_t)readPhysical((uintptr_t)(t &~0xfff),(vaddr>>12)&0x3ff);
 	if ((v & 1) == 0){
-		DEBUG(TRACE, "no addr %x at idx 1\n", vaddr);
+		DEBUG(TRACE, "no addr %x at idx 1\r\n", vaddr);
 		return (uint32_t)-1;
 	}
 
@@ -274,7 +274,7 @@ isInterruptHandled(uint32_t partition, uint32_t vint)
 
 	/* get paddr of partition's vidt */
 	if ((vidt=readVidt(partition)) == (uint32_t)-1){
-		DEBUG(WARNING, "No vidt in partition %x\n", partition);
+		DEBUG(WARNING, "No vidt in partition %x\r\n", partition);
 		return 0;
 	}
 	readVidtInfo(vidt, vint, &eip, &esp, &flags);
@@ -283,7 +283,7 @@ isInterruptHandled(uint32_t partition, uint32_t vint)
 		|| (vint > 0 && esp == 0)	/* no stack && !reset */
 		|| ((vint == 0 || vint > 32) && (flags & 1)) /* int masked */
 	){
-		DEBUG (TRACE, "Unhandled(%d): eip=%x, esp=%x\n", vint, eip, esp);
+		DEBUG (TRACE, "Unhandled(%d): eip=%x, esp=%x\r\n", vint, eip, esp);
 		return 0;
 	}
 	else
@@ -305,12 +305,12 @@ saveCurrentUserContext(uint32_t eip, uint32_t eflags, const pushad_regs_t *regs,
 	user_ctx_t *ctx;
 	uint32_t partition = getCurPartition();
 
-	DEBUG (TRACE, "Save context of partition %x at ip %x sp %x (%x)\n",
+	DEBUG (TRACE, "Save context of partition %x at ip %x sp %x (%x)\r\n",
 			partition, eip, regs->esp, 0x800 + 0x40*(index) );
 
 	/* read vidt paddr*/
 	if ((vidt=readVidt(partition)) == (uint32_t)-1){
-		DEBUG(WARNING, "No vidt in partition %x\n", partition);
+		DEBUG(WARNING, "No vidt in partition %x\r\n", partition);
 		return;
 	}
 	/*	int/isr saved by kernel in current partition's vidt (see x86int.h)
@@ -331,7 +331,7 @@ saveCurrentUserContext(uint32_t eip, uint32_t eflags, const pushad_regs_t *regs,
 
 	if (ctx->valid)
 	{
-		DEBUG(ERROR, "Overwriting a previous valid interrupted context\n");
+		DEBUG(ERROR, "Overwriting a previous valid interrupted context\r\n");
 		/* wathever */
 	}
 	ctx->valid = 1;
@@ -364,7 +364,7 @@ genericHandler (int_ctx_t *is)
 	/* A bit of the handling is different with hardware interrupts */
 	if(INT_IRQ(is->int_no))
 	{
-		IAL_DEBUG(TRACE, "Got hardware interrupt %d.\n", is->int_no);
+		IAL_DEBUG(TRACE, "Got hardware interrupt %d.\r\n", is->int_no);
 		/* Acknowledge hardware interrupt */
 		if (is->int_no >= 40)
 			outb (PIC2_COMMAND, PIC_EOI);
@@ -373,28 +373,28 @@ genericHandler (int_ctx_t *is)
 		/* Ignore kernel-land IRQ */
 		if (isKernel(is->cs))
 		{
-			IAL_DEBUG (TRACE, "Ignoring kernel-land IRQ.\n");
+			IAL_DEBUG (TRACE, "Ignoring kernel-land IRQ.\r\n");
 			return;
 		}
 		
-		IAL_DEBUG(TRACE, "Current partition is %x, root partition is %x.\n", PARTITION_CURRENT, PARTITION_ROOT);
+		IAL_DEBUG(TRACE, "Current partition is %x, root partition is %x.\r\n", PARTITION_CURRENT, PARTITION_ROOT);
 		
 		/* Special case : root partition might be running - TODO : remove this when it gets stable */
 		/*if(PARTITION_CURRENT == PARTITION_ROOT)
 		{
-			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is running.\n");
+			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is running.\r\n");
 			return;
 		}*/
 		
 		/* Special case : root partition might be VCLI'd - check this */
 		uintptr_t rootVidt = readVidt(PARTITION_ROOT);
 		
-		IAL_DEBUG(TRACE, "Root VIDT at %x.\n", rootVidt);
+		IAL_DEBUG(TRACE, "Root VIDT at %x.\r\n", rootVidt);
 		uint32_t flags = readPhysical(rootVidt, getTableSize()-1); /* *(uint32_t*)(rootVidt + 0x1000 - sizeof(uint32_t)); */
-		IAL_DEBUG(TRACE, "Root VIDT flags are set to %x.\n", flags);
+		IAL_DEBUG(TRACE, "Root VIDT flags are set to %x.\r\n", flags);
 		if(flags & 0x1)
 		{
-			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is busy.\n");
+			IAL_DEBUG(TRACE, "Ignoring hardware interrupt while root partition is busy.\r\n");
 			return;
 		}
 		
@@ -403,22 +403,22 @@ genericHandler (int_ctx_t *is)
 		from = PARTITION_CURRENT;
 		
 	} else {
-		IAL_DEBUG(TRACE, "Got fault interrupt %d.\n", is->int_no);
+		IAL_DEBUG(TRACE, "Got fault interrupt %d.\r\n", is->int_no);
 		
 		/* Page Fault */
 		if(is->int_no == 0xE)
 		{
 			uint32_t cr2;
 			__asm volatile("MOV %%CR2, %0;":"=r"(cr2));
-			IAL_DEBUG (TRACE, "CR2 set to %x.\n", cr2);
+			IAL_DEBUG (TRACE, "CR2 set to %x.\r\n", cr2);
 			data1 = cr2;
 			dumpRegs(is, CRITICAL);
 		}
 		
 		if(is->int_no == 0xD)
 		{
-			IAL_DEBUG (CRITICAL, "Protection fault error code set to %x.\n", is->err_code);
-			IAL_DEBUG (CRITICAL, "Partition %x faulted at EIP %x.\n", PARTITION_CURRENT, is->eip);
+			IAL_DEBUG (CRITICAL, "Protection fault error code set to %x.\r\n", is->err_code);
+			IAL_DEBUG (CRITICAL, "Partition %x faulted at EIP %x.\r\n", PARTITION_CURRENT, is->eip);
 			dumpRegs(is, CRITICAL);
 		}
 
@@ -426,7 +426,7 @@ genericHandler (int_ctx_t *is)
 		/* Kernel faults should not happen. Panic. */
 		if (isKernel(is->cs))
 		{
-			IAL_DEBUG (CRITICAL, "Encountered fault (%x) within kernel. Halting system.\n", is->int_no);
+			IAL_DEBUG (CRITICAL, "Encountered fault (%x) within kernel. Halting system.\r\n", is->int_no);
 			panic(is);
 		}
 
@@ -442,7 +442,7 @@ genericHandler (int_ctx_t *is)
 	vint = is->int_no + 1;
 	if (vint >= MAX_VINT)
 	{
-		IAL_DEBUG(ERROR, "Invalid interrupt number %x ?\n", vint);
+		IAL_DEBUG(ERROR, "Invalid interrupt number %x ?\r\n", vint);
 		return;
 	}
 	
@@ -470,7 +470,7 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 	uint32_t to, from;
 	
 	/* First, save caller context */
-	IAL_DEBUG(TRACE, "Userland called dispatch(); saving context\n");
+	IAL_DEBUG(TRACE, "Userland called dispatch(); saving context\r\n");
 	saveCallgateCaller(ctx);
 	
 	/* Perform some sanity checks */
@@ -481,7 +481,7 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 	{
 		/* A child is notifying a parent of something */
 		if (PARTITION_CURRENT == PARTITION_ROOT){
-			IAL_DEBUG(CRITICAL, "Root partition has no parent; incoherent behavior, halting\n");
+			IAL_DEBUG(CRITICAL, "Root partition has no parent; incoherent behavior, halting\r\n");
 			panic(0);
 		}
 		/* Get PAddr of Parent Partition */
@@ -493,14 +493,14 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 	else {
 		if (!checkChild(PARTITION_CURRENT, getNbLevel(), descriptor))
 		{
-			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\n", getCurPartition(), descriptor);
+			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\r\n", getCurPartition(), descriptor);
 			return;
 		}
 		
 		/* Get the physical address of child descriptor */
 		to = readPaddr(PARTITION_CURRENT, descriptor);
 		
-		IAL_DEBUG(TRACE, "Dispatching to child %x\n", to);
+		IAL_DEBUG(TRACE, "Dispatching to child %x\r\n", to);
 		
 		/* Identify parent by 0 */
 		from = 0;
@@ -530,7 +530,7 @@ void
 dispatch2 (uint32_t partition, uint32_t vint,
 		uint32_t data1, uint32_t data2, uint32_t caller)
 {
-	IAL_DEBUG(TRACE, "Requested dispatch of VINT %d to partition %x, caller is %x.\n", vint, partition, caller);
+	IAL_DEBUG(TRACE, "Requested dispatch of VINT %d to partition %x, caller is %x.\r\n", vint, partition, caller);
 	uint32_t vidt, eip, esp, vflags;
 	
 	/* Check interrupt range */
@@ -539,7 +539,7 @@ dispatch2 (uint32_t partition, uint32_t vint,
 	/* Check VIDT validity */
 	if(!((vidt=readVidt(partition)) != (uint32_t)-1))
 	{
-		IAL_DEBUG(CRITICAL, "0ops. Partition=%x, vint=%x, caller=%x\n", partition, vint, caller);
+		IAL_DEBUG(CRITICAL, "0ops. Partition=%x, vint=%x, caller=%x\r\n", partition, vint, caller);
 		ASSERT(0);
 	}
 	
@@ -547,11 +547,11 @@ dispatch2 (uint32_t partition, uint32_t vint,
 	readVidtInfo(vidt, vint, &eip, &esp, &vflags);
 	
 	/* VCLI the partition */
-	IAL_DEBUG(TRACE, "Dispatch2: VCLI'd vidt @%x.\n", vidt);
+	IAL_DEBUG(TRACE, "Dispatch2: VCLI'd vidt @%x.\r\n", vidt);
 	writePhysical(vidt, getTableSize()-1, vflags|1);
 	
 	/* Activate partition */
-	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory.\n", partition);
+	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory.\r\n", partition);
 	updateCurPartition (partition);
 	if(pcid_enabled)
 		activate(readPhysicalNoFlags(partition, indexPD () + 1) | readPhysical(partition, 12));
@@ -573,7 +573,7 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 {
 	uintptr_t to, from;
 	
-	IAL_DEBUG(TRACE, "Partition asked for a resume.\n");
+	IAL_DEBUG(TRACE, "Partition asked for a resume.\r\n");
 	
 	/* On a resume() call we consider the parent's job done - forget about the context ? */
 	
@@ -581,7 +581,7 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	{
 		/* A child is resuming a parent */
 		if (PARTITION_CURRENT == PARTITION_ROOT){
-			IAL_DEBUG(CRITICAL, "Root partition has no parent; trying to resume herself\n");
+			IAL_DEBUG(CRITICAL, "Root partition has no parent; trying to resume herself\r\n");
 			to = PARTITION_ROOT;
 			from = PARTITION_ROOT;
 		} else {
@@ -601,14 +601,14 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	else {
 		if (!checkChild(PARTITION_CURRENT, getNbLevel(), descriptor))
 		{
-			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\n", getCurPartition(), descriptor);
+			IAL_DEBUG(WARNING, "Partition %x tried to access invalid child %x\r\n", getCurPartition(), descriptor);
 			return;
 		}
 		
 		/* Get the physical address of child descriptor */
 		to = readPaddr(PARTITION_CURRENT, descriptor);
 		
-		IAL_DEBUG(TRACE, "Resuming child %x\n", to);
+		IAL_DEBUG(TRACE, "Resuming child %x\r\n", to);
 
 		/* Identify parent by 0 */
 		from = 0;
@@ -618,7 +618,7 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	}
 	
 	/* Activate partition */
-	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory\n", to);
+	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory\r\n", to);
 	updateCurPartition (to);
 	if(pcid_enabled)
 		activate(readPhysicalNoFlags(to, indexPD () + 1) | readPhysical(to, 12));
@@ -627,15 +627,15 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	
 	/* Get interrupted context info - FIXME: stack only ? */
 	uintptr_t int_ctx;
-	IAL_DEBUG(TRACE, "PIPFLAGS is %x\n", *PIPFLAGS);
+	IAL_DEBUG(TRACE, "PIPFLAGS is %x\r\n", *PIPFLAGS);
 	if(VIDT_VCLI)
 	{
 		int_ctx = (uintptr_t)VIDT_CTX_BUFFER;
-		IAL_DEBUG(TRACE, "Interrupted context should be at %x\n", VIDT_CTX_BUFFER);
+		IAL_DEBUG(TRACE, "Interrupted context should be at %x\r\n", VIDT_CTX_BUFFER);
 	} else
 	{
 		int_ctx = VIDT_INT_ESP(0);
-		IAL_DEBUG(TRACE, "Interrupted context should be at %x\n", int_ctx);
+		IAL_DEBUG(TRACE, "Interrupted context should be at %x\r\n", int_ctx);
 	}
 	int_ctx_t* intctx = (int_ctx_t*)int_ctx;
 	dumpRegs(intctx, TRACE);
@@ -650,7 +650,7 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	ctxToResume.regs.esp = intctx->useresp;
 	ctxToResume.valid = 0;
 	
-	IAL_DEBUG(TRACE, "Going back to userland.\n");
+	IAL_DEBUG(TRACE, "Going back to userland.\r\n");
 	
 	extern void resumeAsm(user_ctx_t*);
 	resumeAsm(&ctxToResume);
