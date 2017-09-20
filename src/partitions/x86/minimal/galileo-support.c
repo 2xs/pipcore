@@ -31,44 +31,103 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
+/**
+ * \file mmu.c
+ * \brief MMU early-boot configuration
+ */
+#include <stdint.h>
+#include "galileo-support.h"
+
+
+uint16_t usIRQMask = 0xfffb;
+uint32_t UART_PCI_Base = 0x9000b000;
+uint32_t UART_MMIO_Base = 0xe00a5000;
+
+
+void initGalileoSerialPort(uint32_t portnumber)
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
-
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+    if(galileoSerialPortInitialized == 0){
+        initializeGalileoUART(portnumber);
+        galileoSerialPortInitialized = 1;
+    }
 }
 
+
+
+void initializeGalileoUART(uint32_t portnumber)
+ {
+	volatile uint8_t divisor = 24;
+	volatile uint8_t output_data = 0x3 & 0xFB & 0xF7;
+	volatile uint8_t input_data = 0;
+	volatile uint8_t lcr = 0;
+
+	if (portnumber == DEBUG_SERIAL_PORT)
+		UART_PCI_Base = MMIO_PCI_ADDRESS(0, 20, 5, 0);
+	else
+		UART_PCI_Base = MMIO_PCI_ADDRESS(0, 20, 1, 0);
+
+	uint32_t base = mem_read(UART_PCI_Base, 0x10, 4);
+	UART_MMIO_Base = base;
+
+	mem_write(base, R_UART_SCR, 1, 0xAB);
+
+	mem_write(base, R_UART_LCR, 1, output_data | B_UARY_LCR_DLAB);
+
+	mem_write(base, R_UART_BAUD_HIGH, 1, (uint8_t)(divisor >> 8));
+	mem_write(base, R_UART_BAUD_LOW, 1, (uint8_t)(divisor & 0xff));
+
+	mem_write(base, R_UART_LCR, 1, output_data);
+
+	mem_write(base, R_UART_FCR, 1, (uint8_t)(B_UARY_FCR_TRFIFIE |
+		B_UARY_FCR_RESETRF | B_UARY_FCR_RESETTF | 0x30));
+
+	input_data = mem_read(base, R_UART_MCR, 1);
+	input_data |= BIT1;
+	input_data &= ~BIT5;
+	mem_write(base, R_UART_MCR, 1, input_data);
+
+	lcr = mem_read(base, R_UART_LCR, 1);
+	mem_write(base, R_UART_LCR, 1, (uint8_t) (lcr & ~B_UARY_LCR_DLAB));
+
+	mem_write(base, R_UART_IER, 1, 0);
+ }
+
+ /*-----------------------------------------------------------------------
+  * Serial port support functions
+  *------------------------------------------------------------------------
+  */
+ void vGalileoPrintc(char c)
+ {
+	if (galileoSerialPortInitialized)
+	{	
+
+		while((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_TXRDY) == 0);
+
+	 	mem_write(UART_MMIO_Base, R_UART_BAUD_THR, 1, c);
+	}
+ }
+ /*-----------------------------------------------------------*/
+
+ uint8_t ucGalileoGetchar()
+ {
+	uint8_t c = 0;
+	if (galileoSerialPortInitialized)
+	{
+		if((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_RXRDY) != 0)
+		 	c  = mem_read(UART_MMIO_Base, R_UART_BAUD_THR, 1);
+	}
+	  return c;
+ }
+ /*-----------------------------------------------------------*/
+
+ void vGalileoPuts(const char *string)
+ {
+	if (galileoSerialPortInitialized)
+	{
+	    while(*string)
+	    	vGalileoPrintc(*string++);
+	}
+
+
+ }
+ /*-----------------------------------------------------------*/
