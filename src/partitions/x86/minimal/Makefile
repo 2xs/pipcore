@@ -1,13 +1,18 @@
 include ../toolchain.mk
 
-CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/
+
+
+CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -fno-pic
 ASFLAGS=$(CFLAGS)
-LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld -lpip
+ASFLAGS+=-I$(LIBPIP)/include/
 
-ASSOURCES=$(wildcard *.s)
-CSOURCES=$(wildcard *.c)
+LDFLAGS=-L$(LIBPIP)/lib -I$(LIBPIP)/include/ -melf_i386 -Tlink.ld -lpip -Tlink.ld
+LDFLAGS2=-L$(LIBPIP)/lib -I$(LIBPIP)/include/ -melf_i386 -Tlinkelf.ld -lpip
 
-ASOBJ=$(ASSOURCES:.s=.o)
+
+ASSOURCES=$(wildcard *.S)
+CSOURCES:=$(wildcard *.c)
+ASOBJ=$(ASSOURCES:.S=.o)
 COBJ=$(CSOURCES:.c=.o)
 
 EXEC=minimal.bin
@@ -16,10 +21,11 @@ all: $(EXEC)
 	@echo Done.
 
 clean:
-	rm -f $(ASOBJ) $(COBJ) $(EXEC)
+	rm -f *.o $(EXEC)
 
 $(EXEC): $(ASOBJ) $(COBJ)
-	$(LD) $^ -o $@ $(LDFLAGS)
+	$(LD)  $(LDFLAGS) $^ -o $@  $(LDFLAGS)
+	$(LD)  $(LDFLAGS2) $^ -o minimal.elf $(LDFLAGS2) 
 
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@

@@ -31,44 +31,27 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
-{
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+#define __ASSEMBLY__
+#include <pip/vidt.h>
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+.section .text
+.extern main
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
+boot:
+    /* Push EBX onto the stack */
+    push %ebx
 
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
+    /* Disable interrupts
+    .extern vcli
+    call vcli */ 
 
-}
+    /* Call main */
+    call main 
+    jmp loop
 
+loop:
+    jmp loop
+
+INTERRUPT_HANDLER(pfAsm, pfHandler)
+INTERRUPT_HANDLER(gpfAsm, gpfHandler)
+INTERRUPT_HANDLER(timerAsm, timerHandler)

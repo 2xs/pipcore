@@ -31,44 +31,138 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
+/**
+ * \file malinternal.c
+ * \brief This file contains some internal defines for MAL interface with Coq.
+ * \warning These functions are roughly documented as their signification is quite straightforward. See mal.h for more information.
+ */
+
+#include <stdint.h>
+#include "mal.h"
+#include "structures.h"
+
+/*!
+ * \fn uint32_t defaultAddr()
+ * \brief Returns the default null address.
+ * \return The null address.
+ */
+uint32_t defaultAddr(void)
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
-
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+	return 0;
 }
 
+/*!
+ * \fn uint32_t defaultVAddr()
+ * \brief Returns the default null Vaddress.
+ * \return The null Vaddress.
+ */
+uint32_t defaultVAddr(void)
+{
+	return 0;
+}
+
+uint32_t kernelIndex(void)
+{
+	extern uint32_t __code;
+	return getIndexOfAddr((uint32_t)(&__code), 1);
+}
+
+uint32_t indexPR(void)
+{
+	return 0;
+}
+
+uint32_t zero(void)
+{
+	return 0;
+}
+
+
+uint32_t indexPD(void)
+{
+	return 2;
+}
+
+uint32_t indexSh1(void)
+{
+	return 4;
+}
+
+uint32_t indexSh2(void)
+{
+	return 6;
+}
+
+uint32_t indexSh3(void)
+{
+	return 8;
+}
+
+uint32_t PPRidx(void)
+{
+	return 10;
+}
+
+/*!
+ * \fn uint32_t addressEquals(uint32_t addr, uint32_t addr2)
+ * \param addr Address to check
+ * \param addr2 Address to compare to
+ * \brief Checks if an address given is equal to another given.
+ * \return 0 is not equal, 1 otherwise.
+ */
+uint32_t addressEquals(uint32_t addr, uint32_t addr2)
+{
+	return (addr == addr2);
+}
+
+int geb(const uint32_t a, const uint32_t b)
+{
+	return a >= b;
+}
+
+int gtb(const uint32_t a, const uint32_t b)
+{
+	return a > b;
+}
+
+int leb(const uint32_t a, const uint32_t b)
+{
+	return a <= b;
+}
+
+int ltb(const uint32_t a, const uint32_t b)
+{
+	return a < b;
+}
+
+int eqb(const uint32_t a, const uint32_t b)
+{
+	return a == b;
+}
+
+uint32_t inc(uint32_t val)
+{
+	return ++val;
+}
+
+uint32_t sub(uint32_t val)
+{
+	return --val;
+}
+
+uint32_t mul3(uint32_t v)
+{
+	return 3 * v;
+}
+
+uint32_t getMaxIndex(void)
+{
+       return getTableSize() - 1;
+}
+
+
+uint32_t nbPage()
+{
+	extern uint32_t maxPages;
+	return maxPages;
+}

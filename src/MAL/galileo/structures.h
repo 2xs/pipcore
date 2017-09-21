@@ -31,44 +31,53 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
+/**
+ * \file structures.h
+ * \brief x86 MAL structures
+ */
+
+#ifndef STRUCT_H
+#define STRUCT_H
+
+#include <stdint.h>
+
+#define PAGE_SIZE 4096 //!< Page size
+
+/**
+ * \struct page_table_entry
+ * \brief Page Table entry structure
+ */
+typedef struct page_table_entry
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+	uint32_t present:1;
+	uint32_t rw:1;
+	uint32_t user:1;
+	uint32_t pwt:1;
+	uint32_t pcd:1;
+	uint32_t accessed:1;
+	uint32_t dirty:1;
+	uint32_t pat:1;
+	uint32_t global:1;
+	uint32_t unused:3;
+	uint32_t frame:20;
+}__attribute__((packed)) page_table_entry_t;
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+/**
+ * \struct page_table
+ * \brief Page Table structure
+ */
+typedef struct page_table
+{
+    page_table_entry_t pages[1024]; //!< Page Table Entries in this Page Table
+}__attribute__((packed)) page_table_t;
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
+/**
+ * \struct page_directory
+ * \brief Page Directory structure
+ */
+typedef struct page_directory
+{
+    uint32_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
+}__attribute__((packed)) page_directory_t;
 
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
-}
-
+#endif

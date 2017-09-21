@@ -31,44 +31,20 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
-{
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+/**
+ * \file libc.h
+ * \brief Pseudo-libC header
+ */
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+#ifndef DEF_PEPIN_LIBC_H
+#define DEF_PEPIN_LIBC_H
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
+typedef unsigned long size_t;
 
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
+void *memset(void *s, int c, size_t n);
+void *strcpy(char* dest, const char* src);
+void * memcpy ( void * destination, const void * source, size_t num );
+char* strcat(char* dest, const char* source);
+int strlen(char* str);
 
-}
-
+#endif

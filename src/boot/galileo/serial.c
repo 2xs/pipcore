@@ -31,44 +31,63 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
-{
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+/**
+ * \file serial.c
+ * \brief Serial driver for debugging purposes
+ */
+#include "serial.h"
+#include "port.h"
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+#define PORT 0x3f8 //!< Serial port COM1 number
+ 
+/**
+ * \fn void initSerial()
+ * \brief Initializes the serial port
+ */
+void initSerial() {
+       outb(PORT + 1, 0x00);    // Disable all interrupts
+       outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+       outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+       outb(PORT + 1, 0x00);    //                  (hi byte)
+       outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+       outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+       outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
 }
 
+/**
+ * \fn int serialReceived()
+ * \brief Checks whether we received some data on the serial port
+ * \return 1 if some data is available, 0 else
+ */
+int serialReceived() {
+       return inb(PORT + 5) & 1;
+}
+
+/**
+ * \fn char readSerial()
+ * \brief Gets a character from the serial port
+ * \return The character
+ */
+char readSerial() {
+       while (serialReceived() == 0);
+       return inb(PORT);
+}
+
+/**
+ * \fn int isTransmitEmpty()
+ * \brief Checks whether our serial line buffer is empty or not
+ * \return 0 if it's not empty, 1 else
+ */
+int isTransmitEmpty() {
+       return inb(PORT + 5) & 0x20;
+}
+ 
+/**
+ * \fn void writeSerial(char a)
+ * \brief Writes a character into the serial port
+ * \param a The character to write
+ */
+void writeSerial(char a) {
+       while (isTransmitEmpty() == 0);
+       outb(PORT,a);
+}

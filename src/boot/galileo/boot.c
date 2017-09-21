@@ -61,7 +61,8 @@
 
 /* GDT configuration */
 #include "gdt.h"
-
+#include "galileo-support.h"
+#include "hardware.h"
 /* Include serial only if we're in debug mode */
 #ifdef PIPDEBUG
 #include "serial.h"
@@ -80,35 +81,36 @@ pip_fpinfo* fpinfo;
  * \brief Spawns the multiplexer.
  *
  * Spawns the multiplexer given into the first partition space.
- */ 
+ */
 void spawnFirstPartition()
 {
 	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
 
-	DEBUG(TRACE, "multiplexer cr3 is %x\n", multiplexer_cr3);
+	DEBUG(TRACE, "multiplexer cr3 is %x\r\n", multiplexer_cr3);
 
 	// Prepare kernel stack for multiplexer
 	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)0x300000;
 	setKernelStack((uint32_t)krnStack);
 
-	DEBUG(TRACE, "kernel stack is %x\n", krnStack);
+	DEBUG(TRACE, "kernel stack is %x\r\n", krnStack);
 
 	// Find virtual interrupt vector for partition
 	uintptr_t ptVirq = readPhysicalNoFlags((uintptr_t)multiplexer_cr3, getTableSize() - 1);
 	uintptr_t virq = readPhysicalNoFlags(ptVirq, getTableSize() - 1);
-	
+
 	// Set user stack into virq
 	uint32_t target = (uint32_t)(virq) + sizeof(uint32_t);
 	writePhysical(target, 0x1, (uint32_t)usrStack);
-	
-	DEBUG(TRACE, "user stack is %x\n", usrStack);
-	
+
+	DEBUG(TRACE, "user stack is %x\r\n", usrStack);
+
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
-	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
-	
-	// Send virtual IRQ 0 to partition
 
+	printf("Starting partition\r\r\n");
+	DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\r\r\n", virq, virq + 0xFFC);
+
+	// Send virtual IRQ 0 to partition
 	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 }
 
@@ -121,11 +123,11 @@ uintptr_t fillFpInfo()
 	extern uint32_t __end;
 	extern uint32_t ramEnd;
 
-	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo);
-	
+	DEBUG(TRACE, "FPInfo now at %x\r\n", fpinfo);
+
 	// Fill first partition info structure
 
-	
+
 	return (uintptr_t)fpinfo;
 }
 
@@ -143,29 +145,34 @@ void fixFpInfo()
  * \param mboot_ptr Pointer to the multiboot structure, should be on %EBX after boot0.s
  * \return Should not return.
  */
+
+uint32_t debugGDB = 1;
 int c_main(struct multiboot *mbootPtr)
 {
-	initSerial();
-	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
-	
+	setupHardware();
+	printf("Starting Pip ?\r\n");
+	while(ucGalileoGetchar() == 0);
+
+	DEBUG(INFO, "Pip kernel, git revision %s\r\n", GIT_REVISION);
+
 	// Install GDT & IDT
-	DEBUG(INFO, "-> Initializing ISR.\n");
+	DEBUG(INFO, "-> Initializing ISR.\r\n");
 	initInterrupts();
-	DEBUG(INFO, "-> Initializing GDT.\n");
+	DEBUG(INFO, "-> Initializing GDT.\r\n");
 	gdtInstall();
-	
+
 	// Initialize free page list
-	DEBUG(INFO, "-> Initializing paging.\n");
+	DEBUG(INFO, "-> Initializing paging.\r\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);
 
 	// Install and test MMU
-	DEBUG(INFO, "-> Initializing MMU.\n");
+	DEBUG(INFO, "-> Initializing MMU.\r\n");
 	initMmu();
-	
-	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
+
+	DEBUG(INFO, "-> Now spawning multiplexer in userland.\r\n");
 	spawnFirstPartition();
 
-	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
-	for(;;);
+	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\r\n");
+
 	return 0xCAFECAFE;
-} 
+}

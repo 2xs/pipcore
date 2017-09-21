@@ -31,44 +31,35 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
-{
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+/**
+ * \file port.h
+ * \brief Include file for IO-ports operations
+ */
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+#ifndef __PORT__
+#define __PORT__
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
+#include <stdint.h>
 
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
+#define FAULT_FORBIDDEN		64
 
-}
+void outb(uint16_t port, uint8_t value); //!< IO port write byte
+void outw(uint16_t port, uint16_t value); //!< IO port write word
+void outl(uint16_t port, uint32_t value); //!< IO port write word
+uint8_t inb(uint16_t port); //!< IO port read byte
+uint16_t inw(uint16_t port); //!< IO port read word
+uint32_t inl(uint16_t port); //!< IO port read word
+void halt(); //!< halt function
 
+
+/* Call-gate IO methods */
+void cg_outb(uint32_t port, uint32_t value); //!< Outb callgate method
+uint32_t cg_inb(uint32_t port); //!< Inb callgate method
+
+void cg_outw(uint32_t port, uint32_t value); //!< Outw callgate method
+uint32_t cg_inw(uint32_t port); //!< Inw callgate method
+
+void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
+void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
+uint32_t cg_inl(uint32_t port); //!< Inl callgate method
+#endif

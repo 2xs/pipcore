@@ -31,44 +31,97 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
+/**
+ * \file libc.c
+ * \brief Pseudo-libC implementation
+ * \warning Some of these implementations are unsafe. We know. We're not proud of this.
+ */
+
+#include "libc.h"
+#include <stdint.h>
+
+/**
+ * \fn memset ( void * ptr, int value, size_t num )
+ * \brief Sets a memory space with a single, fixed value
+ * \param ptr Pointer to the memory space
+ * \param value The value to write
+ * \param num The amount of memory to write to
+ * \return Pointer to the memory space
+ */
+
+void *memset(void *ptr, int value, size_t num)
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+    unsigned char* temp=ptr;
+    while(num--)
+        *temp++ = (unsigned char)value;
+    return ptr;
+}
+/**
+ * \fn void *strcpy(char* dest, const char* src)
+ * \brief String copy
+ */
+void *strcpy(char* dest, const char* src)
+{
+	char *p = dest;
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+	while ((*p++ = *src++));
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+	return dest;
 }
 
+/**
+ * \fn memcpy ( void * destination, const void * source, size_t num )
+ * \brief Copies data from source to destination
+ * \param destination Destination address
+ * \param source Source address
+ * \param num Size of data to copy
+ * \return Pointer to the destination address
+ */
+void * memcpy ( void * destination, const void * source, size_t num )
+{
+	uint32_t i;
+	uint8_t *src;
+	uint8_t *dest;
+	src = (uint8_t*) source;
+	dest = (uint8_t*) destination;
+	for(i=0; i<num; i++)
+	{
+		*dest = *src;
+		dest++;
+		src++;
+	}
+	return destination;
+}
+
+/**
+ * \fn strcat(char* dest, const char* source)
+ * \brief Concatenates a source string into a destination string, assuming the destination string buffer is large enough.
+ * \param dest Destination string buffer
+ * \param source Source string buffer
+ * \return Destination string buffer, containing the concatenated strings.
+ */
+char* strcat(char* dest, const char* source)
+{
+        int idx, i, j;
+
+        for(idx=0; *(dest+idx) != '\0'; idx++) {}
+        for(i=0; *(source+i) != '\0'; i++) {}
+
+	for(j = 0; j<(i+1); j++) {
+		*(dest + idx + j) = *(source + j);
+	}
+	return dest;
+}
+
+/**
+ * \fn int strlen(char* str)
+ * \brief String length
+ */
+int strlen(char* str)
+{
+	int i = 0;
+	while(str[i] != '\0')
+		i++;
+	
+	return i;
+}

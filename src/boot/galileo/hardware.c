@@ -31,44 +31,73 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
+/**
+ * \file mmu.c
+ * \brief MMU early-boot configuration
+ */
+#include <stdint.h>
+#include "debug.h"
+#include <libc.h>
+#include "galileo-support.h"
+#include "GPIO_I2C.h"
+#include "HPET.h"
+#include "portmacro.h"
+#include "hardware.h"
+
+extern uint32_t UART_MMIO_Base;
+
+void setupHardware()
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+    if(PIP_DEBUG_MODE)
+        initGalileoSerialPort(DEBUG_SERIAL_PORT);
+    DEBUG(INFO, "-> Initializing SERIAL PORT with UART_MMIO_Base at %x.\n",UART_MMIO_Base);
+    initGalileoGPIO();
+    DEBUG(INFO,"-> Initializing GPIO.\n");
+    vGalileoInitializeLegacyGPIO();
+    DEBUG(INFO,"-> Initializing Legacy GPIO.\n");
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+#if(hpetUSE_HPET_TIMER_NUMBER)
+    {
+        __asm volatile("cli");
+        initHPETInterrupts();
+        DEBUG(INFO,"-> Initializing HPET Interrupts\n");
+    }
+#endif
+    DEBUG(INFO,"-> Calibrate Timer\n");
+    calibrateLVTimer();
 }
+
+
+
+
+
+void calibrateLVTimer( void )
+{
+uint32_t uiInitialTimerCounts, uiCalibratedTimerCounts;
+
+	/* Disable LAPIC Counter. */
+	portAPIC_LVT_TIMER = portAPIC_DISABLE;
+
+	/* Calibrate the LV Timer counts to ensure it matches the HPET timer over
+	extended periods. */
+	uiInitialTimerCounts = ( ( configCPU_CLOCK_HZ >> 4UL ) / configTICK_RATE_HZ );
+	uiCalibratedTimerCounts = uiCalibrateTimer( 0, hpetLVTIMER );
+
+	if( uiCalibratedTimerCounts != 0 )
+	{
+		uiInitialTimerCounts = uiCalibratedTimerCounts;
+	}
+
+	/* Set the interrupt frequency. */
+	portAPIC_TMRDIV = portAPIC_DIV_16;
+	portAPIC_TIMER_INITIAL_COUNT = uiInitialTimerCounts;
+
+	/* Enable LAPIC Counter. */
+	portAPIC_LVT_TIMER = portAPIC_TIMER_PERIODIC | portAPIC_TIMER_INT_VECTOR;
+
+	/* Sometimes needed. */
+	portAPIC_TMRDIV = portAPIC_DIV_16;
+}
+
+
 

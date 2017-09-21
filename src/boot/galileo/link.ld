@@ -31,44 +31,49 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
+ENTRY(start)
 SECTIONS
 {
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
-
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
-
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
-
+/* Kernel laod address defined during make (Makefile.inc), used in everything */
+.text 0x100000 :
+{
+code = .; _code = .; __code = .;
+*(.text)
+. = ALIGN(4096);
 }
 
+.data :
+{
+data = .; _data = .; __data = .;
+*(.data)
+*(.rodata)
+. = ALIGN(4096);
+}
+
+.bss :
+{
+bss = .; _bss = .; __bss = .;
+*(.bss)
+. = ALIGN(4096);
+}
+
+/* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
+.krnstack 0x300000 :
+{
+krnstack = .; _krnstack = .; __krnstack = .;
+*(.krnstack)
+. = ALIGN(4096);
+}
+
+/* Multiplexer load address defined during make (Makefile.inc), used in multiplexer.s */
+.multiplexer 0x700000 :
+{
+multiplexer = .;
+_multiplexer = .;
+__multiplexer = .;
+*(.multiplexer)
+. = ALIGN(4096);
+}
+
+end = .; _end = .; __end = .;
+}

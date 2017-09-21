@@ -31,44 +31,28 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/***
- OUTPUT_FORMAT(elf32-i386 )
-/**/
-/**/
-OUTPUT_FORMAT(binary ) 
-/**/
-ENTRY(main)
-SECTIONS
-{
-  .text 0x700000 :
-  {
-    code = .; _code = .; __code = .;
-    *(.text)
-    . = ALIGN(4096);
-  }
+/**
+ * \file mmu.h
+ * \brief Include file for MMU configuration.
+ */
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
+#ifndef __PAGING__
+#define __PAGING__
 
-  .bss :
-  {
-    bss = .; _bss = .; __bss = .;
-    *(.bss)
-    . = ALIGN(4096);
-  }
+#include "multiboot.h"
+#include <stdint.h>
 
-  .data :
-  {
-     data = .; _data = .; __data = .;
-     *(.data)
-     *(.rodata)
-     . = ALIGN(4096);
-  }
+/**
+ * \brief Defines the size of a Page.
+ */
+#define PAGE_SIZE 4096
 
-}
+uint32_t *firstFreePage; //!< First free available page.
 
+void initFreePageList(uintptr_t base, uintptr_t length);
+uint32_t* allocPage();
+void freePage(uint32_t *page);
+void dumpMmap(uint32_t* mmap_ptr, uint32_t len);
+void initMmu();
+
+#endif
