@@ -14,7 +14,7 @@ The Pip Development Team is:
 *   Julien Iguchi-Cartigny <julien.iguchi-cartigny@univ-lille1.fr>
 *   Narjes Jomaa <narjes.jomaa@univ-lille1.fr>
 *   David Nowak <david.nowak@univ-lille1.fr>
-*   Mahieddine Yaker <mahieddine.yaker@etudiant.univ-lille1.fr>
+*   Mahieddine Yaker <mahieddine.yaker@univ-lille1.fr>
 *   Paolo Torrini <paolo.torrini@univ-lille1.fr>
 
 ## Getting started
@@ -24,14 +24,15 @@ You can generate the "Getting Started" tutorial by invoking `make userguide`. Th
 
 Pip is known to build correctly with this toolchain:
 
-* GCC i386, version 4.7.2
+* GCC i386, version 4.7.2 to 4.9
 * NASM version 2.11.08
 * COQ Proof Assistant version 8.5pl2
 * GNU Sed version 4.2.2 (install it on an OSX build host through MacPorts : "gsed")
 * grub-mkrescue (for ISO image generation; unnecessary for i386 target though)
 * Doxygen version 1.8.10 (for documentation generation)
-* stack version 1.2.0.2 (is a cross-platform program for developing Haskell projects)
+* haskell-stack version 1.2.0.2 (is a cross-platform program for developing Haskell projects)
 * QEMU i386 version 2.6.50
+* Texlive any version or another latex tools 
 
 ## Building the Pip
 

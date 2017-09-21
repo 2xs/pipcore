@@ -27,7 +27,7 @@ $(EXEC): $(ASOBJ) $(COBJ)
 	$(LD)  $(LDFLAGS) $^ -o $@  $(LDFLAGS)
 	$(LD)  $(LDFLAGS2) $^ -o minimal.elf $(LDFLAGS2) 
 
-%.o: %.s
+%.o: %.S
 	$(AS) $(ASFLAGS) $< -o $@
 
 %.o: %.c

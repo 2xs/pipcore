@@ -47,14 +47,6 @@ SECTIONS
     . = ALIGN(4096);
   }
 
-  .linux : ALIGN(4096)
-  {
-    _linux = . ;
-    *(.linux)
-    . = ALIGN(0x40000); */
-    _elinux = . ;
-  } = 0x00000000
-
   .bss :
   {
     bss = .; _bss = .; __bss = .;

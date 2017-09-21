@@ -61,43 +61,82 @@ uint32_t defaultVAddr(void)
 	return 0;
 }
 
+/*!
+ * \fn uint32_t kernelIndex()
+ * \brief Returns the kernel address.
+ * \return The kernel address.
+ */
 uint32_t kernelIndex(void)
 {
 	extern uint32_t __code;
 	return getIndexOfAddr((uint32_t)(&__code), 1);
 }
 
+/*!
+ * \fn uint32_t indexPR()
+ * \brief Returns the partition root.
+ * \return The partition root.
+ */
 uint32_t indexPR(void)
 {
 	return 0;
 }
 
+/*!
+ * \fn uint32_t zero()
+ * \brief Returns zero.
+ * \return zero.
+ */
 uint32_t zero(void)
 {
 	return 0;
 }
 
-
+/*!
+ * \fn uint32_t indexPD()
+ * \brief Returns the page directory index.
+ * \return The page directory index.
+ */
 uint32_t indexPD(void)
 {
 	return 2;
 }
 
+/*!
+ * \fn uint32_t indexSh1()
+ * \brief Returns the shadow 1 index.
+ * \return The shadow 1 index.
+ */
 uint32_t indexSh1(void)
 {
 	return 4;
 }
 
+/*!
+ * \fn uint32_t indexSh2()
+ * \brief Returns the shadow 2 index.
+ * \return The shadow 2 index.
+ */
 uint32_t indexSh2(void)
 {
 	return 6;
 }
 
+/*!
+ * \fn uint32_t indexSh3()
+ * \brief Returns the shadow 3 index.
+ * \return The shadow 3 index.
+ */
 uint32_t indexSh3(void)
 {
 	return 8;
 }
 
+/*!
+ * \fn uint32_t PPRidx()
+ * \brief Returns the parent partition root.
+ * \return The parent partition root.
+ */
 uint32_t PPRidx(void)
 {
 	return 10;
@@ -115,52 +154,101 @@ uint32_t addressEquals(uint32_t addr, uint32_t addr2)
 	return (addr == addr2);
 }
 
+/*!
+ * \fn uint32_t geb()
+ * \brief the first parameter is greater than or equal to the second one.
+ * \return the comparison.
+ */
 int geb(const uint32_t a, const uint32_t b)
 {
 	return a >= b;
 }
 
+/*!
+ * \fn uint32_t gtb()
+ * \brief the first parameter is greater than the second one.
+ * \return the comparison.
+ */
 int gtb(const uint32_t a, const uint32_t b)
 {
 	return a > b;
 }
 
+/*!
+ * \fn uint32_t leb()
+ * \brief the first parameter is less than or equal to the second one.
+ * \return the comparison.
+ */
 int leb(const uint32_t a, const uint32_t b)
 {
 	return a <= b;
 }
 
+/*!
+ * \fn uint32_t ltb()
+ * \brief the first parameter is less than the second one.
+ * \return the comparison.
+ */
 int ltb(const uint32_t a, const uint32_t b)
 {
 	return a < b;
 }
 
+/*!
+ * \fn uint32_t eqb()
+ * \brief the first parameter is equal to the second one.
+ * \return the comparison.
+ */
 int eqb(const uint32_t a, const uint32_t b)
 {
 	return a == b;
 }
 
+/*!
+ * \fn uint32_t inc()
+ * \brief incremet the value.
+ * \return the incremented value.
+ */
 uint32_t inc(uint32_t val)
 {
 	return ++val;
 }
 
+/*!
+ * \fn uint32_t sub()
+ * \brief decrement value.
+ * \return the decremented value.
+ */
 uint32_t sub(uint32_t val)
 {
 	return --val;
 }
 
+/*!
+ * \fn uint32_t mul3()
+ * \brief multiplies by 3.
+ * \return the result of the multiplication by 3.
+ */
 uint32_t mul3(uint32_t v)
 {
 	return 3 * v;
 }
 
+/*!
+ * \fn uint32_t getMaxIndex()
+ * \brief get the maximum addressable index in the translation table.
+ * \return the maximum index.
+ */
 uint32_t getMaxIndex(void)
 {
        return getTableSize() - 1;
 }
 
-
+/*!
+ * \fn uint32_t nbPage()
+ * \brief  get the .
+ * \return the comparison.
+ */
 uint32_t nbPage()
 {
 	extern uint32_t maxPages;
