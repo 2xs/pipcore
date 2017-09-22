@@ -78,12 +78,12 @@ uint32_t derivated(uint32_t table, uint32_t index); //!< Returns 1 if the page i
 
 uint32_t readPDflag(uint32_t table, uint32_t index); //!< 
 void writePDflag(uint32_t table, uint32_t index, uint32_t value); //!< Writes the page directory flag contents
-uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Directory so NO ASM VOLATILE CR3 PLZ
+uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Directory
 
 void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, setting its contents to 0x00000000
 
 uint32_t defaultAddr(void); //!< Default address, should be 0x00000000
-extern const uint32_t defaultVAddr; //!< Default address, should be 0x00000000, youpi
+extern const uint32_t defaultVAddr; //!< Default address, should be 0x00000000
 uint32_t getTableSize(void); //!< Table size
 uint32_t getMaxIndex(void); //!< Table size
 uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.
@@ -92,10 +92,12 @@ void cleanPage(uint32_t paddr); //!< Cleans a given page, filling it with zero
 uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute); //!< Checks whether the asked rights are applicable to the architecture or not
 uint32_t applyRights(uint32_t table, uint32_t index, uint32_t read, uint32_t write, uint32_t execute); //!< Apply the asked rights to the given entry
 
-// For benchmarking purposes, Haskell is magic
-
 uint32_t toAddr(uint32_t input); //!< Converts a given uint32_t to an address (only for Haskell FFI purposes)
 extern const uint32_t nbLevel;
+
+/* Amount of pages available, meh */
+extern uint32_t maxPages;
+#define nbPage maxPages
 
 /* Coq related stuff */
 int geb(const uint32_t a, const uint32_t b); //!< Greater or equal

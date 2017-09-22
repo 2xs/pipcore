@@ -115,6 +115,4 @@ typedef uint32_t count;
 
 #define coq_N   1000
 
-uint32_t nbPage();
-
 #endif

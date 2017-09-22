@@ -235,14 +235,3 @@ uint32_t getMaxIndex(void)
 {
        return getTableSize() - 1;
 }
-
-/*!
- * \fn uint32_t nbPage()
- * \brief  get the .
- * \return the comparison.
- */
-uint32_t nbPage()
-{
-	extern uint32_t maxPages;
-	return maxPages;
-}
