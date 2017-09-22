@@ -137,7 +137,6 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    --ignore coq_N                                                \
 	    Internal.json                                                 \
 	    | $(SED) -e 's/nbPage/nbPage()/g'                             \
-	             -e 's/nbLevel/nbLevel()/g'                           \
 	      > $(TARGET_DIR)/Internal.c
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
@@ -157,8 +156,6 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -q maldefines.h -q Internal.h                                 \
 	    Services.json                                                 \
 	    | $(SED) -e 's/nbPage/nbPage()/g'                             \
-	             -e 's/nbLevel/nbLevel()/g'                           \
-	             -e 's/defaultVAddr/defaultVAddr()/g'                 \
 	      > $(TARGET_DIR)/Services.c
 
 proofs: makefile.autocoq $(VSOURCES)

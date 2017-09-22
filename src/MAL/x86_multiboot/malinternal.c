@@ -51,15 +51,7 @@ uint32_t defaultAddr(void)
 	return 0;
 }
 
-/*!
- * \fn uint32_t defaultVAddr()
- * \brief Returns the default null Vaddress.
- * \return The null Vaddress.
- */
-uint32_t defaultVAddr(void)
-{
-	return 0;
-}
+const uint32_t defaultVAddr = 0;
 
 /*!
  * \fn uint32_t kernelIndex()

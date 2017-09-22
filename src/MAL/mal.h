@@ -83,7 +83,7 @@ uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Director
 void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, setting its contents to 0x00000000
 
 uint32_t defaultAddr(void); //!< Default address, should be 0x00000000
-uint32_t defaultVAddr(void); //!< Default address, should be 0x00000000, youpi
+extern const uint32_t defaultVAddr; //!< Default address, should be 0x00000000, youpi
 uint32_t getTableSize(void); //!< Table size
 uint32_t getMaxIndex(void); //!< Table size
 uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.
@@ -95,7 +95,7 @@ uint32_t applyRights(uint32_t table, uint32_t index, uint32_t read, uint32_t wri
 // For benchmarking purposes, Haskell is magic
 
 uint32_t toAddr(uint32_t input); //!< Converts a given uint32_t to an address (only for Haskell FFI purposes)
-uint32_t nbLevel(void);
+extern const uint32_t nbLevel;
 
 /* Coq related stuff */
 int geb(const uint32_t a, const uint32_t b); //!< Greater or equal
