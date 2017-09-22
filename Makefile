@@ -47,9 +47,12 @@ TARGET_DIR=$(BUILD_DIR)/$(TARGET)
 SRC_DIR=src
 PROOF_DIR=proof
 
-COQMAKEFILE=Makefile.coq
 DIGGER_DIR=tools/digger
 DIGGER=$(DIGGER_DIR)/digger
+
+COQDEP=coqdep -c
+COQC=coqc -q
+COQDOC=coqdoc -toc -interpolate -utf8 -html
 
 UNAME_S := $(shell uname -s)
 
@@ -63,10 +66,14 @@ COQPROOFDIRS=$(PROOF_DIR) $(PROOF_DIR)/invariants
 VCODESOURCES=$(foreach dir, ${COQCODEDIRS}, $(wildcard $(dir)/*.v))
 VPROOFSOURCES=$(foreach dir, ${COQPROOFDIRS}, $(wildcard $(dir)/*.v))
 VSOURCES=$(VCODESOURCES) $(VPROOFSOURCES)
+VOBJECTS=$(VSOURCES:.v=.vo)
 
 # JSON files extracted from Coq
 JSONS=Internal.json Services.json
 EXTRACTEDCSOURCES=$(addprefix $(TARGET_DIR)/, $(JSONS:.json=.c))
+
+# Coq options
+COQOPTS=$(shell cat _CoqProject)
 
 # C and ASM sources
 CSOURCES=$(wildcard $(SRC_DIR)/boot/$(TARGET)/*.c)
@@ -115,18 +122,15 @@ linker:
 makefile.dep:
 	$(CC) $(CFLAGS) -MM $(CSOURCES) | perl -pe 's/(\\[\r\n]+)//' | awk 'NF > 0' | $(SED) "s|^|$(TARGET_DIR)/|g" > $@
 
-makefile.autocoq:
-	coq_makefile -f _CoqProject $(VSOURCES) -o makefile.autocoq.tmp 2> /dev/null
-	mv makefile.autocoq.tmp makefile.autocoq
-
-# Generate JSON files
-$(JSONS): makefile.autocoq $(VCODESOURCES)
-	make -f makefile.autocoq src/model/Extraction.vo
-
 $(DIGGER):
 	make -C $(DIGGER_DIR)
 
 # Extract C code from Coq source
+$(JSONS): src/model/Extraction.vo
+
+src/model/Extraction.vo: src/model/Extraction.v
+	$(COQC) $(COQOPTS) -w -all $<
+
 extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
@@ -156,14 +160,14 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    Services.json                                                 \
 	      > $(TARGET_DIR)/Services.c
 
-proofs: makefile.autocoq $(VSOURCES)
-	make -f makefile.autocoq
+proofs: $(VOBJECTS)
 
 # Generate build directory
 $(TARGET_DIR):
 	mkdir -p $@
 
 include makefile.dep
+-include $(addsuffix .d,$(VSOURCES))
 
 # Build boot assembly files
 $(TARGET_DIR)/%.o: $(SRC_DIR)/boot/$(TARGET)/%.s
@@ -181,6 +185,16 @@ $(TARGET_DIR)/%.o: $(SRC_DIR)/IAL/$(TARGET)/%.c
 
 $(TARGET_DIR)/%.o: $(SRC_DIR)/IAL/$(TARGET)/%.s
 	$(AS) $(ASFLAGS) $< -o $@
+
+# Implicit rules for Coq source files
+$(addsuffix .d,$(VSOURCES)): %.v.d: %.v
+	@echo COQDEP "$<"
+	@$(COQDEP) $(COQOPTS) "$<" > "$@" || ( RV=$$?; rm -f "$@"; exit $${RV} )
+
+%.vo: %.v
+	$(COQC) $(COQOPTS) $<
+
+$(VSOURCES:.v=.glob): %.glob: %.vo
 
 # This rule generates and builds an object file from the given partition binary
 $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
@@ -217,19 +231,15 @@ doc: doc-c doc-coq userguide doc/Readme.html doc/PipInternals.html
 doc-c:
 	cd doc && doxygen doxygen.conf
 
-doc-coq: makefile.autocoq
-	mkdir -p doc/coq-doc
-	ln -sf doc/coq-doc html
-	make -f makefile.autocoq html
-	rm -f html
-
 userguide: 
 	cd doc/UserGuide && pdflatex UserGuide.tex
 
-doc-coq-code: makefile.autocoq
+doc-coq: $(VSOURCES) $(VSOURCES:.v=.glob)
 	mkdir -p doc/coq-doc
-	make -f makefile.autocoq $(SRC_DIR)/core/Services.vo
-	coqdoc -toc -interpolate -utf8 -html -Q "src/core" Core -Q "src/model" Model -R "proof" Proof -d doc/coq-doc $(VSOURCES)
+	$(COQDOC) $(COQOPTS) -d doc/coq-doc $(VSOURCES)
+
+coqwc:
+	coqwc $(VSOURCES)
 
 partition:
 	rm -f $(TARGET_DIR)/$(PARTITION).bin
@@ -247,9 +257,9 @@ update-headers:
 
 clean: clean-c clean-coq
 
-clean-coq: makefile.autocoq
+clean-coq:
 	rm -f Internal.h *.json
-	make -f makefile.autocoq clean
+	rm -f $(VOBJECTS) $(VSOURCES:.v=.v.d) $(VSOURCES:.v=.glob)
 
 clean-c:
 	rm -rf $(TARGET_DIR)/
