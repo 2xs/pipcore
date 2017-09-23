@@ -4,4 +4,4 @@
 	branch = release/v0.2
 [submodule "tools/dec"]
 	path = tools/dec
-	url = git@github.com:2xs/dec.git
+	url = https://github.com/2xs/dec
