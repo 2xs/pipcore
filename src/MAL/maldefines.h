@@ -82,6 +82,9 @@ typedef uint32_t index;
 #define Index_leb  leb
 #define Index_ltb  ltb
 #define PreIndex_ltb ltb
+#define PreLevel_eqb eqb
+#define PreLevel_pred sub
+
 /* Level */
 typedef uint32_t level;
 
@@ -116,10 +119,12 @@ typedef uint32_t count;
 /* preVaddr */
 typedef uint32_t preVaddr;
 typedef uint32_t preIndex;
+typedef uint32_t preLevel;
 
 /* Astucious defines */
 #define preVaddrToVaddr(x) x
-
+#define succNbLevel (nbLevel + 1)
+#define maxprelevel nbLevel
 #define coq_N   1000
 
 #endif

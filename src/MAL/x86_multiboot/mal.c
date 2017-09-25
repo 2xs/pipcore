@@ -478,12 +478,12 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
 		return 0;
 
 	/* Index 1 is the first indirection and 2 is the second. */
-	if(index == 1)
+	if(index == 0)
 	{
 		/* First level : Page Directory */
 		uint32_t pd_idx = (addr & 0xFFC00000) >> 22;
 		return pd_idx;
-	} else if (index == 0) {
+	} else if (index == 1) {
 		/* Second level : Page Table */
 		uint32_t pt_idx = (addr >> 12) & 0x000003FF;
 		return pt_idx;
