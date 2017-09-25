@@ -493,3 +493,12 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
         return off;
     }
 }
+
+void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
+{
+    uint32_t pd = current_partition;
+    uint32_t cr3 = readPhysical(current_partition, indexPD());
+    uint32_t kpt = readPhysical(cr3, kernelIndex());
+    writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
+        return;
+}

@@ -61,7 +61,7 @@
 #ifdef PIPDEBUG
 
 #ifndef LOGLEVEL
-#define LOGLEVEL TRACE
+#define LOGLEVEL CRITICAL
 #endif
 
 /**
