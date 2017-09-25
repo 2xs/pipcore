@@ -81,7 +81,7 @@ typedef uint32_t index;
 #define Index_gtb  gtb
 #define Index_leb  leb
 #define Index_ltb  ltb
-
+#define PreIndex_ltb ltb
 /* Level */
 typedef uint32_t level;
 
@@ -112,6 +112,13 @@ typedef uint32_t count;
 #define getMultiplexer     getRootPartition
 #define getStoreFetchIndex zero
 #define fetchVirtual       readTableVirtual
+
+/* preVaddr */
+typedef uint32_t preVaddr;
+typedef uint32_t preIndex;
+
+/* Astucious defines */
+#define preVaddrToVaddr(x) x
 
 #define coq_N   1000
 
