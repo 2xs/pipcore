@@ -33,7 +33,7 @@
 
 (** * Summary 
     This file contains the PIP services handlers to check whether the parameters 
-    passed into the handler are of the expected dada types *)
+    passed into the handler are of the expected data types *)
 
 Require Import Model.Hardware Model.ADT Model.Lib Model.MAL 
 Model.MALInternal Bool Arith Core.Services.
@@ -46,7 +46,7 @@ match bound with
   perform isIndex :=  PreIndex.ltb i tableSize in
   if isIndex
   then 
-    perform islastlevel := PreLevel.eqb l fstLevel in
+    perform islastlevel := PreLevel.eqb l fstPreLevel in
     if islastlevel
     then ret true
     else 

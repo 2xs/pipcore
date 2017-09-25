@@ -46,6 +46,7 @@ Definition defaultPage := CPage 0.
 
 (** Define first level number *)
 Definition fstLevel :=  CLevel 0.
+Definition fstPreLevel := 0.
 
 (** Define the second parameter value of store and fetch *) 
 Definition storeFetchIndex := CIndex 0.
