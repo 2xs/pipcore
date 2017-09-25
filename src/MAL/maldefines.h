@@ -125,7 +125,7 @@ typedef uint32_t preLevel;
 /* Astucious defines */
 #define preVaddrToVaddr(x) x
 #define succNbLevel (nbLevel + 1)
-#define maxprelevel nbLevel
+#define maxprelevel (nbLevel - 1)
 #define coq_N   1000
 
 #endif
