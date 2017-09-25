@@ -88,7 +88,8 @@ typedef uint32_t index;
 /* Level */
 typedef uint32_t level;
 
-#define fstLevel  zero()
+#define fstLevel  0
+#define fstPreLevel 0
 #define tableSize getTableSize()
 
 #define Level_succ inc
