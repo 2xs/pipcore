@@ -108,7 +108,7 @@ typedef uint32_t count;
 /* Miscellaneous */
 #define writeVirEntry      writePhysical
 #define writePhyEntry      writePhysicalWithLotsOfFlags
-#define writeKernelPhyEntry writePhyEntry
+#define writeKernelPhyEntry writeKPhysicalWithLotsOfFlags
 #define readVirtual        readPhysical
 #define readVirEntry       readPhysicalNoFlags
 #define readPhyEntry       readPhysicalNoFlags
