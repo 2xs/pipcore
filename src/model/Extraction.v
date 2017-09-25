@@ -34,7 +34,7 @@
       In this file we define the required configuration to extract the  MALInternal, MAL, Internal and 
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
-Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
+Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal Core.ServicesHandler.
 Extraction Language JSON.
 
 (** Coq standard library *)
@@ -61,4 +61,4 @@ Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Internal .
 Extraction Library Services.
-
+Extraction Library ServicesHandler.
