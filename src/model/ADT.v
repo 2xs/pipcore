@@ -78,6 +78,7 @@ Record vaddr := {
   va :> list index ;
   Hva : length va = nbLevel + 1}.
 
+Definition preLevel := nat.
 Record level := {
   l :> nat ;
   Hl : l < nbLevel }.

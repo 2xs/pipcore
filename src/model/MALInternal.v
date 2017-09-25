@@ -56,6 +56,8 @@ Definition Kidx := CIndex 1.
 
 Definition multiplexer := CPage 1.
 
+Definition succNbLevel := nbLevel+1.
+Definition maxprelevel := nbLevel.
 (** Fix virtual addresses positions into the partition descriptor
     of the partition (+1 to get the physical page position) *)
 Definition PRidx := CIndex 0.   (* descriptor *)
@@ -175,3 +177,11 @@ End Count.
 Module PreIndex.
 Definition ltb (a b : preIndex) : LLI bool := ret (a <? b).
 End PreIndex.
+
+Module PreLevel.
+Definition eqb (a b : preLevel) : LLI bool:= ret (a =? b).
+Program Definition pred (n : preLevel) : LLI preLevel :=
+if gt_dec n 0
+then  ret (n-1)
+else  undefined 36.
+End PreLevel.

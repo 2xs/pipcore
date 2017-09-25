@@ -38,7 +38,7 @@
 Require Import Model.Hardware Model.ADT Model.Lib Model.MAL 
 Model.MALInternal Bool Arith Core.Services.
 
-Fixpoint vaddrWellTyped (va : preVaddr) (l : level) bound : LLI bool := 
+Fixpoint vaddrWellTyped (va : preVaddr) (l : preLevel) bound : LLI bool := 
 match bound with
 | 0 => ret false
 | S bound1 =>
@@ -46,22 +46,21 @@ match bound with
   perform isIndex :=  PreIndex.ltb i tableSize in
   if isIndex
   then 
-    perform islastlevel := Level.eqb l fstLevel in
+    perform islastlevel := PreLevel.eqb l fstLevel in
     if islastlevel
     then ret true
     else 
-      perform l1 := Level.pred l in vaddrWellTyped va l1 bound1
+      perform l1 := PreLevel.pred l in vaddrWellTyped va l1 bound1
   else ret false
 end.
 
 Definition createPartitionHandler (descChild pdChild shadow1Child shadow2Child 
                             ConfigPagesList :preVaddr) : LLI bool :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w2 := vaddrWellTyped pdChild nbprelevel nbLevel in
-perform w3 := vaddrWellTyped shadow1Child nbprelevel nbLevel in
-perform w4 := vaddrWellTyped shadow2Child nbprelevel nbLevel in
-perform w5 := vaddrWellTyped ConfigPagesList nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped pdChild maxprelevel succNbLevel in
+perform w3 := vaddrWellTyped shadow1Child maxprelevel succNbLevel in
+perform w4 := vaddrWellTyped shadow2Child maxprelevel succNbLevel in
+perform w5 := vaddrWellTyped ConfigPagesList maxprelevel succNbLevel in
 if w1 && w2 && w3 && w4 && w5
 then
   perform descChildW := preVaddrToVaddr descChild in
@@ -73,9 +72,8 @@ then
 else ret false.
 
 Definition countToMapHandler (descChild vaChild : preVaddr) :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w2 := vaddrWellTyped vaChild nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped vaChild maxprelevel succNbLevel in
 if w1 && w2
 then
   perform descChildW := preVaddrToVaddr descChild in
@@ -85,10 +83,9 @@ else  MALInternal.Count.zero.
 
 Definition prepareHandler (descChild  va fstVA: preVaddr)
 (needNewConfigPagesList : bool) : LLI bool :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w2 := vaddrWellTyped va nbprelevel nbLevel in
-perform w3 := vaddrWellTyped fstVA nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped va maxprelevel succNbLevel in
+perform w3 := vaddrWellTyped fstVA maxprelevel succNbLevel in
 if w1 && w2 && w3
 then
   perform descChildW := preVaddrToVaddr descChild in
@@ -99,10 +96,9 @@ else ret false.
 
 Definition addVAddrHandler (vaInCurrentPartition descChild vaChild: preVaddr)
 (r w e : bool) : LLI bool :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped vaInCurrentPartition nbprelevel nbLevel in
-perform w2 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w3 := vaddrWellTyped vaChild nbprelevel nbLevel in
+perform w1 := vaddrWellTyped vaInCurrentPartition maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w3 := vaddrWellTyped vaChild maxprelevel succNbLevel in
 if w1 && w2 && w3 
 then
   perform vaInCurrentPartitionW := preVaddrToVaddr descChild in
@@ -112,8 +108,7 @@ then
 else ret false.
 
 Definition mappedInChildHandler (vaChild : preVaddr) : LLI vaddr := 
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped vaChild nbprelevel nbLevel in
+perform w1 := vaddrWellTyped vaChild maxprelevel succNbLevel in
 if w1 
 then
   perform vaChildW := preVaddrToVaddr vaChild in
@@ -121,9 +116,8 @@ then
 else ret defaultVAddr.
 
 Definition removeVAddrHandler (descChild vaChild : preVaddr) :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w2 := vaddrWellTyped vaChild nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped vaChild maxprelevel succNbLevel in
 if w1 && w2
 then
   perform descChildW := preVaddrToVaddr descChild in
@@ -132,8 +126,7 @@ then
 else ret false.
 
 Definition deletePartitionHandler (descChild : preVaddr) :=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
 if w1 
 then
   perform descChildW := preVaddrToVaddr descChild in
@@ -141,9 +134,8 @@ then
 else ret false.
 
 Definition collectHandler (descChild vaToCollect: preVaddr):=
-perform nbprelevel := getNbLevel in
-perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
-perform w2 := vaddrWellTyped vaToCollect nbprelevel nbLevel in
+perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
+perform w2 := vaddrWellTyped vaToCollect maxprelevel succNbLevel in
 if w1 && w2
 then
   perform descChildW := preVaddrToVaddr descChild in
