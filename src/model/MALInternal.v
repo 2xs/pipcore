@@ -171,3 +171,7 @@ then
   ret (Build_count isucc _ )
 else  undefined 34.
 End Count.
+
+Module PreIndex.
+Definition ltb (a b : preIndex) : LLI bool := ret (a <? b).
+End PreIndex.

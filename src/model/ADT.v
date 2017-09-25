@@ -58,8 +58,11 @@ Axiom nbPageNotZero: nbPage > 0.
 
 Axiom tableSizeIsEven : Nat.Even tableSize.
 (* END NOT SIMULATION *)
-Definition tableSizeLowerBound := 14.  
+Definition tableSizeLowerBound := 14.
+
 Axiom tableSizeBigEnough : tableSize > tableSizeLowerBound. (* to be fixed on count **) 
+
+Definition preIndex := nat.
 Record index := {
   i :> nat ;
   Hi : i < tableSize }.
@@ -70,6 +73,7 @@ Record page := {
 
 Definition paddr := (page * index)%type.
 
+Definition preVaddr := (list nat).
 Record vaddr := {
   va :> list index ;
   Hva : length va = nbLevel + 1}.
@@ -83,6 +87,8 @@ Record count := {
   Hnb : c <= (3*nbLevel) + 1  ;
  }.
 
+
+Parameter preIndex_d : preIndex.
 Parameter index_d : index.
 Parameter page_d : page.
 Parameter level_d : level.

@@ -208,6 +208,13 @@ Qed.
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
   ret ( nth ((length va) - (l + 2)) va defaultIndex ).
 
+Definition preVaddrToVaddr preVaddr : LLI vaddr :=
+ret (CVaddr (map CIndex preVaddr)). 
+
+Definition extractPreIndex (va : preVaddr) (pos : level) : LLI preIndex :=
+ ret (nth pos va preIndex_d).
+
+
 (** The 'getNbLevel' function returns the number of levels of the MMU *)
 Program Definition getNbLevel : LLI level:=
 if gt_dec nbLevel 0

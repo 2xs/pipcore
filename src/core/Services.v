@@ -44,8 +44,8 @@
       - part 3 : <<funtionName>> is the PIP service. It calls <<functionNameAux>> 
                 with the required parameters *)
 
-Require Import Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal Arith  List.
-Import List.ListNotations.
+Require Import Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal .
+
 
 (** ** The createPartition PIP service
 
