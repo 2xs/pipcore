@@ -101,7 +101,7 @@ perform w2 := vaddrWellTyped descChild maxprelevel succNbLevel in
 perform w3 := vaddrWellTyped vaChild maxprelevel succNbLevel in
 if w1 && w2 && w3 
 then
-  perform vaInCurrentPartitionW := preVaddrToVaddr descChild in
+  perform vaInCurrentPartitionW := preVaddrToVaddr vaInCurrentPartition in
   perform descChildW := preVaddrToVaddr descChild in
   perform vaChildW := preVaddrToVaddr vaChild in
   addVAddr vaInCurrentPartitionW descChildW vaChildW r w e
