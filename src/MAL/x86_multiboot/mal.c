@@ -470,3 +470,26 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 		return 1;
 	else return 0;
 }
+
+uint32_t extractPreIndex(uint32_t addr, uint32_t index)
+{
+	/* First check the index value */
+	if (index > 2)
+		return 0;
+
+	/* Index 1 is the first indirection and 2 is the second. */
+	if(index == 1)
+	{
+		/* First level : Page Directory */
+		uint32_t pd_idx = (addr & 0xFFC00000) >> 22;
+		return pd_idx;
+	} else if (index == 0) {
+		/* Second level : Page Table */
+		uint32_t pt_idx = (addr >> 12) & 0x000003FF;
+		return pt_idx;
+	} else {
+        /* Offset */
+        uint32_t off = addr & 0xFFF;
+        return off;
+    }
+}
