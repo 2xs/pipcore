@@ -123,7 +123,7 @@ then
   perform descChildW := preVaddrToVaddr descChild in
   perform vaChildW := preVaddrToVaddr vaChild in
   removeVAddr descChildW vaChildW
-else ret false.
+else getDefaultVAddr.
 
 Definition deletePartitionHandler (descChild : preVaddr) :=
 perform w1 := vaddrWellTyped descChild maxprelevel succNbLevel in
