@@ -36,7 +36,7 @@
     passed into the handler are of the expected dada types *)
 
 Require Import Model.Hardware Model.ADT Model.Lib Model.MAL 
-Model.MALInternal Bool Core.Internal Arith Core.Services.
+Model.MALInternal Bool Arith Core.Services.
 
 Fixpoint vaddrWellTyped (va : preVaddr) (l : level) bound : LLI bool := 
 match bound with
@@ -140,7 +140,7 @@ then
   deletePartition descChildW
 else ret false.
 
-Definition collect (descChild vaToCollect: preVaddr):=
+Definition collectHandler (descChild vaToCollect: preVaddr):=
 perform nbprelevel := getNbLevel in
 perform w1 := vaddrWellTyped descChild nbprelevel nbLevel in
 perform w2 := vaddrWellTyped vaToCollect nbprelevel nbLevel in
@@ -148,5 +148,5 @@ if w1 && w2
 then
   perform descChildW := preVaddrToVaddr descChild in
   perform vaToCollectW := preVaddrToVaddr vaToCollect in
-  removeVAddr descChildW vaToCollectW
+  collect descChildW vaToCollectW
 else ret false.
