@@ -741,19 +741,19 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
       perform currentPD := getPd currentPart in
       (** Get the physical address of the reference page of the child *)
       perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
-      perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
+      perform isNull := comparePageToNull ptDescChildFromPD in if isNull then getDefaultVAddr else
       perform idxDescChild := getIndexOfAddr descChild fstLevel in
       perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
       (** Get the physical address of the page directory of the child *)
       perform phyPDChild := getPd phyDescChild in
       (** Get the page table and the index in which the address is mapped *)
       perform ptDescChildFromPD := getTableAddr phyPDChild vaChild nbL in
-      perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
+      perform isNull := comparePageToNull ptDescChildFromPD in if isNull then getDefaultVAddr else
       perform idxDescChild := getIndexOfAddr vaChild fstLevel in
       (** access to the first shadow page of the child to test whether the page is derived or not *)
       perform shadow1Child := getFstShadow phyDescChild in
       perform ptVaChildFromSh1 := getTableAddr shadow1Child vaChild nbL in
-      perform isNull := comparePageToNull ptVaChildFromSh1 in if isNull then ret false else
+      perform isNull := comparePageToNull ptVaChildFromSh1 in if isNull then getDefaultVAddr else
       (** false if not derived *)
       perform deriv := checkDerivation ptVaChildFromSh1 idxDescChild in
       (** true if accessible *)
@@ -769,7 +769,7 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
           virtual address which map this page into the current page directory *)
         perform shadow2Child := getSndShadow phyDescChild in
         perform ptVaChildFromSh2 := getTableAddr shadow2Child vaChild nbL in
-        perform isNull := comparePageToNull ptVaChildFromSh2 in if isNull then ret false else
+        perform isNull := comparePageToNull ptVaChildFromSh2 in if isNull then getDefaultVAddr else
 
         (** Get the virtual address into the current page directory *)
         perform vaInParent := readVirtual ptVaChildFromSh2 idxDescChild in
@@ -777,16 +777,16 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
           to mark the entry that correspond to the virtual address vaInCurrentPartition as underived*)
         perform currentSh1 := getFstShadow currentPart in
         perform ptVaInParentFromSh1 := getTableAddr currentSh1 vaInParent nbL in
-        perform isNull := comparePageToNull ptVaInParentFromSh1 in if isNull then ret false else
+        perform isNull := comparePageToNull ptVaInParentFromSh1 in if isNull then getDefaultVAddr else
         perform idxVaInParent := getIndexOfAddr vaInParent fstLevel in
         (** mark page as not derived *)
         perform null := getDefaultVAddr in
         writeVirEntry ptVaInParentFromSh1 idxVaInParent null ;;
         writeVirtual ptVaChildFromSh2 idxDescChild null ;;
-        ret true (*vaInParent*)
-      else ret false (*getDefaultVAddr*)
-    else ret false
-  else ret false.
+        ret vaInParent
+      else getDefaultVAddr
+    else getDefaultVAddr
+  else getDefaultVAddr.
 
 (** ** The deletePartition PIP service *)
 (** The [deletePartition] function removes a child partition and puts all its used
