@@ -2,3 +2,6 @@
 	path = tools/digger
 	url = https://github.com/2xs/digger
 	branch = release/v0.2
+[submodule "tools/dec"]
+	path = tools/dec
+	url = https://github.com/2xs/dec

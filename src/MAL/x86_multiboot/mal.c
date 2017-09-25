@@ -399,14 +399,11 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  * 	\brief Gets the amount of indirection tables
  * 	\return Amount of maximal indirection tables
  */
+const uint32_t nbLevel = 2;
+
 uint32_t getNbIndex(void)
 {
-	return nbLevel()-1;
-}
-
-uint32_t nbLevel(void)
-{
-	return 2;
+	return nbLevel-1;
 }
 
 /*!

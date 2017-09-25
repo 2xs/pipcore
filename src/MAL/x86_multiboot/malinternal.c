@@ -51,15 +51,7 @@ uint32_t defaultAddr(void)
 	return 0;
 }
 
-/*!
- * \fn uint32_t defaultVAddr()
- * \brief Returns the default null Vaddress.
- * \return The null Vaddress.
- */
-uint32_t defaultVAddr(void)
-{
-	return 0;
-}
+const uint32_t defaultVAddr = 0;
 
 /*!
  * \fn uint32_t kernelIndex()
@@ -242,15 +234,4 @@ uint32_t mul3(uint32_t v)
 uint32_t getMaxIndex(void)
 {
        return getTableSize() - 1;
-}
-
-/*!
- * \fn uint32_t nbPage()
- * \brief  get the .
- * \return the comparison.
- */
-uint32_t nbPage()
-{
-	extern uint32_t maxPages;
-	return maxPages;
 }
