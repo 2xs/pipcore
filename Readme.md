@@ -86,12 +86,26 @@ The compilation on Linux should be as easy as to install the i386-elf toolchain 
 Use your favourite package manager to install i386 gcc (gcc-multilib), haskell-stack, QEMU, Coq, NASM, Doxygen and GRUB.
 
 ## Compiling on Darwin/OSX
-Requirement: OS X 10.9 or later
+
+Users of macOS High Sierra, see "Using Homebrew".
+
+### Using MacPorts : From macOS 10.9 "Mavericks" to macOS 10.12 "Sierra"
 
 * Install MacPorts
 * Install git, nasm, qemu, i386-elf-gcc, gsed via MacPorts
-* Install Coq
+* Install Coq (see User Guide)
 * Edit `conf/x86_multiboot.conf` to suit your i386 toolchain (defaults to i386-elf-)
+
+### Using Homebrew : macOS 10.9 "Mavericks" and higher, including macOS 10.13 "High Sierra"
+
+We're currently in the process of moving the toolchain setup process from MacPorts to Homebrew, and should be using it from now on.
+
+* Install Homebrew (https://brew.sh/)
+* Add the cross-compiler tap : `brew tap MrXedac/homebrew-gcc_cross_compilers`
+* Install i386-elf-gcc : `brew install i386-elf-gcc` (this could take a while, as the i386 binutils and C compiler are compiled from scratch)
+* Install opam, nasm, haskell-stack, qemu, gnu-sed and doxygen : `brew install opam nasm haskell-stack qemu gnu-sed doxygen`
+* Install Coq (see User Guide)
+* Edit `conf/x86_multiboot.conf` to suit your i386 toolchain (defaults to i386-elf-) 
 
 ## Compiling on FreeBSD
 Same thing as Darwin, using pkg instead of MacPorts.
