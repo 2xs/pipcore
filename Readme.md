@@ -105,8 +105,9 @@ We're currently in the process of moving the toolchain setup process from MacPor
 * Install Homebrew (https://brew.sh/)
 * Add the cross-compiler tap : `brew tap MrXedac/homebrew-gcc_cross_compilers`
 * Install i386-elf-gcc : `brew install i386-elf-gcc` (this could take a while, as the i386 binutils and C compiler are compiled from scratch)
-* Install opam, nasm, haskell-stack, qemu, gnu-sed and doxygen : `brew install opam nasm haskell-stack qemu gnu-sed doxygen`
-* Install Coq (see User Guide)
+* Install opam, nasm, haskell-stack, qemu, gnu-sed, doxygen and Coq : `brew install opam nasm haskell-stack qemu gnu-sed doxygen coq@8.6.1`
+	* Note : Homebrew provides a binary distribution of Coq available through `brew install coq`. At the moment we write these lines, the binary distribution of Coq is the one we want to install.
+	* Further versions of Coq, and newer binary releases might break retrocompatibility with Pip's code. Because of this, installing the appropriate version through `brew install coq@8.6.1` is safer.
 * Edit `conf/x86_multiboot.conf` to suit your i386 toolchain (defaults to i386-elf-) 
 
 ## Compiling on FreeBSD
