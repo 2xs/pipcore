@@ -25,8 +25,8 @@ You can generate the "Getting Started" tutorial by invoking `make userguide`. Th
 Pip is known to build correctly with this toolchain:
 
 * GCC i386, version 4.7.2 to 4.9
-** GCC 7.2 is known to be working as well
-** GNU Binutils version 2.29 is NOT working, as LD triggers a segmentation fault, use version 2.28 or lower instead
+	* GCC 7.2 is known to be working as well
+	* GNU Binutils version 2.29 is NOT working, as LD triggers a segmentation fault, use version 2.28 or lower instead
 * NASM version 2.11.08
 * COQ Proof Assistant version 8.5pl2
 * GNU Sed version 4.2.2 (install it on an OSX build host through MacPorts : "gsed")
