@@ -53,7 +53,6 @@ uint32_t maxPages = 0; //!< The maximal amount of pages available
 uint32_t allocatedPages = 0; //!< The current allocated amount of pages
 uint32_t ramEnd = 0; //!< End of memory
 uint32_t pageCount = 0;
-uintptr_t kernPt; /* The kernel master page table */
 
 // Defined in libc.c
 extern uint32_t placement_address; //!< Placement address, this should be unused.
@@ -471,10 +470,6 @@ void initMmu()
 	
 	/* At this point, page allocator is empty. */
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);
-
-    /* Keep the kernel master page table somewhere safe */
-    kernPt = readTableVirtual((uint32_t)kernelDirectory, kernelIndex());
-    DEBUG(TRACE, "Kernel master page table at %x\n", kernPt); 
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
 	activate((uint32_t)kernelDirectory);
