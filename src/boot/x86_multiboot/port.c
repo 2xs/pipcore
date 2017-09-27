@@ -266,7 +266,6 @@ void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  */
 uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 {
-
 	uint32_t ret = 0;
 	
 	if (!ioAccessValid(port))
