@@ -43,7 +43,7 @@
 #include <stdint.h>
 
 /* bool */
-typedef char bool;
+typedef uint32_t bool;
 
 #define true    1
 #define false   0
