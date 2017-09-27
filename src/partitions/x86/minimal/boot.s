@@ -1,10 +1,10 @@
 .section .text
 .global boot
 .extern main
-.extern vcli
+.extern Pip_VCLI
 boot:
     push %ebx
-    call vcli
+    call Pip_VCLI
     call main
 
 loop:

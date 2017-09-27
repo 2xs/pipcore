@@ -4,6 +4,6 @@
 
 void main(pip_fpinfo* bootinfo)
 {
-    puts("Hello world!\n");
+    Pip_Debug_Puts("Hello world!\n");
     for(;;);
 }  
