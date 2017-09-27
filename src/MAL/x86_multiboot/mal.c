@@ -497,7 +497,6 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
 void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
 {
     extern uintptr_t kernPt;
-    DEBUG(CRITICAL, "Kernel PT at %x\n", kernPt);
     writePhysicalWithLotsOfFlags(table, kernelIndex(), kernPt, 1, 0, 1, 1, 1);
         return;
 }
