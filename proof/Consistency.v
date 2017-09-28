@@ -143,7 +143,7 @@ isVA partition idxroot  s /\
 exists entry, nextEntryIsPP partition idxroot entry s  /\  
 entry <> defaultPage.
 
-(** ** The [multiplexerWithoutParent] specifies that the multiplexer is the root of
+(** The [multiplexerWithoutParent] specifies that the multiplexer is the root of
 the partition tree *)
 Definition multiplexerWithoutParent s :=
 getParent multiplexer (memory s) = None.
