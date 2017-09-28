@@ -40,7 +40,7 @@ StateLib.
 Require Import  Omega List Coq.Logic.ProofIrrelevance.
 Import List.ListNotations.
 
-(** ** The [dataStructurePdSh1Sh2asRoot] property defines the type of different values 
+(** The [dataStructurePdSh1Sh2asRoot] property defines the type of different values 
 stored into the page directory structure, the first shadow structure and 
 the second shadow structure.
 Configuation tables of the last level must contain :
@@ -103,31 +103,20 @@ getIndirection pdroot va nbL stop s = Some indirection1 ->
 getIndirection structroot va nbL stop s = Some indirection2 /\ 
 (defaultPage =? indirection2) = false).  
 
-(* Definition fstShadowWellFormed (s : state) :=
-forall (partition : page),  
-In partition (getPartitions multiplexer s) -> 
-forall pdroot sh1Root, 
-StateLib.getPd partition (memory s) = Some pdRoot -> 
-StateLib.getFstShadow partition (memory s) = Some sh1Root ->
-forall level stop , Some level = getNbLevel -> 
-forall indirection1 indirection2 va, 
-getIndirection pdRoot va level stop s = Some defaultPage ->
-getIndirection sh1Root va level stop s = Some defaultPage.  *)
-
-(** ** The [currentPartitionInPartitionsList] property specifies that the 
+(** The [currentPartitionInPartitionsList] property specifies that the 
     current partition must be into the list of partitions retrieved from the 
     first created partition (multiplexer) 
     (2) *)
 Definition currentPartitionInPartitionsList (s : state) := 
  In (currentPartition s) (getPartitions multiplexer s).
 
-(** ** The [currentPartitionIsNotDefaultPage t] property specifies that the 
+(** The [currentPartitionIsNotDefaultPage t] property specifies that the 
     current partition is not a default physical page  
     (2) *)
 Definition currentPartitionIsNotDefaultPage (s : state) :=
  (currentPartition s) <> defaultPage. 
  
-(** ** The [parentInPartitionList] property specifies that the parent of a given 
+(** The [parentInPartitionList] property specifies that the parent of a given 
 partition should be into the list of partitions retrieved from the 
     first created partition (multiplexer) 
     (3) *)
@@ -136,7 +125,7 @@ forall partition, In partition (getPartitions multiplexer s) ->
 forall parent, nextEntryIsPP partition PPRidx parent s ->
 In parent (getPartitions multiplexer s). 
 
-(** ** The [partitionDescriptorEntry] defines some properties of the partition descriptor. 
+(** The [partitionDescriptorEntry] defines some properties of the partition descriptor. 
     - A partition descriptor is a table containing virtual addresses and physical pages.
     - Indecie PDidx, sh1idx, sh2idx, PPRidx and PRidx should be less than ("tableSize" - 1) and 
       contain virtual addresses.
@@ -159,7 +148,7 @@ the partition tree *)
 Definition multiplexerWithoutParent s :=
 getParent multiplexer (memory s) = None.
 
-(** ** The [noDupMappedPagesList] requires that mapped pages of a single partition
+(** The [noDupMappedPagesList] requires that mapped pages of a single partition
     are different 
     (5) *)
 Definition noDupMappedPagesList s :=
@@ -167,17 +156,15 @@ forall (partition : page),
 In partition (getPartitions multiplexer s) ->  
  NoDup ((getMappedPages partition s)).
  
-(** ** The [noDupConfigPagesList] requires that configuation tables of
+(** The [noDupConfigPagesList] requires that configuation tables of
     a single partition are different 
     (6) *)
 Definition noDupConfigPagesList s :=
 forall (partition : page),  
 In partition (getPartitions multiplexer s) -> 
 NoDup (getConfigPages partition s).
-(* forall root, nextEntryIsPP partition idxroot root s->
- NoDup (getIndirections root s). 
- *)
-(** ** The [accessibleVAIsNotPartitionDescriptor] requires that accessible virtual 
+
+(** The [accessibleVAIsNotPartitionDescriptor] requires that accessible virtual 
     addresses are not marked as partition descriptor into the first shadow configuation
     structure 
     (7) *)
@@ -189,7 +176,7 @@ forall partition va pd sh1 page,
   getAccessibleMappedPage pd s va = SomePage page -> 
   getPDFlag sh1 va s = false.
 
-(** ** The [accessibleChildPageIsAccessibleIntoParent] requires that all accessible physical 
+(** The [accessibleChildPageIsAccessibleIntoParent] requires that all accessible physical 
       pages into a given partition should be accessible into its parent
     (8) *)
 Definition  accessibleChildPageIsAccessibleIntoParent s := 
@@ -199,7 +186,7 @@ forall partition va pd  accessiblePage,
   getAccessibleMappedPage pd s va = SomePage accessiblePage ->
   isAccessibleMappedPageInParent partition va accessiblePage s = true. 
 
-(** ** The [noCycleInPartitionTree] requires that a partition and 
+(** The [noCycleInPartitionTree] requires that a partition and 
         its ancestors are different 
     (9) **)
 Definition noCycleInPartitionTree s := 
@@ -208,7 +195,7 @@ In partition (getPartitions multiplexer s) ->
 In ancestor (getAncestors partition s) -> 
 ancestor <> partition.
 
-(** ** The [configTablesAreDifferent] requires that configuation tables of different
+(** The [configTablesAreDifferent] requires that configuation tables of different
         partitions are disjoint
       (10) **)
 Definition configTablesAreDifferent s := 
@@ -218,7 +205,7 @@ In partition2 (getPartitions multiplexer s) ->
 partition1 <> partition2 -> 
 disjoint (getConfigPages partition1 s) (getConfigPages partition2 s).
 
-(** ** The [isChild] specifies that a given partition should be a child of the 
+(** The [isChild] specifies that a given partition should be a child of the 
         physical page stored as parent into the associated partition descriptor 
     (11) **)
 Definition isChild  s :=
@@ -228,7 +215,7 @@ StateLib.getParent partition (memory s) = Some parent ->
 In partition (getChildren parent s).
 
 
-(** ** The [isParent] specifies that if we take any child into the children list of any 
+(** The [isParent] specifies that if we take any child into the children list of any 
 partition into the partition list so this partition should be the parent of this child 
  (..) **)
 Definition isParent  s :=
@@ -237,7 +224,7 @@ In parent (getPartitions multiplexer s) ->
 In partition (getChildren parent s) -> 
 StateLib.getParent partition (memory s) = Some parent.
 
-(** ** The [isPresentNotDefaultIff] specifies that if the present flag of a physical 
+(** The [isPresentNotDefaultIff] specifies that if the present flag of a physical 
     entry is equal to false so the associated physical page must be equal to the default 
     value 
     (12) **)
@@ -246,7 +233,7 @@ forall table idx ,
  readPresent table idx (memory s) = Some false <-> 
  readPhyEntry table idx (memory s) = Some defaultPage .
 
-(** ** The [physicalPageNotDerived] specifies that if a given physical
+(** The [physicalPageNotDerived] specifies that if a given physical
     page is marked as not derived in a parent so it is not mapped in any child
     (13)
 **) 
@@ -285,7 +272,7 @@ getPDFlag sh1 va s = false /\
 getVirtualAddressSh1 sh1 s va = None.
 
 
-(** ** Conjunction of all consistency properties *)
+(** Conjunction of all consistency properties *)
 Definition consistency s := 
  partitionDescriptorEntry s /\  
  dataStructurePdSh1Sh2asRoot PDidx s /\
