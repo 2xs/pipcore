@@ -1,5 +1,5 @@
 ###############################################################################
-#  © Université Lille 1, The Pip Development Team (2015-2016)                 #
+#  © Université Lille 1, The Pip Development Team (2015-2017)                 #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
@@ -45,11 +45,11 @@ QEMU=qemu-system-i386
 GDB=gdb
 endif
 ifeq ($(UNAME_S),Darwin)
-AS=/opt/local/bin/nasm
-CC=/opt/local/bin/i386-elf-gcc
-LD=/opt/local/bin/i386-elf-ld
-AR=/opt/local/bin/i386-elf-ar
-QEMU=/opt/local/bin/qemu-system-i386
+AS=nasm
+CC=i386-elf-gcc
+LD=i386-elf-ld
+AR=i386-elf-ar
+QEMU=qemu-system-i386
 GDB=i386-elf-gdb
 endif
 

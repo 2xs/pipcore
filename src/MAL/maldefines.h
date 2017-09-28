@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -43,7 +43,7 @@
 #include <stdint.h>
 
 /* bool */
-typedef char bool;
+typedef uint32_t bool;
 
 #define true    1
 #define false   0
@@ -125,7 +125,7 @@ typedef uint32_t preLevel;
 /* Astucious defines */
 #define preVaddrToVaddr(x) x
 #define succNbLevel (nbLevel + 1)
-#define maxprelevel nbLevel
+#define maxprelevel (nbLevel - 1)
 #define coq_N   1000
 
 #endif
