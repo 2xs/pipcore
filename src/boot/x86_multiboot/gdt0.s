@@ -127,14 +127,14 @@ CG_GLUE_CTX outaddrlGlue 	, 2
 CG_GLUE_CTX dispatchGlue	, 5
 
 ; Those ones won't trigger a fault in caller
-CG_GLUE createPartitionHandler		, 5
-CG_GLUE countToMapHandler		, 2
-CG_GLUE prepareHandler			, 4
-CG_GLUE addVAddrHandler		, 6
-CG_GLUE resume			, 2
-CG_GLUE removeVAddrHandler		, 2
-CG_GLUE	mappedInChildHandler	, 1
-CG_GLUE	deletePartitionHandler	, 1
-CG_GLUE	collectHandler			, 2
+CG_GLUE createPartition		, 5
+CG_GLUE countToMap  		, 2
+CG_GLUE prepare 			, 4
+CG_GLUE addVAddr    		, 6
+CG_GLUE resume		    	, 2
+CG_GLUE removeVAddr 		, 2
+CG_GLUE	mappedInChild   	, 1
+CG_GLUE	deletePartition 	, 1
+CG_GLUE	collect 			, 2
 
 CG_GLUE_NOARG  timerGlue
