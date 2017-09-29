@@ -1,4 +1,4 @@
-# Version 0.2 - TBD
+# Version 0.2 - 29/09/2017
 ## Changes
 
 - Reworked the x86 IAL to ensure proper management of interrupt routing. 
@@ -30,4 +30,4 @@
 
 # Version 0.1 - 03/10/2016
 
-- Initial release of the Pip proto-kernel.
+- Initial release of the Pip protokernel.
