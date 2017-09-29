@@ -41,7 +41,7 @@
 #include "structures.h"
 #include "debug.h"
 
-/* see "Intel® Quark SoC X1000 Core Developer’s Manual", § 4.4.1.1 (p. 47) */
+/* More information "Intel® Quark SoC X1000 Core Developer’s Manual", section 4.4.1.1 (page 47) */
 #define CR0_PE (1u << 0)  /**< 1 = protected mode */
 #define CR0_MP (1u << 1)  /**< 1 = monitor coprocessor (FWAIT causes an interrupt) */
 #define CR0_EM (1u << 2)  /**< 1 = FPU emulation (x87 instruction cause #NM, SSE causes #UD) */
