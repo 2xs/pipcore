@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include "mal.h"
+#include "ial_defines.h"
 
 /**
  * \brief Strings for debugging output.
@@ -60,7 +61,7 @@
 #ifdef PIPDEBUG
 
 #ifndef LOGLEVEL
-#define LOGLEVEL ERROR
+#define LOGLEVEL CRITICAL
 #endif
 
 /**
@@ -72,6 +73,7 @@
  * \brief Defines the appropriate DEBUG behavior.
  */
 #define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
 /* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
 
 /**

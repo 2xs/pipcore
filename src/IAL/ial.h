@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -62,7 +62,7 @@ void panic(); //!< Interface for kernel panic
 void enableInterrupts(); //!< Interface for interrupt activation
 void disableInterrupts(); //!< Interface for interrupt desactivation
 void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, user_ctx_role_t ctxNo); //!< Resume interrupted partition
+void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
 
 // FIXME: move this away
 #include <x86int.h>
@@ -71,5 +71,26 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
 			  uint32_t data1, uint32_t data2,
 			  gate_ctx_t *ctx);
 
+/**
+ * \struct partition_id
+ * \brief Partition-to-PartitionID structure
+ */
+struct partition_id {
+	uint32_t partition;
+	uint32_t id;
+};
+
+/**
+ * \struct hardware_def
+ * \brief Platform-specific hardware memory range definition
+ */
+struct hardware_def {
+	const char*	name;
+	uintptr_t	paddr_base;
+	uintptr_t	vaddr_base;
+	uintptr_t	limit;
+};
+
+typedef struct partition_id pip_pid;
 
 #endif

@@ -1,5 +1,5 @@
 ###############################################################################
-#  © Université Lille 1, The Pip Development Team (2015-2016)                 #
+#  © Université Lille 1, The Pip Development Team (2015-2017)                 #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
@@ -47,9 +47,12 @@ TARGET_DIR=$(BUILD_DIR)/$(TARGET)
 SRC_DIR=src
 PROOF_DIR=proof
 
-COQMAKEFILE=Makefile.coq
-COQ2C_DIR=tools/coq2c
-COQ2C=$(COQ2C_DIR)/coq2c
+DIGGER_DIR=tools/digger
+DIGGER=$(DIGGER_DIR)/digger
+
+COQDEP=coqdep -c
+COQC=coqc -q
+COQDOC=coqdoc -toc -interpolate -utf8 -html
 
 UNAME_S := $(shell uname -s)
 
@@ -63,10 +66,14 @@ COQPROOFDIRS=$(PROOF_DIR) $(PROOF_DIR)/invariants
 VCODESOURCES=$(foreach dir, ${COQCODEDIRS}, $(wildcard $(dir)/*.v))
 VPROOFSOURCES=$(foreach dir, ${COQPROOFDIRS}, $(wildcard $(dir)/*.v))
 VSOURCES=$(VCODESOURCES) $(VPROOFSOURCES)
+VOBJECTS=$(VSOURCES:.v=.vo)
 
 # JSON files extracted from Coq
-JSONS=Internal.json Services.json
+JSONS=Internal.json Services.json ServicesHandler.json
 EXTRACTEDCSOURCES=$(addprefix $(TARGET_DIR)/, $(JSONS:.json=.c))
+
+# Coq options
+COQOPTS=$(shell cat _CoqProject)
 
 # C and ASM sources
 CSOURCES=$(wildcard $(SRC_DIR)/boot/$(TARGET)/*.c)
@@ -99,7 +106,7 @@ CFLAGS+=-I$(TARGET_DIR)/
 all: kernel proofs doc 
 
 kernel: gitinfo $(TARGET_DIR) linker makefile.dep extract $(COBJ) $(AOBJ)
-	$(LD) $(LDFLAGS) $(AOBJ) $(COBJ) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $(TARGET_DIR)/meso.bin
+	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $(TARGET_DIR)/meso.bin
 
 gitinfo:
 	printf "#ifndef __GIT__\n#define __GIT__\n#define GIT_REVISION \"`git rev-parse HEAD`\"\n#endif" > $(SRC_DIR)/boot/$(TARGET)/include/git.h
@@ -115,30 +122,71 @@ linker:
 makefile.dep:
 	$(CC) $(CFLAGS) -MM $(CSOURCES) | perl -pe 's/(\\[\r\n]+)//' | awk 'NF > 0' | $(SED) "s|^|$(TARGET_DIR)/|g" > $@
 
-makefile.autocoq:
-	coq_makefile -f _CoqProject $(VSOURCES) -o makefile.autocoq.tmp 2> /dev/null
-	mv makefile.autocoq.tmp makefile.autocoq
+$(DIGGER):
+	make -C $(DIGGER_DIR)
 
-# Generate JSON files
-$(JSONS): makefile.autocoq $(VCODESOURCES)
-	make -f makefile.autocoq src/model/Extraction.vo
+# Extract C code from Coq source
+$(JSONS): src/model/Extraction.vo
 
-$(COQ2C):
-	make -C $(COQ2C_DIR)
+src/model/Extraction.vo: src/model/Extraction.v
+	$(COQC) $(COQOPTS) -w all $<
 
-# Extract C code from source and move it into the build directory
-extract: $(COQ2C) $(TARGET_DIR) $(JSONS)
-	$(COQ2C) -m MAL.json -m MALInternal.json -i stdint.h -I maldefines.h Internal.json -o $(TARGET_DIR)/Internal.c -O $(TARGET_DIR)/Internal.h
-	$(COQ2C) -m MAL.json -m MALInternal.json -m Internal.json -i stdint.h -I maldefines.h -I Internal.h Services.json -o $(TARGET_DIR)/Services.c
+extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
+	    -m ADT -m Nat                                                 \
+	    -q maldefines.h                                               \
+	    --ignore coq_N                                                \
+	    Internal.json                                                 \
+	      > $(TARGET_DIR)/Internal.c
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
+	    -m ADT -m Nat                                                 \
+	    -q maldefines.h                                               \
+	    --ignore coq_N                                                \
+	    --header                                                      \
+	    Internal.json -o $(TARGET_DIR)/Internal.h
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
+	    -m ADT -m Nat                                                 \
+	    -m Internal -d :Internal.json                                 \
+	    -q maldefines.h -q Internal.h                                 \
+	    Services.json                                                 \
+	      > $(TARGET_DIR)/Services.c
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
+	    -m ADT -m Nat                                                 \
+	    -m Internal -d :Internal.json                                 \
+	    -q maldefines.h -q Internal.h                                 \
+		--header													  \
+	    Services.json                                                 \
+	      -o $(TARGET_DIR)/Services.h
+	$(DIGGER) -m Hardware -M coq_LLI                                  \
+	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
+	    -m MALInternal -d :MALInternal.json                           \
+	    -m MAL -d :MAL.json                                           \
+	    -m ADT -m Nat                                                 \
+	    -q maldefines.h -q Services.h                                 \
+	    --ignore coq_N                                                \
+	    ServicesHandler.json                                          \
+	     | $(SED) -e "s/Services_//g" > $(TARGET_DIR)/ServicesHandler.c	
 
-proofs: makefile.autocoq $(VSOURCES)
-	make -f makefile.autocoq
+proofs: $(VOBJECTS)
 
 # Generate build directory
 $(TARGET_DIR):
 	mkdir -p $@
 
 include makefile.dep
+-include $(addsuffix .d,$(VSOURCES))
 
 # Build boot assembly files
 $(TARGET_DIR)/%.o: $(SRC_DIR)/boot/$(TARGET)/%.s
@@ -156,6 +204,16 @@ $(TARGET_DIR)/%.o: $(SRC_DIR)/IAL/$(TARGET)/%.c
 
 $(TARGET_DIR)/%.o: $(SRC_DIR)/IAL/$(TARGET)/%.s
 	$(AS) $(ASFLAGS) $< -o $@
+
+# Implicit rules for Coq source files
+$(addsuffix .d,$(VSOURCES)): %.v.d: %.v
+	@echo COQDEP "$<"
+	@$(COQDEP) $(COQOPTS) "$<" > "$@" || ( RV=$$?; rm -f "$@"; exit $${RV} )
+
+%.vo: %.v
+	$(COQC) $(COQOPTS) $<
+
+$(VSOURCES:.v=.glob): %.glob: %.vo
 
 # This rule generates and builds an object file from the given partition binary
 $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
@@ -187,24 +245,20 @@ coq-disable-simulation:
 	       -e 's/^\( *\)(\* *END *SIMULATION *\*) *$$/\1   END SIMULATION *)/'           \
 	    $(VSOURCES)
 
-doc: doc-c doc-coq userguide doc/Readme.html doc/PipInternals.html
+doc: doc-c doc-coq gettingstarted doc/Readme.html doc/PipInternals.html
 
 doc-c:
 	cd doc && doxygen doxygen.conf
 
-doc-coq: makefile.autocoq
-	mkdir -p doc/coq-doc
-	ln -sf doc/coq-doc html
-	make -f makefile.autocoq html
-	rm -f html
+gettingstarted: 
+	cd doc/GettingStarted && pdflatex GettingStarted.tex
 
-userguide: 
-	cd doc/UserGuide && pdflatex UserGuide.tex
-
-doc-coq-code: makefile.autocoq
+doc-coq: $(VSOURCES) $(VSOURCES:.v=.glob)
 	mkdir -p doc/coq-doc
-	make -f makefile.autocoq $(SRC_DIR)/core/Services.vo
-	coqdoc -toc -interpolate -utf8 -html -Q "src/core" Core -Q "src/model" Model -R "proof" Proof -d doc/coq-doc $(VSOURCES)
+	$(COQDOC) $(COQOPTS) -d doc/coq-doc $(VSOURCES)
+
+coqwc:
+	coqwc $(VSOURCES)
 
 partition:
 	rm -f $(TARGET_DIR)/$(PARTITION).bin
@@ -222,9 +276,9 @@ update-headers:
 
 clean: clean-c clean-coq
 
-clean-coq: makefile.autocoq
+clean-coq:
 	rm -f Internal.h *.json
-	make -f makefile.autocoq clean
+	rm -f $(VOBJECTS) $(VSOURCES:.v=.v.d) $(VSOURCES:.v=.glob)
 
 clean-c:
 	rm -rf $(TARGET_DIR)/
@@ -242,4 +296,10 @@ doc/%.html: %.md
 	cat $< >> $@
 	cat doc/mdtemplate.footer >> $@
 
-.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper clean-c clean-coq kernel userguide clean-mddoc
+bochs: grub
+	rm -f bochscom
+	mkfifo bochscom
+	cat bochscom &
+	bochs -q
+
+.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper clean-c clean-coq kernel gettingstarted clean-mddoc bochs

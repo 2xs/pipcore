@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -39,11 +39,12 @@
 #include <stdint.h>
 #include "mal.h"
 #include "structures.h"
+#include "debug.h"
 
-
-static uint32_t current_partition; /* Current partition's CR3 */
-static uint32_t root_partition; /* Multiplexer's partition descriptor */
-
+uint32_t current_partition; /* Current partition's CR3 */
+uint32_t root_partition; /* Multiplexer's partition descriptor */
+uint32_t next_pid = 0;
+extern uint32_t pcid_enabled;
 /*!	\fn void enable_paging()
 	\brief enables paging
 	\post paging mechanism is enabled
@@ -167,6 +168,8 @@ uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  */
 uint32_t readAccessible(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -177,7 +180,11 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
 	
 	/* Now return the accessible flag */
-	return entry->user;
+	uint32_t ret = entry->user;
+	
+	enable_paging();
+	
+	return ret;
 }
 
 /*!
@@ -189,6 +196,8 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
  */
 void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -197,6 +206,8 @@ void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 	
 	/* Write the flag */
 	entry->user = value;
+	
+	enable_paging();
 	
 	/* Return so we avoid the warning */
 	return;
@@ -218,7 +229,14 @@ uint32_t getCurPartition(void)
 void
 updateCurPartition (uint32_t descriptor)
 {
+	extern uint32_t pcid_enabled;
 	current_partition = descriptor;
+	if(readPhysical(descriptor, 12) == 0x0 && pcid_enabled)
+	{
+		writePhysical(descriptor, 12, next_pid);
+		DEBUG(TRACE, "Registered partition descriptor %x as PID %d.\n", descriptor, next_pid);
+		next_pid++;
+	}
 }
 
 /*! \fn uint32_t getRootPartition()
@@ -249,6 +267,8 @@ updateRootPartition(uint32_t partition)
  */
 uint32_t readPresent(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -258,8 +278,12 @@ uint32_t readPresent(uint32_t table, uint32_t index)
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
 	
+	uint32_t res = entry->present;
+	
+	enable_paging();
+	
 	/* Now return the present flag */
-	return entry->present;
+	return res;
 }
 
 /*!
@@ -271,6 +295,8 @@ uint32_t readPresent(uint32_t table, uint32_t index)
  */
 void writePresent(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	/* Get destination */
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	
@@ -279,6 +305,8 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
 	
 	/* Write the flag */
 	entry->present = value;
+	
+	enable_paging();
 	
 	/* Return so we avoid the warning */
 	return;
@@ -294,6 +322,8 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
  */
 void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 {
+	disable_paging();
+	
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	uint32_t curval = *(uint32_t*)dest;
 	uint32_t curAddr = (uint32_t)curval & 0xFFFFFFFE;
@@ -302,6 +332,8 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 		*(uint32_t*)dest = curAddr | 0x00000001;
 	else
 		*(uint32_t*)dest = curAddr;
+	
+	enable_paging();
 	
 	return;
 }
@@ -315,8 +347,12 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
  */
 uint32_t readPDflag(uint32_t table, uint32_t index)
 {
+	disable_paging();
+	
 	uint32_t dest = table | (index * sizeof(uint32_t));
 	uint32_t curval = *(uint32_t*)dest;
+	
+	enable_paging();
 	
 	return (curval & 0x00000001);
 }
@@ -363,14 +399,11 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  * 	\brief Gets the amount of indirection tables
  * 	\return Amount of maximal indirection tables
  */
+const uint32_t nbLevel = 2;
+
 uint32_t getNbIndex(void)
 {
-	return nbLevel()-1;
-}
-
-uint32_t nbLevel(void)
-{
-	return 2;
+	return nbLevel-1;
 }
 
 /*!
@@ -436,4 +469,36 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 	if(write==0 || write == 1)
 		return 1;
 	else return 0;
+}
+
+uint32_t extractPreIndex(uint32_t addr, uint32_t index)
+{
+	/* First check the index value */
+	if (index > 2)
+		return 0;
+
+	/* Index 1 is the first indirection and 2 is the second. */
+	if(index == 0)
+	{
+		/* First level : Page Directory */
+		uint32_t pd_idx = (addr & 0xFFC00000) >> 22;
+		return pd_idx;
+	} else if (index == 1) {
+		/* Second level : Page Table */
+		uint32_t pt_idx = (addr >> 12) & 0x000003FF;
+		return pt_idx;
+	} else {
+        /* Offset */
+        uint32_t off = addr & 0xFFF;
+        return off;
+    }
+}
+
+void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
+{
+    uint32_t pd = current_partition;
+    uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
+    uint32_t kpt = readPhysical(cr3, kernelIndex());
+    writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
+    return;
 }

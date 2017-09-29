@@ -41,6 +41,7 @@ src/partitions/*/toolchain.mk
 
 # Internal.h is regenerated with each compilation
 Internal.h
+git.h
 
 # Latex
 *.aux
