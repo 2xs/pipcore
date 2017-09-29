@@ -89,16 +89,6 @@ Use your favourite package manager to install i386 gcc (gcc-multilib), haskell-s
 
 ## Compiling on Darwin/OSX
 
-Users of macOS High Sierra, see "Using Homebrew".
-
-### Using MacPorts : From macOS 10.9 "Mavericks" to macOS 10.12 "Sierra"
-
-* Install MacPorts
-* Install git, nasm, qemu, i386-elf-gcc, gsed via MacPorts
-* Install Coq (see User Guide)
-
-If you followed these instructions exactly, everything should be ready. If you installed another cross-compilation toolchain than i386-elf-, you should edit `conf/x86_multiboot.conf` and set the appropriate toolchain (defaults to i386-elf-).
-
 ### Using Homebrew : macOS 10.9 "Mavericks" and higher, including macOS 10.13 "High Sierra"
 
 We're currently in the process of moving the toolchain setup process from MacPorts to Homebrew, and should be using it from now on.
@@ -109,6 +99,14 @@ We're currently in the process of moving the toolchain setup process from MacPor
 * Install opam, nasm, haskell-stack, qemu, gnu-sed, doxygen and Coq : `brew install opam nasm haskell-stack qemu gnu-sed doxygen coq@8.6.1`
 	* Note : Homebrew provides a binary distribution of Coq available through `brew install coq`. At the moment we write these lines, the binary distribution of Coq is the one we want to install.
 	* Further versions of Coq, and newer binary releases might break retrocompatibility with Pip's code. Because of this, installing the appropriate version through `brew install coq@8.6.1` is safer.
+
+If you followed these instructions exactly, everything should be ready. If you installed another cross-compilation toolchain than i386-elf-, you should edit `conf/x86_multiboot.conf` and set the appropriate toolchain (defaults to i386-elf-).
+
+### Using MacPorts : From macOS 10.9 "Mavericks" to macOS 10.12 "Sierra" (DEPRECATED)
+
+* Install MacPorts
+* Install git, nasm, qemu, i386-elf-gcc, gsed via MacPorts
+* Install Coq (see User Guide)
 
 If you followed these instructions exactly, everything should be ready. If you installed another cross-compilation toolchain than i386-elf-, you should edit `conf/x86_multiboot.conf` and set the appropriate toolchain (defaults to i386-elf-).
 
