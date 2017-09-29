@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -30,11 +30,12 @@
 (*  The fact that you are presently reading this means that you have had       *)
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
+
 (**  * Summary 
       In this file we define the required configuration to extract the  MALInternal, MAL, Internal and 
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
-Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
+Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal Core.ServicesHandler.
 Extraction Language JSON.
 
 (** Coq standard library *)
@@ -61,4 +62,4 @@ Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Internal .
 Extraction Library Services.
-
+Extraction Library ServicesHandler.

@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -48,7 +48,7 @@
 
 /* Some debugging output if PIPDEBUG is set */
 #include "debug.h"
-#include "serial.h"
+
 
 /* Multiboot header info */
 #include "multiboot.h"
@@ -62,11 +62,8 @@
 /* GDT configuration */
 #include "gdt.h"
 #include "galileo-support.h"
-#include "hardware.h"
+
 /* Include serial only if we're in debug mode */
-#ifdef PIPDEBUG
-#include "serial.h"
-#endif
 
 /**
  * \brief Virtual address at which to load the multiplexer.
@@ -92,7 +89,7 @@ void spawnFirstPartition()
 	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)0x300000;
 	setKernelStack((uint32_t)krnStack);
 
-	DEBUG(TRACE, "kernel stack is %x\r\n", krnStack);
+	DEBUG(INFO, "kernel stack is %x\r\n", krnStack);
 
 	// Find virtual interrupt vector for partition
 	uintptr_t ptVirq = readPhysicalNoFlags((uintptr_t)multiplexer_cr3, getTableSize() - 1);
@@ -102,7 +99,7 @@ void spawnFirstPartition()
 	uint32_t target = (uint32_t)(virq) + sizeof(uint32_t);
 	writePhysical(target, 0x1, (uint32_t)usrStack);
 
-	DEBUG(TRACE, "user stack is %x\r\n", usrStack);
+	DEBUG(INFO, "user stack is %x\r\n", usrStack);
 
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
@@ -146,12 +143,19 @@ void fixFpInfo()
  * \return Should not return.
  */
 
-uint32_t debugGDB = 1;
 int c_main(struct multiboot *mbootPtr)
 {
-	setupHardware();
+
+
+	extern uint32_t UART_MMIO_Base;
+
+	if(PIP_DEBUG_MODE)
+        initGalileoSerial(DEBUG_SERIAL);
+    DEBUG(INFO, "-> Initializing SERIAL PORT with UART_MMIO_Base at %x.\n",UART_MMIO_Base);
+
+
 	printf("Starting Pip ?\r\n");
-	while(ucGalileoGetchar() == 0);
+	while(galileoSerialGetc() == 0);
 
 	DEBUG(INFO, "Pip kernel, git revision %s\r\n", GIT_REVISION);
 

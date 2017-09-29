@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,63 +31,27 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/**
- * \file serial.c
- * \brief Serial driver for debugging purposes
- */
-#include "serial.h"
-#include "port.h"
+#define __ASSEMBLY__
+#include <pip/vidt.h>
 
-#define PORT 0x3f8 //!< Serial port COM1 number
- 
-/**
- * \fn void initSerial()
- * \brief Initializes the serial port
- */
-void initSerial() {
-       outb(PORT + 1, 0x00);    // Disable all interrupts
-       outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-       outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
-       outb(PORT + 1, 0x00);    //                  (hi byte)
-       outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
-       outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
-       outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-}
+.section .text
+.extern main
 
-/**
- * \fn int serialReceived()
- * \brief Checks whether we received some data on the serial port
- * \return 1 if some data is available, 0 else
- */
-int serialReceived() {
-       return inb(PORT + 5) & 1;
-}
+boot:
+    /* Push EBX onto the stack */
+    push %ebx
 
-/**
- * \fn char readSerial()
- * \brief Gets a character from the serial port
- * \return The character
- */
-char readSerial() {
-       while (serialReceived() == 0);
-       return inb(PORT);
-}
+    /* Disable interrupts
+    .extern vcli
+    call vcli */ 
 
-/**
- * \fn int isTransmitEmpty()
- * \brief Checks whether our serial line buffer is empty or not
- * \return 0 if it's not empty, 1 else
- */
-int isTransmitEmpty() {
-       return inb(PORT + 5) & 0x20;
-}
- 
-/**
- * \fn void writeSerial(char a)
- * \brief Writes a character into the serial port
- * \param a The character to write
- */
-void writeSerial(char a) {
-       while (isTransmitEmpty() == 0);
-       outb(PORT,a);
-}
+    /* Call main */
+    call main 
+    jmp loop
+
+loop:
+    jmp loop
+
+INTERRUPT_HANDLER(pfAsm, pfHandler)
+INTERRUPT_HANDLER(gpfAsm, gpfHandler)
+INTERRUPT_HANDLER(timerAsm, timerHandler)

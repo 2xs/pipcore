@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -36,68 +36,98 @@
  * \brief MMU early-boot configuration
  */
 #include <stdint.h>
-#include "debug.h"
-#include <libc.h>
 #include "galileo-support.h"
-#include "GPIO_I2C.h"
-#include "HPET.h"
-#include "portmacro.h"
-#include "hardware.h"
 
-extern uint32_t UART_MMIO_Base;
 
-void setupHardware()
+uint16_t usIRQMask = 0xfffb;
+uint32_t UART_PCI_Base = 0x9000b000;
+uint32_t UART_MMIO_Base = 0xe00a5000;
+
+
+void initGalileoSerialPort(uint32_t portnumber)
 {
-    if(PIP_DEBUG_MODE)
-        initGalileoSerialPort(DEBUG_SERIAL_PORT);
-    DEBUG(INFO, "-> Initializing SERIAL PORT with UART_MMIO_Base at %x.\n",UART_MMIO_Base);
-    initGalileoGPIO();
-    DEBUG(INFO,"-> Initializing GPIO.\n");
-    vGalileoInitializeLegacyGPIO();
-    DEBUG(INFO,"-> Initializing Legacy GPIO.\n");
-
-#if(hpetUSE_HPET_TIMER_NUMBER)
-    {
-        __asm volatile("cli");
-        initHPETInterrupts();
-        DEBUG(INFO,"-> Initializing HPET Interrupts\n");
+    if(galileoSerialPortInitialized == 0){
+        initializeGalileoUART(portnumber);
+        galileoSerialPortInitialized = 1;
     }
-#endif
-    DEBUG(INFO,"-> Calibrate Timer\n");
-    calibrateLVTimer();
 }
 
 
 
+void initializeGalileoUART(uint32_t portnumber)
+ {
+	volatile uint8_t divisor = 24;
+	volatile uint8_t output_data = 0x3 & 0xFB & 0xF7;
+	volatile uint8_t input_data = 0;
+	volatile uint8_t lcr = 0;
 
+	if (portnumber == DEBUG_SERIAL_PORT)
+		UART_PCI_Base = MMIO_PCI_ADDRESS(0, 20, 5, 0);
+	else
+		UART_PCI_Base = MMIO_PCI_ADDRESS(0, 20, 1, 0);
 
-void calibrateLVTimer( void )
-{
-uint32_t uiInitialTimerCounts, uiCalibratedTimerCounts;
+	uint32_t base = mem_read(UART_PCI_Base, 0x10, 4);
+	UART_MMIO_Base = base;
 
-	/* Disable LAPIC Counter. */
-	portAPIC_LVT_TIMER = portAPIC_DISABLE;
+	mem_write(base, R_UART_SCR, 1, 0xAB);
 
-	/* Calibrate the LV Timer counts to ensure it matches the HPET timer over
-	extended periods. */
-	uiInitialTimerCounts = ( ( configCPU_CLOCK_HZ >> 4UL ) / configTICK_RATE_HZ );
-	uiCalibratedTimerCounts = uiCalibrateTimer( 0, hpetLVTIMER );
+	mem_write(base, R_UART_LCR, 1, output_data | B_UARY_LCR_DLAB);
 
-	if( uiCalibratedTimerCounts != 0 )
+	mem_write(base, R_UART_BAUD_HIGH, 1, (uint8_t)(divisor >> 8));
+	mem_write(base, R_UART_BAUD_LOW, 1, (uint8_t)(divisor & 0xff));
+
+	mem_write(base, R_UART_LCR, 1, output_data);
+
+	mem_write(base, R_UART_FCR, 1, (uint8_t)(B_UARY_FCR_TRFIFIE |
+		B_UARY_FCR_RESETRF | B_UARY_FCR_RESETTF | 0x30));
+
+	input_data = mem_read(base, R_UART_MCR, 1);
+	input_data |= BIT1;
+	input_data &= ~BIT5;
+	mem_write(base, R_UART_MCR, 1, input_data);
+
+	lcr = mem_read(base, R_UART_LCR, 1);
+	mem_write(base, R_UART_LCR, 1, (uint8_t) (lcr & ~B_UARY_LCR_DLAB));
+
+	mem_write(base, R_UART_IER, 1, 0);
+ }
+
+ /*-----------------------------------------------------------------------
+  * Serial port support functions
+  *------------------------------------------------------------------------
+  */
+ void vGalileoPrintc(char c)
+ {
+	if (galileoSerialPortInitialized)
+	{	
+
+		while((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_TXRDY) == 0);
+
+	 	mem_write(UART_MMIO_Base, R_UART_BAUD_THR, 1, c);
+	}
+ }
+ /*-----------------------------------------------------------*/
+
+ uint8_t ucGalileoGetchar()
+ {
+	uint8_t c = 0;
+	if (galileoSerialPortInitialized)
 	{
-		uiInitialTimerCounts = uiCalibratedTimerCounts;
+		if((mem_read(UART_MMIO_Base, R_UART_LSR, 1) & B_UART_LSR_RXRDY) != 0)
+		 	c  = mem_read(UART_MMIO_Base, R_UART_BAUD_THR, 1);
+	}
+	  return c;
+ }
+ /*-----------------------------------------------------------*/
+
+ void vGalileoPuts(const char *string)
+ {
+	if (galileoSerialPortInitialized)
+	{
+	    while(*string)
+	    	vGalileoPrintc(*string++);
 	}
 
-	/* Set the interrupt frequency. */
-	portAPIC_TMRDIV = portAPIC_DIV_16;
-	portAPIC_TIMER_INITIAL_COUNT = uiInitialTimerCounts;
 
-	/* Enable LAPIC Counter. */
-	portAPIC_LVT_TIMER = portAPIC_TIMER_PERIODIC | portAPIC_TIMER_INT_VECTOR;
-
-	/* Sometimes needed. */
-	portAPIC_TMRDIV = portAPIC_DIV_16;
-}
-
-
-
+ }
+ /*-----------------------------------------------------------*/

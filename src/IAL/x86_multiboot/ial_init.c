@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -447,7 +447,10 @@ timerPhase (uint32_t hz)
 	IAL_DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
 }
 
-/* Initializes CPU-specific features */
+/**
+ * \fn void initCpu()
+ * \brief Initializes CPU-specific features
+ */
 void initCpu()
 {
 	IAL_DEBUG(CRITICAL, "Identifying CPU model and features...\n");

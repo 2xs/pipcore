@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -56,10 +56,7 @@ uint32_t defaultAddr(void)
  * \brief Returns the default null Vaddress.
  * \return The null Vaddress.
  */
-uint32_t defaultVAddr(void)
-{
-	return 0;
-}
+const uint32_t defaultVAddr = 0;
 
 uint32_t kernelIndex(void)
 {
@@ -161,8 +158,3 @@ uint32_t getMaxIndex(void)
 }
 
 
-uint32_t nbPage()
-{
-	extern uint32_t maxPages;
-	return maxPages;
-}

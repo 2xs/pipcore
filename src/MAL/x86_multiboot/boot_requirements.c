@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -50,22 +50,15 @@
  */
 void activate(uintptr_t dir)
 {
-	uint32_t prevCR3;
-	// Set CR3 to the address of our Page Directory
-	page_directory_t* d = (page_directory_t*)dir;
+  	// Set CR3 to the address of our Page Directory
+  	page_directory_t* d = (page_directory_t*)dir;
+	asm volatile("mov %0, %%cr3"
+		 :
+		 : "r"(dir));
 
-	asm volatile ("mov %%cr3,%0"
-					: "=r"(prevCR3)
-					:);
-
-	DEBUG(TRACE,"Pevious CR3 : %x\n",prevCR3);
-    asm volatile("mov %0, %%cr3"
-    				:
-    				: "r"(d));
 	// Switch on paging
-	DEBUG(TRACE,"CR3 regs %x\n",d);
-	DEBUG(TRACE,"Switching on paging\n");
 	enable_paging();
+	
 }
 
 /*!

@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -40,6 +40,7 @@
 #define __PAGING__
 
 #include "multiboot.h"
+#include "structures.h"
 #include <stdint.h>
 
 /**
@@ -54,5 +55,6 @@ uint32_t* allocPage();
 void freePage(uint32_t *page);
 void dumpMmap(uint32_t* mmap_ptr, uint32_t len);
 void initMmu();
+void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8_t user);
 
 #endif

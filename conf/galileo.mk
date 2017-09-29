@@ -1,6 +1,5 @@
-
 ###############################################################################
-#  © Université Lille 1, The Pip Development Team (2015-2016)                 #
+#  © Université Lille 1, The Pip Development Team (2015-2017)                 #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
@@ -62,12 +61,10 @@ GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TAR
 QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -net nic,model=rtl8139 -net dump,file=./netdump.pcap -net user 
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
-
-LIBGCC=/usr/lib/gcc/x86_64-pc-linux-gnu/7.1.1/32/
-
+LIBGCC=/usr/lib/gcc/x86_64-linux-gnu/4.9/32/
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -fno-stack-protector -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-pic -no-pie
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -fno-stack-protector -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter
 LDFLAGS=-L$(LIBGCC) -melf_i386 -lgcc 
 PLATFORM=galileo
 ARCHITECTURE=x86

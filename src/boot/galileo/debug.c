@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -37,7 +37,7 @@
  */
 
 #include "debug.h"
-#include "serial.h"
+
 #include <stdint.h>
 #include "libc.h"
 #include <stdarg.h>
@@ -54,7 +54,7 @@ void krn_puts(char *c)
    int i = 0;
    while (c[i])
    {
-       vGalileoPrintc(c[i++]);
+       galileoSerialPrintc(c[i++]);
    }
 }
 
@@ -83,23 +83,23 @@ void puthex(int n)
         if (tmp >= 0xA)
         {
             noZeroes = 0;
-            writeSerial(tmp-0xA+'A' );
+            galileoSerialPrintc(tmp-0xA+'A' );
         }
         else
         {
             noZeroes = 0;
-            writeSerial( tmp+'0' );
+            galileoSerialPrintc( tmp+'0' );
         }
     }
 
     tmp = n & 0xF;
     if (tmp >= 0xA)
     {
-        writeSerial (tmp-0xA+'A');
+        galileoSerialPrintc (tmp-0xA+'A');
     }
     else
     {
-        writeSerial (tmp+'0');
+        galileoSerialPrintc (tmp+'0');
     }
 
 }
@@ -114,7 +114,7 @@ void putdec(int n)
 
     if (n == 0)
     {
-        writeSerial('0');
+        galileoSerialPrintc('0');
         return;
     }
 
@@ -195,7 +195,7 @@ void printchar(char **str, int c)
 	}
 	else
 	{
-		vGalileoPrintc( c );
+		galileoSerialPrintc( c );
 	}
 }
 

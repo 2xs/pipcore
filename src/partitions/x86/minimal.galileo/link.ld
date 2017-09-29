@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,18 +31,36 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/**
- * \file serial.h
- * \brief Serial driver include file
- */
+/***
+ OUTPUT_FORMAT(elf32-i386 )
+/**/
+/**/
+OUTPUT_FORMAT(binary ) 
+/**/
+ENTRY(main)
+SECTIONS
+{
+  .text 0x700000 :
+  {
+    code = .; _code = .; __code = .;
+    *(.text)
+    . = ALIGN(4096);
+  }
 
-#ifndef __SERIAL_DRIVER__
-#define __SERIAL_DRIVER__
+  .bss :
+  {
+    bss = .; _bss = .; __bss = .;
+    *(.bss)
+    . = ALIGN(4096);
+  }
 
-void initSerial();
-int serialReceived();
-char readSerial();
-int isTransmitEmpty();
-void writeSerial(char a);
+  .data :
+  {
+     data = .; _data = .; __data = .;
+     *(.data)
+     *(.rodata)
+     . = ALIGN(4096);
+  }
 
-#endif
+}
+

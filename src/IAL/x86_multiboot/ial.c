@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -44,6 +44,7 @@
 #include "pic8259.h"
 #include "libc.h"
 #include "maldefines.h"
+#include "mmu.h"
 #include "ial_defines.h"
 
 
@@ -81,6 +82,12 @@ isKernel (uint32_t cs)
 	return cs == 8;
 }
 
+/**
+ * \fn dumpRegs(int_ctx_t* is, uint32_t outputLevel)
+ * \brief Dumps the registers of a saved interrupt context onto the serial output.
+ * \param is Interrupted state
+ * \param outputLevel Serial log debugging output level
+ */
 void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 {
 	DEBUG(TRACE, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
@@ -108,6 +115,12 @@ void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 	}
 }
 
+/**
+ * \fn uint32_t saveCaller(int_ctx_t *is)
+ * \brief Saves the caller partition's state
+ * \param is Interrupted state location
+ * \return Address of the saved context
+ */
 uint32_t saveCaller(int_ctx_t *is)
 {
 	IAL_DEBUG(INFO, "Saving interrupted state matching registers at %x\n", is);
@@ -151,6 +164,11 @@ uint32_t saveCaller(int_ctx_t *is)
 	IAL_DEBUG(DEBUG, "Changing interrupt level : is now %d\n", INTLEVEL_GET); */
 }
 
+/**
+ * \fn void saveCallgateCaller(gate_ctx_t* ctx)
+ * \brief Saves the caller partition's state from a callgate-interrupted context
+ * \param ctx Callgate context location
+ */
 void saveCallgateCaller(gate_ctx_t* ctx)
 {
 	IAL_DEBUG(TRACE, "Building dummy context info from callgate context %x\n", ctx);

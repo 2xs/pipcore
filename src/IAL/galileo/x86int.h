@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -233,80 +233,7 @@ static inline int cpuid_string(int code, uint32_t where[4]) {
 
 
 
-#define CPU_CLOCK_HZ						( 400000000UL )
-#define TICK_RATE						( ( uint32_t ) 1000 )
 
-
-/* A critical section is exited when the critical section nesting count reaches
-   this value. */
-#define NO_CRITICAL_NESTING			( ( uint32_t ) 0 )
-
-/* Tasks are not created with a floating point context, but can be given a
-   floating point context after they have been created.  A variable is stored as
-   part of the tasks context that holds NO_FLOATING_POINT_CONTEXT if the task
-   does not have an FPU context, or any other value if the task does have an FPU
-   context. */
-#define NO_FLOATING_POINT_CONTEXT	( ( StackType_t ) 0 )
-
-/* Only the IF bit is set so tasks start with interrupts enabled. */
-#define INITIAL_EFLAGS				( 0x200UL )
-
-/* Error interrupts are at the highest priority vectors. */
-#define APIC_LVT_ERROR_VECTOR 		( 0xfe )
-#define APIC_SPURIOUS_INT_VECTOR 	( 0xff )
-
-/* EFLAGS bits. */
-#define EFLAGS_IF					( 0x200UL )
-
-/* FPU context size if FSAVE is used. */
-#define FPU_CONTEXT_SIZE_BYTES 		108
-
-/* The expected size of each entry in the IDT.  Used to check structure packing
-   is set correctly. */
-#define EXPECTED_IDT_ENTRY_SIZE		8
-
-/* Default flags setting for entries in the IDT. */
-#define IDT_FLAGS					( 0x8E )
-
-/* This is the lowest possible ISR vector available to application code. */
-#define APIC_MIN_ALLOWABLE_VECTOR	( 0x20 )
-
-/* If configASSERT() is defined then the system stack is filled with this value
-   to allow for a crude stack overflow check. */
-#define STACK_WORD					( 0xecececec )
-
-
-/* APIC register addresses. */
-
-#ifndef configAPIC_BASE
-	/* configAPIC_BASE_ADDRESS sets the base address of the local APIC.  It can
-	be overridden in FreeRTOSConfig.h should it not be constant. */
-	#define configAPIC_BASE	0xFEE00000UL
-#endif
-
-#define APIC_EOI					( *( ( volatile uint32_t * ) 0xFEE000B0UL ) )
-
-/* APIC bit definitions. */
-#define APIC_ENABLE_BIT				( 1UL << 8UL )
-#define APIC_TIMER_PERIODIC 		( 1UL << 17UL )
-#define APIC_DISABLE 				( 1UL << 16UL )
-#define APIC_NMI 					( 4 << 8)
-#define APIC_DIV_16 				( 0x03 )
-
-/* Define local API register addresses. */
-#define APIC_ID_REGISTER			( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x20UL  ) ) )
-#define APIC_SPURIOUS_INT			( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0xF0UL  ) ) )
-#define APIC_LVT_TIMER				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x320UL ) ) )
-#define APIC_TIMER_INITIAL_COUNT	( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x380UL ) ) )
-#define APIC_TIMER_CURRENT_COUNT	( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x390UL ) ) )
-#define APIC_TASK_PRIORITY			( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x80UL  ) ) )
-#define APIC_LVT_ERROR				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x370UL ) ) )
-#define APIC_ERROR_STATUS			( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x280UL ) ) )
-#define APIC_LDR	 				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0xD0UL  ) ) )
-#define APIC_TMRDIV 				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x3E0UL ) ) )
-#define APIC_LVT_PERF 				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x340UL ) ) )
-#define APIC_LVT_LINT0 				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x350UL ) ) )
-#define APIC_LVT_LINT1 				( *( ( volatile uint32_t * ) ( configAPIC_BASE + 0x360UL ) ) )
 
 
 
