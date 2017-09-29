@@ -410,7 +410,7 @@ genericHandler (int_ctx_t *is)
 		{
 			uint32_t cr2;
 			__asm volatile("MOV %%CR2, %0;":"=r"(cr2));
-			IAL_DEBUG (TRACE, "CR2 set to %x.\r\n", cr2);
+			IAL_DEBUG (INFO, "CR2 set to %x.\r\n", cr2);
 			data1 = cr2;
 			dumpRegs(is, CRITICAL);
 		}
@@ -530,7 +530,7 @@ void
 dispatch2 (uint32_t partition, uint32_t vint,
 		uint32_t data1, uint32_t data2, uint32_t caller)
 {
-	IAL_DEBUG(TRACE, "Requested dispatch of VINT %d to partition %x, caller is %x.\r\n", vint, partition, caller);
+	IAL_DEBUG(INFO, "Requested dispatch of VINT %d to partition %x, caller is %x.\r\n", vint, partition, caller);
 	uint32_t vidt, eip, esp, vflags;
 	
 	/* Check interrupt range */
@@ -547,11 +547,11 @@ dispatch2 (uint32_t partition, uint32_t vint,
 	readVidtInfo(vidt, vint, &eip, &esp, &vflags);
 	
 	/* VCLI the partition */
-	IAL_DEBUG(TRACE, "Dispatch2: VCLI'd vidt @%x.\r\n", vidt);
+	IAL_DEBUG(INFO, "Dispatch2: VCLI'd vidt @%x.\r\n", vidt);
 	writePhysical(vidt, getTableSize()-1, vflags|1);
 	
 	/* Activate partition */
-	IAL_DEBUG(TRACE, "Switching to partition %x's Page Directory.\r\n", partition);
+	IAL_DEBUG(INFO, "Switching to partition %x's Page Directory.\r\n", partition);
 	updateCurPartition (partition);
 	if(pcid_enabled)
 		activate(readPhysicalNoFlags(partition, indexPD () + 1) | readPhysical(partition, 12));

@@ -137,13 +137,6 @@ bindIrq (void)
 {
 #define IRQ_IDT(X) { extern void irq ## X(); idtSetGate (32+X, (uint32_t) irq ## X, 0x08, 0x8E); }
     /* Initialise LAPIC to a well known state. */
-    APIC_LDR = 0xFFFFFFFF;
-    APIC_LDR = ( ( APIC_LDR & 0x00FFFFFF ) | 0x00000001 );
-    APIC_LVT_TIMER = APIC_DISABLE;
-    APIC_LVT_PERF = APIC_NMI;
-    APIC_LVT_LINT0 = APIC_DISABLE;
-    APIC_LVT_LINT1 = APIC_DISABLE;
-    APIC_TASK_PRIORITY = 0;
 
 
 	IRQ_IDT(0);
@@ -165,14 +158,7 @@ bindIrq (void)
 	
 	idtFlush (& idt_ptr);
     /* Enable the APIC, mapping the spurious interrupt at the same time. */
-    APIC_SPURIOUS_INT = APIC_SPURIOUS_INT_VECTOR | APIC_ENABLE_BIT;
 
-    /* Set timer error vector. */
-    APIC_LVT_ERROR = APIC_LVT_ERROR_VECTOR;
-
-    /* Set the interrupt frequency. */
-    APIC_TMRDIV = APIC_DIV_16;
-    APIC_TIMER_INITIAL_COUNT = ( ( CPU_CLOCK_HZ >> 4UL ) / TICK_RATE ) - 1UL;
 
 
 	IAL_DEBUG (INFO, "Flushed IDT with hard. int entries\n");
