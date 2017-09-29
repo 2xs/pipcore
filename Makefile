@@ -245,13 +245,13 @@ coq-disable-simulation:
 	       -e 's/^\( *\)(\* *END *SIMULATION *\*) *$$/\1   END SIMULATION *)/'           \
 	    $(VSOURCES)
 
-doc: doc-c doc-coq userguide doc/Readme.html doc/PipInternals.html
+doc: doc-c doc-coq gettingstarted doc/Readme.html doc/PipInternals.html
 
 doc-c:
 	cd doc && doxygen doxygen.conf
 
-userguide: 
-	cd doc/UserGuide && pdflatex UserGuide.tex
+gettingstarted: 
+	cd doc/GettingStarted && pdflatex GettingStarted.tex
 
 doc-coq: $(VSOURCES) $(VSOURCES:.v=.glob)
 	mkdir -p doc/coq-doc
