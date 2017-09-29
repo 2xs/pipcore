@@ -56,10 +56,7 @@ uint32_t defaultAddr(void)
  * \brief Returns the default null Vaddress.
  * \return The null Vaddress.
  */
-uint32_t defaultVAddr(void)
-{
-	return 0;
-}
+const uint32_t defaultVAddr = 0;
 
 uint32_t kernelIndex(void)
 {
@@ -161,8 +158,3 @@ uint32_t getMaxIndex(void)
 }
 
 
-uint32_t nbPage()
-{
-	extern uint32_t maxPages;
-	return maxPages;
-}

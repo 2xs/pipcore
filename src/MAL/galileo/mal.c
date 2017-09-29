@@ -419,15 +419,13 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  * 	\brief Gets the amount of indirection tables
  * 	\return Amount of maximal indirection tables
  */
+const uint32_t nbLevel = 2;
 uint32_t getNbIndex(void)
 {
-	return nbLevel()-1;
+	return nbLevel-1;
 }
 
-uint32_t nbLevel(void)
-{
-	return 2;
-}
+
 
 /*!
  * \fn void writeAddr(uint32_t table, uint32_t index, uint32_t addr)
@@ -492,4 +490,37 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 	if(write==0 || write == 1)
 		return 1;
 	else return 0;
+}
+
+
+uint32_t extractPreIndex(uint32_t addr, uint32_t index)
+{
+	/* First check the index value */
+	if (index > 2)
+		return 0;
+
+	/* Index 1 is the first indirection and 2 is the second. */
+	if(index == 0)
+	{
+		/* First level : Page Directory */
+		uint32_t pd_idx = (addr & 0xFFC00000) >> 22;
+		return pd_idx;
+	} else if (index == 1) {
+		/* Second level : Page Table */
+		uint32_t pt_idx = (addr >> 12) & 0x000003FF;
+		return pt_idx;
+	} else {
+        /* Offset */
+        uint32_t off = addr & 0xFFF;
+        return off;
+    }
+}
+
+void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
+{
+    uint32_t pd = current_partition;
+    uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
+    uint32_t kpt = readPhysical(cr3, kernelIndex());
+    writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
+    return;
 }
