@@ -302,4 +302,4 @@ bochs: grub
 	cat bochscom &
 	bochs -q
 
-.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper clean-c clean-coq kernel userguide clean-mddoc bochs
+.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper clean-c clean-coq kernel gettingstarted clean-mddoc bochs
