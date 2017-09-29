@@ -39,7 +39,7 @@
 #include "port.h"
 
 #define CLIENT_SERIAL_PORT 0
-#define DEBUG_SERIAL_PORT 1
+#define DEBUG_SERIAL 1
 
 
 
@@ -59,9 +59,9 @@ typedef uint32_t uintn_t;
 
 
 
-void initializeGalileoUART(uint32_t portnumber);
+void initGalileoUART(uint32_t portnumber);
 
-void initGalileoSerialPort(uint32_t portnumber);
+void initGalileoSerial(uint32_t portnumber);
 
 
 
@@ -96,7 +96,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
 
 
 #define CLIENT_SERIAL_PORT 				0
-#define DEBUG_SERIAL_PORT 				1
+#define DEBUG_SERIAL 				1
 
 #define R_UART_THR                      0
 #define R_UART_IER                      0x04
@@ -151,7 +151,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
 //---------------------------------------------------------------------
 // MMIO read/write/set/clear/modify macros
 //---------------------------------------------------------------------
-#define mem_read(base, offset, size) ({ \
+#define MMIO_read(base, offset, size) ({ \
         volatile uint32_t a = (base) + (offset); \
         volatile uint64_t v; \
         switch (size) { \
@@ -174,7 +174,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
         })
 
 // No cache bypass necessary -- MTRRs should handle this
-#define mem_write(base, offset, size, value) { \
+#define MMIO_write(base, offset, size, value) { \
     volatile uint32_t a = (base) + (offset); \
     switch (size) { \
         case 1: \
@@ -194,7 +194,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
     } \
 }
 
-#define mem_set(base, offset, size, smask) { \
+#define MMIO_set(base, offset, size, smask) { \
     volatile uint32_t a = (base) + (offset); \
     switch (size) { \
         case 1: \
@@ -212,7 +212,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
     } \
 }
 
-#define mem_clear(base, offset, size, cmask) { \
+#define MMIO_clear(base, offset, size, cmask) { \
     volatile uint32_t a = (base) + (offset); \
     switch (size) { \
         case 1: \
@@ -230,7 +230,7 @@ static uint32_t galileoSerialPortInitialized = FALSE;
     } \
 }
 
-#define mem_modify(base, offset, size, cmask, smask) { \
+#define MMIO_modify(base, offset, size, cmask, smask) { \
     volatile uint32_t a = (base) + (offset); \
     switch (size) { \
         case 1: \
@@ -259,9 +259,9 @@ static uint32_t galileoSerialPortInitialized = FALSE;
 #define	CLKCNTL			MODE_REGISTER
 
 
-void vGalileoPrintc(char c);
-uint8_t ucGalileoGetchar();
-void vGalileoPuts(const char *string);
+void galileoSerialPrintc(char c);
+uint8_t galileoSerialGetc();
+void galileoSerialPrints(const char *string);
 
 
 

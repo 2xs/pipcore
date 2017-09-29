@@ -472,7 +472,7 @@ void initMmu()
 
 	/* We should be done with page allocation and stuff : the remaining pages should be available as memory for the partition */
 	/* First prepare all pages : pages required for prepare should be deleted from free page list */
-	while((pg = (uint32_t)allocPage()) && curAddr <= 0xFFFFD000) {
+	while((pg = (uint32_t)allocPage()) && curAddr < 0xFFFFC000) {
 		mapPageC((uintptr_t)kernelDirectory, pg, curAddr, 1);
 		curAddr += 0x1000;
 	}
