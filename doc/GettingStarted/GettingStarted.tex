@@ -160,6 +160,7 @@ include ../toolchain.mk
 CFLAGS=-m32 -c
 CFLAGS+=-nostdlib --freestanding
 CFLAGS+=-I$(LIBPIP)/include/
+CFLAGS+=-I$(LIBPIP)/arch/x86/include/
 \end{lstlisting}
 
 Here are the meanings of the flags. 
@@ -176,8 +177,8 @@ We're compiling on bare-metal, but GCC provides some platform-free, bare-metal r
 \marginlabel{\texttt{-nostdlib}}
 Quite self-explanatory, this flag disables the linking towards the LibC, thus eliminating the dependancy to the host system.
 
-\marginlabel{\texttt{-I\$(LIBPIP)/include/}}
-We want to link our Hello World partition towards LibPip. Here, we specify LibPip's include directory so that we can use our library's include files. See section 1.2, "\textit{LibPip source}".
+\marginlabel{\texttt{-I\$(LIBPIP)/include/ ...}}
+We want to link our Hello World partition towards LibPip. Here, we specify LibPip's include directory so that we can use our library's include files, as well as LibPip's architecture-dependant includes. See section 1.2, "\textit{LibPip source}".
 
 \begin{lstlisting}[language=bash,caption={Makefile GAS and LD flags}]
 ASFLAGS=$(CFLAGS)
@@ -316,11 +317,13 @@ SECTIONS
 Once all our files are created and filled, we can generate our partition binary by invoking "\texttt{make}", which should produce the following output :
 \begin{lstlisting}[language=bash,caption={Partition make output}]
 gcc -m32 -c -I. --freestanding -nostdlib 
-	-I/home/user/Pip/LibPip/include/ boot.s 
-	-o boot.o
+	-I/home/user/Pip/LibPip/include/ 
+	-I/home/user/Pip/LibPip/arch/x86/include/
+	boot.s -o boot.o
 gcc -m32 -c -I. --freestanding -nostdlib
-	-I/home/user/Pip/LibPip/include/ main.c
-	-o main.o
+	-I/home/user/Pip/LibPip/include/
+	-I/home/user/Pip/LibPip/arch/x86/include/ 
+	main.c -o main.o
 ld boot.o main.o -o HelloWorld.bin 
 	-L/home/user/Pip/LibPip/include/lib
 	-melf_i386 -Tlink.ld -lpip
