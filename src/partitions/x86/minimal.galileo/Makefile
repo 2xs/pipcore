@@ -35,7 +35,7 @@ include ../toolchain.mk
 
 
 
-CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -fno-pic
+CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -I$(LIBPIP)/arch/x86/include/ -fno-pic
 ASFLAGS=$(CFLAGS)
 ASFLAGS+=-I$(LIBPIP)/include/
 
