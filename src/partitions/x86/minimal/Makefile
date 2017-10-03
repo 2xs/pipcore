@@ -33,7 +33,7 @@
 
 include ../toolchain.mk
 
-CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/
+CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -I$(LIBPIP)/arch/x86/include/
 ASFLAGS=$(CFLAGS)
 LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld -lpip
 

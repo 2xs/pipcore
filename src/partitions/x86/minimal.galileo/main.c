@@ -35,6 +35,7 @@
 #include <pip/fpinfo.h>
 #include <pip/api.h>
 #include <pip/vidt.h>
+#include <pip/compat.h>
 #include "galileo-support.h"
 
 /**
