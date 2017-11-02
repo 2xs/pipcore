@@ -15,6 +15,8 @@ struct ACPISDTHeader    *madt = 0x0;
 struct mp_floating_pointer_structure *mpt = 0x0;
 struct mp_configuration_table *mpconf = 0x0;
 
+uint32_t* io_apic = 0x0;
+
 void find_mpt()
 {
     static const char mpt_sig[4] = "_MP_"; /* MP table signature to find */
@@ -44,6 +46,29 @@ void parse_mpconf()
         for(;;);
     } else {
         DEBUG(CRITICAL, "MP configuration table signature is valid. Continuing.\n");
+        DEBUG(CRITICAL, "%d entries found in MP configuration table.\n", mpconf->entry_count);
+
+        struct entry_processor* entry = (struct entry_processor*)((uint32_t)mpconf + sizeof(struct mp_configuration_table));
+
+        for(int i = 0; i < mpconf->entry_count; i++)
+        {
+            // DEBUG(CRITICAL, "Parsing entry at %x.\n", entry);
+            if(entry->type == 0x0)
+            {
+                // DEBUG(CRITICAL, "Found a processor entry at %d.\n", i);
+                DEBUG(CRITICAL, "CPU%d: LocalAPIC ID : %x, LocalAPIC Version : %x, Flags : %x\n", entry->local_apic_id, entry->local_apic_id, entry->local_apic_version, entry->flags);
+                entry = (struct entry_processor*)((uint32_t)entry + 20);
+            } else {
+                if(entry->type == 0x2)
+                {
+                    struct entry_io_apic* apic = (struct entry_io_apic*)entry;
+                    DEBUG(CRITICAL, "Found IO APIC, address %x, flags %x\n", apic->address, apic->flags);
+                } else {
+                    // DEBUG(CRITICAL, "Ignoring entry type %d.\n", entry->type);
+                }
+                entry = (struct entry_processor*)((uint32_t)entry + 8);
+            }
+        }
     }
 }
 
