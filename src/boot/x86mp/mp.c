@@ -56,7 +56,7 @@ void parse_mpconf()
             if(entry->type == 0x0)
             {
                 // DEBUG(CRITICAL, "Found a processor entry at %d.\n", i);
-                DEBUG(CRITICAL, "CPU%d: LocalAPIC ID : %x, LocalAPIC Version : %x, Flags : %x\n", entry->local_apic_id, entry->local_apic_id, entry->local_apic_version, entry->flags);
+                DEBUG(CRITICAL, "CPU%d: LocalAPIC ID : %x, LocalAPIC Version : %x, Flags : %x (%s)\n", entry->local_apic_id, entry->local_apic_id, entry->local_apic_version, entry->flags, entry->flags & 0x2 ? "BP" :  "AP");
                 entry = (struct entry_processor*)((uint32_t)entry + 20);
             } else {
                 if(entry->type == 0x2)
