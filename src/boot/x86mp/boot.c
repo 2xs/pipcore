@@ -151,14 +151,15 @@ int c_main(struct multiboot *mbootPtr)
 	initSerial();
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
 	
-	// Install GDT & IDT
-	DEBUG(INFO, "-> Initializing ISR.\n");
-	initInterrupts();
-	DEBUG(INFO, "-> Initializing GDT.\n");
-	gdtInstall();
-	
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
+	
+	DEBUG(INFO, "-> Initializing GDT.\n");
+	gdtInstall();
+    
+    // Install GDT & IDT
+	DEBUG(INFO, "-> Initializing ISR.\n");
+	initInterrupts();
 	
     // Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");

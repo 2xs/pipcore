@@ -3,6 +3,8 @@
 #include "rsdt.h"
 #include "libc.h"
 #include "mptables.h"
+#include "apic.h"
+#include "smp-imps.h"
 #include <stdint.h>
 
 #include "debug.h"
@@ -16,6 +18,13 @@ struct mp_floating_pointer_structure *mpt = 0x0;
 struct mp_configuration_table *mpconf = 0x0;
 
 uint32_t* io_apic = 0x0;
+
+uint32_t* cpuBitfield = (uint32_t*)0x10000;
+
+uint8_t hasBooted(uint32_t n)
+{
+    return (*cpuBitfield == 0xCAFE);
+}
 
 void find_mpt()
 {
@@ -35,6 +44,16 @@ void find_mpt()
     
     DEBUG(CRITICAL, "Couldn't find MP Table. MP is unavailable. Please use x86_multiboot instead.\n");
     for(;;);
+}
+
+void boot_cpu(struct entry_processor* entry)
+{
+    if(entry->flags & 0x2)
+    {
+        DEBUG(CRITICAL, "CPU is boot CPU, ignoring.\n");
+        return;
+    }
+    DEBUG(CRITICAL, "Booting CPU%d\n", entry->local_apic_id);
 }
 
 void parse_mpconf()
@@ -57,6 +76,7 @@ void parse_mpconf()
             {
                 // DEBUG(CRITICAL, "Found a processor entry at %d.\n", i);
                 DEBUG(CRITICAL, "CPU%d: LocalAPIC ID : %x, LocalAPIC Version : %x, Flags : %x (%s)\n", entry->local_apic_id, entry->local_apic_id, entry->local_apic_version, entry->flags, entry->flags & 0x2 ? "BP" :  "AP");
+                boot_cpu(entry);
                 entry = (struct entry_processor*)((uint32_t)entry + 20);
             } else {
                 if(entry->type == 0x2)
@@ -126,7 +146,25 @@ uint8_t parse_rsdt()
     return 0;
 }
 
+void relocate_trampoline()
+{
+}
+
 void init_mp()
+{
+    extern void disable_pic();
+    kprintf("Disabling PIC.\n");
+    //disable_pic(); /* MAGIC */
+
+    kprintf("PIC disabled.\n");
+    uint32_t ret;
+    /* PROBE */
+    ret = imps_probe();
+
+    kprintf("CPU bitfield: %x\n", *cpuBitfield);
+}
+
+void init_mp_legacy()
 {
     /* Find RSDP (Root System Description Pointer) */
     find_rsdp();

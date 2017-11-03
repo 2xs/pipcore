@@ -59,7 +59,7 @@ QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std 
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -Wno-missing-field-initializers -Wno-address
 LDFLAGS=-melf_i386
 
 PLATFORM=multiboot
