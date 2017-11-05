@@ -50,7 +50,7 @@ MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC + MBOOT_HEADER_FLAGS)
 [EXTERN code]
 [EXTERN bss]
 [EXTERN end]
-
+SECTION .mboot
 mboot:
   dd  MBOOT_HEADER_MAGIC
   dd  MBOOT_HEADER_FLAGS
@@ -75,7 +75,13 @@ start:
     rep stosb ; Rep that "ecx" times
 	mov esp, _sys_stack
 	push ebx
-	call c_main
+    
+    ;mov edi, 0xB8000
+    ;mov eax, 0x4F204F20
+    ;mov ecx, 500
+    ;rep stosb
+	
+    call c_main
 	jmp $
 
 SECTION .bss

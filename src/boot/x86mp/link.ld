@@ -34,6 +34,21 @@
 ENTRY(start)
 SECTIONS
 {
+.mboot 0x5000 : {
+    mboot = .;
+    *(.mboot)
+    . = ALIGN(4096);
+}
+.apentry 0x8000 : {
+    apentry = .;
+    *(.apentry)
+    . = ALIGN(4096);
+}
+.apentry32 0xA000 : {
+    apentry32 = .;
+    *(.apentry32)
+    . = ALIGN(4096);
+}
 /* Kernel laod address defined during make (Makefile.inc), used in everything */
 .text 0x100000 :
 {

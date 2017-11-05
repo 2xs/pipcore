@@ -76,6 +76,8 @@
 extern uint32_t __multiplexer;
 #define MULTIPLEXER_LOAD_ADDR (uint32_t)&__multiplexer
 
+uint32_t nextFreeCoreStack = 0;
+
 pip_fpinfo* fpinfo;
 
 /**
@@ -137,6 +139,17 @@ void fixFpInfo()
 	fpinfo->membegin = (uint32_t)firstFreePage;
 }
 
+int mp_c_main()
+{
+//    initSerial();
+    DEBUG(CRITICAL, "Application Core booted succesfully! :)\n");
+    for(;;);
+    uint16_t* vga = (uint16_t*)0xB8000;
+    *vga = (uint16_t)0x4F20;
+    for(;;);
+    return 1;
+}
+
 /**
  * \fn int c_main (struct multiboot *mboot_ptr)
  * \brief Entrypoint
@@ -156,7 +169,13 @@ int c_main(struct multiboot *mbootPtr)
 	
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();
-    
+   int i = 0;
+    extern void apentry();
+    extern void apboot();
+    extern void *apentry32;
+    DEBUG(CRITICAL, "MP EP at %x, APEntry32 at %x\n", &mp_c_main, &apentry32);
+ for(;;) 
+
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");
 	initInterrupts();

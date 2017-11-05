@@ -152,16 +152,11 @@ void relocate_trampoline()
 
 void init_mp()
 {
-    extern void disable_pic();
-    kprintf("Disabling PIC.\n");
-    //disable_pic(); /* MAGIC */
+    kprintf("At this point, PIC shouldn't have been configured yet.\n");
 
-    kprintf("PIC disabled.\n");
     uint32_t ret;
     /* PROBE */
     ret = imps_probe();
-
-    kprintf("CPU bitfield: %x\n", *cpuBitfield);
 }
 
 void init_mp_legacy()
