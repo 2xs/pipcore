@@ -77,7 +77,7 @@ extern uint32_t __multiplexer;
 #define MULTIPLEXER_LOAD_ADDR (uint32_t)&__multiplexer
 
 uint32_t nextFreeCoreStack = 0;
-
+uint32_t cores = 1; /* Only BSP until APs boot */
 pip_fpinfo* fpinfo;
 
 /**
@@ -142,10 +142,9 @@ void fixFpInfo()
 int mp_c_main()
 {
 //    initSerial();
-    DEBUG(CRITICAL, "Application Core booted succesfully! :)\n");
-    for(;;);
-    uint16_t* vga = (uint16_t*)0xB8000;
-    *vga = (uint16_t)0x4F20;
+    cores++;
+    SMP_DEBUGF("CPU Core %d booted.\n", cores);
+    SMP_DEBUGF("YOUPI\n");
     for(;;);
     return 1;
 }
@@ -163,18 +162,17 @@ int c_main(struct multiboot *mbootPtr)
 {
 	initSerial();
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
-	
+
+    /* First install BSP's GDT so that our APs can use it */
+	DEBUG(CRITICAL, "-> Initializing BSP's GDT.\n");
+	gdtInstall();
+    DEBUG(CRITICAL, "CPU Core %d booted.\n", cores);
+
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
 	
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();
-   int i = 0;
-    extern void apentry();
-    extern void apboot();
-    extern void *apentry32;
-    DEBUG(CRITICAL, "MP EP at %x, APEntry32 at %x\n", &mp_c_main, &apentry32);
- for(;;) 
 
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");

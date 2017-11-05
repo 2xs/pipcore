@@ -74,6 +74,8 @@
  */
 #define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
 #define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define SMP_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [AP][%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define SMP_DEBUGF(a,...) kprintf("[AP Core][%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);
 /* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
 
 /**

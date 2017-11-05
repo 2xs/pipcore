@@ -216,7 +216,7 @@ void gdtInstall(void)
 	}
 	
 	DEBUG(INFO, "Callgate set-up\n");
-
+    DEBUG(CRITICAL, "BSP GDTPtr at %x.\n", &gp);
 	gdtFlush();
 	tssFlush();
 }

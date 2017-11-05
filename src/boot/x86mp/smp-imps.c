@@ -209,9 +209,9 @@ boot_cpu(imps_processor *proc)
 
 	extern char patch_code_start[];
 	extern char patch_code_end[];
-	bootaddr = (512-64)*1024; /* 0x70000 */
-
-    memcpy((char *)bootaddr, patch_code_start, patch_code_end - patch_code_start);
+	// bootaddr = (512-64)*1024; /* 0x70000 */
+    bootaddr = 0x8000;
+//     memcpy((char *)bootaddr, patch_code_start, patch_code_end - patch_code_start);
 
 
 	/*
