@@ -54,6 +54,9 @@
 uint32_t next_pcid = 1; /* Next available PCID */
 extern uint32_t pcid_enabled;
 
+uint32_t* ioapic_base = 0x0; /* IO APIC base address */
+uint32_t* lapic_base = 0x0; /* LAPIC base address */
+
 #define ASSERT(u) \
 	if (!(u)){ \
 		kprintf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \

@@ -332,6 +332,9 @@ add_ioapic(imps_ioapic *ioapic)
 	}
 	kprintf("\n");
 
+    extern uint32_t* ioapic_base;
+    ioapic_base = (uint32_t*)(ioapic->addr);
+
 	/*  XXXXX  add OS-specific code here */
 }
 
@@ -446,6 +449,10 @@ imps_read_bios(imps_fps *fps_ptr)
 	}
 	kprintf("    APIC config: \"%s mode\"    Local APIC address: 0x%x\n",
 		      str_ptr, imps_lapic_addr);
+
+    extern uint32_t* lapic_base;
+    lapic_base = (uint32_t*)(imps_lapic_addr);
+
 	if (imps_lapic_addr != (READ_MSR_LO(0x1b) & 0xFFFFF000)) {
 		kprintf("Inconsistent Local APIC address, Disabling SMP support\n");
 		return;

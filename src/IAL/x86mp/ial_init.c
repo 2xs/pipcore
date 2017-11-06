@@ -514,7 +514,9 @@ void initCpu()
 void
 initInterrupts (void)
 {
+    extern uint32_t* ioapic_base, *lapic_base;
 	IAL_DEBUG (INFO, "Initializing interrupts, IAL %s \"On Steroids\" version %s\n", IAL_PREFIX, IAL_VERSION);
+    IAL_DEBUG (CRITICAL, "\tIO-APIC at %x\n\tLAPIC at %x\n", ioapic_base, lapic_base);
 	initIdt ();
 	bindIsr ();
 	remapIrq ();

@@ -6,8 +6,8 @@ section .apentry32
     cli
     
 	; Print stuff on VGA terminal (first check to see whether we're alive or not)
-	mov eax, 0xB8000
-	mov dword [eax], 0x414F414F
+	; mov eax, 0xB8000
+	; mov dword [eax], 0x414F414F
 
 	; Flush segments
     mov ax, 0x10
@@ -17,38 +17,38 @@ section .apentry32
     mov gs, ax
     mov ss, ax
 	
-	; Put sum stack in low-memory (where we don't have anything important)
-	; Under 1mb : A20 line is not enabled yet
-	; TODO : well fuck
-	mov esp, 0x4000
-	mov ebp, esp
+	; Put sum stack in low-memory (where we probably don't have anything important)
+	; TODO: well, fuck
+	mov esp, 0x4000	; yolo
+	mov ebp, esp	; double yolo
 
 	; Enable A20 - should not be required, A20 should be enabled by BSP
+	; status update : it is not
 	call enable_A20_kb
 
 	; At this point, A20 line is enabled. Reload GDT from BSP
-	; Reload the BSP's GDT (with callgates and stuff)
+	; It shouldn't hang. If it does, I'm done
 	lgdt [gp]
 	
 	; Flush segments
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
 
 	; Move on.
 	jmp 0x08:move_on
 
 move_on:
     ; Get a stack for each core
-    mov esp, _mp_stack   ; u want sum stack ?
-    mov ebp, esp
+    mov esp, _mp_stack   ; u want
+    mov ebp, esp         ; sum stack?
    
-	mov eax, mp_c_main
-    call eax
-    jmp $
+	mov eax, mp_c_main   ; no ron
+    call eax             ; i don't want
+    jmp $                ; sum stack
 
 ; Check A20 line status
 is_A20_on:   
@@ -74,6 +74,8 @@ enable_A20:
 		out 0x92, al	
 		ret
 
+; Enable A20 line through keyboard controller
+; Thanks Intel :))
 enable_A20_kb:
         call    a20wait
         mov     al,0xAD
@@ -102,13 +104,15 @@ enable_A20_kb:
  
         call    a20wait
         ret
- 
+
+; Wait for PS2 controller COMMAND completion
 a20wait:
         in      al,0x64
         test    al,2
         jnz     a20wait
         ret
  
+; Wait for PS2 controller DATA completion
 a20wait2:
         in      al,0x64
         test    al,1
