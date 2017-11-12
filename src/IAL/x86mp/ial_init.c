@@ -639,7 +639,7 @@ initInterrupts (void)
     IAL_DEBUG(CRITICAL, "Masked PIC.\n");
     initIdt ();
 	bindIsr ();
-	remapIrq ();
+	// remapIrq ();
 	bindIrq ();
     apicInit();
     setup_apic_timer();	

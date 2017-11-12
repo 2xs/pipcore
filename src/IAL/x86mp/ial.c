@@ -46,7 +46,7 @@
 #include "maldefines.h"
 #include "mmu.h"
 #include "ial_defines.h"
-
+#include "lapic.h"
 
 #define MAX_VINT (uint32_t)0x100
 #define MAX_PCID 4096
@@ -390,7 +390,11 @@ genericHandler (int_ctx_t *is)
         timer_ticks++;
 
     IAL_DEBUG(CRITICAL, "Interrupt %d occured through APIC, ticks: %d\n", is->int_no, timer_ticks);	
-	/* A bit of the handling is different with hardware interrupts */
+	
+    /* Send EOI signal to APIC */
+    write_lapic(APIC_EOI, 0x0);   
+
+    /* A bit of the handling is different with hardware interrupts */
 	if(INT_IRQ(is->int_no))
 	{
 		IAL_DEBUG(TRACE, "Got hardware interrupt %d.\n", is->int_no);
