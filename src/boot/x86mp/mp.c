@@ -152,8 +152,8 @@ void relocate_trampoline()
 
 void init_mp()
 {
-    kprintf("At this point, PIC shouldn't have been configured yet.\n");
-
+    //kprintf("At this point, PIC shouldn't have been configured yet.\n");
+    kprintf("Probing extended BIOS area and initializing APs.\n");
     uint32_t ret;
     /* PROBE */
     ret = imps_probe();

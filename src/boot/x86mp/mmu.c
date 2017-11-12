@@ -53,6 +53,7 @@ uint32_t maxPages = 0; //!< The maximal amount of pages available
 uint32_t allocatedPages = 0; //!< The current allocated amount of pages
 uint32_t ramEnd = 0; //!< End of memory
 uint32_t pageCount = 0;
+uint32_t mmuEnabled = 0;
 
 // Defined in libc.c
 extern uint32_t placement_address; //!< Placement address, this should be unused.
@@ -471,6 +472,8 @@ void initMmu()
 	
 	/* At this point, page allocator is empty. */
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);
+
+    mmuEnabled = 1;
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
 	activate((uint32_t)kernelDirectory);
