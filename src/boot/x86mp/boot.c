@@ -163,6 +163,8 @@ int c_main(struct multiboot *mbootPtr)
 	initSerial();
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
 
+    DEBUG(INFO, "Multiboot information at %x, mem_lower=%x, mem_upper=%x, flags=%x\n", mbootPtr, mbootPtr->mem_lower, mbootPtr->mem_upper, mbootPtr->flags);
+
     /* First install BSP's GDT so that our APs can use it */
 	DEBUG(CRITICAL, "-> Initializing BSP's GDT.\n");
 	gdtInstall();
@@ -181,7 +183,6 @@ int c_main(struct multiboot *mbootPtr)
 
     __asm volatile("STI");
 
-    for(;;);
     // Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);

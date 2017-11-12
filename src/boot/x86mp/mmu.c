@@ -253,6 +253,7 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
     multiboot_memory_map_t* mmap = (multiboot_memory_map_t*)mmap_ptr;
     uint32_t num = 1;
 
+    DEBUG(TRACE, "Parsing Multiboot-provided memory map at %x\n", mmap_ptr);
     extern uint32_t code;
 
     // Parse each entry

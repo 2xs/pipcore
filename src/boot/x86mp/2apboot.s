@@ -7,21 +7,21 @@
 [BITS 16]
 
 ; Patch code that shall be copied to 0x70000
-; Only jumps to 0x8000, 16-bits real-mode EP
+; Only jumps to 0xB000, 16-bits real-mode EP
 patch_code_start:
-	mov bx, 0x800
+	mov bx, 0xB00
 	mov es, bx
 	mov bx, 0x0
-	mov eax, 0x8000
+	mov eax, 0xB000
 	jmp eax
 patch_code_end:
 
-; 0x8000 : Real-mode entrypoint for APs
+; 0xB000 : Real-mode entrypoint for APs
 [GLOBAL real_mode_ep]
 section .apentry
 real_mode_ep:
 	; Write stuff to tell our BSP that we booted
-    mov bx, 0x1000
+	mov bx, 0x1000
     mov es, bx
     mov bx, 0x0
     mov dword [es:bx], 0xCAFE
@@ -45,7 +45,7 @@ real_mode_ep:
     mov cr0, eax
 
     ; Jump to 32 bits PM EP
-    jmp APGDT.Code:0xA000
+    jmp APGDT.Code:0xC000
     jmp $
 
 ; x86 protected mode static GDT for APs

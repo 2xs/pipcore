@@ -34,17 +34,17 @@
 ENTRY(start)
 SECTIONS
 {
-.mboot 0x5000 : {
+.mboot 0xA000 : {
     mboot = .;
     *(.mboot)
     . = ALIGN(4096);
 }
-.apentry 0x8000 : {
+.apentry 0xB000 : {
     apentry = .;
     *(.apentry)
     . = ALIGN(4096);
 }
-.apentry32 0xA000 : {
+.apentry32 0xC000 : {
     apentry32 = .;
     *(.apentry32)
     . = ALIGN(4096);
