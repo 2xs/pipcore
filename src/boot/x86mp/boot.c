@@ -170,6 +170,7 @@ int c_main(struct multiboot *mbootPtr)
 
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
+
 	
 	/*DEBUG(INFO, "-> Initializing GDT.\n");
       gdtInstall();*/
@@ -177,7 +178,10 @@ int c_main(struct multiboot *mbootPtr)
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");
 	initInterrupts();
-	
+
+    __asm volatile("STI");
+
+    for(;;);
     // Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);

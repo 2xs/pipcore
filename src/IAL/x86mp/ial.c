@@ -383,7 +383,13 @@ genericHandler (int_ctx_t *is)
 	uint32_t vint, target, from, data1, data2;
 	
 	data1 = 0;
-	
+    extern uint32_t timer_ticks;
+    
+    /* Increment ticks on timer interrupt */
+    if(is->int_no == 32)
+        timer_ticks++;
+
+    IAL_DEBUG(CRITICAL, "Interrupt %d occured through APIC, ticks: %d\n", is->int_no, timer_ticks);	
 	/* A bit of the handling is different with hardware interrupts */
 	if(INT_IRQ(is->int_no))
 	{

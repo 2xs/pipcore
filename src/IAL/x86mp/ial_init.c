@@ -44,6 +44,7 @@
 #include "x86int.h"
 #include "ial.h"
 #include "libc.h"
+#include "lapic.h"
 
 uint32_t timer_ticks = 0;
 
@@ -507,6 +508,121 @@ void initCpu()
 	}
 }
 
+#define IA32_APIC_BASE_MSR          0x1B
+#define IA32_APIC_BASE_MSR_BSP      0x100
+#define IA32_APIC_BASE_MSR_ENABLE   0x800
+
+/* Read a value in a MSR */
+void cpu_get_msr(uint32_t msr, uint32_t *lo, uint32_t *hi)
+{
+   asm volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
+}
+ 
+/* Set a value in a MSR */
+void cpu_set_msr(uint32_t msr, uint32_t lo, uint32_t hi)
+{
+   asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
+}
+
+/* Gets the base address of APIC in physical memory */
+uintptr_t cpu_get_apic_base() {
+   uint32_t eax, edx;
+   cpu_get_msr(IA32_APIC_BASE_MSR, &eax, &edx);
+ 
+   return (eax & 0xfffff000);
+}
+
+/* Set the physical address for local APIC registers */
+void cpu_set_apic_base(uintptr_t apic) {
+   uint32_t edx = 0;
+   uint32_t eax = (apic & 0xfffff000) | IA32_APIC_BASE_MSR_ENABLE;
+ 
+   cpu_set_msr(IA32_APIC_BASE_MSR, eax, edx);
+}
+
+/* Enables the APIC ! Kawabunga */
+void enable_apic() {
+    /* Hardware enable the Local APIC if it wasn't enabled */
+    cpu_set_apic_base(cpu_get_apic_base());
+ 
+    /* Set the Spourious Interrupt Vector Register bit 8 to start receiving interrupts */
+    extern uint32_t* lapic_base;
+    uint32_t cur = *(uint32_t*)((uint32_t)lapic_base + 0xF0);
+    *(uint32_t*)((uint32_t)lapic_base + 0xF0) = cur | 0x100;
+}
+
+/* Sets up the APIC */
+void apicInit()
+{
+    uint32_t eax, edx;
+    extern void mask_pic();
+    cpuid(1, &eax, &edx);
+    if(edx & CPUID_FEAT_EDX_APIC)
+    {
+        IAL_DEBUG(CRITICAL, "APIC supported - configuring...\n");
+        enable_apic();
+        IAL_DEBUG(CRITICAL, "Enabled APIC!\n");
+    } else {
+        IAL_DEBUG(CRITICAL, "APIC unsupported - please use x86_multiboot instead.\n");
+        for(;;);
+    }
+}
+
+/* Sets up legacy PIC for APIC mode */
+void pic_setup()
+{
+    #define IRQ_BASE    0x20
+    
+    /* PIC init command (ICW1) */
+    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); 
+    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4); 
+
+    /* ICW2 : Interrupt vector address */
+    outb(PIC1_DATA, IRQ_BASE);
+    outb(PIC2_DATA, IRQ_BASE + 8);
+
+    /* ICW3 : Master/Slave wiring */
+    outb(PIC1_DATA, 4);
+    outb(PIC2_DATA, 2);
+
+    /* ICW4 : Legacy 8086 mode */
+    outb(PIC1_DATA, ICW4_8086);
+    outb(PIC2_DATA, ICW4_8086);
+
+    /* OCW1 : Mask all interrupts in order to setup APIC */
+    outb(PIC1_DATA, 0xFF);
+    outb(PIC2_DATA, 0xFF);
+}
+
+/* This sets up APIC timer in a 10 ms rate */
+void setup_apic_timer()
+{
+    /* Tell APIC to use divider 16 */
+    write_lapic(APIC_TMRDIV, 0x3);
+
+    /* Prepare 10ms sleep */
+
+    /* Reset APIC timer counter */
+    write_lapic(APIC_TMRINITCNT, 0xFFFFFFFF);
+
+    /* Perform pit sleep */
+    /* TODO : je sais, je suis au courant */
+    for(int i=0; i<1000000; i++)
+        __asm volatile("NOP");
+
+    /* Mask APIC timer interrupt */
+    write_lapic(APIC_LVT_TMR, APIC_DISABLE);
+
+    uint32_t ticks = 0xFFFFFFFF - read_lapic(APIC_TMRCURRCNT);
+
+    /* Configure and start APIC timer */
+    write_lapic(APIC_LVT_TMR, 32 | TMR_PERIODIC);
+    write_lapic(APIC_TMRDIV, 0x3);
+    write_lapic(APIC_TMRINITCNT, ticks);
+
+    IAL_DEBUG (CRITICAL, "APIC timer set-up successfully.\n");
+}
+
 /**
  * \fn initInterrupts
  * \brief Initializes the IAL
@@ -515,13 +631,19 @@ void
 initInterrupts (void)
 {
     extern uint32_t* ioapic_base, *lapic_base;
+    extern void mask_pic();
 	IAL_DEBUG (INFO, "Initializing interrupts, IAL %s \"On Steroids\" version %s\n", IAL_PREFIX, IAL_VERSION);
     IAL_DEBUG (CRITICAL, "\tIO-APIC at %x\n\tLAPIC at %x\n", ioapic_base, lapic_base);
-	initIdt ();
+	IAL_DEBUG (CRITICAL, "Masking PIC.\n");
+    pic_setup();
+    IAL_DEBUG(CRITICAL, "Masked PIC.\n");
+    initIdt ();
 	bindIsr ();
 	remapIrq ();
 	bindIrq ();
-	timerPhase (100);
+    apicInit();
+    setup_apic_timer();	
+   // timerPhase (100);
 	timer_ticks = 0;
 	initCpu();
 }

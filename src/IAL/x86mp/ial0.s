@@ -60,6 +60,12 @@ irq%1:
 	jmp irqCommonStub
 %endmacro
 
+[global mask_pic]
+mask_pic:
+	mov al, 0xff
+	out 0xa1, al
+	out 0x21, al
+
 ; Define generic interrupt handler as part of C code
 extern genericHandler
 
