@@ -52,6 +52,8 @@ move_on:
 
 [GLOBAL give_safe_stack]
 [EXTERN safe_mp_c_main]
+; Gives each core a separate stack (called from C code).
+; This should not be called concurrently... spin to win.
 give_safe_stack:
     mov eax, [esp + 4]  ; Get parameter : new stack address
     mov esp, eax        ; Setup stack

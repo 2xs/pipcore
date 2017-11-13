@@ -32,63 +32,69 @@
 /*******************************************************************************/
 
 ENTRY(start)
-SECTIONS
+    SECTIONS
 {
-.mboot 0xA000 : {
-    mboot = .;
-    *(.mboot)
-    . = ALIGN(4096);
-}
-.apentry 0xB000 : {
-    apentry = .;
-    *(.apentry)
-    . = ALIGN(4096);
-}
-.apentry32 0xC000 : {
-    apentry32 = .;
-    *(.apentry32)
-    . = ALIGN(4096);
-}
-/* Kernel laod address defined during make (Makefile.inc), used in everything */
-.text 0x100000 :
-{
-code = .; _code = .; __code = .;
-*(.text)
-. = ALIGN(4096);
-}
+    /* Multiboot header. Mandatory to allow GRUB to boot the kernel. */
+    .mboot 0xA000 : {
+        mboot = .;
+        *(.mboot)
+            . = ALIGN(4096);
+    }
 
-.data :
-{
-data = .; _data = .; __data = .;
-*(.data)
-*(.rodata)
-. = ALIGN(4096);
-}
+    /* 16-bits real-mode entrypoint for APs. */
+    .apentry 0xB000 : {
+        apentry = .;
+        *(.apentry)
+            . = ALIGN(4096);
+    }
 
-.bss :
-{
-bss = .; _bss = .; __bss = .;
-*(.bss)
-. = ALIGN(4096);
-}
+    /* 32-bits protected mode entrypoint for APs. Required since A20 line is not enabled on APs during early-boot, and we need to make the 32-bits code accessible. */
+    .apentry32 0xC000 : {
+        apentry32 = .;
+        *(.apentry32)
+            . = ALIGN(4096);
+    }
 
-/* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
-.krnstack 0x300000 :
-{
-krnstack = .; _krnstack = .; __krnstack = .;
-*(.krnstack)
-. = ALIGN(4096);
-}
+    /* Kernel load address defined during make (Makefile.inc), used in everything */
+    .text 0x100000 :
+    {
+        code = .; _code = .; __code = .;
+        *(.text)
+            . = ALIGN(4096);
+    }
 
-/* Multiplexer load address defined during make (Makefile.inc), used in multiplexer.s */
-.multiplexer 0x700000 :
-{
-multiplexer = .;
-_multiplexer = .;
-__multiplexer = .;
-*(.multiplexer)
-. = ALIGN(4096);
-}
+    .data :
+    {
+        data = .; _data = .; __data = .;
+        *(.data)
+            *(.rodata)
+            . = ALIGN(4096);
+    }
 
-end = .; _end = .; __end = .;
+    .bss :
+    {
+        bss = .; _bss = .; __bss = .;
+        *(.bss)
+            . = ALIGN(4096);
+    }
+
+    /* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
+    .krnstack 0x300000 :
+    {
+        krnstack = .; _krnstack = .; __krnstack = .;
+        *(.krnstack)
+            . = ALIGN(4096);
+    }
+
+    /* Multiplexer load address defined during make (Makefile.inc), used in multiplexer.s */
+    .multiplexer 0x700000 :
+    {
+        multiplexer = .;
+        _multiplexer = .;
+        __multiplexer = .;
+        *(.multiplexer)
+            . = ALIGN(4096);
+    }
+
+    end = .; _end = .; __end = .;
 }

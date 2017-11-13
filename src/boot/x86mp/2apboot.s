@@ -28,15 +28,6 @@ real_mode_ep:
 
     ; Now that we booted, let's switch to protected mode
     ; First load the GDT
-    ;xor eax, eax
-    ;mov ax, ds          ; Real-mode : let's play with segments
-    ;shl eax, 4          ; Segment stuff
-    ;add eax, APGDT      ; Compute linear address of GDT
-    ;mov [aptr + 2], eax    ; Build base address
-    ;mov eax, GDTEnd     ; Compute limit
-    ;sub eax, APGDT
-    ;mov [aptr], ax ; Build limit
-    ;lgdt [aptr] ; Load 32 bits GDT
     lgdt [APGDTPointer]
     
 	; Enable protected mode
