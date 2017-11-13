@@ -50,6 +50,15 @@ move_on:
     call eax             ; i don't want
     jmp $                ; sum stack
 
+[GLOBAL give_safe_stack]
+[EXTERN safe_mp_c_main]
+give_safe_stack:
+    mov eax, [esp + 4]  ; Get parameter : new stack address
+    mov esp, eax        ; Setup stack
+    mov ebp, esp
+    call safe_mp_c_main ; Enter boot stage 2 with proper stack
+    jmp $
+
 ; Check A20 line status
 is_A20_on:   
 	pushad
@@ -120,6 +129,11 @@ a20wait2:
         ret
 
 SECTION .bss
-mpstack:   resb    16384 ; Allocate 16kb in the BSS for the kernel stack
+
+[GLOBAL mp_stack_base]
+
+mpstack:   resb    4096 ; Allocate 16kb in the BSS for the kernel stack
 _mp_stack:
-    
+stackpool:  resb    0x10000;  Per-core stacks
+mp_stack_base:
+

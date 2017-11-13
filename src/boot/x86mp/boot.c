@@ -70,6 +70,13 @@
 /* SMP */
 #include "mp.h"
 
+/* Bootup stage spinlock */
+volatile int boot_spinlock = 0;
+
+/* MP stacks */
+extern void* mp_stack_base;
+unsigned char* mp_stacks;
+
 /**
  * \brief Virtual address at which to load the multiplexer.
  */
@@ -77,7 +84,7 @@ extern uint32_t __multiplexer;
 #define MULTIPLEXER_LOAD_ADDR (uint32_t)&__multiplexer
 
 uint32_t nextFreeCoreStack = 0;
-uint32_t cores = 1; /* Only BSP until APs boot */
+uint32_t cores = 0; /* Only BSP until APs boot */
 pip_fpinfo* fpinfo;
 
 /**
@@ -139,12 +146,26 @@ void fixFpInfo()
 	fpinfo->membegin = (uint32_t)firstFreePage;
 }
 
+#define MP_LOCK     while(__sync_lock_test_and_set(&boot_spinlock, 1))
+#define MP_UNLOCK   __sync_lock_release(&boot_spinlock)
+
+int safe_mp_c_main()
+{
+    SMP_DEBUGF(cores, "Entered AP core bootup stage 2.\n");
+    SMP_DEBUGF(cores, "Initializing CPU%d.\n", cores);
+    MP_UNLOCK;
+    for(;;);
+}
+
 int mp_c_main()
 {
-//    initSerial();
+    extern void give_safe_stack();
+    /* Initialize core per core : lock and go */
+    MP_LOCK;
     cores++;
-    SMP_DEBUGF("CPU Core %d booted.\n", cores);
-    SMP_DEBUGF("YOUPI\n");
+    mp_stacks -= 0x1000; /* Give sum stack */
+    SMP_DEBUGF(cores, "Giving core %d stack %x\n", cores, mp_stacks);
+    give_safe_stack(mp_stacks); /* Give a proper and safe stack to the current core */
     for(;;);
     return 1;
 }
@@ -165,15 +186,25 @@ int c_main(struct multiboot *mbootPtr)
 
     DEBUG(INFO, "Multiboot information at %x, mem_lower=%x, mem_upper=%x, flags=%x\n", mbootPtr, mbootPtr->mem_lower, mbootPtr->mem_upper, mbootPtr->flags);
 
+    DEBUG(CRITICAL, "Initializing CPU0.\n", cores);
+    
     /* First install BSP's GDT so that our APs can use it */
 	DEBUG(CRITICAL, "-> Initializing BSP's GDT.\n");
 	gdtInstall();
-    DEBUG(CRITICAL, "CPU Core %d booted.\n", cores);
 
+    mp_stacks = (unsigned char*)&mp_stack_base;
+    DEBUG(CRITICAL, "MP stack base at %x\n", &mp_stacks);
+
+    /* Lock MP initialization. */
+    MP_LOCK;
+
+    /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
 
-	
+	/* Great. Now we can bootstrap APs correctly. */
+    MP_UNLOCK;
+
 	/*DEBUG(INFO, "-> Initializing GDT.\n");
       gdtInstall();*/
 
