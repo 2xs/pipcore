@@ -55,7 +55,7 @@ endif
 
 GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/meso.bin" 
 
-QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -net nic,model=rtl8139 -net dump,file=./netdump.pcap -net user -cpu Westmere -smp 2
+QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -net nic,model=rtl8139 -net dump,file=./netdump.pcap -net user -cpu Westmere -smp 4
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 ASFLAGS=-felf

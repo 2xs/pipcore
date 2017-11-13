@@ -151,8 +151,9 @@ void fixFpInfo()
 
 int safe_mp_c_main()
 {
-    SMP_DEBUGF(cores, "Entered AP core bootup stage 2.\n");
-    SMP_DEBUGF(cores, "Initializing CPU%d.\n", cores);
+    SMP_DEBUGF(cores, "-> Entered safe AP core bootup stage.\n");
+    SMP_DEBUGF(cores, "-> Initializing CPU%d.\n", cores);
+    SMP_DEBUGF(cores, "-------------------------------\n");
     MP_UNLOCK;
     for(;;);
 }
@@ -164,7 +165,8 @@ int mp_c_main()
     MP_LOCK;
     cores++;
     mp_stacks -= 0x1000; /* Give sum stack */
-    SMP_DEBUGF(cores, "Giving core %d stack %x\n", cores, mp_stacks);
+    SMP_DEBUGF(cores, "-----------CPU%d BOOT-----------\n", cores);
+    SMP_DEBUGF(cores, "-> Giving core %d stack %x\n", cores, mp_stacks);
     give_safe_stack(mp_stacks); /* Give a proper and safe stack to the current core */
     for(;;);
     return 1;
@@ -193,7 +195,7 @@ int c_main(struct multiboot *mbootPtr)
 	gdtInstall();
 
     mp_stacks = (unsigned char*)&mp_stack_base;
-    DEBUG(CRITICAL, "MP stack base at %x\n", &mp_stacks);
+    /* DEBUG(CRITICAL, "MP stack base at %x\n", &mp_stacks); */
 
     /* Lock MP initialization. */
     MP_LOCK;
@@ -202,18 +204,14 @@ int c_main(struct multiboot *mbootPtr)
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
 
-	/* Great. Now we can bootstrap APs correctly. */
-    MP_UNLOCK;
-
-	/*DEBUG(INFO, "-> Initializing GDT.\n");
-      gdtInstall();*/
-
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");
 	initInterrupts();
 
-    __asm volatile("STI");
-
+	/* Great. Now we can bootstrap APs correctly. */
+    DEBUG(CRITICAL, "-> Releasing CPU cores.\n");
+    MP_UNLOCK;
+    
     // Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);
