@@ -151,9 +151,9 @@ void fixFpInfo()
 
 int safe_mp_c_main()
 {
-    SMP_DEBUGF(cores, "-> Entered safe AP core bootup stage.\n");
-    SMP_DEBUGF(cores, "-> Initializing CPU%d.\n", cores);
-    SMP_DEBUGF(cores, "-------------------------------\n");
+    DEBUG(CRITICAL, "-> Entered safe AP core bootup stage.\n");
+    DEBUG(CRITICAL, "-> Initializing CPU%d.\n", cores);
+    DEBUG(CRITICAL, "-------------------------------\n");
     MP_UNLOCK;
     for(;;);
 }
@@ -165,8 +165,8 @@ int mp_c_main()
     MP_LOCK;
     cores++;
     mp_stacks -= 0x1000; /* Give sum stack */
-    SMP_DEBUGF(cores, "-----------CPU%d BOOT-----------\n", cores);
-    SMP_DEBUGF(cores, "-> Giving core %d stack %x\n", cores, mp_stacks);
+    DEBUG(CRITICAL, "-----------CPU%d BOOT-----------\n", coreId());
+    DEBUG(CRITICAL, "-> Giving core %d stack %x\n", coreId(), mp_stacks);
     give_safe_stack(mp_stacks); /* Give a proper and safe stack to the current core */
     for(;;);
     return 1;
@@ -188,7 +188,7 @@ int c_main(struct multiboot *mbootPtr)
 
     DEBUG(INFO, "Multiboot information at %x, mem_lower=%x, mem_upper=%x, flags=%x\n", mbootPtr, mbootPtr->mem_lower, mbootPtr->mem_upper, mbootPtr->flags);
 
-    DEBUG(CRITICAL, "Initializing CPU0.\n", cores);
+    DEBUG(CRITICAL, "Initializing CPU0.\n");
     
     /* First install BSP's GDT so that our APs can use it */
 	DEBUG(CRITICAL, "-> Initializing BSP's GDT.\n");

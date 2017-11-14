@@ -26,6 +26,19 @@ uint8_t hasBooted(uint32_t n)
     return (*cpuBitfield == 0xCAFE);
 }
 
+static inline int cpuid_reg4(int code, uint32_t where[4]) {
+	asm volatile("cpuid":"=a"(*where),"=b"(*(where+1)),
+				 "=c"(*(where+2)),"=d"(*(where+3)):"a"(code));
+	return (int)where[0];
+}
+
+int coreId()
+{
+    uint32_t regs[4];
+    cpuid_reg4(1, regs);
+    return ((regs[1] >> 24) & 0xFF);
+}
+
 void find_mpt()
 {
     static const char mpt_sig[4] = "_MP_"; /* MP table signature to find */
