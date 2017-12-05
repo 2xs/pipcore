@@ -45,15 +45,17 @@
 #include "fpinfo.h"
 #include "git.h"
 #include "hdef.h"
+#include "mp.h"
 #include <libc.h>
 
-page_directory_t *kernelDirectory=0; //!< The kernel's page directory
+page_directory_t *kernelDirectories[16]; //!< The kernel's page directories, up to 16 cores supported
 
 uint32_t maxPages = 0; //!< The maximal amount of pages available
 uint32_t allocatedPages = 0; //!< The current allocated amount of pages
 uint32_t ramEnd = 0; //!< End of memory
 uint32_t pageCount = 0;
 uint32_t mmuEnabled = 0;
+uint32_t perCoreMemoryAmount = 0;
 
 // Defined in libc.c
 extern uint32_t placement_address; //!< Placement address, this should be unused.
@@ -297,7 +299,7 @@ void mark_kernel_global()
 {
 	#define GLOBAL_BIT (1 << 8)
 	uint32_t pd_idx = kernelIndex();
-	uint32_t kern_pt = readTableVirtual((uint32_t)kernelDirectory, pd_idx);
+	uint32_t kern_pt = readTableVirtual((uint32_t)kernelDirectories[coreId()], pd_idx);
 	uint32_t i = 0;
 	/* Mark each entry of kernel PT as global */
 	for(i = 0; i < 1024; i++)
@@ -309,7 +311,7 @@ void mark_kernel_global()
 	}
 	
 	/* Mark kernel PT as global */
-	writeTableVirtual((uint32_t)kernelDirectory, pd_idx, kern_pt | GLOBAL_BIT);
+	writeTableVirtual((uint32_t)kernelDirectories[coreId()], pd_idx, kern_pt | GLOBAL_BIT);
 	
 	return;
 }
@@ -318,12 +320,14 @@ void mark_kernel_global()
  * \fn void initMmu()
  * \brief Initializes the MMU, creating the kernel's page directory and switching to it.
  */
-void initMmu()
+uint32_t initMmu()
 {
+    uint32_t multEnd = 0x0;
+    DEBUG(CRITICAL, "Initializing MMU for core %d.\n", coreId());
     /* Create the Kernel Page Directory */
-    kernelDirectory = (page_directory_t*)allocPage(); // kmalloc(sizeof(page_directory_t));
-	DEBUG(TRACE, "Kernel directory is at %x\n", kernelDirectory);
-    memset(kernelDirectory, 0, sizeof(page_directory_t));
+    kernelDirectories[coreId()] = (page_directory_t*)allocPage(); // kmalloc(sizeof(page_directory_t));
+	DEBUG(TRACE, "Kernel directory is at %x\n", kernelDirectories[coreId()]);
+    memset(kernelDirectories[coreId()], 0, sizeof(page_directory_t));
 
     /* Map the kernel space */
     uint32_t curAddr = 0;
@@ -332,7 +336,7 @@ void initMmu()
     /* Map kernel, stack up to root partition */
     while(curAddr <= (uint32_t)(/* &end */ /* RAM_END */0x700000))
     {
-        mapPageWrapper(kernelDirectory, curAddr, curAddr, 0);
+        mapPageWrapper(kernelDirectories[coreId()], curAddr, curAddr, 0);
         curAddr += PAGE_SIZE;
     }
 	
@@ -340,14 +344,15 @@ void initMmu()
 	curAddr = 0x700000;
 	while(curAddr <= (uint32_t)(&end /* RAM_END */ /* 0xFFFFE000 */))
 	{
-		mapPageWrapper(kernelDirectory, curAddr, curAddr, 1);
+		mapPageWrapper(kernelDirectories[coreId()], curAddr, curAddr, 1);
 		curAddr += PAGE_SIZE;
 	}
+    multEnd = (uint32_t)&end;
 
 	/* Map each platform-specific device */
 	/* uint32_t vga = 0xB8000;
 	for(vga = 0xB8000; vga < 0xC0000; vga += 0x1000)
-		mapPageWrapper(kernelDirectory, vga, vga | 0xC0000000, 1); */
+		mapPageWrapper(kernelDirectories[coreId()], vga, vga | 0xC0000000, 1); */
 	uint32_t hid;
 	/* Parse each specific hardware entry */
 	for(hid = 0; hid < HSPEC_COUNT; hid++)
@@ -360,7 +365,7 @@ void initMmu()
 		uintptr_t cur_off;
 		for(cur_off = 0x0; cur_off < limit; cur_off += 0x1000)
 		{
-			mapPageWrapper(kernelDirectory, base + cur_off, vbase + cur_off, 1);
+			mapPageWrapper(kernelDirectories[coreId()], base + cur_off, vbase + cur_off, 1);
 		}
 	}
 	
@@ -370,12 +375,12 @@ void initMmu()
 	uint32_t j = 0;
 	for(j = 0; j < 0xFFFFF000; j+=0x1000)
 	{
-		uint32_t pc = pageCountMapPageC((uintptr_t)kernelDirectory, j);
+		uint32_t pc = pageCountMapPageC((uintptr_t)kernelDirectories[coreId()], j);
 		uint32_t list[1];
 		if(pc == 1) {
 			list[0] = (uint32_t)allocPage();
 			memset((void*)list[0], 0x0, PAGE_SIZE);
-			prepareC((uintptr_t)kernelDirectory, j, list);
+			prepareC((uintptr_t)kernelDirectories[coreId()], j, list);
 		}
 	}
 	
@@ -390,10 +395,10 @@ void initMmu()
 	DEBUG(TRACE, "Allocated FpInfo to %x\n", fpinfo);
     uintptr_t fpInfoBegin = (uintptr_t)fpinfo;
 	
-	mapPageWrapper(kernelDirectory, (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
 	
     // Map the first free page into our kernel's virtual address space
-    mapPageWrapper(kernelDirectory, (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
+    mapPageWrapper(kernelDirectories[coreId()], (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
 	
 	/* TODO : check the correctness of this. The initial state of the system HAS to be correct, this is just a hackfix right now */
 	
@@ -424,8 +429,8 @@ void initMmu()
 	
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 0, (uintptr_t)partitionDescriptor); // Store descriptor into descriptor
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 1, (uintptr_t)partitionDescriptor);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 2, (uintptr_t)kernelDirectory); // Store page directory into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 3, (uintptr_t)kernelDirectory);
+	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 2, (uintptr_t)kernelDirectories[coreId()]); // Store page directory into descriptor
+	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 3, (uintptr_t)kernelDirectories[coreId()]);
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 4, (uintptr_t)sh1); // Store shadow 1 into descriptor
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 5, (uintptr_t)sh1);
 	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 6, (uintptr_t)sh2); // Store shadow 2 into descriptor
@@ -442,8 +447,8 @@ void initMmu()
 
 	// Create fake IDT at 0xFFFFF000
 	uint32_t* virt_intv = allocPage();
-	mapPageWrapper(kernelDirectory, (uint32_t)virt_intv, 0xFFFFF000, 1);
-	mapPageWrapper(kernelDirectory, (uint32_t)0xB8000, 0xFFFFE000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)0xB8000, 0xFFFFE000, 1);
 	
 	// Fill Virtu. IDT info
 	extern uint32_t __multiplexer;
@@ -452,29 +457,47 @@ void initMmu()
 	DEBUG(TRACE, "Building linear memory space\n");
 	
 	/* Build a multiplexer stack */
-	mapPageWrapper(kernelDirectory, (uint32_t)allocPage(), 0xFFFFD000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)allocPage(), 0xFFFFD000, 1);
 	
 	/* Map first partition info */
-	mapPageWrapper(kernelDirectory, (uint32_t)fpinfo, 0xFFFFC000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpinfo, 0xFFFFC000, 1);
 	
-	/* We should be done with page allocation and stuff : the remaining pages should be available as memory for the partition */
 	/* First prepare all pages : pages required for prepare should be deleted from free page list */
-	while((pg = (uint32_t)allocPage()) && curAddr <= 0xFFFFD000) {
-		mapPageC((uintptr_t)kernelDirectory, pg, curAddr, 1);
-		curAddr += 0x1000;
-	}
-	
-	/* Fix first partition info */
-	fpinfo->membegin = (uint32_t)&end;
-	fpinfo->memend = curAddr;
-	fpinfo->magic = FPINFO_MAGIC;
-	strcpy(fpinfo->revision, GIT_REVISION);
-	
 	/* At this point, page allocator is empty. */
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);
 
     mmuEnabled = 1;
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
-	activate((uint32_t)kernelDirectory);
+	// activate((uint32_t)kernelDirectories[coreId()]);
+    if(perCoreMemoryAmount == 0)
+        perCoreMemoryAmount = (maxPages - allocatedPages)/(coreCount() + 1);
+    return multEnd;
+}
+
+void fillMmu(uint32_t begin)
+{
+    uint32_t pg, curAddr;
+    curAddr = begin;
+    uint32_t pgAmount = perCoreMemoryAmount;
+    uint32_t i;
+    DEBUG(CRITICAL, "Giving some memory (%d pages, %d total) for multiplexer core %d.\n", pgAmount, (maxPages - allocatedPages), coreId());
+	for(i=0; i<pgAmount; i++)
+    {
+        pg = (uint32_t)allocPage();
+        mapPageC((uintptr_t)kernelDirectories[coreId()], pg, curAddr, 1);
+		curAddr += 0x1000;
+	}
+	extern pip_fpinfo* fpinfo;
+	/* Fix first partition info */
+	fpinfo->membegin = begin;
+	fpinfo->memend = curAddr;
+	fpinfo->magic = FPINFO_MAGIC;
+	strcpy(fpinfo->revision, GIT_REVISION);
+    DEBUG(CRITICAL, "Done.\n");
+}
+
+void coreEnableMmu()
+{
+    activate((uint32_t)kernelDirectories[coreId()]);
 }

@@ -49,12 +49,13 @@
 #define PAGE_SIZE 4096
 
 uint32_t *firstFreePage; //!< First free available page.
-
 void initFreePageList(uintptr_t base, uintptr_t length);
 uint32_t* allocPage();
 void freePage(uint32_t *page);
 void dumpMmap(uint32_t* mmap_ptr, uint32_t len);
-void initMmu();
+uint32_t initMmu();
+void fillMmu(uint32_t begin);
+void coreEnableMmu();
 void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8_t user);
 
 #endif

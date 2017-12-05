@@ -72,6 +72,9 @@
 
 /* Bootup stage spinlock */
 volatile int boot_spinlock = 0;
+volatile int mmu_spinlock = 0;
+
+uint32_t initializedCores = 0;
 
 /* MP stacks */
 extern void* mp_stack_base;
@@ -146,15 +149,24 @@ void fixFpInfo()
 	fpinfo->membegin = (uint32_t)firstFreePage;
 }
 
-#define MP_LOCK     while(__sync_lock_test_and_set(&boot_spinlock, 1))
-#define MP_UNLOCK   __sync_lock_release(&boot_spinlock)
+#define MP_LOCK(a)     while(__sync_lock_test_and_set(&a, 1))
+#define MP_UNLOCK(a)   __sync_lock_release(&a)
 
 int safe_mp_c_main()
 {
     DEBUG(CRITICAL, "-> Entered safe AP core bootup stage.\n");
     DEBUG(CRITICAL, "-> Initializing CPU%d.\n", cores);
+    initInterrupts();
+    DEBUG(CRITICAL, "-> Initializing MMU.\n");
+    uint32_t multEnd = initMmu();
+    DEBUG(CRITICAL, "-> Filling virtual memory space.\n");
+    fillMmu(multEnd);
+    DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
+    coreEnableMmu();
+    DEBUG(CRITICAL, "-> MMU for core %d is configured!\n", coreId());
     DEBUG(CRITICAL, "-------------------------------\n");
-    MP_UNLOCK;
+    initializedCores++; /* We can increment this in an unprotected way, as our AP initialization routines are synchronous */
+    MP_UNLOCK(boot_spinlock);
     for(;;);
 }
 
@@ -162,7 +174,7 @@ int mp_c_main()
 {
     extern void give_safe_stack();
     /* Initialize core per core : lock and go */
-    MP_LOCK;
+    MP_LOCK(boot_spinlock);
     cores++;
     mp_stacks -= 0x1000; /* Give sum stack */
     DEBUG(CRITICAL, "-----------CPU%d BOOT-----------\n", coreId());
@@ -178,7 +190,7 @@ int mp_c_main()
  *
  * Entrypoint of the C kernel.
  *
- * \param mboot_ptr Pointer to the multiboot structure, should be on %EBX after boot0.s
+ * \param boot_ptr Pointer to the multiboot structure, should be on %EBX after boot0.s
  * \return Should not return.
  */
 int c_main(struct multiboot *mbootPtr)
@@ -198,7 +210,7 @@ int c_main(struct multiboot *mbootPtr)
     /* DEBUG(CRITICAL, "MP stack base at %x\n", &mp_stacks); */
 
     /* Lock MP initialization. */
-    MP_LOCK;
+    MP_LOCK(boot_spinlock);
 
     /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
@@ -207,10 +219,6 @@ int c_main(struct multiboot *mbootPtr)
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");
 	initInterrupts();
-
-	/* Great. Now we can bootstrap APs correctly. */
-    DEBUG(CRITICAL, "-> Releasing CPU cores.\n");
-    MP_UNLOCK;
     
     // Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
@@ -218,11 +226,22 @@ int c_main(struct multiboot *mbootPtr)
 
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
-	initMmu();
+	uint32_t partEnd = initMmu();
+    fillMmu(partEnd);
+    coreEnableMmu();
 	
-	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
-	spawnFirstPartition();
+    initializedCores++;
 
+	/* Great. Now we can bootstrap APs correctly. */
+    DEBUG(CRITICAL, "-> Releasing CPU cores.\n");
+    MP_UNLOCK(boot_spinlock);
+
+    /* Active wait for cores to be ready */
+    while(initializedCores < coreCount());
+
+    DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
+	spawnFirstPartition();
+    
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);
 	return 0xCAFECAFE;

@@ -11,5 +11,6 @@ uint8_t hasBooted(uint32_t n);
 void setBooted(uint32_t n);
 
 int coreId();
+#define coreCount() 4
 
 #endif

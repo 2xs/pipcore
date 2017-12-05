@@ -441,7 +441,7 @@ genericHandler (int_ctx_t *is)
 		{
 			uint32_t cr2;
 			__asm volatile("MOV %%CR2, %0;":"=r"(cr2));
-			IAL_DEBUG (TRACE, "CR2 set to %x.\n", cr2);
+			IAL_DEBUG (CRITICAL, "CR2 set to %x.\n", cr2);
 			data1 = cr2;
 			dumpRegs(is, CRITICAL);
 		}
