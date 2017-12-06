@@ -32,7 +32,13 @@ static inline int cpuid_reg4(int code, uint32_t where[4]) {
 	return (int)where[0];
 }
 
-int coreId()
+uint32_t coreCount()
+{
+    extern int imps_num_cpus;
+    return (uint32_t)imps_num_cpus;
+}
+
+uint32_t coreId()
 {
     uint32_t regs[4];
     cpuid_reg4(1, regs);
@@ -189,5 +195,24 @@ void init_mp_legacy()
         DEBUG(CRITICAL, "Couldn't initialize SMP through RSDT. Using MP tables.\n");
         find_mpt();
         parse_mpconf();
+    }
+}
+
+#define SMP_REQUEST_COREID      0
+#define SMP_REQUEST_CORECOUNT   1
+
+/* Generic callgate for SMP requests (core id, core count etc) */
+uint32_t smpRequest(uint32_t requestId, uint32_t parameter)
+{
+    switch(requestId)
+    {
+        case SMP_REQUEST_COREID:
+            return coreId();
+            break;
+        case SMP_REQUEST_CORECOUNT:
+            return coreCount();
+            break;
+        default:
+            return 0;
     }
 }

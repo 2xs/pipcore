@@ -34,9 +34,13 @@
 #include <stdint.h>
 #include <pip/fpinfo.h>
 #include <pip/debug.h>
-
+#include <pip/api.h>
 void main(pip_fpinfo* bootinfo)
 {
-    Pip_Debug_Puts("Hello world!\n");
+    uint32_t coreid;
+    coreid = Pip_SmpRequest(0, 0);
+    Pip_Debug_Puts("Hello world from core ");
+    Pip_Debug_PutDec(coreid);
+    Pip_Debug_Puts("\n");
     for(;;);
 }  

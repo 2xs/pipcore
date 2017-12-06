@@ -10,7 +10,7 @@ void boot_core();
 uint8_t hasBooted(uint32_t n);
 void setBooted(uint32_t n);
 
-int coreId();
-#define coreCount() 4
+uint32_t coreId();
+uint32_t coreCount();
 
 #endif

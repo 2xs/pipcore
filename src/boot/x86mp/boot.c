@@ -157,6 +157,8 @@ int safe_mp_c_main()
     DEBUG(CRITICAL, "-> Entered safe AP core bootup stage.\n");
     DEBUG(CRITICAL, "-> Initializing CPU%d.\n", cores);
     initInterrupts();
+    DEBUG(CRITICAL, "-> Initializing GDT.\n");
+    gdtInstall();
     DEBUG(CRITICAL, "-> Initializing MMU.\n");
     uint32_t multEnd = initMmu();
     DEBUG(CRITICAL, "-> Filling virtual memory space.\n");
@@ -164,9 +166,12 @@ int safe_mp_c_main()
     DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
     coreEnableMmu();
     DEBUG(CRITICAL, "-> MMU for core %d is configured!\n", coreId());
-    DEBUG(CRITICAL, "-------------------------------\n");
+    DEBUG(CRITICAL, "-> Releasing spinlock.\n");
     initializedCores++; /* We can increment this in an unprotected way, as our AP initialization routines are synchronous */
     MP_UNLOCK(boot_spinlock);
+    DEBUG(CRITICAL, "-> Booting multiplexer.\n");
+    spawnFirstPartition();
+    DEBUG(CRITICAL, "-------------------------------\n");
     for(;;);
 }
 
@@ -215,6 +220,8 @@ int c_main(struct multiboot *mbootPtr)
     /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
     init_mp();
+
+    DEBUG(CRITICAL, "-> %d cores detected and running.\n", (uint32_t)coreCount());
 
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");

@@ -60,6 +60,7 @@ extern void *cg_removeVAddr;
 extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
+extern void *cg_smpRequest;
 
 /**
  * \struct gdt_entry_s
@@ -93,6 +94,7 @@ struct gdt_entry_s gdtEntries[] = {
 	{&cg_mappedInChild,	1, 0x3, 0x08}, /* 0xA8 */
 	{&cg_deletePartition,1,0x3, 0x08}, /* 0xB0 */
 	{&cg_collect,		1, 0x3, 0x08}, /* 0xB8 */
+    {&cg_smpRequest,    2, 0x3, 0x08},
 };
 
 #define CG_COUNT (sizeof(gdtEntries)/sizeof(struct gdt_entry_s))

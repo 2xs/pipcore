@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include "mal.h"
+#include "mp.h"
 #include "ial_defines.h"
 
 /**
@@ -68,11 +69,6 @@
  * \brief Defines the appropriate DEBUGRAW behavior. 
  */
 #define DEBUGRAW(a) krn_puts(a)
-
-/**
- * \brief Externs the declaration of coreId() so that the DEBUG macros are working.
- */
-extern int coreId();
 
 /**
  * \brief Defines the appropriate DEBUG behavior.

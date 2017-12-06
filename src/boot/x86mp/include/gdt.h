@@ -124,6 +124,7 @@ void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t s
  * \brief Installs the GDT into the CPU and flushes its entries.
  */
 extern void gdtFlush();
+extern void tssFlush();
 
 void setKernelStack(uint32_t stack);
 
