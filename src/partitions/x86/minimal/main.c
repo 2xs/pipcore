@@ -37,10 +37,13 @@
 #include <pip/api.h>
 void main(pip_fpinfo* bootinfo)
 {
-    uint32_t coreid;
+    uint32_t coreid, corecount;
     coreid = Pip_SmpRequest(0, 0);
+    corecount = Pip_SmpRequest(1, 0);
     Pip_Debug_Puts("Hello world from core ");
     Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts("\n");
+    Pip_Debug_Puts(" (");
+    Pip_Debug_PutDec(corecount);
+    Pip_Debug_Puts(" cores running)\n");
     for(;;);
 }  
