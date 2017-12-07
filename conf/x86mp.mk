@@ -66,3 +66,8 @@ LDFLAGS=-melf_i386
 
 PLATFORM=multiboot
 ARCHITECTURE=x86
+
+qemu-grub: grub
+	qemu-system-i386 -boot d -cdrom build/$(TARGET)/meso.iso -m 1024 -serial stdio -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0 -cpu Westmere -smp $(SMP)
+
+.PHONY: qemu-grub

@@ -74,6 +74,7 @@
 volatile int boot_spinlock = 0;
 volatile int last_spinlock = 0;
 volatile int mmu_spinlock = 0;
+volatile int part_spinlock = 0;
 
 uint32_t initializedCores = 0;
 
@@ -89,7 +90,34 @@ extern uint32_t __multiplexer;
 
 uint32_t nextFreeCoreStack = 0;
 uint32_t cores = 0; /* Only BSP until APs boot */
-pip_fpinfo* fpinfo;
+pip_fpinfo* fpinfo[16];
+
+pip_mboot_partition_t bootparts[4]; /* Per-core multiplexers */
+
+void preparePartitions(struct multiboot *mboot_ptr)
+{
+    extern uint32_t __multiplexer, __end;
+    /* First partition, embedded into Pip */
+    uint32_t i;
+    bootparts[0].start = (uint32_t)&__multiplexer; 
+    bootparts[0].end = (uint32_t)&__end;
+
+    uint32_t modc = mboot_ptr->mods_count;
+    if(modc < (coreCount() - 1)) {
+        DEBUG(CRITICAL, "Expected %d modules, found %d. Halting.\n", coreCount() - 1, modc);
+        __asm volatile("cli");
+        for(;;);
+    }
+
+    multiboot_module_t* modi = (multiboot_module_t*)mboot_ptr->mods_addr;
+    for(i=0; i<modc; i++)
+    {
+        DEBUG(CRITICAL, "Root partition for core %d: %x -> %x\n", i+1, modi->mod_start, modi->mod_end);
+        bootparts[i+1].start = modi->mod_start;
+        bootparts[i+1].end = modi->mod_end;
+        modi++;
+    }
+}
 
 /**
  * \fn void spawn_first_process()
@@ -104,7 +132,7 @@ void spawnFirstPartition()
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", multiplexer_cr3);
 
 	// Prepare kernel stack for multiplexer
-	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)0x300000;
+	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)(0x300000 + 20*PAGE_SIZE*coreId());
 	setKernelStack((uint32_t)krnStack);
 
 	DEBUG(TRACE, "kernel stack is %x\n", krnStack);
@@ -137,34 +165,44 @@ uintptr_t fillFpInfo()
 	extern uint32_t __end;
 	extern uint32_t ramEnd;
 
-	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo);
+	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo[coreId()]);
 	
 	// Fill first partition info structure
 
 	
-	return (uintptr_t)fpinfo;
+	return (uintptr_t)fpinfo[coreId()];
 }
 
 void fixFpInfo()
 {
-	fpinfo->membegin = (uint32_t)firstFreePage;
+	fpinfo[coreId()]->membegin = (uint32_t)firstFreePage;
 }
 
 #define MP_LOCK(a)     while(__sync_lock_test_and_set(&a, 1))
 #define MP_UNLOCK(a)   __sync_lock_release(&a)
 uint32_t multEnd;
 
+void safe_mp_boot_part()
+{
+    /* Wait for all cores to be ready and kernel to idle */
+    while(initializedCores < coreCount());
+
+    DEBUG(CRITICAL, "-> Starting up root partition.\n");
+    spawnFirstPartition();
+    for(;;);
+}
+
 void safe_mp_finish_bootstrap()
 {
     MP_LOCK(last_spinlock);
     DEBUG(CRITICAL, "-> Filling virtual memory space for core %d.\n", coreId());
-    fillMmu(multEnd);
+    fillMmu(bootparts[coreId()].vend);
     DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
     coreEnableMmu();
-    DEBUG(CRITICAL, "-> Booting multiplexer.\n");
+    initializedCores++;
     MP_UNLOCK(last_spinlock);
-    spawnFirstPartition();
-    for(;;);
+    DEBUG(CRITICAL, "-------------------------------\n");
+    safe_mp_boot_part();
 }
 
 void safe_mp_c_main()
@@ -215,7 +253,8 @@ int c_main(struct multiboot *mbootPtr)
     DEBUG(INFO, "Multiboot information at %x, mem_lower=%x, mem_upper=%x, flags=%x\n", mbootPtr, mbootPtr->mem_lower, mbootPtr->mem_upper, mbootPtr->flags);
 
     DEBUG(CRITICAL, "Initializing CPU0.\n");
-    
+   
+
     /* First install BSP's GDT so that our APs can use it */
 	DEBUG(CRITICAL, "-> Initializing BSP's GDT.\n");
 	gdtInstall();
@@ -226,6 +265,7 @@ int c_main(struct multiboot *mbootPtr)
     /* Lock MP initialization. */
     MP_LOCK(boot_spinlock);
     MP_LOCK(last_spinlock);
+    MP_LOCK(part_spinlock);
 
     /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
@@ -233,6 +273,8 @@ int c_main(struct multiboot *mbootPtr)
 
     DEBUG(CRITICAL, "-> %d cores detected and running.\n", (uint32_t)coreCount());
 
+    preparePartitions(mbootPtr);
+    
     // Install GDT & IDT
 	DEBUG(INFO, "-> Initializing ISR.\n");
 	initInterrupts();
@@ -255,14 +297,17 @@ int c_main(struct multiboot *mbootPtr)
     while(initializedCores < coreCount());
 
     /* All cores have their MMU. Finish their initialization and enter userland. */
-    initializedCores = 0;
+    initializedCores = 1;
     
     /* Release page allocator and enable MMU */
     prepareAllocatorRelease();
-    fillMmu(partEnd);
+    fillMmu(bootparts[coreId()].vend);
     coreEnableMmu();
 
     MP_UNLOCK(last_spinlock);
+
+    /* Wait again */
+    while(initializedCores < coreCount());
 
     DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();

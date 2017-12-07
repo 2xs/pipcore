@@ -39,7 +39,7 @@
 #include "libc.h"
 #include "debug.h"
 
-tss_entry_t tssEntry; //!< Generic TSS entry for userland-to-kernel switch
+tss_entry_t tssEntry[16]; //!< Generic TSS entry for userland-to-kernel switch
 extern void tssFlush(); //!< ASM method to flush the TSS entry
 
 extern void *cg_outbGlue;
@@ -99,7 +99,7 @@ struct gdt_entry_s gdtEntries[] = {
 
 #define CG_COUNT (sizeof(gdtEntries)/sizeof(struct gdt_entry_s))
 
-#define gdtEntriesCount (6 + CG_COUNT)
+#define gdtEntriesCount (6 + CG_COUNT + 4)
 
 struct gdt_entry gdt[gdtEntriesCount]; //!< Our GDT
 struct gdt_ptr gp; //!< Pointer to our GDT
@@ -162,18 +162,18 @@ void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t s
  */
 void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
 {
-	uint32_t base = (uint32_t) &tssEntry;
-	uint32_t limit = sizeof(tssEntry);
+	uint32_t base = (uint32_t) &tssEntry[coreId()];
+	uint32_t limit = sizeof(tssEntry[coreId()]);
 
 	gdtSetGate(num, base, limit, 0xE9, 0x00);
 
-	memset(&tssEntry, 0, sizeof(tssEntry));
+	memset(&tssEntry[coreId()], 0, sizeof(tssEntry[coreId()]));
 
-	tssEntry.ss0 = ss0;
-	tssEntry.esp0 = esp0;
+	tssEntry[coreId()].ss0 = ss0;
+	tssEntry[coreId()].esp0 = esp0;
 
-	tssEntry.cs = 0x0B;
-	tssEntry.ss = tssEntry.ds = tssEntry.es = tssEntry.fs = tssEntry.gs = 0x13;
+	tssEntry[coreId()].cs = 0x0B;
+	tssEntry[coreId()].ss = tssEntry[coreId()].ds = tssEntry[coreId()].es = tssEntry[coreId()].fs = tssEntry[coreId()].gs = 0x13;
 }
 
 /**
@@ -183,7 +183,16 @@ void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
  */
 void setKernelStack (uint32_t stack)
 {
-	tssEntry.esp0 = stack;
+	tssEntry[coreId()].esp0 = stack;
+}
+
+void smp_tss_flush()
+{
+    uint16_t cid = (uint16_t)coreId();
+    uint16_t tss_desc = (0x8 * (6 + CG_COUNT + cid)) | 0x3;
+    DEBUG(CRITICAL, "TSS for core %d: %x\n", coreId(), tss_desc);
+    __asm volatile("MOV %0, %%AX; LTR %%AX" :: "r"(tss_desc));
+    return;
 }
 
 /**
@@ -216,10 +225,16 @@ void gdtInstall(void)
 		e = &gdtEntries[i];
 		buildCallgate(6+i, e->handler, e->nargs, e->rpl, e->segment);
 	}
+
+    /* SMP TSS entries at the end of callgate entries */
+    writeTss(6+CG_COUNT, 0x10, 0x0);
+    writeTss(7+CG_COUNT, 0x10, 0x0);
+    writeTss(8+CG_COUNT, 0x10, 0x0);
+    writeTss(9+CG_COUNT, 0x10, 0x0);
 	
 	DEBUG(INFO, "Callgate set-up\n");
     DEBUG(CRITICAL, "BSP GDTPtr at %x.\n", &gp);
 	gdtFlush();
-	tssFlush();
+	smp_tss_flush();
 }
 

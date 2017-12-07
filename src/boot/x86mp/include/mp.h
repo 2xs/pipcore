@@ -13,4 +13,8 @@ void setBooted(uint32_t n);
 uint32_t coreId();
 uint32_t coreCount();
 
+typedef struct {
+    uint32_t start, end, vend;
+} pip_mboot_partition_t;
+
 #endif

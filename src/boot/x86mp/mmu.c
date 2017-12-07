@@ -340,13 +340,19 @@ uint32_t initMmu()
         curAddr += PAGE_SIZE;
     }
 	
-	/* Map root partition in userland */
+    extern pip_mboot_partition_t bootparts[4]; /* Per-core multiplexers */
+	
+    /* Map root partition in userland */
 	curAddr = 0x700000;
-	while(curAddr <= (uint32_t)(&end /* RAM_END */ /* 0xFFFFE000 */))
-	{
-		mapPageWrapper(kernelDirectories[coreId()], curAddr, curAddr, 1);
-		curAddr += PAGE_SIZE;
+	uint32_t tmpAddr;
+    for(tmpAddr = bootparts[coreId()].start; tmpAddr <= bootparts[coreId()].end; tmpAddr += PAGE_SIZE)
+    {
+        uint32_t decal = tmpAddr - bootparts[coreId()].start;
+		mapPageWrapper(kernelDirectories[coreId()], tmpAddr, 0x700000 + decal, 1);
 	}
+    curAddr = 0x700000+(tmpAddr - bootparts[coreId()].start);
+    bootparts[coreId()].vend = curAddr;
+    DEBUG(CRITICAL, "Mapped root partition for core %d from %x to %x.\n", coreId(), 0x700000, curAddr);
     multEnd = (uint32_t)&end;
 
 	/* Map each platform-specific device */
@@ -389,11 +395,11 @@ uint32_t initMmu()
 	uint32_t pg;
 	
     /* Map first partition info as user-accessible */
-    extern pip_fpinfo* fpinfo;
+    extern pip_fpinfo* fpinfo[16];
 	
-	fpinfo = (pip_fpinfo*)allocPage();
-	DEBUG(TRACE, "Allocated FpInfo to %x\n", fpinfo);
-    uintptr_t fpInfoBegin = (uintptr_t)fpinfo;
+	fpinfo[coreId()] = (pip_fpinfo*)allocPage();
+	DEBUG(TRACE, "Allocated FpInfo to %x\n", fpinfo[coreId()]);
+    uintptr_t fpInfoBegin = (uintptr_t)fpinfo[coreId()];
 	
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
 	
@@ -460,11 +466,11 @@ uint32_t initMmu()
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)allocPage(), 0xFFFFD000, 1);
 	
 	/* Map first partition info */
-	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpinfo, 0xFFFFC000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpinfo[coreId()], 0xFFFFC000, 1);
 	
 	/* First prepare all pages : pages required for prepare should be deleted from free page list */
 	/* At this point, page allocator is empty. */
-	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);
+	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo[coreId()]->membegin, fpinfo[coreId()]->memend);
 
     mmuEnabled = 1;
 
@@ -485,19 +491,20 @@ void fillMmu(uint32_t begin)
     curAddr = begin;
     uint32_t pgAmount = perCoreMemoryAmount;
     uint32_t i;
-    DEBUG(CRITICAL, "Giving some memory (%d pages, %d total) for multiplexer core %d.\n", pgAmount, (maxPages - allocatedPages), coreId());
+    DEBUG(CRITICAL, "Giving some memory (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes *// 1024 /* kb */ / 1024 /* mb */, coreId());
 	for(i=0; i<pgAmount; i++)
     {
         pg = (uint32_t)allocPage();
         mapPageC((uintptr_t)kernelDirectories[coreId()], pg, curAddr, 1);
 		curAddr += 0x1000;
 	}
-	extern pip_fpinfo* fpinfo;
+    DEBUG(CRITICAL, "Available memory ends at %x.\n", curAddr);
+	extern pip_fpinfo* fpinfo[16];
 	/* Fix first partition info */
-	fpinfo->membegin = begin;
-	fpinfo->memend = curAddr;
-	fpinfo->magic = FPINFO_MAGIC;
-	strcpy(fpinfo->revision, GIT_REVISION);
+	fpinfo[coreId()]->membegin = begin;
+	fpinfo[coreId()]->memend = curAddr;
+	fpinfo[coreId()]->magic = FPINFO_MAGIC;
+	strcpy(fpinfo[coreId()]->revision, GIT_REVISION);
     DEBUG(CRITICAL, "Done.\n");
 }
 

@@ -65,31 +65,45 @@
  */
 struct multiboot
 {
-   uint32_t flags; //!< Header flags
-   uint32_t mem_lower; //!< Lower memory available
-   uint32_t mem_upper; //!< Upper memory available
-   uint32_t boot_device; //!< Boot device ID
-   uint32_t cmdline; //!< Pointer to the boot command line
-   uint32_t mods_count; //!< Amount of modules loaded
-   uint32_t mods_addr; //!< Address to the first module structure
-   uint32_t num; //!< This is reserved by symbol table & ELF headers
-   uint32_t size;  //!< This is reserved by symbol table & ELF headers
-   uint32_t addr;  //!< This is reserved by symbol table & ELF headers
-   uint32_t shndx;  //!< This is reserved by symbol table & ELF headers
-   uint32_t mmap_length; //!< Memory map length
-   uint32_t mmap_addr; //!< Memory map address
-   uint32_t drives_length; //!< Drive map length
-   uint32_t drives_addr; //!< Drive map address
-   uint32_t config_table; //!< Configuration table address
-   uint32_t boot_loader_name; //!< Pointer to the bootloader's name
-   uint32_t apm_table; //!< Pointer to the APM table
-   uint32_t vbe_control_info; //!< Pointer to the VBE control info structure
-   uint32_t vbe_mode_info; //!< Pointer to the VBE mode info structure
-   uint32_t vbe_mode; //!< Current VBE mode
-   uint32_t vbe_interface_seg; //!< VBE3.0 interface segment
-   uint32_t vbe_interface_off; //!< VBE3.0 interface segment offset
-   uint32_t vbe_interface_len; //!< VBE3.0 interface segment length
+    uint32_t flags; //!< Header flags
+    uint32_t mem_lower; //!< Lower memory available
+    uint32_t mem_upper; //!< Upper memory available
+    uint32_t boot_device; //!< Boot device ID
+    uint32_t cmdline; //!< Pointer to the boot command line
+    uint32_t mods_count; //!< Amount of modules loaded
+    uint32_t mods_addr; //!< Address to the first module structure
+    uint32_t num; //!< This is reserved by symbol table & ELF headers
+    uint32_t size;  //!< This is reserved by symbol table & ELF headers
+    uint32_t addr;  //!< This is reserved by symbol table & ELF headers
+    uint32_t shndx;  //!< This is reserved by symbol table & ELF headers
+    uint32_t mmap_length; //!< Memory map length
+    uint32_t mmap_addr; //!< Memory map address
+    uint32_t drives_length; //!< Drive map length
+    uint32_t drives_addr; //!< Drive map address
+    uint32_t config_table; //!< Configuration table address
+    uint32_t boot_loader_name; //!< Pointer to the bootloader's name
+    uint32_t apm_table; //!< Pointer to the APM table
+    uint32_t vbe_control_info; //!< Pointer to the VBE control info structure
+    uint32_t vbe_mode_info; //!< Pointer to the VBE mode info structure
+    uint32_t vbe_mode; //!< Current VBE mode
+    uint32_t vbe_interface_seg; //!< VBE3.0 interface segment
+    uint32_t vbe_interface_off; //!< VBE3.0 interface segment offset
+    uint32_t vbe_interface_len; //!< VBE3.0 interface segment length
 }  __attribute__((packed));
+
+struct multiboot_mod_list
+{
+    /* the memory used goes from bytes 'mod_start' to 'mod_end-1' inclusive */
+    uint32_t mod_start;
+    uint32_t mod_end;
+
+    /* Module command line */
+    uint32_t cmdline;
+
+    /* padding to take it to 16 bytes (must be zero) */
+    uint32_t pad;
+};
+typedef struct multiboot_mod_list multiboot_module_t;
 
 typedef struct multiboot_header multiboot_header_t; //!< Multiboot header structure define
 
@@ -98,12 +112,12 @@ typedef struct multiboot_header multiboot_header_t; //!< Multiboot header struct
  * \brief Memory map structure
  */
 typedef struct multiboot_memory_map {
-	unsigned int size; //!< Size of this entry
-	unsigned int base_addr_low; //!< Lower bytes of the base address
-        unsigned int base_addr_high; //!< Higher bytes of the base address
-	unsigned int length_low; //!< Lower bytes of the length
-	unsigned int length_high; //!< Higher bytes of the length
-	unsigned int type; //!< Memory type
+    unsigned int size; //!< Size of this entry
+    unsigned int base_addr_low; //!< Lower bytes of the base address
+    unsigned int base_addr_high; //!< Higher bytes of the base address
+    unsigned int length_low; //!< Lower bytes of the length
+    unsigned int length_high; //!< Higher bytes of the length
+    unsigned int type; //!< Memory type
 } multiboot_memory_map_t;
 
 #endif // __MULTIBOOT_HEADER__

@@ -42,7 +42,7 @@
 #include "debug.h"
 
 uint32_t current_partition; /* Current partition's CR3 */
-uint32_t root_partition; /* Multiplexer's partition descriptor */
+uint32_t root_partitions[16]; /* Multiplexer's partition descriptor */
 uint32_t next_pid = 0;
 extern uint32_t pcid_enabled;
 /*!	\fn void enable_paging()
@@ -245,7 +245,7 @@ updateCurPartition (uint32_t descriptor)
  */
 uint32_t getRootPartition(void)
 {
-	return root_partition;
+	return root_partitions[coreId()];
 }
 
 /*! \fn uint32_t updateRootPartition()
@@ -255,7 +255,7 @@ uint32_t getRootPartition(void)
 void
 updateRootPartition(uint32_t partition)
 {
-	root_partition = partition;
+	root_partitions[coreId()] = partition;
 }
 
 /*!
