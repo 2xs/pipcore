@@ -72,6 +72,7 @@
 
 /* Bootup stage spinlock */
 volatile int boot_spinlock = 0;
+volatile int last_spinlock = 0;
 volatile int mmu_spinlock = 0;
 
 uint32_t initializedCores = 0;
@@ -151,8 +152,22 @@ void fixFpInfo()
 
 #define MP_LOCK(a)     while(__sync_lock_test_and_set(&a, 1))
 #define MP_UNLOCK(a)   __sync_lock_release(&a)
+uint32_t multEnd;
 
-int safe_mp_c_main()
+void safe_mp_finish_bootstrap()
+{
+    MP_LOCK(last_spinlock);
+    DEBUG(CRITICAL, "-> Filling virtual memory space for core %d.\n", coreId());
+    fillMmu(multEnd);
+    DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
+    coreEnableMmu();
+    DEBUG(CRITICAL, "-> Booting multiplexer.\n");
+    MP_UNLOCK(last_spinlock);
+    spawnFirstPartition();
+    for(;;);
+}
+
+void safe_mp_c_main()
 {
     DEBUG(CRITICAL, "-> Entered safe AP core bootup stage.\n");
     DEBUG(CRITICAL, "-> Initializing CPU%d.\n", cores);
@@ -160,19 +175,13 @@ int safe_mp_c_main()
     DEBUG(CRITICAL, "-> Initializing GDT.\n");
     gdtInstall();
     DEBUG(CRITICAL, "-> Initializing MMU.\n");
-    uint32_t multEnd = initMmu();
-    DEBUG(CRITICAL, "-> Filling virtual memory space.\n");
-    fillMmu(multEnd);
-    DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
-    coreEnableMmu();
+    multEnd = initMmu();
     DEBUG(CRITICAL, "-> MMU for core %d is configured!\n", coreId());
     DEBUG(CRITICAL, "-> Releasing spinlock.\n");
-    initializedCores++; /* We can increment this in an unprotected way, as our AP initialization routines are synchronous */
+    initializedCores++;
     MP_UNLOCK(boot_spinlock);
-    DEBUG(CRITICAL, "-> Booting multiplexer.\n");
-    spawnFirstPartition();
     DEBUG(CRITICAL, "-------------------------------\n");
-    for(;;);
+    safe_mp_finish_bootstrap();
 }
 
 int mp_c_main()
@@ -216,6 +225,7 @@ int c_main(struct multiboot *mbootPtr)
 
     /* Lock MP initialization. */
     MP_LOCK(boot_spinlock);
+    MP_LOCK(last_spinlock);
 
     /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
@@ -234,8 +244,6 @@ int c_main(struct multiboot *mbootPtr)
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	uint32_t partEnd = initMmu();
-    fillMmu(partEnd);
-    coreEnableMmu();
 	
     initializedCores++;
 
@@ -245,6 +253,16 @@ int c_main(struct multiboot *mbootPtr)
 
     /* Active wait for cores to be ready */
     while(initializedCores < coreCount());
+
+    /* All cores have their MMU. Finish their initialization and enter userland. */
+    initializedCores = 0;
+    
+    /* Release page allocator and enable MMU */
+    prepareAllocatorRelease();
+    fillMmu(partEnd);
+    coreEnableMmu();
+
+    MP_UNLOCK(last_spinlock);
 
     DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();

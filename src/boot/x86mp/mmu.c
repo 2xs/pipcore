@@ -470,9 +470,13 @@ uint32_t initMmu()
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
 	// activate((uint32_t)kernelDirectories[coreId()]);
-    if(perCoreMemoryAmount == 0)
-        perCoreMemoryAmount = (maxPages - allocatedPages)/(coreCount() + 1);
     return multEnd;
+}
+
+void prepareAllocatorRelease()
+{
+    if(perCoreMemoryAmount == 0)
+        perCoreMemoryAmount = (maxPages - allocatedPages)/(coreCount());
 }
 
 void fillMmu(uint32_t begin)

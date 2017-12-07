@@ -57,5 +57,6 @@ uint32_t initMmu();
 void fillMmu(uint32_t begin);
 void coreEnableMmu();
 void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8_t user);
+void prepareAllocatorRelease();
 
 #endif
