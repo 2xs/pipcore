@@ -41,7 +41,7 @@
 #include "structures.h"
 #include "debug.h"
 
-uint32_t current_partition; /* Current partition's CR3 */
+uint32_t current_partition[16]; /* Current partition's CR3 */
 uint32_t root_partitions[16]; /* Multiplexer's partition descriptor */
 uint32_t next_pid = 0;
 extern uint32_t pcid_enabled;
@@ -219,7 +219,7 @@ void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
  */
 uint32_t getCurPartition(void)
 {
-	return current_partition;
+	return current_partition[coreId()];
 }
 
 /*! \fn void updateCurPartition()
@@ -230,7 +230,7 @@ void
 updateCurPartition (uint32_t descriptor)
 {
 	extern uint32_t pcid_enabled;
-	current_partition = descriptor;
+	current_partition[coreId()] = descriptor;
 	if(readPhysical(descriptor, 12) == 0x0 && pcid_enabled)
 	{
 		writePhysical(descriptor, 12, next_pid);
@@ -496,8 +496,8 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
 
 void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
 {
-    uint32_t pd = current_partition;
-    uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
+    uint32_t pd = current_partition[coreId()];
+    uint32_t cr3 = readPhysical(current_partition[coreId()], indexPD() + 1);
     uint32_t kpt = readPhysical(cr3, kernelIndex());
     writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
     return;

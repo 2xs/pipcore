@@ -345,9 +345,10 @@ uint32_t initMmu()
     /* Map root partition in userland */
 	curAddr = 0x700000;
 	uint32_t tmpAddr;
-    for(tmpAddr = bootparts[coreId()].start; tmpAddr <= bootparts[coreId()].end; tmpAddr += PAGE_SIZE)
+    for(tmpAddr = bootparts[coreId()].start; tmpAddr < bootparts[coreId()].end; tmpAddr += PAGE_SIZE)
     {
         uint32_t decal = tmpAddr - bootparts[coreId()].start;
+        DEBUG(CRITICAL, "Map: %x -> %x\n", tmpAddr, 0x700000 + decal);
 		mapPageWrapper(kernelDirectories[coreId()], tmpAddr, 0x700000 + decal, 1);
 	}
     curAddr = 0x700000+(tmpAddr - bootparts[coreId()].start);
@@ -454,6 +455,8 @@ uint32_t initMmu()
 	// Create fake IDT at 0xFFFFF000
 	uint32_t* virt_intv = allocPage();
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000, 1);
+    *virt_intv = 0x700000;
+    *(virt_intv + 1) = 0xFFFFE000 - sizeof(uint32_t);
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)0xB8000, 0xFFFFE000, 1);
 	
 	// Fill Virtu. IDT info
@@ -491,7 +494,7 @@ void fillMmu(uint32_t begin)
     curAddr = begin;
     uint32_t pgAmount = perCoreMemoryAmount;
     uint32_t i;
-    DEBUG(CRITICAL, "Giving some memory (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes *// 1024 /* kb */ / 1024 /* mb */, coreId());
+    DEBUG(CRITICAL, "Giving some memory starting at %x (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", begin, pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes *// 1024 /* kb */ / 1024 /* mb */, coreId());
 	for(i=0; i<pgAmount; i++)
     {
         pg = (uint32_t)allocPage();
