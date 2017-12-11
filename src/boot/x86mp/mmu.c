@@ -350,7 +350,7 @@ uint32_t initMmu()
     for(tmpAddr = bootparts[coreId()].start; tmpAddr < bootparts[coreId()].end; tmpAddr += PAGE_SIZE)
     {
         uint32_t decal = tmpAddr - bootparts[coreId()].start;
-        DEBUG(CRITICAL, "Map: %x -> %x\n", tmpAddr, 0x700000 + decal);
+        /* DEBUG(CRITICAL, "Map: %x -> %x\n", tmpAddr, 0x700000 + decal); */
 		mapPageWrapper(kernelDirectories[coreId()], tmpAddr, 0x700000 + decal, 1);
 	}
     curAddr = 0x700000+(tmpAddr - bootparts[coreId()].start);
