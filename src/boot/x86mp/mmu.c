@@ -200,7 +200,7 @@ void initFreePageList(uintptr_t base, uintptr_t length)
 		for(i = base; i < base + length; i+=0x1000)
 		{
 			/* Ignore kernel area */
-			if(i > (uint32_t)&__end) {
+			if(i > (uint32_t)&__end + 0x100000) { /* Add 0x100000 at the end of the kernel to preserve GRUB modules - TODO : clean this */
 				*(uint32_t*)i = (uint32_t)firstFreePage; /* Add current page as head of list */
 				firstFreePage = (uint32_t*)i;
 				pageCount++;
@@ -262,7 +262,7 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
     // Parse each entry
     while((uint32_t*)mmap < (uint32_t*)((uint32_t)mmap_ptr + len) && mmap->size > 0)
     {
-		DEBUG(TRACE, "region %d, addr %x, length %x\n", num, mmap->base_addr_low, mmap->length_low);
+		DEBUG(CRITICAL, "region %d, addr %x, length %x\n", num, mmap->base_addr_low, mmap->length_low);
         switch(mmap->type){
         case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
             DEBUG(TRACE, "\tACPI_RECLAIMABLE\n");

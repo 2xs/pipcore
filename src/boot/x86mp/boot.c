@@ -229,10 +229,13 @@ int mp_c_main()
     /* Initialize core per core : lock and go */
     MP_LOCK(boot_spinlock);
     cores++;
+    DEBUG(CRITICAL, "MP stacks were at %x\n", mp_stacks);
     mp_stacks -= 0x1000; /* Give sum stack */
     DEBUG(CRITICAL, "-----------CPU%d BOOT-----------\n", coreId());
     DEBUG(CRITICAL, "-> Giving core %d stack %x\n", coreId(), mp_stacks);
-    give_safe_stack(mp_stacks); /* Give a proper and safe stack to the current core */
+    /* give_safe_stack(mp_stacks); */ /* Give a proper and safe stack to the current core */
+    __asm volatile("MOV %0, %%ESP; MOV %%ESP, %%EBP;" :: "r"(mp_stacks));
+    safe_mp_c_main();
     for(;;);
     return 1;
 }
@@ -261,7 +264,7 @@ int c_main(struct multiboot *mbootPtr)
 	gdtInstall();
 
     mp_stacks = (unsigned char*)&mp_stack_base;
-    /* DEBUG(CRITICAL, "MP stack base at %x\n", &mp_stacks); */
+    DEBUG(CRITICAL, "MP stack base at %x\n", mp_stacks); 
 
     /* Lock MP initialization. */
     MP_LOCK(boot_spinlock);
@@ -288,6 +291,9 @@ int c_main(struct multiboot *mbootPtr)
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	uint32_t partEnd = initMmu();
 	
+    if((uint32_t)mp_stacks >= 0x700000)
+        mp_stacks = (unsigned char*)&mp_stack_base;
+    DEBUG(CRITICAL, "MP stack base at %x\n", mp_stacks); 
     initializedCores++;
 
 	/* Great. Now we can bootstrap APs correctly. */
