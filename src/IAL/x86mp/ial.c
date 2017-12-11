@@ -381,7 +381,13 @@ void
 genericHandler (int_ctx_t *is)
 {
 	uint32_t vint, target, from, data1, data2;
-	
+    if(is->int_no == 0x2) /* NMI */
+    {
+        /* The interrupt has to be handled NOW. */
+        IAL_DEBUG(CRITICAL, "\n\n --- NMI RECEIVED ON CORE %d ! ---\n\n", coreId());
+        __asm volatile("cli");
+        for(;;);
+    }
 	data1 = 0;
     extern uint32_t timer_ticks;
     

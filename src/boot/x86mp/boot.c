@@ -67,6 +67,9 @@
 #include "serial.h"
 #endif
 
+#include "apic.h"
+#include "smp-imps.h"
+
 /* SMP */
 #include "mp.h"
 
@@ -319,7 +322,8 @@ int c_main(struct multiboot *mbootPtr)
     while(initializedCores < coreCount());
 
     DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
-	spawnFirstPartition();
+    SEND_NMIPI(0x1);
+    spawnFirstPartition();
     
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);

@@ -164,7 +164,7 @@ get_checksum(unsigned start, int length)
  *  APIC ICR write and status check function.
  */
 
-static int
+int
 send_ipi(unsigned int dst, unsigned int v)
 {
 	int to, send_status;

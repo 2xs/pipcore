@@ -213,7 +213,7 @@ int imps_probe(void);
  */
 
 int imps_force(int ncpus);
-
+extern int send_ipi(unsigned int dst, unsigned int v);
 
 /*
  *  Defines that use variables
@@ -222,6 +222,8 @@ int imps_force(int ncpus);
 #define IMPS_LAPIC_READ(x)  (*((volatile unsigned *) (imps_lapic_addr+(x))))
 #define IMPS_LAPIC_WRITE(x, y)   \
    (*((volatile unsigned *) (imps_lapic_addr+(x))) = (y))
+
+#define SEND_NMIPI(a)   { disable_paging(); send_ipi(a, LAPIC_ICR_DM_NMI); enable_paging(); }
 
 #endif  /* !_SMP_IMPS_H */
 
