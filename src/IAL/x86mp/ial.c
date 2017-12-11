@@ -385,8 +385,12 @@ genericHandler (int_ctx_t *is)
     {
         /* The interrupt has to be handled NOW. */
         IAL_DEBUG(CRITICAL, "\n\n --- NMI RECEIVED ON CORE %d ! ---\n\n", coreId());
-        __asm volatile("cli");
-        for(;;);
+        write_lapic(APIC_EOI, 0x0); /* Write EOI */
+
+        /* Do some NMI-related stuff here */
+
+        /* Return from interrupt */
+        return; 
     }
 	data1 = 0;
     extern uint32_t timer_ticks;
