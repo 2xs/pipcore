@@ -188,6 +188,7 @@ void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8
 void initFreePageList(uintptr_t base, uintptr_t length)
 {
     extern uint32_t end;
+    extern uint32_t furthestPartitionCode; /* Last address for Multiboot module placement */
     uint32_t sizeToMap;
     uint32_t mappingBegin;
 
@@ -195,12 +196,13 @@ void initFreePageList(uintptr_t base, uintptr_t length)
 	extern uintptr_t __end;
 	if(base >= 0x100000)
 	{
+        DEBUG(CRITICAL, "Last Multiboot module at %x\n", furthestPartitionCode);
 		uint32_t i = 0;
 		/* Add each page of free area */
 		for(i = base; i < base + length; i+=0x1000)
 		{
 			/* Ignore kernel area */
-			if(i > (uint32_t)&__end + 0x100000) { /* Add 0x100000 at the end of the kernel to preserve GRUB modules - TODO : clean this */
+			if(i > /* (uint32_t)&__end + 0x100000*/ furthestPartitionCode) { /* Add 0x100000 at the end of the kernel to preserve GRUB modules - TODO : clean this */
 				*(uint32_t*)i = (uint32_t)firstFreePage; /* Add current page as head of list */
 				firstFreePage = (uint32_t*)i;
 				pageCount++;

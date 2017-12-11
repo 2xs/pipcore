@@ -93,6 +93,7 @@ uint32_t cores = 0; /* Only BSP until APs boot */
 pip_fpinfo* fpinfo[16];
 
 pip_mboot_partition_t bootparts[4]; /* Per-core multiplexers */
+uint32_t furthestPartitionCode;
 
 void preparePartitions(struct multiboot *mboot_ptr)
 {
@@ -115,6 +116,7 @@ void preparePartitions(struct multiboot *mboot_ptr)
         DEBUG(CRITICAL, "Root partition for core %d: %x -> %x\n", i+1, modi->mod_start, modi->mod_end);
         bootparts[i+1].start = modi->mod_start;
         bootparts[i+1].end = modi->mod_end;
+        furthestPartitionCode = modi->mod_end;
         modi++;
     }
 }
