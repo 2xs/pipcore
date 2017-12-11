@@ -295,9 +295,11 @@ int c_main(struct multiboot *mbootPtr)
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	uint32_t partEnd = initMmu();
-	
+
+    /* I don't know why this is required on some build hosts. I may have f**ked up something elsewhere... */
     if((uint32_t)mp_stacks >= 0x700000)
         mp_stacks = (unsigned char*)&mp_stack_base;
+
     DEBUG(CRITICAL, "MP stack base at %x\n", mp_stacks); 
     initializedCores++;
 
@@ -324,6 +326,7 @@ int c_main(struct multiboot *mbootPtr)
     DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
     SEND_NMIPI(0x1);
     spawnFirstPartition();
+
     
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);

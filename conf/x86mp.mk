@@ -46,9 +46,9 @@ GDB=gdb
 endif
 ifeq ($(UNAME_S),Darwin)
 AS=nasm
-CC=i386-elf-gcc
-LD=i386-elf-ld
-AR=i386-elf-ar
+CC=/opt/local/bin/i386-elf-gcc
+LD=/opt/local/bin/i386-elf-ld
+AR=/opt/local/bin/i386-elf-ar
 QEMU=qemu-system-i386
 GDB=i386-elf-gdb
 endif
@@ -61,7 +61,7 @@ QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std 
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -Wno-missing-field-initializers -Wno-address
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -Wno-missing-field-initializers -Wno-address 
 LDFLAGS=-melf_i386
 
 PLATFORM=multiboot
