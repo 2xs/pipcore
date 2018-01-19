@@ -94,7 +94,7 @@ struct gdt_entry_s gdtEntries[] = {
 	{&cg_mappedInChild,	1, 0x3, 0x08}, /* 0xA8 */
 	{&cg_deletePartition,1,0x3, 0x08}, /* 0xB0 */
 	{&cg_collect,		1, 0x3, 0x08}, /* 0xB8 */
-    {&cg_smpRequest,    2, 0x3, 0x08},
+    {&cg_smpRequest,    2, 0x3, 0x08}, /* 0xC0 */
 };
 
 #define CG_COUNT (sizeof(gdtEntries)/sizeof(struct gdt_entry_s))
@@ -160,30 +160,22 @@ void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t s
  * \param ss0 The stack selector for kernel mode
  * \param esp0 The stack pointer for kernel mode
  */
-void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
+void writeTss(int32_t num, uint16_t ss0, uint32_t esp0, uint32_t cid)
 {
-	uint32_t base = (uint32_t) &tssEntry[coreId()];
-	uint32_t limit = sizeof(tssEntry[coreId()]);
+	uint32_t base = (uint32_t) (tssEntry + cid);
+	uint32_t limit = sizeof(tssEntry[cid]);
 
 	gdtSetGate(num, base, limit, 0xE9, 0x00);
 
-	memset(&tssEntry[coreId()], 0, sizeof(tssEntry[coreId()]));
+	memset(&tssEntry[cid], 0, sizeof(tssEntry[cid]));
 
-	tssEntry[coreId()].ss0 = ss0;
-	tssEntry[coreId()].esp0 = esp0;
+	tssEntry[cid].ss0 = ss0;
+	tssEntry[cid].esp0 = esp0;
 
-	tssEntry[coreId()].cs = 0x0B;
-	tssEntry[coreId()].ss = tssEntry[coreId()].ds = tssEntry[coreId()].es = tssEntry[coreId()].fs = tssEntry[coreId()].gs = 0x13;
-}
+	tssEntry[cid].cs = 0x0B;
+	tssEntry[cid].ss = tssEntry[cid].ds = tssEntry[cid].es = tssEntry[cid].fs = tssEntry[cid].gs = 0x13;
 
-/**
- * \fn void setKernelStack (uint32_t stack)
- * \brief Updates the kernel stack address into the TSS
- * \param stack The stack address
- */
-void setKernelStack (uint32_t stack)
-{
-	tssEntry[coreId()].esp0 = stack;
+    DEBUG(CRITICAL, "Wrote TSS entry for target core %d at slot %x.\n", cid, num * 0x8);
 }
 
 void smp_tss_flush()
@@ -192,9 +184,22 @@ void smp_tss_flush()
     uint16_t tss_desc = (0x8 * (6 + CG_COUNT + cid)) | 0x3;
     DEBUG(CRITICAL, "TSS for core %d: %x\n", coreId(), tss_desc);
     __asm volatile("MOV %0, %%AX; LTR %%AX" :: "r"(tss_desc));
+    DEBUG(CRITICAL, "Flushed TSS entry for core %d.\n", coreId());
     return;
 }
 
+
+/**
+ * \fn void setKernelStack (uint32_t stack)
+ * \brief Updates the kernel stack address into the TSS
+ * \param stack The stack address
+ */
+void setKernelStack (uint32_t stack)
+{
+    /* Update kernel stack */
+	tssEntry[coreId()].esp0 = stack;
+    DEBUG(CRITICAL, "Updated kernel stack for core %d to %x. Reloading TSS.\n", coreId(), stack);
+}
 /**
  * \fn void gdtInstall()
  * \brief Installs the GDT into the CPU
@@ -219,7 +224,7 @@ void gdtInstall(void)
 	/* Kernel data segment */
 	gdtSetGate(4, 0, 0xFFFFF, 0xF2, 0xC0);
 
-	writeTss(5, 0x10, 0x0);
+	writeTss(5, 0x10, 0x0, 0x0);
 	for (i=0;i<CG_COUNT; i++)
 	{
 		e = &gdtEntries[i];
@@ -227,10 +232,10 @@ void gdtInstall(void)
 	}
 
     /* SMP TSS entries at the end of callgate entries */
-    writeTss(6+CG_COUNT, 0x10, 0x0);
-    writeTss(7+CG_COUNT, 0x10, 0x0);
-    writeTss(8+CG_COUNT, 0x10, 0x0);
-    writeTss(9+CG_COUNT, 0x10, 0x0);
+    writeTss(6+CG_COUNT, 0x10, 0x0, 0x0); /* 0xC8 */
+    writeTss(7+CG_COUNT, 0x10, 0x0, 0x1); /* 0xD0 */
+    writeTss(8+CG_COUNT, 0x10, 0x0, 0x2); /* 0xD8 */
+    writeTss(9+CG_COUNT, 0x10, 0x0, 0x3); /* 0xE0 */
 	
 	DEBUG(INFO, "Callgate set-up\n");
     DEBUG(CRITICAL, "BSP GDTPtr at %x.\n", &gp);

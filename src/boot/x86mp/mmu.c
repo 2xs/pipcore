@@ -202,7 +202,7 @@ void initFreePageList(uintptr_t base, uintptr_t length)
 		for(i = base; i < base + length; i+=0x1000)
 		{
 			/* Ignore kernel area */
-			if(i > /* (uint32_t)&__end + 0x100000*/ furthestPartitionCode) { /* Add 0x100000 at the end of the kernel to preserve GRUB modules - TODO : clean this */
+			if((i > /* (uint32_t)&__end + 0x100000*/ furthestPartitionCode) && (i > (uint32_t)&__end)) { /* Add 0x100000 at the end of the kernel to preserve GRUB modules - TODO : clean this */
 				*(uint32_t*)i = (uint32_t)firstFreePage; /* Add current page as head of list */
 				firstFreePage = (uint32_t*)i;
 				pageCount++;

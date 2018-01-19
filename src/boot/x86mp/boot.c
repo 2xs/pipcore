@@ -105,6 +105,9 @@ void preparePartitions(struct multiboot *mboot_ptr)
     uint32_t i;
     bootparts[0].start = (uint32_t)&__multiplexer; 
     bootparts[0].end = (uint32_t)&__end;
+    
+    /* Update first partition address in furthest partition code */
+    furthestPartitionCode = bootparts[0].end;
 
     uint32_t modc = mboot_ptr->mods_count;
     if(modc < (coreCount() - 1)) {
@@ -324,7 +327,7 @@ int c_main(struct multiboot *mbootPtr)
     while(initializedCores < coreCount());
 
     DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
-    SEND_NMIPI(0x1);
+   // SEND_NMIPI(0x1);
     spawnFirstPartition();
 
     
