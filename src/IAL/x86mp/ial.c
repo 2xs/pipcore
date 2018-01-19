@@ -445,7 +445,7 @@ genericHandler (int_ctx_t *is)
 		
 	} else {
 		IAL_DEBUG(TRACE, "Got fault interrupt %d.\n", is->int_no);
-		
+	    IAL_DEBUG(CRITICAL, "\n\nEIP at %x\n\n", is->eip);
 		/* Page Fault */
 		if(is->int_no == 0xE)
 		{

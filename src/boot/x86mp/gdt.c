@@ -38,6 +38,7 @@
 #include "gdt.h"
 #include "libc.h"
 #include "debug.h"
+#include "lock.h"
 
 tss_entry_t tssEntry[16]; //!< Generic TSS entry for userland-to-kernel switch
 extern void tssFlush(); //!< ASM method to flush the TSS entry
@@ -243,3 +244,26 @@ void gdtInstall(void)
 	smp_tss_flush();
 }
 
+uintptr_t api_ptr;
+
+void dumpStuff()
+{
+    uint32_t esp;
+    __asm volatile("MOV %%ESP, %0":"=r"(esp));
+    DEBUG(CRITICAL, "\n\nPipcall at core %d, ESP=%x, call=%x\n\n", coreId(), esp, api_ptr);
+    return;
+}
+
+static spinlock_t api_spinlock = 0;
+
+void api_lock()
+{
+    MP_LOCK(api_spinlock);
+    return;
+}
+
+void api_unlock()
+{
+    MP_UNLOCK(api_spinlock);
+    return;
+}

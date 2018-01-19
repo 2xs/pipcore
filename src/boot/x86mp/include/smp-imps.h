@@ -205,7 +205,7 @@ extern unsigned char imps_apic_cpu_map[IMPS_MAX_CPUS];
  *  and is valid, else 0.
  */
 
-int imps_probe(void);
+int init_smp_cores(void);
 
 /*
  *  This one is used as a "force" function.  Give it the number of CPUs

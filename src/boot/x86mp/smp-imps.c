@@ -209,8 +209,10 @@ boot_cpu(imps_processor *proc)
 
 	extern char patch_code_start[];
 	extern char patch_code_end[];
+    extern unsigned apentry;
 	// bootaddr = (512-64)*1024; /* 0x70000 */
-    bootaddr = 0xB000;
+    /* TODO : resolve the unsigned crap */
+    bootaddr = (unsigned)&apentry;
 //     memcpy((char *)bootaddr, patch_code_start, patch_code_end - patch_code_start);
 
 
@@ -633,7 +635,7 @@ imps_force(int ncpus)
  */
 
 int
-imps_probe(void)
+init_smp_cores(void)
 {
 	/*
 	 *  Determine possible address of the EBDA

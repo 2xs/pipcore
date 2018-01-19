@@ -175,7 +175,7 @@ void init_mp()
     kprintf("Probing extended BIOS area and initializing APs.\n");
     uint32_t ret;
     /* PROBE */
-    ret = imps_probe();
+    ret = init_smp_cores();
 }
 
 void init_mp_legacy()

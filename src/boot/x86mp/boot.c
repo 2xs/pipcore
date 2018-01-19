@@ -72,12 +72,11 @@
 
 /* SMP */
 #include "mp.h"
+#include "lock.h"
 
 /* Bootup stage spinlock */
-volatile int boot_spinlock = 0;
-volatile int last_spinlock = 0;
-volatile int mmu_spinlock = 0;
-volatile int part_spinlock = 0;
+static spinlock_t lock_cores = 0;
+static spinlock_t mmu_init_spinlock = 0;
 
 uint32_t initializedCores = 0;
 
@@ -119,12 +118,13 @@ void preparePartitions(struct multiboot *mboot_ptr)
     multiboot_module_t* modi = (multiboot_module_t*)mboot_ptr->mods_addr;
     for(i=0; i<modc; i++)
     {
-        DEBUG(CRITICAL, "Root partition for core %d: %x -> %x\n", i+1, modi->mod_start, modi->mod_end);
         bootparts[i+1].start = modi->mod_start;
         bootparts[i+1].end = modi->mod_end;
         furthestPartitionCode = modi->mod_end;
         modi++;
     }
+    for(i=0; i<4;i++)
+        DEBUG(CRITICAL, "Root partition for core %d: %x -> %x\n", i, bootparts[i].start, bootparts[i].end);
 }
 
 /**
@@ -187,8 +187,6 @@ void fixFpInfo()
 	fpinfo[coreId()]->membegin = (uint32_t)firstFreePage;
 }
 
-#define MP_LOCK(a)     while(__sync_lock_test_and_set(&a, 1))
-#define MP_UNLOCK(a)   __sync_lock_release(&a)
 uint32_t multEnd;
 
 void safe_mp_boot_part()
@@ -203,13 +201,13 @@ void safe_mp_boot_part()
 
 void safe_mp_finish_bootstrap()
 {
-    MP_LOCK(last_spinlock);
+    MP_LOCK(mmu_init_spinlock);
     DEBUG(CRITICAL, "-> Filling virtual memory space for core %d.\n", coreId());
     fillMmu(bootparts[coreId()].vend);
     DEBUG(CRITICAL, "-> Done. Enabling MMU.\n");
     coreEnableMmu();
     initializedCores++;
-    MP_UNLOCK(last_spinlock);
+    MP_UNLOCK(mmu_init_spinlock);
     DEBUG(CRITICAL, "-------------------------------\n");
     safe_mp_boot_part();
 }
@@ -226,7 +224,7 @@ void safe_mp_c_main()
     DEBUG(CRITICAL, "-> MMU for core %d is configured!\n", coreId());
     DEBUG(CRITICAL, "-> Releasing spinlock.\n");
     initializedCores++;
-    MP_UNLOCK(boot_spinlock);
+    MP_UNLOCK(lock_cores);
     DEBUG(CRITICAL, "-------------------------------\n");
     safe_mp_finish_bootstrap();
 }
@@ -235,7 +233,7 @@ int mp_c_main()
 {
     extern void give_safe_stack();
     /* Initialize core per core : lock and go */
-    MP_LOCK(boot_spinlock);
+    MP_LOCK(lock_cores);
     cores++;
     DEBUG(CRITICAL, "MP stacks were at %x\n", mp_stacks);
     mp_stacks -= 0x1000; /* Give sum stack */
@@ -275,9 +273,8 @@ int c_main(struct multiboot *mbootPtr)
     DEBUG(CRITICAL, "MP stack base at %x\n", mp_stacks); 
 
     /* Lock MP initialization. */
-    MP_LOCK(boot_spinlock);
-    MP_LOCK(last_spinlock);
-    MP_LOCK(part_spinlock);
+    MP_LOCK(lock_cores);
+    MP_LOCK(mmu_init_spinlock);
 
     /* Bootup APs. */
     DEBUG(CRITICAL, "-> Initializing SMP.\n");
@@ -308,7 +305,7 @@ int c_main(struct multiboot *mbootPtr)
 
 	/* Great. Now we can bootstrap APs correctly. */
     DEBUG(CRITICAL, "-> Releasing CPU cores.\n");
-    MP_UNLOCK(boot_spinlock);
+    MP_UNLOCK(lock_cores);
 
     /* Active wait for cores to be ready */
     while(initializedCores < coreCount());
@@ -321,7 +318,7 @@ int c_main(struct multiboot *mbootPtr)
     fillMmu(bootparts[coreId()].vend);
     coreEnableMmu();
 
-    MP_UNLOCK(last_spinlock);
+    MP_UNLOCK(mmu_init_spinlock);
 
     /* Wait again */
     while(initializedCores < coreCount());

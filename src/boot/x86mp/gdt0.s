@@ -69,6 +69,10 @@ cg_%1:
 ;	args, ...
 ;	useresp
 ;	ss
+extern api_lock
+extern api_unlock
+extern api_ptr
+extern dumpStuff
 %macro CG_GLUE 2
 extern %1
 global cg_%1
@@ -78,7 +82,12 @@ cg_%1:
 	pop esi
 	pop edi
 ; call pip function
- 	call %1
+	call api_lock
+	call %1
+; keep api call result code
+	push eax
+	call api_unlock
+	pop eax
 ; restore eip:cs
 	push edi
 	push esi
@@ -106,7 +115,11 @@ cg_%1:
 %rep %2
 	push dword [0x24+esp+8+4*(%2-1)]
 %endrep
+	call api_lock
 	call %1
+	push eax
+	call api_unlock
+	pop eax
 	add esp, 0x24+4*%2
 ; back to userland
 	sti

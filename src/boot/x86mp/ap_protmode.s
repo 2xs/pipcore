@@ -5,10 +5,6 @@ section .apentry32
 	; Out of the 16 bits nightmare! Yay.
     cli
     
-	; Print stuff on VGA terminal (first check to see whether we're alive or not)
-	; mov eax, 0xB8000
-	; mov dword [eax], 0x414F414F
-
 	; Flush segments
     mov ax, 0x10
     mov ds, ax
@@ -18,7 +14,6 @@ section .apentry32
     mov ss, ax
 	
 	; Put sum stack in low-memory (where we probably don't have anything important)
-	; TODO: well, fuck
 	mov esp, 0x4000	; yolo
 	mov ebp, esp	; double yolo
 
@@ -43,12 +38,12 @@ section .apentry32
 
 move_on:
     ; Get a stack for each core
-    mov esp, _mp_stack   ; u want
-    mov ebp, esp         ; sum stack?
+    ; mov esp, _mp_stack
+    ; mov ebp, esp
    
-	mov eax, mp_c_main   ; no ron
-    call eax             ; i don't want
-    jmp $                ; sum stack
+	mov eax, mp_c_main
+    call eax
+    jmp $
 
 [GLOBAL give_safe_stack]
 [EXTERN safe_mp_c_main]
@@ -134,7 +129,7 @@ SECTION .bss
 
 [GLOBAL mp_stack_base]
 
-mpstack:   resb    4096 ; Allocate 16kb in the BSS for the kernel stack
+mpstack:   resb    4096 ; Allocate 4kb in the BSS for the kernel stack
 _mp_stack:
 stackpool:  resb    0x10000;  Per-core stacks
 mp_stack_base:

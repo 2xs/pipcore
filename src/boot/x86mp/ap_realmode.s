@@ -20,6 +20,9 @@ patch_code_end:
 [GLOBAL real_mode_ep]
 section .apentry
 real_mode_ep:
+	; Disable interrupts
+	cli
+	
 	; Write stuff to tell our BSP that we booted
 	mov bx, 0x1000
     mov es, bx
