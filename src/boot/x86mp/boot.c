@@ -61,6 +61,7 @@
 
 /* GDT configuration */
 #include "gdt.h"
+#include "syscall.h"
 
 /* Include serial only if we're in debug mode */
 #ifdef PIPDEBUG
@@ -302,6 +303,9 @@ int c_main(struct multiboot *mbootPtr)
 
     DEBUG(CRITICAL, "MP stack base at %x\n", mp_stacks); 
     initializedCores++;
+
+    DEBUG(CRITICAL, "Initializing SYSENTER\n");
+    init_sysenter();
 
 	/* Great. Now we can bootstrap APs correctly. */
     DEBUG(CRITICAL, "-> Releasing CPU cores.\n");
