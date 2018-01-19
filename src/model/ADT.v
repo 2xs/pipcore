@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -53,12 +53,16 @@ Proof. unfold tableSize; auto. Qed.
 Axiom tableSize nbLevel nbPage: nat.
 Axiom nbLevelNotZero: nbLevel > 0.
 Axiom nbPageNotZero: nbPage > 0.
+
 (* Axiom tableSizeNotZero : tableSize <> 0. *)
 
-
+Axiom tableSizeIsEven : Nat.Even tableSize.
 (* END NOT SIMULATION *)
-Definition tableSizeLowerBound := 10.  
+Definition tableSizeLowerBound := 14.
+
 Axiom tableSizeBigEnough : tableSize > tableSizeLowerBound. (* to be fixed on count **) 
+
+Definition preIndex := nat.
 Record index := {
   i :> nat ;
   Hi : i < tableSize }.
@@ -69,10 +73,12 @@ Record page := {
 
 Definition paddr := (page * index)%type.
 
+Definition preVaddr := (list nat).
 Record vaddr := {
   va :> list index ;
   Hva : length va = nbLevel + 1}.
 
+Definition preLevel := nat.
 Record level := {
   l :> nat ;
   Hl : l < nbLevel }.
@@ -82,6 +88,8 @@ Record count := {
   Hnb : c <= (3*nbLevel) + 1  ;
  }.
 
+
+Parameter preIndex_d : preIndex.
 Parameter index_d : index.
 Parameter page_d : page.
 Parameter level_d : level.

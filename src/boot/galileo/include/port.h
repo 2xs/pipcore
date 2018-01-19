@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,52 +32,34 @@
 /*******************************************************************************/
 
 /**
- * \file x86pci.h
- * \brief x86 PCI hardware defines
+ * \file port.h
+ * \brief Include file for IO-ports operations
  */
 
-#ifndef __X86_PCI__
-#define __X86_PCI__
+#ifndef __PORT__
+#define __PORT__
 
-#define PCI_CONFIG_ADDRESS  0xCF8
-#define PCI_CONFIG_DATA     0xCFC
+#include <stdint.h>
 
-struct pci_config_address {
-    uint8_t null_entry : 2;
-    uint8_t reg_number : 6;
-    uint8_t fun_number : 3;
-    uint8_t dev_number : 5;
-    uint8_t bus_number : 8;
-    uint8_t reserved : 7;
-    uint8_t enable : 1;
-};
+#define FAULT_FORBIDDEN		64
 
-static char* PCI_CLASSES[18] = {
-    "Old PCI device",
-    "Mass Storage Controller",
-    "Network Controller",
-    "Display Controller",
-    "Multimedia Controller",
-    "Memory Controller",
-    "Bridge Device",
-    "Simple Communication Controller",
-    "Base System Peripherals",
-    "Input Device",
-    "Docking Station",
-    "Processor",
-    "Serial Bus Controller",
-    "Wireless Controller",
-    "Intelligent I/O Controller",
-    "Satellite Communication Controller",
-    "Encryption/Decryption Controller",
-    "Data Acquisition and Signal Processing Controller",
-};
+void outb(uint16_t port, uint8_t value); //!< IO port write byte
+void outw(uint16_t port, uint16_t value); //!< IO port write word
+void outl(uint16_t port, uint32_t value); //!< IO port write word
+uint8_t inb(uint16_t port); //!< IO port read byte
+uint16_t inw(uint16_t port); //!< IO port read word
+uint32_t inl(uint16_t port); //!< IO port read word
+void halt(); //!< halt function
 
-typedef struct pci_config_address PCI_CONFIG_ADDRESS_STRUCT;
 
-uint16_t pciConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset); //!< Read a word from a PCI bus
-uint16_t pciCheckVendor(uint8_t bus, uint8_t slot); //!< Extract a vendor from a PCI bus/slot
-void enumeratePci(); //!< Enumerate connected PCI devices
-char* getVendorName(uint32_t vendor); //!< Get vendor name from id
+/* Call-gate IO methods */
+void cg_outb(uint32_t port, uint32_t value); //!< Outb callgate method
+uint32_t cg_inb(uint32_t port); //!< Inb callgate method
 
+void cg_outw(uint32_t port, uint32_t value); //!< Outw callgate method
+uint32_t cg_inw(uint32_t port); //!< Inw callgate method
+
+void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
+void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
+uint32_t cg_inl(uint32_t port); //!< Inl callgate method
 #endif

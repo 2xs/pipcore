@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -54,7 +54,7 @@
        We define some lemmas like "weaken" and "bindWP" to facilitate Hoare logic 
        and monad manipulation.
 *)
-Require Import Model.ADT.
+Require Import FunctionalExtensionality Model.ADT.
 
 Record Pentry : Type:=
 {read :bool;
@@ -172,7 +172,17 @@ Lemma wpIsWeakestPrecondition
 Proof.
 trivial.
 Qed.
-
+Lemma assoc (A B C : Type)(m : LLI A)(f : A -> LLI B)(g : B -> LLI C) :
+  perform y :=
+    perform x := m in
+    f x in
+  g y =
+  perform x := m in
+  perform y := f x in
+  g y.
+Proof.
+extensionality s; unfold bind; case (m s); trivial; tauto.
+Qed.
 Lemma postAnd :
   forall (A : Type) (P : state -> Prop) (Q R : A -> state -> Prop) (m : LLI A),
   {{ P }} m {{ Q }} -> {{ P }} m {{ R }} -> {{ P }} m {{ fun a s => Q a s /\ R a s }}.
@@ -233,6 +243,17 @@ intros;
 apply H; intuition.
 Qed.
 
+Lemma permutHT1 :
+forall (A : Type) (P1 P2 P3 : state -> Prop) (R  : A -> state -> Prop) (m : LLI A),
+{{ fun s => P1 s /\ P2 s /\ P3 s}} m {{ R}} <-> {{ fun s =>P3 s /\  P1 s /\ P2 s  /\ P3 s}} m {{ R}}.
+Proof.
+      unfold hoareTriple.
+intros.
+split;
+intros;
+apply H; intuition.
+Qed.
+
 Lemma preAnd:
  forall (A : Type) (P1 Q : state -> Prop) (P2  : A -> state -> Prop) (m : LLI A),
 {{P1}} m {{P2}} -> {{fun s => P1 s /\ Q s}} m {{P2}}.
@@ -256,3 +277,4 @@ apply H0 in H2.
 destruct (m s); trivial.
 destruct p; intuition.
 Qed.
+

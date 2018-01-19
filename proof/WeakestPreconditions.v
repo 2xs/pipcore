@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -89,6 +89,7 @@ Lemma bindRev (A B : Type) (m : LLI A) (f : A -> LLI B) (P : state -> Prop)( Q :
 Proof.
 intros; eapply bind ; eassumption.
 Qed.
+
 Lemma modify  f (P : unit -> state -> Prop) : {{ fun s => P tt (f s) }} modify f {{ P }}.
 Proof.
 unfold modify.
@@ -134,6 +135,12 @@ Qed.
 
 Lemma getPPRidx   (P: index -> state -> Prop) :
 {{ wp P getPPRidx }} getPPRidx {{ P }}.
+Proof.
+apply wpIsPrecondition.
+Qed.
+
+Lemma getPRidx   (P: index -> state -> Prop) :
+{{ wp P getPRidx }} getPRidx {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
@@ -309,9 +316,9 @@ eapply bind .
 Qed.
 Lemma readVirEntry  table idx  (P : vaddr -> state -> Prop) :
 {{fun  s => exists entry, lookup table idx s.(memory) beqPage beqIndex = Some ( VE entry) /\ 
-             P entry.(va) s }} readVirEntry table idx {{P}}.
+             P entry.(va) s }} MAL.readVirEntry table idx {{P}}.
 Proof.
-unfold readVirEntry.
+unfold MAL.readVirEntry.
 eapply bind .
   - intro s. simpl. 
     case_eq (lookup table idx s.(memory) beqPage beqIndex).
@@ -335,7 +342,7 @@ Qed.
 
 Lemma readVirtual  table idx  (P : vaddr -> state -> Prop) :
 {{fun  s => exists entry : vaddr, lookup table idx s.(memory) beqPage beqIndex = Some ( VA entry) /\ 
-             P entry s }} readVirtual table idx {{P}}.
+             P entry s }} MAL.readVirtual table idx {{P}}.
 Proof.
 unfold readVirtual.
 eapply bind .
@@ -367,6 +374,58 @@ Lemma writePhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> st
               (memory s) beqPage beqIndex |} }} writePhyEntry table idx addr p u r w e  {{P}}.
 Proof.
 unfold writePhyEntry.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
+
+Lemma writeVirtual  table idx (addr : vaddr)  (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VA addr) (memory s) beqPage beqIndex |} }} writeVirtual table idx addr  {{P}}.
+Proof.
+unfold writeVirtual.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
+
+Lemma writeVirEntry  table idx (addr : vaddr)  (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VE {| pd := false; va := addr |} ) (memory s) beqPage beqIndex |} }} writeVirEntry table idx addr  {{P}}.
+Proof.
+unfold writeVirEntry.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
+
+Lemma writePhysical table idx (addr : page) (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx
+              (PP addr )
+              (memory s) beqPage beqIndex |} }} writePhysical table idx addr  {{P}}.
+Proof.
+unfold writePhysical.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
+
+Lemma writeIndex table idx (indexValue : index) (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx
+              (I indexValue )
+              (memory s) beqPage beqIndex |} }} writeIndex table idx indexValue  {{P}}.
+Proof.
+unfold writeIndex.
 eapply weaken.
 eapply modify .
 intros. simpl.
@@ -463,6 +522,65 @@ eapply bind .
   - eapply weaken.
    eapply get . intuition.
 Qed.
+   Lemma writePDflag  table idx  (flag: bool)  (P : unit -> state -> Prop) :
+{{fun  s => exists v , lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+P tt {|
+         currentPartition := currentPartition s;
+         memory := add table idx (VE {| pd := flag; va := va v |}) 
+                     (memory s) beqPage beqIndex |} }} writePDflag table idx flag {{P}}.
+Proof.
+unfold writePDflag.
+eapply bindRev.
++
+eapply weaken.
+eapply get.
+simpl.
+intros.
+instantiate(1:= fun s s0 =>
+              s=s0 /\ exists v : Ventry,
+              lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+              P tt
+                {|
+                currentPartition := currentPartition s;
+                memory := add table idx (VE {| pd := flag; va := va v |}) 
+                            (memory s) beqPage beqIndex |}).
+simpl.
+intuition.
++
+intros s.
+simpl.
+case_eq (lookup table idx s.(memory) beqPage beqIndex).
+- intros v Hentry.
+
+  case_eq v; [| intros;
+ simpl;
+ eapply weaken;
+try eapply modify ;
+intros; simpl;
+destruct H0 as  (Hs &ve & Htrue & Hp);
+inversion Htrue;subst;
+assumption | | |];
+  
+    intros;
+    eapply weaken;
+    try eapply undefined ;simpl;
+    intros;simpl in *;
+    intuition;
+    subst;
+    destruct H2 as (v &Hv & Hp);
+    inversion Hv;
+    intros.
+ - intros;
+    eapply weaken;
+    try eapply undefined ;simpl;
+    intros;simpl in *;
+    intuition;
+    subst;
+    destruct H2 as (v &Hv & Hp);
+    inversion Hv;
+    intros.
+    Qed.
+    
 Lemma readAccessible  table idx (P : bool -> state -> Prop) : 
 {{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
              P entry.(user) s }} MAL.readAccessible table idx {{P}}.

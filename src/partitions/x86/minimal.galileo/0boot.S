@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,48 +31,27 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/**
- * \file x86hw.h
- * \brief x86 hardware structures
- */
+#define __ASSEMBLY__
+#include <pip/vidt.h>
 
-#ifndef __X86_HARDWARE__
-#define __X86_HARDWARE__
+.section .text
+.extern main
 
-#include <stdint.h>
-#include "fpinfo.h"
+boot:
+    /* Push EBX onto the stack */
+    push %ebx
 
-#define X86_MAX_HARDWARE    0xFF
-#define X86_MAX_IO          0xFFFF
+    /* Disable interrupts
+    .extern vcli
+    call vcli */ 
 
-enum x86_hw_type {TYPE_BUILTIN, TYPE_PCI, TYPE_UNK};
-enum x86_res_range {RANGE_NULL, RANGE_MEM, RANGE_IO};
-typedef enum x86_hw_type x86_hw_type_t;
-typedef enum x86_res_range x86_res_range_t;
+    /* Call main */
+    call main 
+    jmp loop
 
-struct x86_resource {
-	x86_res_range_t type;
-	uintptr_t begin, end;
-};
+loop:
+    jmp loop
 
-typedef struct x86_resource x86_resource_t;
-
-struct x86_hardware {
-    char name[64];
-	x86_hw_type_t type;
-	x86_resource_t resources[6];
-    uint32_t data; /* Optional data */
-} x86_hardware;
-
-typedef struct x86_hardware x86_hardware_t;
-
-uint16_t io_to_hardware[X86_MAX_IO]; // Mapping from IO-Port to hardware index
-x86_hardware_t hardware_list[X86_MAX_HARDWARE]; // x86 hardware
-
-void probeHardware(); //!< Trigger the platform-specific hardware probe
-void addHardware(char* name, uintptr_t membegin, uintptr_t memend, uint16_t iobegin, uint16_t ioend, x86_hw_type_t type); //!< Adds the given hardware to the probed hardware list
-void addHardwareFromExisting(x86_hardware_t* info); //!< Adds the given hardware to the probed hardware list
-void addResourceRange(x86_hardware_t* info, x86_res_range_t type, uint32_t begin, uint32_t end); //!< Adds the given hardware to the probed hardware list
-void mapIo(x86_hardware_t* hw, uint16_t hwindex); //!< Map IO range to given hardware
-void fillHardwareInfo(pip_fpinfo* fpinfo); //!< Fill hardware info in First Partition Info page
-#endif
+INTERRUPT_HANDLER(pfAsm, pfHandler)
+INTERRUPT_HANDLER(gpfAsm, gpfHandler)
+INTERRUPT_HANDLER(timerAsm, timerHandler)

@@ -7,7 +7,7 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \author{Quentin Bergougnoux}
-\title{Pip User Guide \\ Getting started on Intel x86 architecture}
+\title{Pip Tutorial \\ Getting started on Intel x86 architecture}
 \lstset{
 basicstyle=\ttfamily,
 frame=single
@@ -56,17 +56,17 @@ will cover this in the next section, "\textit{Hello World tutorial}".
 In order to make partition development easier, we also provide a userland library available at \texttt{https://github.com/2xs/libpip}.
 This library, LibPip, provides method useful for calling Pip's API, or managing Pip's data structures. It should also provide, in a near future, a way for partitions to communicate.
 
-\index{coqcsrc}\marginlabel{CoqC source:}
+\index{coqcsrc}\marginlabel{Digger source:}
 As said previously, we use an extractor to convert Coq code into C code. The source is included in Pip's main repository as a submodule, run "\texttt{git submodule init}" and "\texttt{git submodule update}" to fetch it.
 
 \section{Preparing for the build}
-\subsection{Building CoqC}
+\subsection{Building Digger}
 First of all, you need to compile the Extractor. This step is \textbf{mandatory}.
-The CoqC extractor is compiled through the stack tool. The compilation is straightforward.
+The Digger extractor is compiled through the stack tool. The compilation is straightforward.
 \begin{itemize}
 \item Open a terminal emulator
 \item Go to Pip's repository folder
-\item Navigate to the \texttt{tools/coq2c} folder
+\item Navigate to the \texttt{tools/digger} folder
 \item Import the submodule via the commands "\texttt{git submodule init}" then "\texttt{git submodule update}"
 \item Type in "\texttt{make}"
 \end{itemize}
@@ -75,7 +75,7 @@ The compilation might complain about a missing GHC version : type in the asked c
 \subsection{Building LibPip}
 In order to compile a partition, you will probably need LibPip.
 Open a terminal emulator and go into LibPip's directory. Typing
-"\texttt{make}" should be enough to compile the library. Remember the
+"\texttt{make ARCH=x86}" should be enough to compile the library. Remember the
 path to the repository : we will call it \texttt{LIBPATH} further in this document.
 
 \subsection{Configuring Pip}
@@ -160,6 +160,7 @@ include ../toolchain.mk
 CFLAGS=-m32 -c
 CFLAGS+=-nostdlib --freestanding
 CFLAGS+=-I$(LIBPIP)/include/
+CFLAGS+=-I$(LIBPIP)/arch/x86/include/
 \end{lstlisting}
 
 Here are the meanings of the flags. 
@@ -176,14 +177,14 @@ We're compiling on bare-metal, but GCC provides some platform-free, bare-metal r
 \marginlabel{\texttt{-nostdlib}}
 Quite self-explanatory, this flag disables the linking towards the LibC, thus eliminating the dependancy to the host system.
 
-\marginlabel{\texttt{-I\$(LIBPIP)/include/}}
-We want to link our Hello World partition towards LibPip. Here, we specify LibPip's include directory so that we can use our library's include files. See section 1.2, "\textit{LibPip source}".
+\marginlabel{\texttt{-I\$(LIBPIP)/include/ ...}}
+We want to link our Hello World partition towards LibPip. Here, we specify LibPip's include directory so that we can use our library's include files, as well as LibPip's architecture-dependant includes. See section 1.2, "\textit{LibPip source}".
 
 \begin{lstlisting}[language=bash,caption={Makefile GAS and LD flags}]
 ASFLAGS=$(CFLAGS)
 
 LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld
-LDFLAGS+=-lpepin
+LDFLAGS+=-lpip
 \end{lstlisting}
 
 \marginlabel{\texttt{ASFLAGS}}
@@ -192,7 +193,7 @@ We use GCC as assembler (wrapping GNU as). We use the same flags as for GCC.
 \marginlabel{\texttt{-L\$(LIBPIP)/lib}}
 During linking phase, we want to link our partition with LibPip. This flag specifies LibPip's directory as additional directory to search in for libraries.
 
-\marginlabel{\texttt{-lpepin}}
+\marginlabel{\texttt{-lpip}}
 Specifies we link our partition with LibPip (\texttt{libpepin.a}).
 
 \marginlabel{\texttt{-melf\_i386}}
@@ -232,25 +233,25 @@ The file dumped in listing 6 is the partition's entrypoint. We will basically do
 \begin{itemize}
 \item Declare that our C main() is outside of the assembly file
 \item Push EBX onto the stack (except that it will contain Pip's boot info, not Multiboot info)
-\item Disable interrupts virtually (using LibPip's vcli() method)
+\item Disable interrupts virtually (using LibPip's Pip\_VCLI() method)
 \item Call our C main() method
 \item If we happen to return from main(), loop forever
 \end{itemize}
 
-In order to use LibPip's vcli() call, we need to declare vcli() external as well. We also want our \texttt{boot} method available through the linking phase.
+In order to use LibPip's Pip\_VCLI() call, we need to declare Pip\_VCLI() external as well. We also want our \texttt{boot} method available through the linking phase.
 The code is then as straightforward as following.
 
 \begin{lstlisting}[language={[x86masm]Assembler},caption={boot.s}]
 .section .text
 .global boot
 .extern main
-.extern vcli
+.extern Pip_VCLI
 boot:
     /* Push EBX onto the stack */
     push %ebx
 
     /* Disable interrupts */
-    call vcli
+    call Pip_VCLI
 
     /* Call main */
     call main
@@ -260,7 +261,7 @@ loop:
     jmp loop
 \end{lstlisting}
 \subsubsection{main.c}
-Our C main's main purpose is to display our "Hello World!" message. LibPip provides a \texttt{puts(char* msg)} method to that end. We just need to include the corresponding header (\texttt{pip/debug.h}), then call this method in our \texttt{main()} method. We also include \texttt{pip/fpinfo.h}, which declares the structure we pushed on the stack from \texttt{EBX} in \texttt{boot.s}.
+Our C main's main purpose is to display our "Hello World!" message. LibPip provides a \texttt{Pip\_Debug\_Puts(char* msg)} method to that end. We just need to include the corresponding header (\texttt{pip/debug.h}), then call this method in our \texttt{main()} method. We also include \texttt{pip/fpinfo.h}, which declares the structure we pushed on the stack from \texttt{EBX} in \texttt{boot.s}.
 
 \begin{lstlisting}[language=C,caption={main.c}]
 #include <stdint.h>
@@ -269,7 +270,7 @@ Our C main's main purpose is to display our "Hello World!" message. LibPip provi
 
 void main(pip_fpinfo* bootinfo)
 {
-	puts("Hello world!\n");
+	Pip_Debug_Puts("Hello world!\n");
 	for(;;);
 }
 \end{lstlisting}
@@ -316,14 +317,16 @@ SECTIONS
 Once all our files are created and filled, we can generate our partition binary by invoking "\texttt{make}", which should produce the following output :
 \begin{lstlisting}[language=bash,caption={Partition make output}]
 gcc -m32 -c -I. --freestanding -nostdlib 
-	-I/home/user/Pip/LibPip/include/ boot.s 
-	-o boot.o
+	-I/home/user/Pip/LibPip/include/ 
+	-I/home/user/Pip/LibPip/arch/x86/include/
+	boot.s -o boot.o
 gcc -m32 -c -I. --freestanding -nostdlib
-	-I/home/user/Pip/LibPip/include/ main.c
-	-o main.o
+	-I/home/user/Pip/LibPip/include/
+	-I/home/user/Pip/LibPip/arch/x86/include/ 
+	main.c -o main.o
 ld boot.o main.o -o HelloWorld.bin 
 	-L/home/user/Pip/LibPip/include/lib
-	-melf_i386 -Tlink.ld -lpepin
+	-melf_i386 -Tlink.ld -lpip
 Done.
 \end{lstlisting}
 

@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2016)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -41,6 +41,7 @@
 #include "mal.h"
 #include "debug.h"
 #include "libc.h"
+#include "ial.h"
 
 /*!	\fn void activate(uintptr_t dir)
 	\brief activates the virtual space dir
@@ -49,14 +50,15 @@
  */
 void activate(uintptr_t dir)
 {
-	// Set CR3 to the address of our Page Directory
-	page_directory_t* d = (page_directory_t*)dir;
+  	// Set CR3 to the address of our Page Directory
+  	page_directory_t* d = (page_directory_t*)dir;
 	asm volatile("mov %0, %%cr3"
-				 :
-				 : "r"(&(d->tablesPhysical)));
-	
+		 :
+		 : "r"(dir));
+
 	// Switch on paging
 	enable_paging();
+	
 }
 
 /*!
@@ -217,6 +219,8 @@ void cleanPage(uintptr_t paddr)
  */
 uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t write, uint32_t execute)
 {
+	disable_paging();
+	
 	// First check is we can do this
 	uint32_t checkright = checkRights(read, write, execute);
 	if(checkright == 0)
@@ -228,6 +232,8 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t wr
 	
 	// Change the RW bit
 	entry->rw = write;
+	
+	enable_paging();
 	
 	return 1;
 }

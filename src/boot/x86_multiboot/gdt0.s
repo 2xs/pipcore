@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  © Université Lille 1, The Pip Development Team (2015-2016)                 ;
+;  © Université Lille 1, The Pip Development Team (2015-2017)                 ;
 ;                                                                             ;
 ;  This software is a computer program whose purpose is to run a minimal,     ;
 ;  hypervisor relying on proven properties such as memory isolation.          ;
@@ -128,9 +128,13 @@ CG_GLUE_CTX dispatchGlue	, 5
 
 ; Those ones won't trigger a fault in caller
 CG_GLUE createPartition		, 5
-CG_GLUE countToMap		, 2
-CG_GLUE prepare			, 4
-CG_GLUE addVAddr		, 6
-CG_GLUE resume			, 2
+CG_GLUE countToMap  		, 2
+CG_GLUE prepare 			, 4
+CG_GLUE addVAddr    		, 6
+CG_GLUE resume		    	, 2
+CG_GLUE removeVAddr 		, 2
+CG_GLUE	mappedInChild   	, 1
+CG_GLUE	deletePartition 	, 1
+CG_GLUE	collect 			, 2
 
 CG_GLUE_NOARG  timerGlue
