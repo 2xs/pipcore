@@ -496,7 +496,7 @@ void fillMmu(uint32_t begin)
     curAddr = begin;
     uint32_t pgAmount = perCoreMemoryAmount;
     uint32_t i;
-    DEBUG(CRITICAL, "Giving some memory starting at %x (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", begin, pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes *// 1024 /* kb */ / 1024 /* mb */, coreId());
+    DEBUG(CRITICAL, "Giving some memory starting at %x (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", begin, pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes */ / 1024 /* kb */ / 1024 /* mb */, coreId());
 	for(i=0; i<pgAmount; i++)
     {
         pg = (uint32_t)allocPage();

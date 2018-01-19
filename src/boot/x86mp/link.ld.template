@@ -77,7 +77,7 @@ ENTRY(start)
         *(.bss)
             . = ALIGN(4096);
     }
-
+   
     /* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
     .krnstack __KERNEL_STACK_ADDR__ :
     {
