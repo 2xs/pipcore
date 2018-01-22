@@ -2,10 +2,32 @@
 [EXTERN syscall_table]
 [EXTERN sysenter_c_ep]
 [EXTERN saveCallgateCaller]
+[EXTERN api_lock]
+[EXTERN api_unlock]
+[GLOBAL acquire]
+[GLOBAL release]
+
+api_spinlock: dd 0
+
+acquire:
+    mov eax, 1                  ; Set EAX to 1
+    xchg eax, [api_spinlock]    ; Swap EAX with spinlock, atomically. Stores 1 to the lock, previous value in EAX.
+    test eax, eax               ; If EAX is 0, sets ZF. If EEAX=0, spinlock was unlocked and we lock it, else EAX=1 and we didn't acquire lock.
+    jnz acquire
+    ret
+
+release:
+    mov eax, 0
+    xchg eax, [api_spinlock]
+    ret
+
 sysenter_ep:
     ; Save caller info
     push edx ; User EIP
     push ecx ; User ESP
+
+    ; Spinlock
+    call acquire
 
     ; Save caller info
     push edx            ; gate_ctx_t->eip
@@ -60,6 +82,9 @@ sysenter_ep:
     pop ebx
     pop ecx ; Retrieve user EIP
     pop edx ; Retrieve user ESP
+    push eax
+    call release
+    pop eax
     sti
     sysexit
 
@@ -73,7 +98,7 @@ init_msr:
     ; Setup SYSENTER stack
     mov ecx, 0x175 ; IA32_SYSENTER_ESP
     mov edx, 0x0
-    mov eax, 0x300000
+    mov eax, [esp + 0x4] ; 0x300000 ; [ebp + 0x8]    ; Stack address given as parameter
     wrmsr
 
     ; Setup SYSENTER entrypoint

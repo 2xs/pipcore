@@ -220,6 +220,8 @@ void safe_mp_c_main()
     initInterrupts();
     DEBUG(CRITICAL, "-> Initializing GDT.\n");
     gdtInstall();
+    DEBUG(CRITICAL, "-> Initializing SYSENTER\n");
+    init_sysenter(coreId());
     DEBUG(CRITICAL, "-> Initializing MMU.\n");
     multEnd = initMmu();
     DEBUG(CRITICAL, "-> MMU for core %d is configured!\n", coreId());
@@ -305,7 +307,7 @@ int c_main(struct multiboot *mbootPtr)
     initializedCores++;
 
     DEBUG(CRITICAL, "Initializing SYSENTER\n");
-    init_sysenter();
+    init_sysenter(0);
 
 	/* Great. Now we can bootstrap APs correctly. */
     DEBUG(CRITICAL, "-> Releasing CPU cores.\n");

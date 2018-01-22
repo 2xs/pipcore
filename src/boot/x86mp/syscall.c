@@ -1,9 +1,10 @@
 #include "syscall.h"
 #include "debug.h"
+#include "mp.h"
 
 #include <stdint.h>
 
-extern void init_msr();
+extern void init_msr(uint32_t st);
 
 #define PIPCALL_COUNT   19
 /* System calls */
@@ -59,13 +60,19 @@ void sysenter_c_ep(uint32_t syscall_id, uint32_t esp, uint32_t eip)
     return;
 }
 
-void init_sysenter()
+void init_sysenter(uint32_t cid)
 {
-    init_msr();
+    uint32_t st = 0x300000 - (cid * 0x4000);
+    DEBUG(CRITICAL, "Initializing SYSENTER with kernel stack at %x for core %d.\n", st, cid);
+    
+    init_msr(st);
+    
     uint32_t i;
-    for(i=0; i<PIPCALL_COUNT; i++)
-    {
-        DEBUG(CRITICAL, "\tPipcall %d: %x\n", i, syscall_table[i]);
-    }
+    if(coreId() == 0x0) {
+        for(i=0; i<PIPCALL_COUNT; i++)
+        {
+            DEBUG(CRITICAL, "\tPipcall %d: %x\n", i, syscall_table[i]);
+        }
+}
     return;
 }

@@ -1,6 +1,8 @@
 #ifndef __SYSCALL__
 #define __SYSCALL__
 
-void init_sysenter();
+#include <stdint.h>
+
+void init_sysenter(uint32_t cid);
 
 #endif

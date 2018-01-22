@@ -118,6 +118,32 @@ void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 	}
 }
 
+void dumpRegsPanic(int_ctx_t* is, uint32_t outputLevel)
+{
+	DEBUG(CRITICAL, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
+		  GENERAL_REG(is, eax),
+		  GENERAL_REG(is, ebx),
+		  GENERAL_REG(is, ecx),
+		  GENERAL_REG(is, edx));
+	DEBUG(CRITICAL, "               edi=%x, esi=%x, ebp=%x, esp=%x\n",
+		  GENERAL_REG(is, edi),
+		  GENERAL_REG(is, esi),
+		  GENERAL_REG(is, ebp),
+		  OPTIONAL_REG(is, useresp));
+	if(isKernel(OPTIONAL_REG(is, cs)))
+	{
+		DEBUG(CRITICAL, "               cs=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	} else {
+		DEBUG(CRITICAL, "               cs=%x, ss=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, ss),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	}
+}
 /**
  * \fn uint32_t saveCaller(int_ctx_t *is)
  * \brief Saves the caller partition's state
@@ -209,9 +235,9 @@ void saveCallgateCaller(gate_ctx_t* ctx)
  */
 void panic (int_ctx_t *is)
 {
-	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
+	DEBUG(CRITICAL, "Pip kernel panic from core %d - something happened\n", coreId());
 	if(is) {
-		dumpRegs(is, CRITICAL);
+		dumpRegsPanic(is, CRITICAL);
 	}
 	DEBUG(CRITICAL, "\tSystem halted. ~\n");
 	__asm volatile("cli; hlt;");
