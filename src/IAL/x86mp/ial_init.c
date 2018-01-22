@@ -654,6 +654,7 @@ initInterrupts (void)
         initIdt();
         bindIsr();
         bindIrq();
+        apicInit();
         initCpu();
     }
 }

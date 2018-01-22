@@ -118,7 +118,7 @@ readCR2:
 dispatchAsm:
 	; (eip, esp, data1, data2, caller)
 	cli
-	call api_unlock	; Unlock spinlock
+	;call api_unlock	; Unlock spinlock
 	mov	ebp, esp
 	; user data segment
 	mov	ax, 0x23
@@ -148,7 +148,7 @@ dispatchAsm:
 
 [GLOBAL resumeAsm]
 resumeAsm:
-	call api_unlock	; Release spinlock
+	;call api_unlock	; Release spinlock
 ; (user_ctx_s *ctx)
 	mov	eax, [esp+4]
 ; restore vflags for user

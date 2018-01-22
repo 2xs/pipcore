@@ -5,6 +5,7 @@
 #include "mptables.h"
 #include "apic.h"
 #include "smp-imps.h"
+#include "serial.h"
 #include <stdint.h>
 
 #include "debug.h"

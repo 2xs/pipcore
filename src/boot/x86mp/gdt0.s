@@ -78,8 +78,8 @@ extern %1
 global cg_%1
 cg_%1:
 	cli
-; save resume eip:cs
-	pop esi
+; save resume eip:cs;
+    pop esi
 	pop edi
 ; call pip function
 	call api_lock

@@ -152,7 +152,7 @@ uint32_t inl(uint16_t port)
  * \note The parent partition should resume the caller on its own 
  */
 void
-faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
+faultToParent(uint32_t data1, uint32_t data2 , gate_ctx_t *ctx )
 {
 	/*DEBUG(WARNING, "faulting to parent, cur part is %x\n",
 		getCurPartition());
@@ -169,13 +169,14 @@ faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outbGlue(uint32_t port, uint32_t value /*, gate_ctx_t *ctx */)
 {
 	/* if(getCurPartition() == 0x01C07000)
 		DEBUG(CRITICAL, "Port %x, Char : %c (%x)\n", port, value, value); */
+//    DEBUG(CRITICAL, "OUTB GLUE: port %x, value %x\n", port, value);
 	if (!ioAccessValid(port))
 	{
-		faultToParent(port, value, ctx);
+		//faultToParent(port, value, ctx);
 	}
 	else{
 		outb((uint16_t)port, (uint8_t)(value&0xff));
@@ -190,11 +191,11 @@ void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outwGlue(uint32_t port, uint32_t value/* , gate_ctx_t *ctx */)
 {
 	if (!ioAccessValid(port))
 	{
-		faultToParent(port, value, ctx);
+		//faultToParent(port, value, ctx);
 	}
 	else{
 		outw((uint16_t)port, (uint16_t)(value&0xffff));
@@ -209,11 +210,11 @@ void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outlGlue(uint32_t port, uint32_t value/* , gate_ctx_t *ctx */)
 {
 	if (!ioAccessValid(port))
 	{
-		faultToParent(port, value, ctx);
+		//faultToParent(port, value, ctx);
 	}
 	else{
 		outl((uint16_t)port, value);
@@ -264,13 +265,14 @@ void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
  * \return IO port read value
  * \note Trigger a fault in parent partition if not authorized
  */
-uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
+uint32_t inbGlue(uint32_t port/* , gate_ctx_t *ctx */)
 {
+    //DEBUG(CRITICAL, "InB GLUE port %x\n", port);
 	uint32_t ret = 0;
 	
 	if (!ioAccessValid(port))
 	{
-		faultToParent(port|0xf0000000, 0, ctx);
+		//faultToParent(port|0xf0000000, 0, ctx);
 	}
 	else{
 		ret = (uint32_t)inb((uint16_t)port);

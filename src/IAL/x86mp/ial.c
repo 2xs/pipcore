@@ -131,7 +131,7 @@ uint32_t saveCaller(int_ctx_t *is)
 	/* Copy the interrupted info into the caller's stack / VIDT buffer */
 	if((*PIPFLAGS & 0x00000001) == 0x1) /* VCLI set */
 	{
-		IAL_DEBUG(INFO, "VCLI flag is set; saving into context buffer at %x\n", VIDT_CTX_BUFFER);
+		IAL_DEBUG(TRACE, "VCLI flag is set; saving into context buffer at %x\n", VIDT_CTX_BUFFER);
 		memcpy((void*)VIDT_CTX_BUFFER, is, SIZEOF_CTX);
 		/* dumpRegs((int_ctx_t*)VIDT_CTX_BUFFER); */
 		dumpRegs(VIDT_CTX_BUFFER, TRACE);
@@ -143,7 +143,7 @@ uint32_t saveCaller(int_ctx_t *is)
 	}
 	else
 	{
-		IAL_DEBUG(INFO, "VCLI flag is not set; saving into stack at %x\n", OPTIONAL_REG(is, useresp));
+		IAL_DEBUG(TRACE, "VCLI flag is not set; saving into stack at %x\n", OPTIONAL_REG(is, useresp));
 		memcpy((void*)(OPTIONAL_REG(is, useresp) - SIZEOF_CTX), is, SIZEOF_CTX);
 		
 		/* Update resume (int. 0) interrupt ESP to point to our newly updated stack */
@@ -177,7 +177,10 @@ void saveCallgateCaller(gate_ctx_t* ctx)
 	IAL_DEBUG(TRACE, "Building dummy context info from callgate context %x\n", ctx);
 	/* Build dummy context structure */
 	int_ctx_t is;
-	
+
+    /* IAL_DEBUG(CRITICAL, "Saved EIP=%x\n", ctx->eip); */ 
+    /* IAL_DEBUG(CRITICAL, "Saved registers: ECX=%x, EDX=%x\n", ctx->regs.ecx, ctx->regs.edx);*/
+
 	/* Copy general register info */
 	memcpy((void*)&(is.regs), &(ctx->regs), sizeof(pushad_regs_t));
 	
@@ -504,15 +507,17 @@ genericHandler (int_ctx_t *is)
  */
 void
 dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2,
-			  gate_ctx_t *ctx
+			  uint32_t data1, uint32_t data2
+			  /* gate_ctx_t *ctx */
 )
 {
 	uint32_t to, from;
-	
+    /* DEBUG(CRITICAL, "TRACE: dispatch called for part %x, vint %d\n", descriptor, vint);	 */
 	/* First, save caller context */
 	IAL_DEBUG(TRACE, "Userland called dispatch(); saving context\n");
-	saveCallgateCaller(ctx);
+	
+    /* For now, context is saved by SYSENTER - don't do this again */
+//    saveCallgateCaller(ctx);
 	
 	/* Perform some sanity checks */
 	ASSERT(vint < MAX_VINT);
