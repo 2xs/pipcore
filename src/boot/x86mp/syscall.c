@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 extern void init_msr(uint32_t st);
+extern uint32_t *_sysenter_stacks;
 
 #define PIPCALL_COUNT   19
 /* System calls */
@@ -62,7 +63,7 @@ void sysenter_c_ep(uint32_t syscall_id, uint32_t esp, uint32_t eip)
 
 void init_sysenter(uint32_t cid)
 {
-    uint32_t st = 0x2A0000 - (cid * 0x10000);
+    uint32_t st = (uint32_t)&_sysenter_stacks - (cid * 131070); /* 128kb */
     DEBUG(CRITICAL, "Initializing SYSENTER with kernel stack at %x for core %d.\n", st, cid);
     
     init_msr(st);

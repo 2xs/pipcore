@@ -87,3 +87,7 @@ start:
 SECTION .bss
 krnstack:   resb    16384 ; Allocate 16kb in the BSS for the kernel stack
 _sys_stack:
+
+[GLOBAL _sysenter_stacks]
+sysenter_stacks: resb 524280 ; 512kb of stack for sysenter
+_sysenter_stacks:
