@@ -10,15 +10,17 @@
 api_spinlock: dd 0
 
 acquire:
-    mov eax, 1                  ; Set EAX to 1
-    xchg eax, [api_spinlock]    ; Swap EAX with spinlock, atomically. Stores 1 to the lock, previous value in EAX.
-    test eax, eax               ; If EAX is 0, sets ZF. If EEAX=0, spinlock was unlocked and we lock it, else EAX=1 and we didn't acquire lock.
-    jnz acquire
+    mov eax, api_spinlock       ; Spinlock address
+    bt dword [eax], 0            ; Check spinlock state
+    jc acquire                  ; If not, spin
+    lock bts dword [eax], 0      ; Lock
+    jc acquire                  ; Locking failed, spin
+acquire_ret:
     ret
 
 release:
-    mov eax, 0
-    xchg eax, [api_spinlock]
+    mov eax, api_spinlock
+    btr dword [eax], 0           ; Release lock
     ret
 
 sysenter_ep:
@@ -26,9 +28,11 @@ sysenter_ep:
     push edx ; User EIP
     push ecx ; User ESP
 
+sysenter_lock:
     ; Spinlock
     call acquire
 
+sysenter_save_caller:
     ; Save caller info
     push edx            ; gate_ctx_t->eip
     pusha               ; gate_ctx_t->regs
@@ -39,6 +43,7 @@ sysenter_ep:
     popa                ; Fix "pusha"
     add esp, 0x4        ; Fix "push edx"
 
+sysenter_start_call:
     ; Save general registers excepted EAX
     push ebx
     push esi
@@ -48,6 +53,16 @@ sysenter_ep:
     mov ebx, ecx
     mov ebx, [ebx + 0x8] ; First parameter
     
+    ; Check system call number
+    cmp ebx, 0x13   ; Check our syscall number doesn't exceed maximum system call id
+    mov eax, 0x0    ; "Zero" default return value
+    jae back_to_userland    ; If higher or equal, get back to userland
+
+    ; Check user stack bounds
+    cmp ecx, 0x701000    ; Check we are indeed in a userland stack
+    jbe back_to_userland ; If we're not, cancel call at once
+
+sysenter_copy:
     ; Prepare for syscall
     std             ; Set direction flag
 
@@ -62,6 +77,7 @@ sysenter_ep:
     mov esp, edi    ; Fix ESP to take into account our parameters
     add esp, 0xC    ; Ignore caller's EBP & return address & syscall number
 
+sysenter_find_call:
     ; At this point our ESP has all parameters onto it : call the Pipcall
     ; EBX : system call id
     mov ecx, syscall_table
@@ -69,6 +85,8 @@ sysenter_ep:
     mul ebx         ; EDX:EAX = total offset
     add ecx, eax    ; Get the system call address
     mov ecx, [ecx]  ; Dereference to get call pointer
+
+sysenter_call:
     call ecx       ; Do the system call
 
     ; At this point, EAX is the system call's return value
@@ -76,6 +94,7 @@ sysenter_ep:
     ; Fix stack by virtually pop'ing the 6 parameters
     add esp, 0x18 
 
+back_to_userland:
     ; Restore caller info
     pop edi
     pop esi

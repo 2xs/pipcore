@@ -497,12 +497,12 @@ void initCpu()
     if(ecx & CPUID_FEAT_ECX_PCID)
     {
         IAL_DEBUG(CRITICAL, "PCID supported, enabling CR4.PCIDE\n");
-        pcid_enabled = 1;
+//        pcid_enabled = 1;
 
         /* Enable PCID */
-        __asm volatile("MOV %%CR4, %0" : "=r"(cr4));
-        cr4 |= (1 << 17);
-        __asm volatile("MOV %0, %%CR4" :: "r"(cr4));
+  //      __asm volatile("MOV %%CR4, %0" : "=r"(cr4));
+  //      cr4 |= (1 << 17);
+  //      __asm volatile("MOV %0, %%CR4" :: "r"(cr4));
     } else {
         IAL_DEBUG(CRITICAL, "PCID unsupported, Process Context Identifiers feature will be unavailable\n");
     }

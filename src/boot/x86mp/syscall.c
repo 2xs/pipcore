@@ -62,7 +62,7 @@ void sysenter_c_ep(uint32_t syscall_id, uint32_t esp, uint32_t eip)
 
 void init_sysenter(uint32_t cid)
 {
-    uint32_t st = 0x300000 - (cid * 0x4000);
+    uint32_t st = 0x2A0000 - (cid * 0x10000);
     DEBUG(CRITICAL, "Initializing SYSENTER with kernel stack at %x for core %d.\n", st, cid);
     
     init_msr(st);
