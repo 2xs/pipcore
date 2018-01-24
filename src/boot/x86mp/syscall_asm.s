@@ -30,7 +30,7 @@ sysenter_ep:
 
 sysenter_lock:
     ; Spinlock
-    call acquire
+    ;call acquire
 
 sysenter_save_caller:
     ; Save caller info
@@ -101,9 +101,9 @@ back_to_userland:
     pop ebx
     pop ecx ; Retrieve user EIP
     pop edx ; Retrieve user ESP
-    push eax
-    call release
-    pop eax
+    ;push eax
+    ;call release
+    ;pop eax
     sti
     sysexit
 
