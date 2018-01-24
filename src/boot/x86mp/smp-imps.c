@@ -127,7 +127,7 @@ unsigned char imps_apic_cpu_map[IMPS_MAX_CPUS];
  */
 
 /* simple loop based delay: */
-static void delay_loop(unsigned long loops)
+void delay_loop(unsigned long loops)
 {
 	asm volatile(
 		"	test %0,%0	\n"

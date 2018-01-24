@@ -439,7 +439,13 @@ genericHandler (int_ctx_t *is)
 		if (is->int_no >= 40)
 			outb (PIC2_COMMAND, PIC_EOI);
 		outb (PIC1_COMMAND, PIC_EOI);
-		
+	
+        /* Propagate to all cores */
+        if(coreId() == 0x0) { /* BSP */
+         //   DEBUG(CRITICAL, "Propagating hardware interrupt %x to all cores\n", is->int_no);
+            send_vipi(0x0, is->int_no, 0x0);
+        }
+
 		/* Ignore kernel-land IRQ */
 		if (isKernel(is->cs))
 		{

@@ -17,4 +17,6 @@ typedef struct {
     uint32_t start, end, vend;
 } pip_mboot_partition_t;
 
+int send_vipi(uint32_t dst, uint32_t n, uint8_t wait);
+
 #endif

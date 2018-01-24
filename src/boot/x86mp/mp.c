@@ -10,6 +10,10 @@
 
 #include "debug.h"
 
+#define UDELAY(x) delay_loop(100 * x) 
+
+extern void delay_loop(uint32_t x);
+
 struct RSDPDescriptor   *rsdp     = 0x0;
 struct ACPISDTHeader    *rsdtTbl   = 0x0;
 struct ACPISDTHeader    *madt = 0x0;
@@ -215,5 +219,40 @@ uint32_t smpRequest(uint32_t requestId, uint32_t parameter)
             break;
         default:
             return 0;
+    }
+}
+
+/* Sends virtual IPI n from core 0 to core dst, waiting for acknowledge or not */
+int send_vipi(uint32_t dst, uint32_t n, uint8_t wait)
+{
+	int to, send_status;
+
+    disable_paging();
+    /* Write destination field into ICR+0x10 (0x310) */
+	IMPS_LAPIC_WRITE(LAPIC_ICR+0x10, (dst << 24));
+
+    /* Build ICR register value */
+    if(dst) {
+    	/* Properly send the IPI */
+        IMPS_LAPIC_WRITE(LAPIC_ICR, n);
+    } else {
+        /* Send the IPI, propagating to all cores */
+        IMPS_LAPIC_WRITE(LAPIC_ICR, n | (3 << 18));
+    }
+    
+	/* Wait for send to finish */
+	if(wait) {
+        to = 0;
+    	do {
+    		UDELAY(100);
+            send_status = IMPS_LAPIC_READ(LAPIC_ICR) & LAPIC_ICR_STATUS_PEND;
+    	} while (send_status && (to++ < 1000));
+
+        enable_paging();
+
+	    return (to < 1000);
+    } else {
+        enable_paging();
+        return 1;
     }
 }
