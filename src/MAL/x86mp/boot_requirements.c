@@ -82,11 +82,8 @@ uintptr_t readArray(uintptr_t array, uint32_t index)
 
 uintptr_t readTableVirtualNoFlags(uintptr_t table, uint32_t index)
 {
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
 	/* Now we got a fresh, cool, nice pointer, return its value */
-	uintptr_t val = (uintptr_t)*(uint32_t*)dest;
+	uintptr_t val = ((uint32_t*)table)[index];
 	
 	return val;
 }
@@ -97,10 +94,8 @@ void writeTableVirtualNoFlags(uintptr_t table, uint32_t index, uintptr_t addr)
 	uint32_t val = (uint32_t)addr;
 	
 	/* Get the destination address */
-	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
-	*(uint32_t*)dest = val;
-	
+    ((uint32_t*)table)[index] = val;
+
 	return;
 }
 
@@ -145,13 +140,10 @@ uint32_t readIndex(uintptr_t table, uint32_t index)
 	/* We're in kernel : we can disable paging */
 	disable_paging();
 	
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
 	/* Now we got a fresh, cool, nice pointer, return its value */
-	uint32_t val = *(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
-	/* Re-enable paging */
+    /* Re-enable paging */
 	enable_paging();
 	
 	return val;
@@ -172,10 +164,7 @@ void writeIndex(uintptr_t table, uint32_t index, uint32_t addr)
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr;
 	
-	/* Get the destination address */
-	uintptr_t dest = table | ((uintptr_t)index * sizeof(uint32_t));
-	
-	*(uint32_t*)dest = val /* | curFlags */;
+	((uint32_t*)table)[index] = val /* | curFlags */;
 	
 	/* Enable paging */
 	enable_paging();
