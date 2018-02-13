@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -234,7 +234,7 @@ intuition.
 intros.
 split. intuition.
 unfold StateLib.Level.pred.
-unfold run. subst. 
+unfold runvalue. subst. 
 destruct (gt_dec level1 0).
 intros. assert (Hl =  StateLib.Level.pred_obligation_1 level1 g ).
 apply proof_irrelevance.

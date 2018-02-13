@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -94,7 +94,7 @@ unfold StateLib.getIndirection.
       destruct l. simpl in *.
       contradict H.
       omega.
-   * unfold run in Hidx.
+   * unfold runvalue in Hidx.
      intros.
      unfold StateLib.readPhyEntry.
      inversion Hidx.
@@ -138,6 +138,23 @@ unfold StateLib.getIndirection.
      assumption.  
 
 Qed.
+
+Lemma inNotInList  :
+forall (l : list page) (a : page), In a l \/ ~ In a l.
+Proof.
+intros.
+induction l;simpl.
+right;auto.
+destruct IHl.
+left. 
+right.
+trivial.
+assert(a0= a \/ a0 <> a) by apply pageDecOrNot.
+destruct H0.
+left;left;trivial.
+right.
+intuition.
+Qed. 
 
 Lemma getIndirectionStopS :
 forall  stop (s : state) (nbL : level)  nextind pd va indirection, 
@@ -4073,6 +4090,18 @@ destruct v; try now contradict Hentrypage.
 f_equal;trivial.
 Qed.
 
+Lemma isEntryPageReadPhyEntry1 table idx p s:
+isEntryPage table idx p s -> 
+StateLib.readPhyEntry table idx (memory s) = Some p.
+Proof.
+intros Hentrypage.
+unfold isEntryPage in *.
+unfold StateLib.readPhyEntry.
+destruct(lookup table idx (memory s) beqPage beqIndex );
+try now contradict Hentrypage.
+destruct v; try now contradict Hentrypage.
+f_equal;trivial.
+Qed.
 Lemma isAccessibleMappedPage pdChild currentPD (ptPDChild : page)  entry s : 
 (defaultPage =? ptPDChild ) = false -> 
 entryPresentFlag ptPDChild (StateLib.getIndexOfAddr pdChild fstLevel) true s -> 

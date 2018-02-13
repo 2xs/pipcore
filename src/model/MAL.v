@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -208,13 +208,6 @@ Qed.
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
   ret ( nth ((length va) - (l + 2)) va defaultIndex ).
 
-Definition preVaddrToVaddr preVaddr : LLI vaddr :=
-ret (CVaddr (map CIndex preVaddr)). 
-
-Definition extractPreIndex (va : preVaddr) (pos : preLevel) : LLI preIndex :=
- ret (nth pos va preIndex_d).
-
-
 (** The 'getNbLevel' function returns the number of levels of the MMU *)
 Program Definition getNbLevel : LLI level:=
 if gt_dec nbLevel 0
@@ -280,10 +273,11 @@ Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
   perform currentPartition := getCurPartition in 
   perform currentPD := getPd currentPartition in 
   perform nbL := getNbLevel in 
-  perform phyPage := translate currentPD va nbL in
-  perform isNull := comparePageToNull phyPage in
-  if isNull then getDefaultVAddr else
-  readVirtual phyPage idx.
+  perform optionphyPage := translate currentPD va nbL in
+  match optionphyPage with 
+  | None => getDefaultVAddr
+  | Some phyPage => readVirtual phyPage idx
+  end.
   
 (** The 'storeVirtual' function translates the given virtual address to physical address in the 
     current partition and stores a value into the physical address. *)
@@ -291,5 +285,8 @@ Definition storeVirtual (va : vaddr) (idx : index) (vaToStore : vaddr) : LLI uni
   perform currentPartition := getCurPartition in 
   perform currentPD := getPd currentPartition in 
   perform nbL := getNbLevel in 
-  perform phyPage := translate currentPD va nbL in 
-  writeVirtual phyPage idx vaToStore.
+  perform optionphyPage := translate currentPD va nbL in
+  match optionphyPage with 
+  | None => ret tt
+  | Some phyPage => writeVirtual phyPage idx vaToStore
+  end.
