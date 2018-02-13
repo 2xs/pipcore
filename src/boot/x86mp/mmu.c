@@ -336,7 +336,7 @@ uint32_t initMmu()
     extern uint32_t end;
 
     /* Map kernel, stack up to root partition */
-    while(curAddr <= (uint32_t)(/* &end */ /* RAM_END */0x700000))
+    while(curAddr <= 0x700000)
     {
         mapPageWrapper(kernelDirectories[coreId()], curAddr, curAddr, 0);
         curAddr += PAGE_SIZE;
@@ -350,7 +350,6 @@ uint32_t initMmu()
     for(tmpAddr = bootparts[coreId()].start; tmpAddr < bootparts[coreId()].end; tmpAddr += PAGE_SIZE)
     {
         uint32_t decal = tmpAddr - bootparts[coreId()].start;
-        /* DEBUG(CRITICAL, "Map: %x -> %x\n", tmpAddr, 0x700000 + decal); */
 		mapPageWrapper(kernelDirectories[coreId()], tmpAddr, 0x700000 + decal, 1);
 	}
     curAddr = 0x700000+(tmpAddr - bootparts[coreId()].start);
@@ -359,11 +358,9 @@ uint32_t initMmu()
     multEnd = (uint32_t)&end;
 
 	/* Map each platform-specific device */
-	/* uint32_t vga = 0xB8000;
-	for(vga = 0xB8000; vga < 0xC0000; vga += 0x1000)
-		mapPageWrapper(kernelDirectories[coreId()], vga, vga | 0xC0000000, 1); */
 	uint32_t hid;
-	/* Parse each specific hardware entry */
+	
+    /* Parse each specific hardware entry */
 	for(hid = 0; hid < HSPEC_COUNT; hid++)
 	{
 		DEBUG(CRITICAL, "x86: adding mapping for %s\n", pshw[hid].name);
@@ -393,7 +390,7 @@ uint32_t initMmu()
 		}
 	}
 	
-	/* Map a linear memory space using page allocator \o/ */
+	/* Map a linear memory space using page allocator */
 	curAddr = (uint32_t)&end;
 	uint32_t pg;
 	
@@ -406,7 +403,7 @@ uint32_t initMmu()
 	
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpInfoBegin, (uint32_t)fpInfoBegin, 1);
 	
-    // Map the first free page into our kernel's virtual address space
+    /* Map the first free page into our kernel's virtual address space */
     mapPageWrapper(kernelDirectories[coreId()], (uint32_t)firstFreePage, (uint32_t)firstFreePage, 0);
 	
 	/* TODO : check the correctness of this. The initial state of the system HAS to be correct, this is just a hackfix right now */
@@ -415,10 +412,8 @@ uint32_t initMmu()
 	uint32_t* partitionDescriptor = allocPage(); // Partition descriptor
 	uint32_t* sh1 = allocPage();
     uint32_t* sh2 = allocPage();
-    uint32_t* sh3 = allocPage(); // Allocate shadow list
-    *sh3 = 2; // TODO: fill sh3 with each indirection table
-	
-	/* At this point we're still in physical memory, so we can use writeVirtual, which won't tamper with CR0/CR3 configuration */
+    uint32_t* sh3 = allocPage();
+    *sh3 = 2;
 	
     for(uint32_t i = 1; i < 1024; i++)
     {
@@ -428,42 +423,40 @@ uint32_t initMmu()
         uint32_t* ptsh2 = allocPage();
 		memset(ptsh2, 0x0, PAGE_SIZE);
 		
-        //*(sh1 + (uint32_t)(i * sizeof(uint32_t))) = (uint32_t)ptsh1;
-        //*(sh2 + (uint32_t)(i * sizeof(uint32_t))) = (uint32_t)ptsh2;
-		writeTableVirtualNoFlags((uint32_t)sh1, i, (uint32_t)ptsh1);
-		writeTableVirtualNoFlags((uint32_t)sh2, i, (uint32_t)ptsh2);
+        sh1[i] = (uint32_t)ptsh1;
+        sh2[i] = (uint32_t)ptsh2;
     }
 	
 	DEBUG(TRACE, "Page allocation ends at %x, multiplexer descriptor is %x\n", firstFreePage, partitionDescriptor);
-	
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 0, (uintptr_t)partitionDescriptor); // Store descriptor into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 1, (uintptr_t)partitionDescriptor);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 2, (uintptr_t)kernelDirectories[coreId()]); // Store page directory into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 3, (uintptr_t)kernelDirectories[coreId()]);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 4, (uintptr_t)sh1); // Store shadow 1 into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 5, (uintptr_t)sh1);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 6, (uintptr_t)sh2); // Store shadow 2 into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 7, (uintptr_t)sh2);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 8, (uintptr_t)sh3); // Store shadow 3 into descriptor
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 9, (uintptr_t)sh3);
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 10, (uintptr_t)0xFFFFFFFF); // Store IO mask into descriptor, allowing any IO
-	writeTableVirtualNoFlags((uintptr_t)partitionDescriptor, 11, (uintptr_t)0); //parent paddr: null for multiplexer
-	
-	// Current partition is now our descriptor
+
+    partitionDescriptor[0] = (uint32_t)partitionDescriptor;
+    partitionDescriptor[1] = (uint32_t)partitionDescriptor;
+    partitionDescriptor[2] = (uint32_t)kernelDirectories[coreId()];
+    partitionDescriptor[3] = (uint32_t)kernelDirectories[coreId()];
+    partitionDescriptor[4] = (uint32_t)sh1;
+    partitionDescriptor[5] = (uint32_t)sh1;
+    partitionDescriptor[6] = (uint32_t)sh2;
+    partitionDescriptor[7] = (uint32_t)sh2;
+    partitionDescriptor[8] = (uint32_t)sh3;
+    partitionDescriptor[9] = (uint32_t)sh3;
+    partitionDescriptor[10] = 0xFFFFFFFF;
+    partitionDescriptor[11] = 0;
+
+	/* Current partition is now our descriptor */
 	extern uint32_t current_partition;
 	current_partition = (uint32_t)partitionDescriptor;
 	updateRootPartition((uintptr_t)partitionDescriptor);
 
-	// Create fake IDT at 0xFFFFF000
+	/* Create fake IDT at 0xFFFFF000 */
 	uint32_t* virt_intv = allocPage();
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000, 1);
     *virt_intv = 0x700000;
     *(virt_intv + 1) = 0xFFFFE000 - sizeof(uint32_t);
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)0xB8000, 0xFFFFE000, 1);
 	
-	// Fill Virtu. IDT info
+	/* Fill VIDT info */
 	extern uint32_t __multiplexer;
-	*virt_intv = (uint32_t)(&__multiplexer); // Multiplexer load addr
+	*virt_intv = (uint32_t)(&__multiplexer); // Multiplexer load address at VIDT[0].EIP
 	
 	DEBUG(TRACE, "Building linear memory space\n");
 	
@@ -479,8 +472,6 @@ uint32_t initMmu()
 
     mmuEnabled = 1;
 
-	/* Our Kernel Page Directory is created, write its address into CR3. */
-	// activate((uint32_t)kernelDirectories[coreId()]);
     return multEnd;
 }
 
