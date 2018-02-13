@@ -86,8 +86,7 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 	disable_paging();
 	
 	/* Get the destination address */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	*(uint32_t*)dest = val;
+    ((uint32_t*)table)[index] = val;
 	
 	/* Enable paging */
 	enable_paging();
@@ -110,11 +109,8 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 	/* We're page-aligned : zero the flags */
 	uint32_t mask = 0xFFFFF000;
 	
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
 	/* Now we got a fresh, cool, nice pointer, return its value */
-	uint32_t val = *(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
 	/* Re-enable paging */
 	enable_paging();
@@ -129,7 +125,7 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
  */
 uint32_t getTableSize()
 {
-	return (uint32_t)1024; // 1024 entries per table
+	return 1024; // 1024 entries per table
 }
 
 
@@ -170,11 +166,8 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
-	/* Get destination */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
 	/* Get value */
-	uint32_t val = *(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
@@ -269,11 +262,8 @@ uint32_t readPresent(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
-	/* Get destination */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
 	/* Get value */
-	uint32_t val = *(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
 	/* Cast it into a page_table_entry_t structure */
 	page_table_entry_t* entry = (page_table_entry_t*)&val;
@@ -324,14 +314,13 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 {
 	disable_paging();
 	
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	uint32_t curval = *(uint32_t*)dest;
+	uint32_t curval = ((uint32_t*)table)[index];
 	uint32_t curAddr = (uint32_t)curval & 0xFFFFFFFE;
 
 	if(value == 1)
-		*(uint32_t*)dest = curAddr | 0x00000001;
+		((uint32_t*)table)[index] = curAddr | 0x00000001;
 	else
-		*(uint32_t*)dest = curAddr;
+		((uint32_t*)table)[index] = curAddr;
 	
 	enable_paging();
 	
@@ -349,8 +338,7 @@ uint32_t readPDflag(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	uint32_t curval = *(uint32_t*)dest;
+	uint32_t curval = ((uint32_t*)table)[index];
 	
 	enable_paging();
 	
@@ -362,11 +350,8 @@ uint32_t readPhysical(uint32_t table, uint32_t index)
 	/* We're in kernel : we can disable paging */
 	disable_paging();
 	
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
 	/* Now we got a fresh, cool, nice pointer, return its value */
-	uint32_t val = *(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
 	/* Re-enable paging */
 	enable_paging();
@@ -383,10 +368,7 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr & ~0xfff;
 	
-	/* Get the destination address */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
-	*(uint32_t*)dest = (*(uint32_t*)dest&0xfff)|val;
+	((uint32_t*)table)[index] = (((uint32_t*)table)[index]&0xfff)|val;
 	
 	/* Enable paging */
 	enable_paging();
@@ -418,13 +400,10 @@ void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr)
 	/* Just in case we're given bullshit, zero the potential flags. */
 	uint32_t val = (uint32_t)addr & 0xFFFFF000;
 	
-	/* Get the destination address */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
 	/* Store this, leaving the current flags unchanged */
-	uint32_t curFlags = *(uint32_t*)dest & 0x00000FFF;
+	uint32_t curFlags = ((uint32_t*)table)[index] & 0x00000FFF;
 	
-	*(uint32_t*)dest = val | curFlags;
+	((uint32_t*)table)[index]  = val | curFlags;
 	
 	return;
 }
@@ -438,11 +417,8 @@ void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr)
  */
 uint32_t readTableVirtual(uint32_t table, uint32_t index)
 {
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uint32_t dest = table | ((uint32_t)index * sizeof(uint32_t));
-	
 	/* Now we got a fresh, cool, nice pointer, return its value */
-	uint32_t val = (uint32_t)*(uint32_t*)dest;
+	uint32_t val = ((uint32_t*)table)[index];
 	
 	return val & 0xFFFFF000;
 }
