@@ -138,31 +138,19 @@ void spawnFirstPartition()
 {
 	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
 
-	DEBUG(CRITICAL, "multiplexer cr3 is %x\n", multiplexer_cr3);
-
 	// Prepare kernel stack for multiplexer
-	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)(0x300000 - 4*PAGE_SIZE*coreId());
+	uint32_t *usrStack = (uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = (uint32_t*)(0x300000 - 4*PAGE_SIZE*coreId());
 	setKernelStack((uint32_t)krnStack);
 
-	DEBUG(CRITICAL, "kernel stack is %x\n", krnStack);
-
-	// Find virtual interrupt vector for partition
+	/* Find virtual interrupt vector for partition */
 	uintptr_t ptVirq = readPhysicalNoFlags((uintptr_t)multiplexer_cr3, getTableSize() - 1);
 	uintptr_t virq = readPhysicalNoFlags(ptVirq, getTableSize() - 1);
-	
-	// Set user stack into virq
-	//uint32_t target = (uint32_t)(virq) + sizeof(uint32_t);
-	//writePhysical(target, 0x1, (uint32_t)usrStack);
-    
-
-	//DEBUG(CRITICAL, "user stack is %x\n", usrStack);
 	
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
 	IAL_DEBUG(CRITICAL, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
 	
-	// Send virtual IRQ 0 to partition
-
+	/* Send virtual IRQ 0 to partition */
 	dispatch2(getRootPartition(), 0, 0, 0xFFFFC000, 0);
 }
 
@@ -176,9 +164,6 @@ uintptr_t fillFpInfo()
 	extern uint32_t ramEnd;
 
 	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo[coreId()]);
-	
-	// Fill first partition info structure
-
 	
 	return (uintptr_t)fpinfo[coreId()];
 }
