@@ -7,7 +7,7 @@
 extern void init_msr(uint32_t st);
 extern uint32_t *_sysenter_stacks;
 
-#define PIPCALL_COUNT   19
+#define PIPCALL_COUNT   20
 /* System calls */
 extern uint32_t createPartition(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
 extern uint32_t countToMap(uint32_t,uint32_t);
@@ -28,6 +28,8 @@ extern uint32_t outaddrlGlue(uint32_t, uint32_t);
 extern uint32_t inbGlue(uint32_t);
 extern uint32_t inwGlue(uint32_t);
 extern uint32_t inlGlue(uint32_t);
+
+extern uint32_t slputs_sync(char*);
 
 extern uint32_t timerGlue();
 
@@ -52,6 +54,7 @@ void *syscall_table[PIPCALL_COUNT] =
     &outlGlue,
     &inlGlue,
     &outaddrlGlue,
+    &slputs_sync,
 };
 
 void sysenter_c_ep(uint32_t syscall_id, uint32_t esp, uint32_t eip)

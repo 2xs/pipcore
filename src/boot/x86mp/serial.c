@@ -37,6 +37,10 @@
  */
 #include "serial.h"
 #include "port.h"
+#include "lock.h"
+#include "debug.h"
+
+volatile int kprintf_lock = 0;
 
 #define PORT 0x3f8 //!< Serial port COM1 number
  
@@ -90,4 +94,13 @@ int isTransmitEmpty() {
 void writeSerial(char a) {
        while (isTransmitEmpty() == 0);
        outb(PORT,a);
+}
+
+
+
+void slputs_sync(char* str)
+{
+    MP_LOCK(kprintf_lock);
+    krn_puts(str);
+    MP_UNLOCK(kprintf_lock);
 }

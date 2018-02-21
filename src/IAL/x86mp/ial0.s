@@ -120,7 +120,7 @@ readCR2:
 dispatchAsm:
 	; (eip, esp, data1, data2, caller)
 	cli
-    ;call release
+    call release
 	;call api_unlock	; Unlock spinlock
 	mov	ebp, esp
 	; user data segment
@@ -151,7 +151,7 @@ dispatchAsm:
 
 [GLOBAL resumeAsm]
 resumeAsm:
-    ;call release
+    call release
 	;call api_unlock	; Release spinlock
 ; (user_ctx_s *ctx)
 	mov	eax, [esp+4]

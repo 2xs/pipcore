@@ -54,7 +54,7 @@
 #define PARTITION_ROOT			getRootPartition()
 #define PARTITION_CURRENT		getCurPartition()
 
-#define VIDT					(0xFFFFF000 - 0x1000 * coreId())
+#define VIDT					(IS_MPMT ? (0xFFFFF000 - 0x1000 * coreId()) : 0xFFFFF000)
 #define VIDT_INT_EIP(a)			readTableVirtualNoFlags (VIDT, (2 * a))
 #define VIDT_INT_ESP(a)			readTableVirtualNoFlags (VIDT, (2 * a) + 1)
 #define VIDT_INT_ESP_SET(a,s)	writeTableVirtualNoFlags (VIDT, (2 * a) + 1, s)

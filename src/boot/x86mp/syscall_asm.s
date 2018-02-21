@@ -30,7 +30,7 @@ sysenter_ep:
 
 sysenter_lock:
     ; Spinlock
-    ;call acquire
+    call acquire
 
 sysenter_save_caller:
     ; Save caller info
@@ -54,7 +54,7 @@ sysenter_start_call:
     mov ebx, [ebx + 0x8] ; First parameter
     
     ; Check system call number
-    cmp ebx, 0x13   ; Check our syscall number doesn't exceed maximum system call id
+    cmp ebx, 0x14   ; Check our syscall number doesn't exceed maximum system call id
     mov eax, 0x0    ; "Zero" default return value
     jae back_to_userland    ; If higher or equal, get back to userland
 
@@ -101,9 +101,9 @@ back_to_userland:
     pop ebx
     pop ecx ; Retrieve user EIP
     pop edx ; Retrieve user ESP
-    ;push eax
-    ;call release
-    ;pop eax
+    push eax
+    call release
+    pop eax
     sti
     sysexit
 

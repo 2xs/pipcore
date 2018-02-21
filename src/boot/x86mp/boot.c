@@ -140,6 +140,7 @@ void spawnFirstPartition()
     if(IS_MPMT && coreId() > 0)
     {
         DEBUG(CRITICAL, "MultiThread: Core %d ready, waiting for BSP's dispatch() request\n", coreId());
+        __asm volatile("sti");
         return;
     }
 	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
