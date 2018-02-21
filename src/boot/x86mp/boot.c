@@ -80,6 +80,7 @@ static spinlock_t lock_cores = 0;
 static spinlock_t mmu_init_spinlock = 0;
 
 uint32_t initializedCores = 0;
+int mp_model = MPMODEL_SINGLETHREAD;
 
 /* MP stacks */
 extern void* mp_stack_base;
@@ -111,9 +112,9 @@ void preparePartitions(struct multiboot *mboot_ptr)
 
     uint32_t modc = mboot_ptr->mods_count;
     if(modc < (coreCount() - 1)) {
-        DEBUG(CRITICAL, "Expected %d modules, found %d. Halting.\n", coreCount() - 1, modc);
-        __asm volatile("cli");
-        for(;;);
+        DEBUG(CRITICAL, "Expected %d modules, found %d. Switching to full multithread model.\n", coreCount() - 1, modc);
+        mp_model = MPMODEL_MULTITHREAD;
+        return;
     }
 
     multiboot_module_t* modi = (multiboot_module_t*)mboot_ptr->mods_addr;
@@ -136,10 +137,15 @@ void preparePartitions(struct multiboot *mboot_ptr)
  */ 
 void spawnFirstPartition()
 {
+    if(IS_MPMT && coreId() > 0)
+    {
+        DEBUG(CRITICAL, "MultiThread: Core %d ready, waiting for BSP's dispatch() request\n", coreId());
+        return;
+    }
 	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
 
 	// Prepare kernel stack for multiplexer
-	uint32_t *usrStack = (uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = (uint32_t*)(0x300000 - 4*PAGE_SIZE*coreId());
+	uint32_t *usrStack = (uint32_t*)0xFFFF0000 - sizeof(uint32_t), *krnStack = (uint32_t*)(0x300000 - 4*PAGE_SIZE*coreId());
 	setKernelStack((uint32_t)krnStack);
 
 	/* Find virtual interrupt vector for partition */
@@ -151,7 +157,7 @@ void spawnFirstPartition()
 	IAL_DEBUG(CRITICAL, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
 	
 	/* Send virtual IRQ 0 to partition */
-	dispatch2(getRootPartition(), 0, 0, 0xFFFFC000, 0);
+	dispatch2(getRootPartition(), 0, 0, 0xFFFF1000, 0);
 }
 
 /**

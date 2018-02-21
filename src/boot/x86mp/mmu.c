@@ -326,6 +326,12 @@ uint32_t initMmu()
 {
     uint32_t multEnd = 0x0;
     DEBUG(CRITICAL, "Initializing MMU for core %d.\n", coreId());
+
+    /* Multi-thread model and not BSP */
+    if(IS_MPMT && coreId() > 0) {
+        DEBUG(CRITICAL, "Multi-thread model enabled; skipping core %d MMU configuration\n", coreId());
+        return 0x0;
+    }
     /* Create the Kernel Page Directory */
     kernelDirectories[coreId()] = (page_directory_t*)allocPage(); // kmalloc(sizeof(page_directory_t));
 	DEBUG(TRACE, "Kernel directory is at %x\n", kernelDirectories[coreId()]);
@@ -451,9 +457,23 @@ uint32_t initMmu()
 	uint32_t* virt_intv = allocPage();
 	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000, 1);
     *virt_intv = 0x700000;
-    *(virt_intv + 1) = 0xFFFFE000 - sizeof(uint32_t);
-	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)0xB8000, 0xFFFFE000, 1);
+    *(virt_intv + 1) = 0xFFFF1000 - sizeof(uint32_t);
 	
+    /* For multithread model, build several VIDTs */
+    if(IS_MPMT)
+    {
+        uint32_t cid;
+        for(cid = 1; cid < coreCount(); cid++)
+        {
+            virt_intv = allocPage();
+            mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000 - PAGE_SIZE * cid, 1);
+            DEBUG(CRITICAL, "MultiThread : mapped %x to %x, as VIDT for core %d\n", virt_intv, 0xFFFFF000 - PAGE_SIZE * cid, cid);
+        }
+    }
+    
+    /* mapPageWrapper(kernelDirectories[coreId()], (uint32_t)0xB8000, 0xFFFFE000, 1); */
+	
+
 	/* Fill VIDT info */
 	extern uint32_t __multiplexer;
 	*virt_intv = (uint32_t)(&__multiplexer); // Multiplexer load address at VIDT[0].EIP
@@ -461,10 +481,10 @@ uint32_t initMmu()
 	DEBUG(TRACE, "Building linear memory space\n");
 	
 	/* Build a multiplexer stack */
-	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)allocPage(), 0xFFFFD000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)allocPage(), 0xFFFF0000, 1);
 	
 	/* Map first partition info */
-	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpinfo[coreId()], 0xFFFFC000, 1);
+	mapPageWrapper(kernelDirectories[coreId()], (uint32_t)fpinfo[coreId()], 0xFFFF1000, 1);
 	
 	/* First prepare all pages : pages required for prepare should be deleted from free page list */
 	/* At this point, page allocator is empty. */
@@ -487,6 +507,17 @@ void fillMmu(uint32_t begin)
     curAddr = begin;
     uint32_t pgAmount = perCoreMemoryAmount;
     uint32_t i;
+
+    /* Multi-thread model setup */
+    if(IS_MPMT)
+    {
+        if(coreId() == 0) pgAmount *= coreCount(); /* Give all the available memory to the BSP and fill the MMU as if we were on the singlethread model */
+        else {
+            DEBUG(CRITICAL, "Skipping MMU fill for APs in multithread model  (core %d)\n", coreId());
+            return; /* Skip for APs */
+        }
+    }
+
     DEBUG(CRITICAL, "Giving some memory starting at %x (%d pages, %d total, ~%dMb) for multiplexer core %d.\n", begin, pgAmount, (maxPages - allocatedPages), (pgAmount * 4096) /* bytes */ / 1024 /* kb */ / 1024 /* mb */, coreId());
 	for(i=0; i<pgAmount; i++)
     {
@@ -506,5 +537,7 @@ void fillMmu(uint32_t begin)
 
 void coreEnableMmu()
 {
-    activate((uint32_t)kernelDirectories[coreId()]);
+    if(IS_MPMT)
+        activate((uint32_t)kernelDirectories[0]);
+    else activate((uint32_t)kernelDirectories[coreId()]);
 }

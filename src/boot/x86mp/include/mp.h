@@ -19,4 +19,11 @@ typedef struct {
 
 int send_vipi(uint32_t dst, uint32_t n, uint8_t wait);
 
+extern int mp_model;
+#define MPMODEL_SINGLETHREAD    0
+#define MPMODEL_MULTITHREAD     1
+
+#define IS_MPST (mp_model == MPMODEL_SINGLETHREAD)
+#define IS_MPMT (mp_model == MPMODEL_MULTITHREAD)
+
 #endif
