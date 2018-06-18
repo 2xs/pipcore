@@ -234,7 +234,7 @@ intuition.
 intros.
 split. intuition.
 unfold StateLib.Level.pred.
-unfold run. subst. 
+unfold runvalue. subst. 
 destruct (gt_dec level1 0).
 intros. assert (Hl =  StateLib.Level.pred_obligation_1 level1 g ).
 apply proof_irrelevance.

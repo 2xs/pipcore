@@ -1,4 +1,4 @@
-(*******************************************************************************)
+ (*******************************************************************************)
 (*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)

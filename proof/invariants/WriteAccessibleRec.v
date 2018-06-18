@@ -3,7 +3,7 @@
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
-(*                                                                             *)
+(*                                                                            *)
 (*  This software is governed by the CeCILL license under French law and       *)
 (*  abiding by the rules of distribution of free software.  You can  use,      *)
 (*  modify and/ or redistribute the software under the terms of the CeCILL     *)

@@ -30,7 +30,6 @@
 (*  The fact that you are presently reading this means that you have had       *)
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
-
 (** * Summary 
     This file contains the invariant of [createPartition]. 
     We prove that this PIP service preserves the isolation property *)
@@ -177,16 +176,6 @@ eapply WP.bindRev.
           intuition          subst. trivial. 
           }
       intro currentPD. simpl. 
-(* (** getNbLevel **)      
-      eapply WP.bindRev.
-      { eapply WP.weaken.
-        eapply Invariants.getNbLevel.
-        simpl.
-        intros.
-        try repeat rewrite and_assoc in H.
-        pattern s in H.
-        eapply H.
-        }  intro level.  *)  
 (** getTableAddr **)
       eapply WP.bindRev.
       eapply WP.weaken. 

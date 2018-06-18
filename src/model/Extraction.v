@@ -30,7 +30,6 @@
 (*  The fact that you are presently reading this means that you have had       *)
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
-
 (**  * Summary 
       In this file we define the required configuration to extract the  MALInternal, MAL, Internal and 
       Services functions from Coq to JSON.
@@ -62,3 +61,4 @@ Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Internal .
 Extraction Library Services.
+

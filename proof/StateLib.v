@@ -265,11 +265,6 @@ then Some pd
     end
    end. 
 
-(* (* Inductive option (A : Type) : Type :=  Some : A -> option A | None : option A. *)
-Inductive optionPage (p : page) : page :=  
-|SomePage : page -> optionPage p
-|SomeDefault : optionPage p
-| NonePage  : optionPage p. *)
 Inductive optionPage : Type:= 
 |SomePage : page -> optionPage
 |SomeDefault :  optionPage

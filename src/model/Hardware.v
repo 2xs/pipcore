@@ -119,19 +119,26 @@ Definition halt {A : Type} : LLI A :=
 Definition undefined {A : Type} (code : nat ): LLI A :=
   fun s => undef code s.
 
-Definition run {A : Type} (m : LLI A) (s : state)  : option A :=
+Definition runvalue {A : Type} (m : LLI A) (s : state)  : option A :=
 match m s with 
    |undef _ _=> None 
    | val (a, _) => Some a
    end.
- 
 
+Definition runstate {A : Type} (m : LLI A) (s : state)  : option state :=
+match m s with 
+   |undef _ _=> None 
+   | val (_, s') => Some s'
+   end. 
+ 
 Notation "'perform' x ':=' m 'in' e" := (bind m (fun x => e))
   (at level 60, x ident, m at level 200, e at level 60, format "'[v' '[' 'perform'  x  ':='  m  'in' ']' '/' '[' e ']' ']'") : state_scope.
 
 Notation "m1 ;; m2" := (bind m1 (fun _ => m2)) (at level 60, right associativity) : state_scope.
 
 Open Scope state_scope.
+
+
 
 Definition modify (f : state -> state) : LLI unit :=
   perform s := get in put (f s).
@@ -183,6 +190,7 @@ Lemma assoc (A B C : Type)(m : LLI A)(f : A -> LLI B)(g : B -> LLI C) :
 Proof.
 extensionality s; unfold bind; case (m s); trivial; tauto.
 Qed.
+
 Lemma postAnd :
   forall (A : Type) (P : state -> Prop) (Q R : A -> state -> Prop) (m : LLI A),
   {{ P }} m {{ Q }} -> {{ P }} m {{ R }} -> {{ P }} m {{ fun a s => Q a s /\ R a s }}.

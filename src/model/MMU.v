@@ -55,6 +55,15 @@ Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
   | None => undefined 8
   end.
 
+Definition readPresent  (paddr : page) (idx : index) : LLI bool:=
+perform s := get in
+let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+match entry with
+  | Some (PE a) => ret a.(present)
+  | Some _ => undefined 18
+  | None => undefined 17
+end.
+
 (** The 'getTableAddrAux' returns the reference to the last page table  *)
 Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
   match timeout with
@@ -73,9 +82,13 @@ Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
   end .
 
 (** The 'translate' *)
-Definition  translate (pd : page) (va : vaddr) (l : level)  :=
+Definition  translate (pd : page) (va : vaddr) (l : level) : LLI (option page)  :=
   perform lastTable := translateAux nbLevel pd va l in 
   perform isNull := comparePageToNull lastTable in
-  if isNull then getDefaultPage else
+  if isNull then ret None else
   perform idx :=  getIndexOfAddr va fstLevel in
-  readPhyEntry lastTable idx.
+  perform ispresent := readPresent lastTable idx in 
+  if ispresent then  
+  perform phypage := readPhyEntry lastTable idx in 
+  ret (Some phypage)
+  else ret None.
