@@ -57,6 +57,7 @@ Extract Inductive level => "level" [ "level"].
 Extract Inductive count => "Count" [ "Count"].
 
 (** EXTRACTION *)
+Extraction Library IAL.
 Extraction Library MALInternal. 
 Extraction Library MAL.
 Extraction Library Internal .

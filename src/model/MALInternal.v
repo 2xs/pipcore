@@ -41,7 +41,9 @@ Require Import List Arith Omega.
 (** Define some constants *)
 (** default values *)
 Definition defaultIndex := CIndex 0.
-Definition defaultVAddr := CVaddr (repeat (CIndex 0) nbLevel).
+Definition defaultVAddr := CVaddr (repeat (CIndex 0) (nbLevel+1)).
+Definition lastVAddr := CVaddr (repeat (CIndex (tableSize - 1)) (nbLevel+1)).
+Definition vidtVAddr := CVaddr ((repeat (CIndex (tableSize - 1)) (nbLevel))++((CIndex 0)::nil)).
 Definition defaultPage := CPage 0.
 
 (** Define first level number *)
@@ -68,6 +70,8 @@ Definition PPRidx := CIndex 10. (* parent (virtual address is null) *)
 (** Define getter for each constant *)
 Definition getDefaultVAddr :=  ret defaultVAddr.
 Definition getDefaultPage := ret defaultPage.
+Definition getVidtVAddr := ret vidtVAddr.
+Definition getLastVAddr := ret lastVAddr.
 Definition getKidx : LLI index:= ret Kidx.
 Definition getPRidx : LLI index:= ret PRidx.
 Definition getPDidx : LLI index:= ret PDidx.

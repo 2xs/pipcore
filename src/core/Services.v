@@ -44,7 +44,7 @@
       - part 3 : <<funtionName>> is the PIP service. It calls <<functionNameAux>> 
                 with the required parameters *)
 
-Require Import Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal Arith  List.
+Require Import Model.IAL Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal Arith  List.
 Import List.ListNotations.
 
 (** ** The createPartition PIP service
@@ -1024,3 +1024,323 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
       collectAux phyPDChild phySh1Child phySh2Child phyConfigPagesList vaToCollect nbL defAddr
     else ret false
   else ret false.
+
+(** *)
+Definition yield (targetPartitionDescriptor : vaddr)
+                 (targetInterruption : vint)
+                 (contextSaveAddr : vaddr)
+                 (userSaveIndex : userValue)
+                 (flagsOnWake : interruptionMask)
+                 (flagsOnYield : interruptionMask)
+                 (interruptedContext : contextAddr)
+                 : LLI yield_checks :=
+
+  (* checkVint *)
+  perform vintIsValid := checkVint targetInterruption in
+  if negb vintIsValid then
+      ret FAIL_VINT
+  else
+  (*--------------------------*)
+
+  perform currentPartition := getCurPartition in
+  perform currentPageDir := getPd currentPartition in
+  perform nbL := getNbLevel in
+
+  (*--------------------------*)
+
+  perform ctxSaveAddrIsNull := compareVAddrToNull contextSaveAddr in
+  if ctxSaveAddrIsNull then
+
+    (* do not save context *)
+
+    (* check caller vidt *)
+    perform vidtVaddr := getVidtVAddr in
+    perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
+    perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
+    if vidtLastMMUPageisNull then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
+    perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb callerVidtIsPresent then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb callerVidtIsAccessible then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
+    perform targetPartitionIsDefault := compareVAddrToNull targetPartitionDescriptor in
+    if targetPartitionIsDefault then
+    (* transfer from child to parent *)
+
+      perform rootPartition := getMultiplexer in
+      perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
+      if currentPartitionIsRoot then
+        ret FAIL_ROOT_CALLER
+      else
+
+      perform parentPartDesc := getParent currentPartition in
+      perform parentPageDir := getPd parentPartDesc in
+
+      perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
+      perform parentVidtLastMMUPageisNull := comparePageToNull parentVidtLastMMUPage in
+      if parentVidtLastMMUPageisNull then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidtIsPresent := readPresent parentVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb parentVidtIsPresent then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidtIsAccessible := readAccessible parentVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb parentVidtIsAccessible then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidt := readPhyEntry parentVidtLastMMUPage idxVidtInLastMMUPage in
+      (* checking if interruption is not masked *)
+      perform parentInterruptionMask := readInterruptionMask parentVidt in
+      perform maskedInterruptionInParent := isInterruptionMasked parentInterruptionMask targetInterruption in
+      if maskedInterruptionInParent then
+        ret FAIL_MASKED_INTERRUPT
+      else
+
+      (* ------- memory modification --------- *)
+(*       saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;; *)
+      setInterruptionMask callerVidt flagsOnYield ;;
+      updateCurPartAndActivate parentPartDesc parentPageDir ;;
+      ret SUCCESS
+
+    else
+    (* transfer from parent to child *)
+
+      (* checking child validity *)
+      perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
+      perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
+      if childLastMMUTableIsNull then
+          ret FAIL_INVALID_CHILD
+      else
+      perform idxChildPartDesc := getIndexOfAddr targetPartitionDescriptor fstLevel in
+      perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
+      if negb childPartDescIsPresent then
+          ret FAIL_INVALID_CHILD
+      else
+
+      perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
+      if negb validChild then
+          ret FAIL_INVALID_CHILD
+      else
+
+      (* retrieving child page directory *)
+      perform childPartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
+      perform childPageDir := getPd childPartDesc in
+
+      perform childVidtLastMMUPage := getTableAddr childPageDir vidtVAddr nbL in
+      perform childVidtLastMMUPageisNull := comparePageToNull childVidtLastMMUPage in
+      if childVidtLastMMUPageisNull then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidtIsPresent := readPresent childVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb childVidtIsPresent then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidtIsAccessible := readAccessible childVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb childVidtIsAccessible then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidt := readPhyEntry childVidtLastMMUPage idxVidtInLastMMUPage in
+      (* checking if interruption is not masked *)
+      perform childInterruptionMask := readInterruptionMask childVidt in
+      perform maskedInterruptionInChild := isInterruptionMasked childInterruptionMask targetInterruption in
+      if maskedInterruptionInChild then
+        ret FAIL_MASKED_INTERRUPT
+      else
+
+      (* ------- memory modification --------- *)
+(*       saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;; *)
+      setInterruptionMask callerVidt flagsOnYield ;;
+      updateCurPartAndActivate childPartDesc childPageDir ;;
+      ret SUCCESS
+
+  else
+
+    (* check context save address *)
+    perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
+    perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
+    if ctxLastMMUPageisNull then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+
+    perform idxCtxInLastMMUPage := getIndexOfAddr contextSaveAddr fstLevel in
+    perform ctxPageIsPresent := readPresent ctxLastMMUPage idxCtxInLastMMUPage in
+    if negb ctxPageIsPresent then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+
+    perform ctxPageIsAccessible := readAccessible ctxLastMMUPage idxCtxInLastMMUPage in
+    if negb ctxPageIsAccessible then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+    (*--------------------------*)
+
+    (* get end ctx address *)
+    perform contextEndSaveAddr := getNthVAddrFrom contextSaveAddr contextSizeMinusOne in
+    perform endAddrOverflow := firstVAddrGreaterThanSecond contextSaveAddr contextEndSaveAddr in
+    if endAddrOverflow then
+        ret FAIL_CTX_SAVE_ADDR
+    else
+    (*--------------------------*)
+
+    (* check context save address *)
+    perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
+    perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
+    if ctxEndLastMMUPageisNull then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+
+    perform idxCtxEndInLastMMUPage := getIndexOfAddr contextEndSaveAddr fstLevel in
+    perform ctxEndPageIsPresent := readPresent ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+    if negb ctxEndPageIsPresent then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+
+    perform ctxEndPageIsAccessible := readAccessible ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+    if negb ctxEndPageIsAccessible then
+      ret FAIL_CTX_SAVE_ADDR
+    else
+    (*--------------------------*)
+
+    (* check context save index *)
+    perform userSaveIndexIsValid := checkCtxSaveIndex userSaveIndex in
+    if negb userSaveIndexIsValid then
+      ret FAIL_CTX_SAVE_INDEX
+    else
+
+    perform contextSaveIndex := getIndexFromUserValue userSaveIndex in
+
+    (*--------------------------*)
+
+    (* check caller vidt *)
+    perform vidtVaddr := getVidtVAddr in
+    perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
+    perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
+    if vidtLastMMUPageisNull then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
+    perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb callerVidtIsPresent then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb callerVidtIsAccessible then
+      ret FAIL_CALLER_VIDT
+    else
+
+    perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
+    perform targetPartitionIsDefault := compareVAddrToNull targetPartitionDescriptor in
+    if targetPartitionIsDefault then
+    (* transfer from child to parent *)
+
+      perform rootPartition := getMultiplexer in
+      perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
+      if currentPartitionIsRoot then
+        ret FAIL_ROOT_CALLER
+      else
+
+      perform parentPartDesc := getParent currentPartition in
+      perform parentPageDir := getPd parentPartDesc in
+
+      perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
+      perform parentVidtLastMMUPageisNull := comparePageToNull parentVidtLastMMUPage in
+      if parentVidtLastMMUPageisNull then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidtIsPresent := readPresent parentVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb parentVidtIsPresent then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidtIsAccessible := readAccessible parentVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb parentVidtIsAccessible then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform parentVidt := readPhyEntry parentVidtLastMMUPage idxVidtInLastMMUPage in
+      (* checking if interruption is not masked *)
+      perform parentInterruptionMask := readInterruptionMask parentVidt in
+      perform maskedInterruptionInParent := isInterruptionMasked parentInterruptionMask targetInterruption in
+      if maskedInterruptionInParent then
+        ret FAIL_MASKED_INTERRUPT
+      else
+
+      (* ------- memory modification --------- *)
+      saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;;
+      setInterruptionMask callerVidt flagsOnYield ;;
+      updateCurPartAndActivate parentPartDesc parentPageDir ;;
+      ret SUCCESS
+
+    else
+    (* transfer from parent to child *)
+
+      (* checking child validity *)
+      perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
+      perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
+      if childLastMMUTableIsNull then
+          ret FAIL_INVALID_CHILD
+      else
+      perform idxChildPartDesc := getIndexOfAddr targetPartitionDescriptor fstLevel in
+      perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
+      if negb childPartDescIsPresent then
+          ret FAIL_INVALID_CHILD
+      else
+
+      perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
+      if negb validChild then
+          ret FAIL_INVALID_CHILD
+      else
+
+      (* retrieving child page directory *)
+      perform childPartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
+      perform childPageDir := getPd childPartDesc in
+
+      perform childVidtLastMMUPage := getTableAddr childPageDir vidtVAddr nbL in
+      perform childVidtLastMMUPageisNull := comparePageToNull childVidtLastMMUPage in
+      if childVidtLastMMUPageisNull then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidtIsPresent := readPresent childVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb childVidtIsPresent then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidtIsAccessible := readAccessible childVidtLastMMUPage idxVidtInLastMMUPage in
+      if negb childVidtIsAccessible then
+        ret FAIL_TARGET_VIDT
+      else
+
+      perform childVidt := readPhyEntry childVidtLastMMUPage idxVidtInLastMMUPage in
+      (* checking if interruption is not masked *)
+      perform childInterruptionMask := readInterruptionMask childVidt in
+      perform maskedInterruptionInChild := isInterruptionMasked childInterruptionMask targetInterruption in
+      if maskedInterruptionInChild then
+        ret FAIL_MASKED_INTERRUPT
+      else
+
+      (* ------- memory modification --------- *)
+      saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;;
+      setInterruptionMask callerVidt flagsOnYield ;;
+      updateCurPartAndActivate childPartDesc childPageDir ;;
+      ret SUCCESS.
