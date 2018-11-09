@@ -24,7 +24,7 @@ Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
   ret (CIndex userIndex).
 
 
-Definition readUserData (paddr : page) ( idx : index)  : LLI vaddr:=
+Definition readUserData (paddr : page) ( idx : index)  : LLI vaddr :=
   perform s := get in
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
   match entry with
@@ -37,6 +37,7 @@ Definition FAIL_VINT := FAIL_VINT_Cons.
 Definition FAIL_CTX_SAVE_INDEX := FAIL_CTX_SAVE_INDEX_Cons.
 Definition FAIL_CTX_SAVE_ADDR := FAIL_CTX_SAVE_ADDR_Cons.
 Definition FAIL_TARGET_VIDT := FAIL_TARGET_VIDT_Cons.
+Definition FAIL_TARGET_CTX := FAIL_TARGET_CTX_Cons.
 Definition FAIL_CALLER_VIDT := FAIL_CALLER_VIDT_Cons.
 Definition FAIL_ROOT_CALLER := FAIL_ROOT_CALLER_Cons.
 Definition FAIL_INVALID_CHILD := FAIL_INVALID_CHILD_Cons.
