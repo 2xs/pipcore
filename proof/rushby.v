@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2016)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -33,13 +33,13 @@
 (** * Summary 
       In this file we define an abstract model of the information flow property.
       A Non-influence property for isolated partition was proved *)
-
 Require Import Model.ADT Model.Hardware Core.Services Model.MMU Model.MAL List 
 StateLib Model.Lib Isolation InternalLemmas Classical_Prop Omega Consistency
 DependentTypeLemmas Core.Internal GetTableAddr Invariants.
 
+
 Definition observation (partition : page) s: list page :=
-getMappedPages partition s.
+getAccessibleMappedPages partition s.
 
 Lemma MMUSimulation pd va l : 
  translateAux nbLevel pd va l = getTableAddrAux nbLevel pd va l.
@@ -65,20 +65,17 @@ Proof.
 unfold MMU.readPresent;unfold MAL.readPresent;trivial.
 Qed.
 
+Lemma readAccessibleEq : 
+MMU.readAccessible = MAL.readAccessible.
+Proof.
+unfold MMU.readAccessible;unfold MAL.readAccessible;trivial.
+Qed.
 Lemma readPhyEntryEq : 
 MMU.readPhyEntry = MAL.readPhyEntry.
 Proof.
 unfold MMU.readPhyEntry;unfold MAL.readPhyEntry;trivial.
 Qed.
 
-(* Definition translate1(pd : page) (va : vaddr) (l : level) s := 
-match runvalue (translateAux nbLevel pd va l ) s with
-|None => 
-|Some lastTable => match  runvalue (comparePageToNull lastTable) s
-let isNull :=  in
-if isNull then defaultPage else
-let idx := runvalue( getIndexOfAddr va fstLevel) s in
- runvalue(readPhyEntry lastTable idx) s. *)
 Lemma translateMappedPage : 
 forall partition phypage va pd nbL s,
 In partition (getPartitions multiplexer s) -> 
@@ -190,15 +187,14 @@ case_eq(getTableAddrAux nbLevel pd va nbL s);intros; rewrite H2 in *.
   - now contradict H1.
   * subst s0.
   unfold runvalue in *.
-  case_eq(translate pd va nbL s); intros; rewrite H4 in *.
+  case_eq(translate pd va nbL s); intros; rewrite H4 in *;try now contradict H1.
   destruct p0.
-  subst.
   inversion H1; subst.
   unfold translate in *.
   unfold bind in *.
   rewrite MMUSimulation in *.
   rewrite H2 in *.
-  case_eq(MMU.comparePageToNull p s);intros;rewrite H5 in *.
+  case_eq(MMU.comparePageToNull p s);intros;rewrite H5 in *;try now contradict H4.
   destruct p0.
   case_eq b;intros;subst;
   unfold MMU.comparePageToNull in *;
@@ -226,15 +222,23 @@ case_eq(getTableAddrAux nbLevel pd va nbL s);intros; rewrite H2 in *.
     case_eq(MMU.readPresent p (nth (length va - (fstLevel + 2)) va defaultIndex)
          s1);intros;rewrite H5 in *;try now contradict H4.
     destruct p0.
-    case_eq b;intros;subst.
-    **
+    case_eq( MMU.readAccessible p
+         (nth (length va - (fstLevel + 2)) va defaultIndex) s);intros;
+         rewrite H6 in *;try now contradict H4.
+    destruct p0.
+    case_eq (b && b0)%bool; intros Hbool;intros;subst;
+    rewrite Hbool in *; [|inversion H4; try now contradict H4 ].
+    apply Bool.andb_true_iff in Hbool as (Hb & Hb0); subst.
+    case_eq(MMU.readPhyEntry p (nth (length va - (fstLevel + 2)) va defaultIndex)
+         s2); [intros (ax & sx) Hx| intros ax sx  Hx]; rewrite Hx in *;inversion H4;subst;
+    try now contradict H4. 
+    clear H4.
     unfold observation.
-    unfold getMappedPage.
-    unfold getMappedPages.
+    unfold getAccessibleMappedPages.
     rewrite H.
-    unfold getMappedPagesAux.
+    unfold getAccessibleMappedPagesAux.
     apply filterOptionInIff.
-    unfold getMappedPagesOption.
+    unfold getAccessibleMappedPagesOption.
     apply in_map_iff.
     assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
     StateLib.checkVAddrsEqualityWOOffset nbLevel va va1 ( CLevel (nbLevel -1) ) = true )
@@ -242,48 +246,71 @@ case_eq(getTableAddrAux nbLevel pd va nbL s);intros; rewrite H2 in *.
     destruct Heqvars as (va1 & Hva1 & Hva11).  
     exists va1.
     split;trivial.
-    assert(getMappedPage pd s1 va = SomePage phypage).
-    { unfold MMU.readPhyEntry in *.
+    assert(getAccessibleMappedPage pd s1 va = SomePage phypage).
+    { 
     unfold MMU.readPresent in *.
     unfold bind in *.
-    case_eq(get s);intros;rewrite H6 in *;try now contradict H4.
-    destruct p0.
+    case_eq(get s1);intros ss Hgets1;[| intros Hundef; unfold get in *;now contradict Hundef].
     unfold get in *.
-    inversion H6.
-    subst s2;subst s3. clear H6.
+    clear Hgets1.    
     case_eq(lookup p (nth (length va - (fstLevel + 2)) va defaultIndex)
-         (memory s1) beqPage beqIndex);intros;rewrite H6 in *;try now contradict H5.
-    destruct v;try now contradict H5;trivial.
+         (memory s1) beqPage beqIndex); 
+      [intros v Hpresent |intros Hpresent];rewrite Hpresent in *; try now contradict H5.
+    destruct v; try now contradict H5.
     unfold Hardware.ret in *.
-    inversion H5;subst s1; clear H5.
+    inversion H5;subst.
+    clear H5 ss.
+    unfold MMU.readAccessible in *.
+    unfold bind in *.
+    case_eq(get s);intros ss Hgets1;[| intros Hundef; unfold get in *;now contradict Hundef].
+    unfold get in *.
+    clear Hgets1.    
     case_eq(lookup p (nth (length va - (fstLevel + 2)) va defaultIndex)
-         (memory s) beqPage beqIndex);intros;rewrite H6 in *;try now contradict H5.
-    inversion H4;subst s0; clear H4.   
-    apply getMappedPageGetTableRoot with p partition;trivial.
-    intros.
-    split;trivial.
-    unfold isPE.
-    unfold StateLib.getIndexOfAddr in *.
+         (memory s) beqPage beqIndex); 
+      [intros v Haccess |intros Haccess];rewrite Haccess in *; try now contradict H6.
+    destruct v; try now contradict H6.
+    unfold Hardware.ret in *.
+    inversion H6. subst s2.
+    clear H6 ss.
+     unfold MMU.readPhyEntry in *.
+    unfold bind in *.
+    case_eq(get s);intros ss Hgets1;[| intros Hundef; unfold get in *;now contradict Hundef].
+    unfold get in *.
+    clear Hgets1.    
+    case_eq(lookup p (nth (length va - (fstLevel + 2)) va defaultIndex)
+         (memory s) beqPage beqIndex); 
+      [intros v Hpage |intros Hpage];rewrite Hpage in *; try now contradict H7.
+    destruct v; try now contradict H7.
+    unfold Hardware.ret in *.
+    inversion Hx. subst s0.
+    inversion Hpresent.
+    inversion Haccess.
     subst.
-    rewrite H6; auto.
-    unfold isEntryPage.
-    unfold StateLib.getIndexOfAddr in *.
-    rewrite H6;trivial.
-    unfold entryPresentFlag.
-    unfold StateLib.getIndexOfAddr.
-    rewrite H6.
-    symmetry;trivial.
-    apply nextEntryIsPPgetPd;trivial. }
-    rewrite <- H6.
+    apply isAccessibleMappedPage2 with partition p;trivial.
+    + unfold entryPresentFlag.
+      unfold StateLib.getIndexOfAddr.
+      rewrite Hpage.
+      symmetry;trivial.
+    + unfold entryUserFlag.
+      unfold StateLib.getIndexOfAddr.
+      rewrite Hpage.
+      symmetry;trivial.
+    + unfold isEntryPage.
+      unfold StateLib.getIndexOfAddr.
+      rewrite Hpage.
+      trivial.
+    + apply nextEntryIsPPgetPd;trivial.
+    + intros;split;trivial.
+      unfold isPE.
+      unfold StateLib.getIndexOfAddr in *.
+      rewrite <- H4.
+      rewrite Hpage;trivial. }
+    rewrite <- H4.
     symmetry.
-    apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+    apply getAccessibleMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
     apply getNbLevelEqOption.
-    ** inversion H4.
-    (*  subst s0.
-      subst. now contradict Hnotdefault. *)
-  - now contradict H5.
-  - now contradict H4.
-  - now contradict H1. 
+
+  - now contradict H5. 
   + assert (False).
   apply Hx.
   split;trivial.
@@ -433,8 +460,12 @@ case_eq b;intros;subst.
   case_eq(MMU.readPresent table i s2);[intros pres Hpres | intros code s4 Hpres];
   rewrite Hpres in *;try now contradict Hpres.
   destruct pres.
-  case_eq b;intros;subst.
-  { case_eq(MMU.readPhyEntry table i s3);[intros phy Hphy | intros code s5 Hphy];
+  case_eq(MMU.readAccessible table i s3);[intros access Haccess | intros code s4 Haccess];
+  rewrite Haccess in *;try now contradict Haccess.
+  destruct access.
+  case_eq (b && b0)%bool;intros Hbool; rewrite Hbool in *.  
+  { apply Bool.andb_true_iff in Hbool; destruct Hbool; subst.
+    case_eq(MMU.readPhyEntry table i s4);[intros phy Hphy | intros code s5 Hphy];
     rewrite Hphy in *;try now contradict Hphy.
     destruct phy.
     unfold Hardware.ret in *.
@@ -476,7 +507,7 @@ case_eq b;intros;subst.
      rewrite Htable in Heq.
      apply Heq;trivial.
      subst.
-     clear Htable.
+(*      clear Htable. *)
      rewrite comparePageToNullEq in Hv1.
      assert(Hcompinv : {{fun s => s = s1 }} Internal.comparePageToNull table 
         {{fun (isnull : bool) (s : state) => s=s1 /\ (defaultPage =? table) = isnull }}). 
@@ -522,13 +553,29 @@ case_eq b;intros;subst.
      auto. }
      assert(Hii : {{ fun s => s = s2 /\ isPE table i s }} MAL.readPresent table i 
 {{ fun (ispresent : bool) (s : state) => s= s2 /\  entryPresentFlag table i ispresent s }}).
-     apply readPresent.
+     { apply readPresent. }
      generalize(Hii s2);clear Hii;intros Hii.
      rewrite Hpres in Hii.
      destruct Hii;trivial.
      rewrite readPhyEntryEq in Hphy.
      split;trivial.
      subst.
+          assert(Hii : {{ fun s => s = s2 /\ isPE table i s }} MAL.readAccessible table i 
+{{ fun (isaccessible : bool) (s : state) => s= s2 /\  entryUserFlag table i isaccessible s }}).
+     { apply readAccessible. }
+     generalize(Hii s2);clear Hii;intros Hii.
+     rewrite readAccessibleEq in Haccess.
+     rewrite Haccess in Hii.
+     destruct Hii;trivial.
+     rewrite readPhyEntryEq in Hphy.
+     split;trivial.
+     subst.
+     
+     
+     
+     
+     
+     
      assert(isPresentNotDefaultIff s2).
      { unfold consistency in *. intuition. }
      unfold isPresentNotDefaultIff in *.
@@ -542,15 +589,15 @@ case_eq b;intros;subst.
      unfold hoareTriple in *.
      generalize(Hread s2);clear Hread;intros Hread.
      rewrite readPhyEntryEq in *.
-     rewrite Hphy in Hread. 
+     rewrite Hphy in Hread.
      destruct Hread. 
      split;trivial.
      subst.
      apply isEntryPageReadPhyEntry1;trivial.
-     apply H1 in H2.
      apply entryPresentFlagReadPresent in H0.
      rewrite H0 in H2.
-     inversion H2. }
+     apply H2 in H3.
+     inversion H3. }
   { unfold Hardware.ret in *. inversion Hpg. }
 Qed.
 
@@ -1014,22 +1061,24 @@ assert(Hnotmult2 : partition2 <> multiplexer).
          { subst child2. 
          unfold Lib.disjoint in *.
          intros.
-         assert(Hx : In p (getMappedPages partition2 s)).
-         unfold observation in *;trivial.
+         assert(Hx : In p (getAccessibleMappedPages partition2 s)).
+         { unfold observation in *;trivial. }
          unfold observation.
          assert (~ In p0 (getUsedPages partition2 s)).
          apply H with closestAnc (currentPartition s);trivial. 
          unfold getUsedPages.
          apply in_app_iff.
          right.
-         
-         unfold observation in *.
-         trivial.
-         unfold getUsedPages in H9;
-         rewrite in_app_iff in H9;
-         intuition. }      
+         apply accessibleMappedPagesInMappedPages;trivial.
+         unfold not;intros. 
+         contradict H9. 
+         unfold getUsedPages.
+         apply in_app_iff.
+         right.
+         apply accessibleMappedPagesInMappedPages;trivial. 
+ }      
         { assert(Hincl2:  incl (getMappedPages partition2 s) (getMappedPages child2 s)).
-          apply verticalSharingRec with (nbPage-1);trivial.
+          { apply verticalSharingRec with (nbPage-1);trivial.
           unfold consistency in *.
           intuition.
           apply childrenPartitionInPartitionList with closestAnc; trivial.           
@@ -1038,7 +1087,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
           simpl in *. intuition.
           simpl.
           replace    (n - 0 + 1) with (S n) by omega.
-          trivial.
+          trivial. }
           destruct nbPage.
           simpl in *. intuition.
           simpl.
@@ -1046,19 +1095,22 @@ assert(Hnotmult2 : partition2 <> multiplexer).
           trivial.
           unfold Lib.disjoint in *.
           intros.
-          assert(Hx : In p (getMappedPages partition2 s)).
-          unfold observation in *;trivial.
-          unfold observation.
-          assert (~ In p0 (getUsedPages child2 s)).
-          apply H with closestAnc (currentPartition s);trivial. 
+          unfold incl in Hincl2.
+          assert(In p0 (getUsedPages (currentPartition s) s)).
+          { unfold getUsedPages.
+          apply in_app_iff.
+          right. unfold observation in *. apply accessibleMappedPagesInMappedPages;trivial. }
+          apply Hdisjoint in H9.
+          unfold not;intros.
+          contradict H9.
           unfold getUsedPages.
           apply in_app_iff.
           right.
-          unfold observation in *.
-          trivial.
-          unfold getUsedPages in H9;
-          rewrite in_app_iff in H9;
-          intuition. } 
+          apply Hincl2.
+          
+          apply accessibleMappedPagesInMappedPages.
+          unfold observation in *;trivial.
+          } 
      --- assert(Horpart1 : child2 = partition2 \/ child2 <> partition2 ) by apply pageDecOrNot.
          destruct Horpart1 as [Horpart1 | Horpart1].
          +++ subst. 
@@ -1105,28 +1157,26 @@ assert(Hnotmult2 : partition2 <> multiplexer).
            simpl in *. intuition.
            simpl.
            replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-           
+          trivial.
           unfold Lib.disjoint in *.
-         intros.
-          assert(Hx : In p (getMappedPages partition2 s)).
-          unfold observation in *;trivial.
-          unfold observation.
-          assert (~ In p0 (getUsedPages partition2 s)).
-          apply H with closestAnc child1;trivial.
-          intuition. 
+          unfold incl in Hincl2.
+       
+          assert(In p0 (getMappedPages (currentPartition s) s)).
+          { unfold observation in *. apply accessibleMappedPagesInMappedPages;trivial. }
+apply Hincl2 in H9.
+unfold not;intros.          contradict H9.
+assert(In p0 (getUsedPages partition2 s) ).
+
           unfold getUsedPages.
           apply in_app_iff.
           right.
-          apply Hincl2.
-                    unfold observation in *.
-          trivial. (* 
-         simpl in Hp0.
-         destruct Hp0;
-         subst;trivial; *)
-          unfold getUsedPages in H9;
-          rewrite in_app_iff in H9;
-          intuition. }
+          apply accessibleMappedPagesInMappedPages.
+          unfold observation in *;trivial.
+          apply Hdisjoint in H9.
+          unfold not;intros;contradict H9.
+          unfold getUsedPages.
+          apply in_app_iff.
+          right;trivial. }
  +++   
             assert(Horc : child1 = child2 \/ child1 <> child2) by apply pageDecOrNot.
            destruct Horc as [Horc | Horc]. 
@@ -1297,26 +1347,36 @@ assert(Hnotmult2 : partition2 <> multiplexer).
            replace    (n - 0 + 1) with (S n) by omega.
            trivial.
            assert(Hdisjoint : Lib.disjoint (getUsedPages child1 s) (getUsedPages child2 s)).
-           unfold partitionsIsolation in *.
-           apply H with closestAnc; trivial.
+{           unfold partitionsIsolation in *.
+           apply H with closestAnc; trivial. }
            unfold Lib.disjoint in *.
            intros.
-           assert(~ In p0 (getUsedPages child2 s)).
-           apply Hdisjoint.
+           unfold incl in *.
+           clear Hconsistency.
+           assert( In p0 (getMappedPages (currentPartition s) s)).
+           apply accessibleMappedPagesInMappedPages.
+           unfold observation in *.
+           trivial.
+           apply Hincl1 in H9.
+           clear Hincl1.
+           assert (In p0 (getUsedPages child1 s)). 
            unfold getUsedPages.
            apply in_app_iff.
-           right. 
-           apply Hincl1.
-           unfold observation in *;trivial. (* 
-                    simpl in Hp0.
-         destruct Hp0;
-         subst;trivial; *)
-           contradict H9;
+           right;trivial.
+           clear H9. 
+           apply Hdisjoint in H10.
+            clear Hdisjoint.
+            unfold not. 
+            intros.
+            assert( In p0 (getMappedPages partition2 s)).
+           unfold observation in *.
+           apply accessibleMappedPagesInMappedPages;trivial.
+           apply Hincl2 in H11.
+           contradict H10.
           unfold getUsedPages;
            apply in_app_iff;
-           right;
-           apply Hincl2;
-           unfold observation in *;trivial. }
+           right.
+           trivial. }
 }
 assert(incl (px :: translateVaddrs valist nbL pd s) 
 (observation (currentPartition s) s)).
