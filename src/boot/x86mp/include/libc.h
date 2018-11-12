@@ -31,19 +31,23 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+/**
+ * \file libc.h
+ * \brief Pseudo-libC header
+ */
+
+#ifndef DEF_PEPIN_LIBC_H
+#define DEF_PEPIN_LIBC_H
+
+typedef unsigned long size_t;
+
+void *memset(void *s, int c, size_t n);
+void *strcpy(char* dest, const char* src);
+void * memcpy ( void * destination, const void * source, size_t num );
+char* strcat(char* dest, const char* source);
+int strlen(char* str);
+int strcmp(const char *s1, const char* s2);
+int memcmp(const void *s1, const void *s2, size_t n);
+int strncmp(const char *s1, const char* s2, size_t n);
+
+#endif

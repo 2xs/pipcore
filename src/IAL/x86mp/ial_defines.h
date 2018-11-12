@@ -31,19 +31,31 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+#ifndef __IAL_DEFINES__
+#define __IAL_DEFINES__
+
+#define IAL_PREFIX				"みちる"
+#define IAL_VERSION				"0.1"
+
+#define SIZEOF_CTX				sizeof(int_ctx_t)
+#define GENERAL_REG(a, c)		a->regs.c
+#define OPTIONAL_REG(a, c)		a->c
+
+#define PIPFLAGS				((uintptr_t*)(VIDT + 0xFFC))
+#define INTLEVEL_GET			(*PIPFLAGS & 0xFFFFFF00) >> 8
+#define INTLEVEL_SET(a)			*PIPFLAGS = (*PIPFLAGS & 0xFFFFFF00) | (a << 8)
+#define VIDT_VCLI				*PIPFLAGS & 0x00000001
+
+
+#define VIDT_CTX_BUFFER			(int_ctx_t*)(PIPFLAGS - SIZEOF_CTX)
+#define INT_IRQ(a)				(a >= 32 && a <= 47)
+
+#define PARTITION_PARENT		0
+#define PARTITION_ROOT			getRootPartition()
+#define PARTITION_CURRENT		getCurPartition()
+
+#define VIDT					(IS_MPMT ? (0xFFFFF000 - 0x1000 * coreId()) : 0xFFFFF000)
+#define VIDT_INT_EIP(a)			readTableVirtualNoFlags (VIDT, (2 * a))
+#define VIDT_INT_ESP(a)			readTableVirtualNoFlags (VIDT, (2 * a) + 1)
+#define VIDT_INT_ESP_SET(a,s)	writeTableVirtualNoFlags (VIDT, (2 * a) + 1, s)
+#endif

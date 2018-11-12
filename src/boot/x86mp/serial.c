@@ -31,19 +31,76 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
+/**
+ * \file serial.c
+ * \brief Serial driver for debugging purposes
+ */
+#include "serial.h"
+#include "port.h"
+#include "lock.h"
+#include "debug.h"
+
+volatile int kprintf_lock = 0;
+
+#define PORT 0x3f8 //!< Serial port COM1 number
+ 
+/**
+ * \fn void initSerial()
+ * \brief Initializes the serial port
+ */
+void initSerial() {
+       outb(PORT + 1, 0x00);    // Disable all interrupts
+       outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+       outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+       outb(PORT + 1, 0x00);    //                  (hi byte)
+       outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+       outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+       outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+}
+
+/**
+ * \fn int serialReceived()
+ * \brief Checks whether we received some data on the serial port
+ * \return 1 if some data is available, 0 else
+ */
+int serialReceived() {
+       return inb(PORT + 5) & 1;
+}
+
+/**
+ * \fn char readSerial()
+ * \brief Gets a character from the serial port
+ * \return The character
+ */
+char readSerial() {
+       while (serialReceived() == 0);
+       return inb(PORT);
+}
+
+/**
+ * \fn int isTransmitEmpty()
+ * \brief Checks whether our serial line buffer is empty or not
+ * \return 0 if it's not empty, 1 else
+ */
+int isTransmitEmpty() {
+       return inb(PORT + 5) & 0x20;
+}
+ 
+/**
+ * \fn void writeSerial(char a)
+ * \brief Writes a character into the serial port
+ * \param a The character to write
+ */
+void writeSerial(char a) {
+       while (isTransmitEmpty() == 0);
+       outb(PORT,a);
+}
+
+
+
+void slputs_sync(char* str)
 {
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+    MP_LOCK(kprintf_lock);
+    krn_puts(str);
+    MP_UNLOCK(kprintf_lock);
+}

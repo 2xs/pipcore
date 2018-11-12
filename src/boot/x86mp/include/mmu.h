@@ -31,19 +31,32 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+/**
+ * \file mmu.h
+ * \brief Include file for MMU configuration.
+ */
+
+#ifndef __PAGING__
+#define __PAGING__
+
+#include "multiboot.h"
+#include "structures.h"
 #include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+
+/**
+ * \brief Defines the size of a Page.
+ */
+#define PAGE_SIZE 4096
+
+uint32_t *firstFreePage; //!< First free available page.
+void initFreePageList(uintptr_t base, uintptr_t length);
+uint32_t* allocPage();
+void freePage(uint32_t *page);
+void dumpMmap(uint32_t* mmap_ptr, uint32_t len);
+uint32_t initMmu();
+void fillMmu(uint32_t begin);
+void coreEnableMmu();
+void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8_t user);
+void prepareAllocatorRelease();
+
+#endif

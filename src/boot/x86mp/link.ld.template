@@ -31,19 +31,70 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
+ENTRY(start)
+    SECTIONS
 {
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+    /* Multiboot header. Mandatory to allow GRUB to boot the kernel. */
+    .mboot 0xA000 : {
+        mboot = .;
+        *(.mboot)
+            . = ALIGN(4096);
+    }
+
+    /* 16-bits real-mode entrypoint for APs. */
+    .apentry 0xB000 : {
+        apentry = .;
+        *(.apentry)
+            . = ALIGN(4096);
+    }
+
+    /* 32-bits protected mode entrypoint for APs. Required since A20 line is not enabled on APs during early-boot, and we need to make the 32-bits code accessible. */
+    .apentry32 0xC000 : {
+        apentry32 = .;
+        *(.apentry32)
+            . = ALIGN(4096);
+    }
+
+    /* Kernel load address defined during make (Makefile.inc), used in everything */
+    .text __KERNEL_LOAD_ADDR__ :
+    {
+        code = .; _code = .; __code = .;
+        *(.text)
+            . = ALIGN(4096);
+    }
+
+    .data :
+    {
+        data = .; _data = .; __data = .;
+        *(.data)
+            *(.rodata)
+            . = ALIGN(4096);
+    }
+
+    .bss :
+    {
+        bss = .; _bss = .; __bss = .;
+        *(.bss)
+            . = ALIGN(4096);
+    }
+   
+    /* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
+    .krnstack __KERNEL_STACK_ADDR__ :
+    {
+        krnstack = .; _krnstack = .; __krnstack = .;
+        *(.krnstack)
+            . = ALIGN(4096);
+    }
+
+    /* Multiplexer load address defined during make (Makefile.inc), used in multiplexer.s */
+    .multiplexer __MULTIPLEXER_LOAD_ADDR__ :
+    {
+        multiplexer = .;
+        _multiplexer = .;
+        __multiplexer = .;
+        *(.multiplexer)
+            . = ALIGN(4096);
+    }
+
+    end = .; _end = .; __end = .;
+}

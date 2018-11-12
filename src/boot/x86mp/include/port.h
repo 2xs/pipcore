@@ -31,19 +31,31 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+/**
+ * \file port.h
+ * \brief Include file for IO-ports operations
+ */
+
+#ifndef __PORT__
+#define __PORT__
+
 #include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+
+#define FAULT_FORBIDDEN		64
+
+void outb(uint16_t port, uint8_t value); //!< IO port write byte
+void outw(uint16_t port, uint16_t value); //!< IO port write word
+uint8_t inb(uint16_t port); //!< IO port read byte
+uint16_t inw(uint16_t port); //!< IO port read word
+
+/* Call-gate IO methods */
+void cg_outb(uint32_t port, uint32_t value); //!< Outb callgate method
+uint32_t cg_inb(uint32_t port); //!< Inb callgate method
+
+void cg_outw(uint32_t port, uint32_t value); //!< Outw callgate method
+uint32_t cg_inw(uint32_t port); //!< Inw callgate method
+
+void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
+void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
+uint32_t cg_inl(uint32_t port); //!< Inl callgate method
+#endif

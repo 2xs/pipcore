@@ -31,19 +31,119 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+/**
+ * \file libc.c
+ * \brief Pseudo-libC implementation
+ * \warning Some of these implementations are unsafe. We know. We're not proud of this.
+ */
+
+#include "libc.h"
 #include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
+
+/**
+ * \fn memset ( void * ptr, int value, size_t num )
+ * \brief Sets a memory space with a single, fixed value
+ * \param ptr Pointer to the memory space
+ * \param value The value to write
+ * \param num The amount of memory to write to
+ * \return Pointer to the memory space
+ */
+void * memset( void * ptr, int value, size_t num )
 {
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+	char *temp = (char*) ptr;
+	for(; num != 0; num--) *temp++ = value;
+	return ptr;
+}
+
+/**
+ * \fn void *strcpy(char* dest, const char* src)
+ * \brief String copy
+ */
+void *strcpy(char* dest, const char* src)
+{
+	char *p = dest;
+
+	while ((*p++ = *src++));
+
+	return dest;
+}
+
+/**
+ * \fn memcpy ( void * destination, const void * source, size_t num )
+ * \brief Copies data from source to destination
+ * \param destination Destination address
+ * \param source Source address
+ * \param num Size of data to copy
+ * \return Pointer to the destination address
+ */
+void * memcpy ( void * destination, const void * source, size_t num )
+{
+	uint32_t i;
+	uint8_t *src;
+	uint8_t *dest;
+	src = (uint8_t*) source;
+	dest = (uint8_t*) destination;
+	for(i=0; i<num; i++)
+	{
+		*dest = *src;
+		dest++;
+		src++;
+	}
+	return destination;
+}
+
+/**
+ * \fn strcat(char* dest, const char* source)
+ * \brief Concatenates a source string into a destination string, assuming the destination string buffer is large enough.
+ * \param dest Destination string buffer
+ * \param source Source string buffer
+ * \return Destination string buffer, containing the concatenated strings.
+ */
+char* strcat(char* dest, const char* source)
+{
+        int idx, i, j;
+
+        for(idx=0; *(dest+idx) != '\0'; idx++) {}
+        for(i=0; *(source+i) != '\0'; i++) {}
+
+	for(j = 0; j<(i+1); j++) {
+		*(dest + idx + j) = *(source + j);
+	}
+	return dest;
+}
+
+/**
+ * \fn int strlen(char* str)
+ * \brief String length
+ */
+int strlen(char* str)
+{
+	int i = 0;
+	while(str[i] != '\0')
+		i++;
+	
+	return i;
+}
+
+int strcmp(const char *s1, const char* s2) {
+    while(*s1 && (*s1==*s2))
+        s1++,s2++;
+    return *(const unsigned char*)s1-*(const unsigned char*)s2;
+}
+
+int memcmp(const void *s1, const void *s2, size_t n) {
+    const unsigned char *p1 = s1, *p2 = s2;
+    while(n--)
+        if( *p1 != *p2 )
+            return *p1 - *p2;
+        else
+            p1++,p2++;
+    return 0;
+}
+
+int strncmp(const char *s1, const char* s2, size_t n) {
+    while(n--)
+        if(*s1++!=*s2++)
+            return *(unsigned char*)(s1 - 1) - *(unsigned char*)(s2 - 1);
+    return 0;
+}

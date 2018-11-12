@@ -31,19 +31,95 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+/**
+ * \file debug.h
+ * \brief Include file for debugging output
+ */
+
+
+#ifndef __SCR__
+#define __SCR__
+
 #include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+#include <stdarg.h>
+#include "mal.h"
+#include "mp.h"
+#include "ial_defines.h"
+#include "lock.h"
+
+extern volatile int kprintf_lock;
+
+/**
+ * \brief Strings for debugging output.
+ */
+#define CRITICAL	0 //!< Critical output
+#define	ERROR		1 //!< Error output
+#define WARNING		2 //!< Warning output
+#define	INFO		3 //!< Information output
+#define LOG		4 //!< Log output
+#define TRACE		5 //!< Annoying, verbose output
+
+#define True 1
+#define False 0
+
+#ifdef PIPDEBUG
+
+#ifndef LOGLEVEL
+#define LOGLEVEL CRITICAL
+#endif
+
+/**
+ * \brief Defines the appropriate DEBUGRAW behavior. 
+ */
+#define DEBUGRAW(a) krn_puts(a)
+
+/**
+ * \brief Defines the appropriate DEBUG behavior.
+ */
+#define DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
+#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " IAL [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
+#define SMP_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [AP][%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define SMP_DEBUGF(a,...) kprintf("[CPU%d][%s:%d] " a, coreId(),  __FILE__, __LINE__, ##__VA_ARGS__);
+/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
+
+/**
+ * \brief Defines the appropriate DEBUGHEX behavior.
+ */
+#define DEBUGHEX(a) puthex(a)
+/**
+ * \brief Defines the appropriate DEBUGDEC behavior. 
+ */
+#define DEBUGDEC(a) putdec(a)
+#else
+/**
+ * \brief Defines the appropriate DEBUG behavior. 
+ */
+#define DEBUG(...)
+#define DEBUGRAW(...)
+/**
+ * \brief Defines the appropriate DEBUGHEX behavior. 
+ */
+#define DEBUGHEX(...)
+/**
+ * \brief Defines the appropriate DEBUGDEC behavior. 
+ */
+#define DEBUGDEC(...)
+#define IAL_DEBUG(...)
+#define SMP_DEBUG(...)
+#define SMP_DEBUGF(...)
+
+#endif
+
+void krn_puts(char *c);
+void kaput(char c);
+void puthex(int n);
+void putdec(int n);
+
+void counter_update(uint32_t begin);
+void display_time();
+
+void kprintf(char *fmt, ...);
+
+#define BENCH_BEGIN counter_update(1)
+#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
+#endif

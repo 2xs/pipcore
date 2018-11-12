@@ -31,19 +31,16 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+#ifndef __HDEF__
+#define __HDEF__
+
 #include <stdint.h>
-#include <pip/fpinfo.h>
-#include <pip/debug.h>
-#include <pip/api.h>
-void main(pip_fpinfo* bootinfo)
-{
-    uint32_t coreid, corecount;
-    coreid = Pip_SmpRequest(0, 0);
-    corecount = Pip_SmpRequest(1, 0);
-    Pip_Debug_Puts("Hello world from core ");
-    Pip_Debug_PutDec(coreid);
-    Pip_Debug_Puts(" (");
-    Pip_Debug_PutDec(corecount);
-    Pip_Debug_Puts(" cores running)\n");
-    for(;;);
-}  
+#include "ial.h"
+
+#define HSPEC_COUNT 1
+
+struct hardware_def pshw[HSPEC_COUNT] = {
+    { "VGAController", 0xb8000, 0xc00b8000, 0x8000 }, 
+}; 
+
+#endif
