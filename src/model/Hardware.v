@@ -32,27 +32,35 @@
 (*******************************************************************************)
 
 (** * Summary 
-    This file contains the monad state and Hoare logic formalization.
-     + State monad formalization : 
-        ** The type constructor "LLI"
-        ** Two operations : "bind" to compose a sequence of monadic functions 
-           and "ret" to create monadic values. 
-     + We use state monad to simulate side effects like state updates so we 
-       define the following functions: 
-        ** "get" to get back the current state
-        ** "put" to update the current state  
-     + The state contains mainly the physical memory.
-       In our Hardware model, physical memory is an associaton list that keeps 
-       only relevent data. Its key is a the physical address and the value is 
-       the data to store into physical memory.
-     + Hoare logic formalization : "{{ P }} m {{ Q }}"
-        ** "m" is a monadic function 
-        ** "P" is the precondition of the function "m", it is an unary predicate 
-            which depends on the state
-        ** "Q" is the postcondition of the function "m", it is a binary predicate
-            which depends on the new state and the return value
-       We define some lemmas like "weaken" and "bindWP" to facilitate Hoare logic 
-       and monad manipulation.
+So the theorem holds. 
+This file contains the monad state and Hoare logic formalization.
+-State monad is formalized as follows: 
+  
+ -The type constructor [LLI]
+        
+ -Two operations : [bind] to compose a sequence of monadic functions and [ret] to create monadic values. 
+
+-We use state monad to simulate side effects like state updates so we define the following functions: 
+ 
+ -[get] to get back the current state
+ 
+ -[put] to update the current state
+ 
+-The state contains mainly the physical memory. In our Hardware model, physical
+ memory is an associaton list that keeps only relevent data. Its key is a the
+ physical address and the value is the data to store into physical memory.
+ 
+-Hoare logic formalization <<{{ P }} m {{ Q }}>>:  
+   
+ - <<m>> is a monadic function 
+  
+ - <<P>> is the precondition of the function <<m>>, it is an unary predicate which depends on the state   
+   
+ - <<Q>> is the postcondition of the function <<m>>, it is a binary predicate which depends on the new state and the return value  
+ 
+
+-We define some lemmas like [weaken] and [bindWP] to facilitate Hoare logic 
+     and monad manipulation.
 *)
 Require Import FunctionalExtensionality Model.ADT.
 
