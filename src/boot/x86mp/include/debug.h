@@ -45,6 +45,9 @@
 #include "mal.h"
 #include "mp.h"
 #include "ial_defines.h"
+#include "lock.h"
+
+extern volatile int kprintf_lock;
 
 /**
  * \brief Strings for debugging output.
@@ -73,8 +76,8 @@
 /**
  * \brief Defines the appropriate DEBUG behavior.
  */
-#define DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " IAL [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__);}
+#define DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
+#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " IAL [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
 #define SMP_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [AP][%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
 #define SMP_DEBUGF(a,...) kprintf("[CPU%d][%s:%d] " a, coreId(),  __FILE__, __LINE__, ##__VA_ARGS__);
 /* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
@@ -101,6 +104,9 @@
  * \brief Defines the appropriate DEBUGDEC behavior. 
  */
 #define DEBUGDEC(...)
+#define IAL_DEBUG(...)
+#define SMP_DEBUG(...)
+#define SMP_DEBUGF(...)
 
 #endif
 

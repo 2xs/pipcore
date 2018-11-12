@@ -463,7 +463,7 @@ uint32_t initMmu()
     if(IS_MPMT)
     {
         uint32_t cid;
-        for(cid = 1; cid < coreCount(); cid++)
+        for(cid = 1; cid < /* coreCount()*/ 4; cid++)
         {
             virt_intv = allocPage();
             mapPageWrapper(kernelDirectories[coreId()], (uint32_t)virt_intv, 0xFFFFF000 - PAGE_SIZE * cid, 1);
