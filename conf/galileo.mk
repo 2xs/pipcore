@@ -64,7 +64,7 @@ QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std 
 LIBGCC=/usr/lib/gcc/x86_64-linux-gnu/4.9/32/
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -fno-stack-protector -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -fno-stack-protector -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-stack-protector -fno-pic -no-pie 
 LDFLAGS=-L$(LIBGCC) -melf_i386 -lgcc 
 PLATFORM=galileo
 ARCHITECTURE=x86
