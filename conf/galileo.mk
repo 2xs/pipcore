@@ -41,7 +41,6 @@ AS=nasm
 CC=gcc
 LD=ld
 AR=ar
-QEMU=qemu-system-i386
 GDB=gdb
 EXTRACTOR=tools/extractor/Extractor.Linux64
 endif
@@ -50,17 +49,11 @@ AS=/opt/local/bin/nasm
 CC=/opt/local/bin/i386-elf-gcc
 LD=/opt/local/bin/i386-elf-ld
 AR=/opt/local/bin/i386-elf-ar
-#QEMU=/opt/local/bin/qemu-system-i386
-QEMU=~/QEMUDebug/bin/qemu-system-i386
 GDB=i386-elf-gdb
 EXTRACTOR=tools/extractor/Extractor.OSX
 endif
 
 GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/meso.bin" 
-
-QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -net nic,model=rtl8139 -net dump,file=./netdump.pcap -net user 
-#QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
-
 LIBGCC=/usr/lib/gcc/x86_64-linux-gnu/4.9/32/
 
 ASFLAGS=-felf
