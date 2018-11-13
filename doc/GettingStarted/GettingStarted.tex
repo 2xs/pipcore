@@ -105,13 +105,13 @@ The following commands summarize the installation on a Debian 8.1 or Ubuntu 16.0
 \begin{lstlisting}[language=bash]
 > sudo apt install haskell-stack nasm doxygen opam
 
-# Install COQ version 8.5.2
-> export OPAMROOT=~/opam-coq.8.5.2
+# Install COQ version 8.6.1
+> export OPAMROOT=~/opam-coq.8.6.1
 > opam init -n --comp=4.01.0 -j 2
 > opam repo add coq-released \
      http://coq.inria.fr/opam/released
-> opam install coq.8.5.2
-> opam pin add coq 8.5.2
+> opam install coq.8.6.1
+> opam pin add coq 8.6.1
 
 # check if COQ is correctly installed
 > coqc -v
