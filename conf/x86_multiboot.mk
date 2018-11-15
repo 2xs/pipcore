@@ -1,5 +1,5 @@
 ###############################################################################
-#  © Université Lille 1, The Pip Development Team (2015-2017)                 #
+#  © Université Lille 1, The Pip Development Team (2015-2018)                 #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
@@ -55,11 +55,11 @@ endif
 
 GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/meso.bin" 
 
-QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -net nic,model=rtl8139 -net dump,file=./netdump.pcap -net user -cpu Westmere
+QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -cpu Westmere
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 ASFLAGS=-felf
-CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter
+CFLAGS=-m32 -Wall -W -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-stack-protector -fno-pic -no-pie
 LDFLAGS=-melf_i386
 
 PLATFORM=multiboot
