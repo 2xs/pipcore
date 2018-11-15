@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -46,7 +46,6 @@ Definition defaultPage := CPage 0.
 
 (** Define first level number *)
 Definition fstLevel :=  CLevel 0.
-Definition fstPreLevel := 0.
 
 (** Define the second parameter value of store and fetch *) 
 Definition storeFetchIndex := CIndex 0.
@@ -57,8 +56,6 @@ Definition Kidx := CIndex 1.
 
 Definition multiplexer := CPage 1.
 
-Definition succNbLevel := nbLevel+1.
-Definition maxprelevel := nbLevel.
 (** Fix virtual addresses positions into the partition descriptor
     of the partition (+1 to get the physical page position) *)
 Definition PRidx := CIndex 0.   (* descriptor *)
@@ -174,15 +171,3 @@ then
   ret (Build_count isucc _ )
 else  undefined 34.
 End Count.
-
-Module PreIndex.
-Definition ltb (a b : preIndex) : LLI bool := ret (a <? b).
-End PreIndex.
-
-Module PreLevel.
-Definition eqb (a b : preLevel) : LLI bool:= ret (a =? b).
-Program Definition pred (n : preLevel) : LLI preLevel :=
-if gt_dec n 0
-then  ret (n-1)
-else  undefined 36.
-End PreLevel.

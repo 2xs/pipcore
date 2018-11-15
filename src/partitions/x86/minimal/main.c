@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -34,9 +34,16 @@
 #include <stdint.h>
 #include <pip/fpinfo.h>
 #include <pip/debug.h>
-
+#include <pip/api.h>
 void main(pip_fpinfo* bootinfo)
 {
-    Pip_Debug_Puts("Hello world!\n");
+    uint32_t coreid, corecount;
+    coreid = Pip_SmpRequest(0, 0);
+    corecount = Pip_SmpRequest(1, 0);
+    Pip_Debug_Puts("Hello world from core ");
+    Pip_Debug_PutDec(coreid);
+    Pip_Debug_Puts(" (");
+    Pip_Debug_PutDec(corecount);
+    Pip_Debug_Puts(" cores running)\n");
     for(;;);
 }  

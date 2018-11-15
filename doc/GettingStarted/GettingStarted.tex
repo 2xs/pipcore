@@ -23,7 +23,7 @@ frame=single
 In order to create your own partitions on top of Pip, you need an appropriate development environment, relying on several required tools.
 
 \index{gcc}\marginlabel{GNU C Compiler:}
-GCC is the only C compiler known to compile Pip correctly. CLANG, for example, is not supported. To that end, you need a version of GCC capable of producing i386 ELF binaries. A known, working version of GCC is i386-elf-gcc 4.7.2. A newer version of GCC should also be working.
+GCC is the only C compiler known to compile Pip correctly. CLANG, for example, is not supported. To that end, you need a version of GCC capable of producing 32bits ELF binaries. The last working version is gcc v7.3.0.
 
 \index{stack}\marginlabel{Haskell Stack:}
 Pip uses a home-made extractor to convert Coq code into C code. In order to compile this Extractor, which is written in Haskell, we use the Stack tool to download and install automatically the required GHC and libraries.
@@ -31,7 +31,7 @@ Pip uses a home-made extractor to convert Coq code into C code. In order to comp
 \index{coq}\marginlabel{Coq Proof Assistant:}
 Pip's source code and formal proof of its memory isolation properties are written
 using the Coq proof assistant. In order to compile Coq files and
-generate the required intermediate files for the kernel to build, you will need the 8.5pl2 version of Coq.  A clean way to install Coq is via OPAM and is described in Section.~\ref{sec:getready}.
+generate the required intermediate files for the kernel to build, you will need the 8.6.1 version of Coq.  A clean way to install Coq is via OPAM and is described in Section.~\ref{sec:getready}.
 
 \index{nasm}\marginlabel{Netwide Assembler:}
 Pip's assembly sources are compiled using the Netwide Assembler (NASM). A known working version is version 2.11.08, although any version since 2.0 should be working.
@@ -92,7 +92,7 @@ Here, you need to specify which compiler and LibPip to
 use. Basically, we will use GCC as C compiler and assembler, and LD as linker. Set LIBPIP to \texttt{LIBPATH}, which we defined in the previous chapter as the path to LibPip's repository. Feel free to replace those with your favourite toolchain (e.g. i386-elf-gcc on Mac OSX).
 \begin{lstlisting}[language=bash,caption={\texttt{toolchain.mk} configuration}]
 CC=gcc
-LD=ld
+LD=ld:w
 AS=gcc
 LIBPIP=~/Pip/LibPip
 \end{lstlisting}
@@ -105,13 +105,13 @@ The following commands summarize the installation on a Debian 8.1 or Ubuntu 16.0
 \begin{lstlisting}[language=bash]
 > sudo apt install haskell-stack nasm doxygen opam
 
-# Install COQ version 8.5.2
-> export OPAMROOT=~/opam-coq.8.5.2
+# Install COQ version 8.6.1
+> export OPAMROOT=~/opam-coq.8.6.1
 > opam init -n --comp=4.01.0 -j 2
 > opam repo add coq-released \
      http://coq.inria.fr/opam/released
-> opam install coq.8.5.2
-> opam pin add coq 8.5.2
+> opam install coq.8.6.1
+> opam pin add coq 8.6.1
 
 # check if COQ is correctly installed
 > coqc -v

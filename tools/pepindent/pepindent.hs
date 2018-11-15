@@ -1,6 +1,6 @@
 #!/usr/bin/runhaskell
 ---------------------------------------------------------------------------------
---  © Université Lille 1, The Pip Development Team (2015-2017)                 --
+--  © Université Lille 1, The Pip Development Team (2015-2018)                 --
 --                                                                             --
 --  This software is a computer program whose purpose is to run a minimal,     --
 --  hypervisor relying on proven properties such as memory isolation.          --

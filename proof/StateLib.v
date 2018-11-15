@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -265,11 +265,6 @@ then Some pd
     end
    end. 
 
-(* (* Inductive option (A : Type) : Type :=  Some : A -> option A | None : option A. *)
-Inductive optionPage (p : page) : page :=  
-|SomePage : page -> optionPage p
-|SomeDefault : optionPage p
-| NonePage  : optionPage p. *)
 Inductive optionPage : Type:= 
 |SomePage : page -> optionPage
 |SomeDefault :  optionPage

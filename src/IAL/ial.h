@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -68,8 +68,12 @@ void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted pa
 #include <x86int.h>
 void
 dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2,
-			  gate_ctx_t *ctx);
+			  uint32_t data1, uint32_t data2
+#ifndef X86SMP
+              , gate_ctx_t *ctx);
+#else
+                );
+#endif
 
 /**
  * \struct partition_id
