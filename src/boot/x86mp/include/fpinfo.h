@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,67 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file fpinfo.h
+ * \brief First partition info structure header
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef __FPINFO__
+#define __FPINFO__
 
-#include <stdint.h>
-
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
-
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
+#define FPINFO_MAGIC 0xDEADCAFE
 
 /**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
+ * \enum fpinfo_devicetype
+ * \brief Describes the device type
  */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
+enum fpinfo_devicetype {BUILTIN, PCI, OTHER};
 
 /**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
+ * \struct fpinfo_pci_extendedinfo
+ * \brief Describes a PCI device (leaves the further parsing up to the partition)
  */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
+typedef struct fpinfo_pci_extendedinfo 
+{
+    uint8_t device_class; //!< Device class
+    uint8_t device_subclass; //!< Device subclass
+    uint8_t bus; //!< PCI bus
+    uint8_t slot; //!< PCI slot in bus
+} pip_fpinfo_pci_extendedinfo;
 
-typedef struct partition_id pip_pid;
+/**
+ * \struct fpinfo_device
+ * \brief Represents a device, as probed by IAL
+ * \warning extended_info pointer is *INVALID* in root partition. If NULL, there is no info, else, find it at &dev + sizeof(pip_fpinfo_device).
+ */
+typedef struct fpinfo_device {
+    enum fpinfo_devicetype type; //!< Described device type
+    uintptr_t mmio_begin; //!< Device memory range begin
+    uintptr_t mmio_end; //!< Device memory range end
+    uint32_t io_begin; //!< IO port range begin
+    uint32_t io_end; //!< IO port range end
+    struct fpinfo_pci_extendedinfo *extended_info; //!< Describes the internals of a PCI device. NULL on other device types
+} pip_fpinfo_device;
+
+/**
+ * \struct fpinfotag_hw
+ * \brief First partition info, hardware section
+ */
+typedef struct fpinfotag_hw
+{
+    uint32_t hwcount; //!< Amount of pip_fpinfo_device structures
+    pip_fpinfo_device *devices; //!< Array containing hwcount devices
+} pip_fpinfotag_hw;
+
+/**
+ * \struct fpinfo
+ * \brief First partition info structure
+ */
+typedef struct fpinfo {
+	uint32_t magic; //!< Magic number, should be FPINFO_MAGIC
+	uint32_t membegin; //!< Available memory range begin
+	uint32_t memend; //!< Available memory range end
+	char revision[64]; //!< Pip Git revision
+    pip_fpinfotag_hw hwinfo; //!< Hardware info
+} pip_fpinfo;
 
 #endif

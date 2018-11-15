@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,94 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file debug.h
+ * \brief Include file for debugging output
  */
 
-#ifndef __IAL__
-#define __IAL__
+
+#ifndef __SCR__
+#define __SCR__
 
 #include <stdint.h>
+#include <stdarg.h>
+#include "mal.h"
+#include "mp.h"
+#include "ial_defines.h"
+#include "lock.h"
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+extern volatile int kprintf_lock;
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
+/**
+ * \brief Strings for debugging output.
+ */
+#define CRITICAL	0 //!< Critical output
+#define	ERROR		1 //!< Error output
+#define WARNING		2 //!< Warning output
+#define	INFO		3 //!< Information output
+#define LOG		4 //!< Log output
+#define TRACE		5 //!< Annoying, verbose output
 
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
+#define True 1
+#define False 0
 
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
+#ifdef PIPDEBUG
+
+#ifndef LOGLEVEL
+#define LOGLEVEL CRITICAL
 #endif
 
 /**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
+ * \brief Defines the appropriate DEBUGRAW behavior. 
  */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
+#define DEBUGRAW(a) krn_puts(a)
 
 /**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
+ * \brief Defines the appropriate DEBUG behavior.
  */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
+#define DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
+#define IAL_DEBUG(l,a,...) if(l<=LOGLEVEL){ MP_LOCK(kprintf_lock); kprintf(#l " IAL [CPU%d(%s)][%s:%d] " a, coreId(), (coreId() == 0) ? "BSP" : "AP", __FILE__, __LINE__, ##__VA_ARGS__); MP_UNLOCK(kprintf_lock); }
+#define SMP_DEBUG(l,a,...) if(l<=LOGLEVEL){ kprintf(#l " [AP][%s:%d] " a, __FILE__, __LINE__, ##__VA_ARGS__);}
+#define SMP_DEBUGF(a,...) kprintf("[CPU%d][%s:%d] " a, coreId(),  __FILE__, __LINE__, ##__VA_ARGS__);
+/* #define DEBUG(l,a) { krn_puts(debugstr[l]); krn_puts("["); krn_puts(__FILE__); krn_puts(":"); putdec(__LINE__); krn_puts("] "); krn_puts(a);} */
 
-typedef struct partition_id pip_pid;
+/**
+ * \brief Defines the appropriate DEBUGHEX behavior.
+ */
+#define DEBUGHEX(a) puthex(a)
+/**
+ * \brief Defines the appropriate DEBUGDEC behavior. 
+ */
+#define DEBUGDEC(a) putdec(a)
+#else
+/**
+ * \brief Defines the appropriate DEBUG behavior. 
+ */
+#define DEBUG(...)
+#define DEBUGRAW(...)
+/**
+ * \brief Defines the appropriate DEBUGHEX behavior. 
+ */
+#define DEBUGHEX(...)
+/**
+ * \brief Defines the appropriate DEBUGDEC behavior. 
+ */
+#define DEBUGDEC(...)
+#define IAL_DEBUG(...)
+#define SMP_DEBUG(...)
+#define SMP_DEBUGF(...)
 
+#endif
+
+void krn_puts(char *c);
+void kaput(char c);
+void puthex(int n);
+void putdec(int n);
+
+void counter_update(uint32_t begin);
+void display_time();
+
+void kprintf(char *fmt, ...);
+
+#define BENCH_BEGIN counter_update(1)
+#define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
 #endif

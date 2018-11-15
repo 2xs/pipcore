@@ -1,3 +1,29 @@
+# Version 0.3 - TDB
+## Changes
+
+- Added a new target - x86mp
+    - Full support of Intel x86 multi-core
+    - Currently boots one root partition per core, each using different portions of physical memory
+    - Additional root partitions for APs are loaded at boot-time through GRUB modules
+    - Supports up to 4 cores - random behaviour have to be expected when using more
+
+- Noticeable changes between x86_multiboot and x86mp :
+    - Replaced old PIC 8259 with IO/APIC
+    - Replaced old PIC8259 timer with APIC timer
+    - Deprecated farcalls to query the kernel - should not be used anymore, see LibPip's x86 SMP variant
+    - Implemented SYSENTER/SYSEXIT instead
+    - Each "singleton" value in the kernel, e.g. current partition or memory space, are now core-local
+
+- Various fixes :
+    - Disabled PCID during boot - should only be enabled when Long Mode is enabled, triggers a Protection Fault on real hardware otherwise
+    - Fixed some API calls' kernel stack overflow
+
+- Added pipcall :
+    - Pip_SmpRequest(Parameter, OptionalParameter) : generic SMP-related Pipcall
+    - Pip_SmpRequest(0, 0) returns the current core id
+    - Pip_SmpRequest(1, 0) returns the amount of cores
+    - More calls might be added later, such as Virtual Inter-Processor Interrupt requests
+
 # Version 0.2 - 29/09/2017
 ## Changes
 

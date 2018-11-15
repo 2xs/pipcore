@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,70 +31,31 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
- */
+#ifndef __IAL_DEFINES__
+#define __IAL_DEFINES__
 
-#ifndef __IAL__
-#define __IAL__
+#define IAL_PREFIX				"みちる"
+#define IAL_VERSION				"0.1"
 
-#include <stdint.h>
+#define SIZEOF_CTX				sizeof(int_ctx_t)
+#define GENERAL_REG(a, c)		a->regs.c
+#define OPTIONAL_REG(a, c)		a->c
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+#define PIPFLAGS				((uintptr_t*)(VIDT + 0xFFC))
+#define INTLEVEL_GET			(*PIPFLAGS & 0xFFFFFF00) >> 8
+#define INTLEVEL_SET(a)			*PIPFLAGS = (*PIPFLAGS & 0xFFFFFF00) | (a << 8)
+#define VIDT_VCLI				*PIPFLAGS & 0x00000001
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
 
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
+#define VIDT_CTX_BUFFER			(int_ctx_t*)(PIPFLAGS - SIZEOF_CTX)
+#define INT_IRQ(a)				(a >= 32 && a <= 47)
 
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
+#define PARTITION_PARENT		0
+#define PARTITION_ROOT			getRootPartition()
+#define PARTITION_CURRENT		getCurPartition()
 
-/**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
- */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
-
-/**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
- */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
-
-typedef struct partition_id pip_pid;
-
+#define VIDT					(IS_MPMT ? (0xFFFFF000 - 0x1000 * coreId()) : 0xFFFFF000)
+#define VIDT_INT_EIP(a)			readTableVirtualNoFlags (VIDT, (2 * a))
+#define VIDT_INT_ESP(a)			readTableVirtualNoFlags (VIDT, (2 * a) + 1)
+#define VIDT_INT_ESP_SET(a,s)	writeTableVirtualNoFlags (VIDT, (2 * a) + 1, s)
 #endif

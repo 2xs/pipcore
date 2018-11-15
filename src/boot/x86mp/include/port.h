@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,30 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file port.h
+ * \brief Include file for IO-ports operations
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef __PORT__
+#define __PORT__
 
 #include <stdint.h>
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+#define FAULT_FORBIDDEN		64
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
+void outb(uint16_t port, uint8_t value); //!< IO port write byte
+void outw(uint16_t port, uint16_t value); //!< IO port write word
+uint8_t inb(uint16_t port); //!< IO port read byte
+uint16_t inw(uint16_t port); //!< IO port read word
 
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
+/* Call-gate IO methods */
+void cg_outb(uint32_t port, uint32_t value); //!< Outb callgate method
+uint32_t cg_inb(uint32_t port); //!< Inb callgate method
 
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
+void cg_outw(uint32_t port, uint32_t value); //!< Outw callgate method
+uint32_t cg_inw(uint32_t port); //!< Inw callgate method
 
-/**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
- */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
-
-/**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
- */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
-
-typedef struct partition_id pip_pid;
-
+void cg_outl(uint32_t port, uint32_t value); //!< Outl callgate method
+void cg_outaddrl(uint32_t port, uint32_t value); //!< Outaddrl callgate method
+uint32_t cg_inl(uint32_t port); //!< Inl callgate method
 #endif

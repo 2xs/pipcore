@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,70 +31,16 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-/**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
- */
-
-#ifndef __IAL__
-#define __IAL__
+#ifndef __HDEF__
+#define __HDEF__
 
 #include <stdint.h>
+#include "ial.h"
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
+#define HSPEC_COUNT 1
 
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
-
-/**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
- */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
-
-/**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
- */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
-
-typedef struct partition_id pip_pid;
+struct hardware_def pshw[HSPEC_COUNT] = {
+    { "VGAController", 0xb8000, 0xc00b8000, 0x8000 }, 
+}; 
 
 #endif

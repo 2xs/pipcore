@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,48 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file structures.h
+ * \brief x86 MAL structures
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef STRUCT_H
+#define STRUCT_H
 
 #include <stdint.h>
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
-
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
+#define PAGE_SIZE 4096 //!< Page size
 
 /**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
+ * \struct page_table_entry
+ * \brief Page Table entry structure
  */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
+typedef struct page_table_entry
+{
+    uint32_t present    : 1;   //!< Page present in memory
+    uint32_t rw         : 1;   //!< Read-only if clear, readwrite if set
+    uint32_t user       : 1;   //!< Supervisor level only if clear
+    uint32_t accessed   : 1;   //!< Has the page been accessed since last refresh?
+    uint32_t dirty      : 1;   //!< Has the page been written to since last refresh?
+    uint32_t unused     : 7;   //!< Amalgamation of unused and reserved bits
+    uint32_t frame      : 20;  //!< Frame address (shifted right 12 bits)
+} page_table_entry_t;
 
 /**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
+ * \struct page_table
+ * \brief Page Table structure
  */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
+typedef struct page_table
+{
+    page_table_entry_t pages[1024]; //!< Page Table Entries in this Page Table
+} page_table_t;
 
-typedef struct partition_id pip_pid;
+/**
+ * \struct page_directory
+ * \brief Page Directory structure
+ */
+typedef struct page_directory
+{
+    uint32_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
+} page_directory_t;
 
 #endif

@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,30 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file pic8259.h
+ * \brief x86 PIC 8259 defines
  */
 
-#ifndef __IAL__
-#define __IAL__
+#ifndef PIC8259_H
+#define PIC8259_H
 
-#include <stdint.h>
+#define PIC1		0x20	/* IO base address for master PIC */
+#define PIC2		0xA0	/* IO base address for slave PIC */
+#define PIC1_COMMAND	PIC1
+#define PIC1_DATA	(PIC1+1)
+#define PIC2_COMMAND	PIC2
+#define PIC2_DATA	(PIC2+1)
+#define ICW1_ICW4	0x01	/* ICW4 (not) needed */
+#define ICW1_SINGLE	0x02	/* Single (cascade) mode */
+#define ICW1_INTERVAL4	0x04	/* Call address interval 4 (8) */
+#define ICW1_LEVEL	0x08	/* Level triggered (edge) mode */
+#define ICW1_INIT	0x10	/* Initialization - required! */
 
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
-
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
-
-/**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
- */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
-
-/**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
- */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
-
-typedef struct partition_id pip_pid;
+#define ICW4_8086	0x01	/* 8086/88 (MCS-80/85) mode */
+#define ICW4_AUTO	0x02	/* Auto (normal) EOI */
+#define ICW4_BUF_SLAVE	0x08	/* Buffered mode/slave */
+#define ICW4_BUF_MASTER	0x0C	/* Buffered mode/master */
+#define ICW4_SFNM	0x10	/* Special fully nested (not) */
+#define PIC_EOI		0x20
 
 #endif

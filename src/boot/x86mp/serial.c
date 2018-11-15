@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2017)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -32,69 +32,75 @@
 /*******************************************************************************/
 
 /**
- * \file ial.h
- * \brief Interrupt Abstraction Layer common interface
+ * \file serial.c
+ * \brief Serial driver for debugging purposes
  */
+#include "serial.h"
+#include "port.h"
+#include "lock.h"
+#include "debug.h"
 
-#ifndef __IAL__
-#define __IAL__
+volatile int kprintf_lock = 0;
 
-#include <stdint.h>
-
-typedef enum user_ctx_role_e {
-	/* saved when an interruption occurs*/
-	INT_CTX = 0,
-	/* saved when partition triggers fault*/
-	ISR_CTX = 1,
-	/* saved in parent when notifying a child */
-	NOTIF_CHILD_CTX = 2,
-	/* saved in child when notifying the parent */
-	NOTIF_PARENT_CTX = 3,
-	/* the invalid index */
-	INVALID_CTX = 4,
-} user_ctx_role_t;
-
-// These are deprecated and are about to be removed
-void initInterrupts(); //!< Interface for interrupt initialization
-void panic(); //!< Interface for kernel panic
-
-// The TRUE interface
-void enableInterrupts(); //!< Interface for interrupt activation
-void disableInterrupts(); //!< Interface for interrupt desactivation
-void dispatch2 (uint32_t partition, uint32_t vint, uint32_t data1, uint32_t data2, uint32_t caller); //!< Dispatch & switch to given partition
-void resume (uint32_t descriptor, uint32_t pipflags); //!< Resume interrupted partition
-
-// FIXME: move this away
-#include <x86int.h>
-void
-dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
-			  uint32_t data1, uint32_t data2
-#ifndef X86SMP
-              , gate_ctx_t *ctx);
-#else
-                );
-#endif
+#define PORT 0x3f8 //!< Serial port COM1 number
+ 
+/**
+ * \fn void initSerial()
+ * \brief Initializes the serial port
+ */
+void initSerial() {
+       outb(PORT + 1, 0x00);    // Disable all interrupts
+       outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+       outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+       outb(PORT + 1, 0x00);    //                  (hi byte)
+       outb(PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+       outb(PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+       outb(PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+}
 
 /**
- * \struct partition_id
- * \brief Partition-to-PartitionID structure
+ * \fn int serialReceived()
+ * \brief Checks whether we received some data on the serial port
+ * \return 1 if some data is available, 0 else
  */
-struct partition_id {
-	uint32_t partition;
-	uint32_t id;
-};
+int serialReceived() {
+       return inb(PORT + 5) & 1;
+}
 
 /**
- * \struct hardware_def
- * \brief Platform-specific hardware memory range definition
+ * \fn char readSerial()
+ * \brief Gets a character from the serial port
+ * \return The character
  */
-struct hardware_def {
-	const char*	name;
-	uintptr_t	paddr_base;
-	uintptr_t	vaddr_base;
-	uintptr_t	limit;
-};
+char readSerial() {
+       while (serialReceived() == 0);
+       return inb(PORT);
+}
 
-typedef struct partition_id pip_pid;
+/**
+ * \fn int isTransmitEmpty()
+ * \brief Checks whether our serial line buffer is empty or not
+ * \return 0 if it's not empty, 1 else
+ */
+int isTransmitEmpty() {
+       return inb(PORT + 5) & 0x20;
+}
+ 
+/**
+ * \fn void writeSerial(char a)
+ * \brief Writes a character into the serial port
+ * \param a The character to write
+ */
+void writeSerial(char a) {
+       while (isTransmitEmpty() == 0);
+       outb(PORT,a);
+}
 
-#endif
+
+
+void slputs_sync(char* str)
+{
+    MP_LOCK(kprintf_lock);
+    krn_puts(str);
+    MP_UNLOCK(kprintf_lock);
+}
