@@ -55,7 +55,7 @@
            for mapping
     Step 7 "deletePartition" : The multiplexer deletes the child and gets 
             all used pages back *) 
-Require Import List Core.Services Model.Hardware Isolation  
+Require Import List Core.Services Model.Hardware   
 Model.ADT Model.MALInternal Model.MAL.
 Import List.ListNotations.
 
@@ -199,12 +199,12 @@ Services.deletePartition (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)]).
 (** deletePartition test : OK *)
 Eval vm_compute in deletePartition.
 
-Definition dispatch := 
+(* Definition dispatch := 
 addVAddr;;
 Services.dispatch (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)]).
 
 (** dispatch test : OK *)
-Eval vm_compute in dispatch.  
+Eval vm_compute in dispatch.   *)
 
    END SIMULATION *)
 

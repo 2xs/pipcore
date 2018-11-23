@@ -892,7 +892,8 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
   match timeout with
   | 0 => ret false (* getDefaultVAddr*)
   | S timeout1 =>
-
+    perform isFstLevel := Level.eqb currentLevel fstLevel in 
+    if isFstLevel then ret true else
     perform ptVaToCollectFromPDChild := getTableAddr phyPDChild vaToCollect currentLevel in (** Get indirection table address, last nbL *)
 
     perform isNull := comparePageToNull ptVaToCollectFromPDChild in if isNull then ret false else
