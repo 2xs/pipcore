@@ -1026,11 +1026,10 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
     else ret false
   else ret false.
 
-(** *)
+
 Definition yield (targetPartitionDescriptor : vaddr)
                  (targetInterruption : userValue)
-                 (contextSaveAddr : vaddr)
-                 (userSaveIndex : userValue)
+                 (callerContextSaveIndex : userValue)
                  (flagsOnWake : interruptionMask)
                  (flagsOnYield : interruptionMask)
                  (interruptedContext : contextAddr)
@@ -1043,487 +1042,356 @@ Definition yield (targetPartitionDescriptor : vaddr)
   else
   (*--------------------------*)
 
-  perform currentPartition := getCurPartition in
-  perform currentPageDir := getPd currentPartition in
+  perform callerPartition := getCurPartition in
+  perform callerPageDir := getPd currentPartition in
   perform nbL := getNbLevel in
 
   (*--------------------------*)
 
-  perform ctxSaveAddrIsNull := compareVAddrToNull contextSaveAddr in
-  if ctxSaveAddrIsNull then
+  (* check context save index *)
+  perform callerContextSaveIndexIsValid := checkVint callerContextSaveIndex in
+  if negb userSaveIndexIsValid then
+    ret FAIL_CTX_SAVE_INDEX
+  else
 
-    (* do not save context *)
+  perform contextSaveIndex := getIndexFromUserValue callerContextSaveIndex in
 
-    (* check caller vidt *)
-    perform vidtVaddr := getVidtVAddr in
-    perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
-    perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
-    if vidtLastMMUPageisNull then
-      ret FAIL_CALLER_VIDT
+  (*--------------------------*)
+
+  (* check caller vidt *)
+  perform vidtVaddr := getVidtVAddr in
+  perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
+  perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
+  if vidtLastMMUPageisNull then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
+  perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb callerVidtIsPresent then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb callerVidtIsAccessible then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
+
+  (*--------------------------*)
+
+  (* check if caller wants to save its context *)
+  perform contextSaveAddr := readUserData callerVidt contextSaveIndex in
+  perform userWantsToSaveItsContext := compareVAddrToNull contextSaveAddr in
+
+  (*--------------------------*)
+
+  perform targetPartitionIsDefault := compareVAddrToNull targetPartitionDescriptor in
+  (* yield from child to parent *)
+  if targetPartitionIsDefault then
+
+    (* check if partition is root *)
+    perform rootPartition := getMultiplexer in
+    perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
+    if currentPartitionIsRoot then
+      ret FAIL_ROOT_CALLER
     else
 
-    perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
-    perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
-    if negb callerVidtIsPresent then
-      ret FAIL_CALLER_VIDT
+    (*############################*)
+
+    (* check if target vidt is available *)
+    perform parentPartDesc := getParent currentPartition in
+    perform parentPageDir := getPd parentPartDesc in
+
+    perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
+    perform parentVidtLastMMUPageisNull := comparePageToNull parentVidtLastMMUPage in
+    if parentVidtLastMMUPageisNull then
+      ret FAIL_TARGET_VIDT
     else
 
-    perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
-    if negb callerVidtIsAccessible then
-      ret FAIL_CALLER_VIDT
+    perform parentVidtIsPresent := readPresent parentVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb parentVidtIsPresent then
+      ret FAIL_TARGET_VIDT
     else
 
-    perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
-    perform targetPartitionIsDefault := compareVAddrToNull targetPartitionDescriptor in
-    if targetPartitionIsDefault then
-    (* transfer from child to parent *)
+    perform parentVidtIsAccessible := readAccessible parentVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb parentVidtIsAccessible then
+      ret FAIL_TARGET_VIDT
+    else
 
-      perform rootPartition := getMultiplexer in
-      perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
-      if currentPartitionIsRoot then
-        ret FAIL_ROOT_CALLER
-      else
+    perform parentVidt := readPhyEntry parentVidtLastMMUPage idxVidtInLastMMUPage in
 
-      perform parentPartDesc := getParent currentPartition in
-      perform parentPageDir := getPd parentPartDesc in
+    (*############################*)
 
-      (* retriving parent VIDT *)
-      perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
-      perform parentVidtLastMMUPageisNull := comparePageToNull parentVidtLastMMUPage in
-      if parentVidtLastMMUPageisNull then
-        ret FAIL_TARGET_VIDT
-      else
+    (* checking if interruption is not masked *)
+    perform parentInterruptionMask := readInterruptionMask parentVidt in
+    perform maskedInterruptionInParent := isInterruptionMasked parentInterruptionMask targetInterruption in
+    if maskedInterruptionInParent then
+      ret FAIL_MASKED_INTERRUPT
+    else
 
-      perform parentVidtIsPresent := readPresent parentVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb parentVidtIsPresent then
-        ret FAIL_TARGET_VIDT
-      else
+    (*############################*)
 
-      perform parentVidtIsAccessible := readAccessible parentVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb parentVidtIsAccessible then
-        ret FAIL_TARGET_VIDT
-      else
+    (* retrieving the context to be restored from parent *)
+    perform vaddrCtxToBeRestored := readUserData parentVidt (CIndex targetInterruption) in
+    perform ctxToBeRestoredLastMMUPage := getTableAddr parentPageDir vaddrCtxToBeRestored nbL in
+    perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
+    if ctxToBeRestoredLastMMUPageisNull then
+      ret FAIL_TARGET_CTX
+    else
 
-      perform parentVidt := readPhyEntry parentVidtLastMMUPage idxVidtInLastMMUPage in
+    perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
+    perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsPresent then
+      ret FAIL_TARGET_CTX
+    else
 
-      (* checking if interruption is not masked *)
-      perform parentInterruptionMask := readInterruptionMask parentVidt in
-      perform maskedInterruptionInParent := isInterruptionMasked parentInterruptionMask targetInterruption in
-      if maskedInterruptionInParent then
-        ret FAIL_MASKED_INTERRUPT
-      else
+    perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsAccessible then
+      ret FAIL_TARGET_CTX
+    else
 
-      (* retrieving the context to be restored from parent *)
-      perform vaddrCtxToBeRestored := readUserData parentVidt (CIndex targetInterruption) in
-      perform ctxToBeRestoredLastMMUPage := getTableAddr parentPageDir vaddrCtxToBeRestored nbL in
-      perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
-      if ctxToBeRestoredLastMMUPageisNull then
+    (* get ctx end addr *)
+    perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
+    perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
+    if targetCtxEndAddrOverflow then
         ret FAIL_TARGET_CTX
+    else
+
+    (* check context end save address *)
+    perform endCtxToBeRestoredLastMMUPage := getTableAddr parentPageDir endVaddrCtxToBeRestored nbL in
+    perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
+    if endCtxToBeRestoredLastMMUPageisNull then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
+    perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
+    if negb endPageCtxToBeRestoredIsPresent then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsAccessible then
+      ret FAIL_TARGET_CTX
+    else
+
+    (*############################*)
+
+    if (userWantsToSaveItsContext) then
+      (* check contextSaveAddr validity *)
+      perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
+      perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
+      if ctxLastMMUPageisNull then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
-      perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
+      perform idxCtxInLastMMUPage := getIndexOfAddr contextSaveAddr fstLevel in
+      perform ctxPageIsPresent := readPresent ctxLastMMUPage idxCtxInLastMMUPage in
+      if negb ctxPageIsPresent then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
+      perform ctxPageIsAccessible := readAccessible ctxLastMMUPage idxCtxInLastMMUPage in
+      if negb ctxPageIsAccessible then
+        ret FAIL_CTX_SAVE_ADDR
+      else
+      (*--------------------------*)
+
+      (* get end ctx address *)
+      perform contextEndSaveAddr := getNthVAddrFrom contextSaveAddr contextSizeMinusOne in
+      perform endAddrOverflow := firstVAddrGreaterThanSecond contextSaveAddr contextEndSaveAddr in
+      if endAddrOverflow then
+          ret FAIL_CTX_SAVE_ADDR
+      else
+      (*--------------------------*)
+
+      (* check context save address *)
+      perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
+      perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
+      if ctxEndLastMMUPageisNull then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      (* get ctx end addr *)
-      perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
-      perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
-      if targetCtxEndAddrOverflow then
-          ret FAIL_TARGET_CTX
+      perform idxCtxEndInLastMMUPage := getIndexOfAddr contextEndSaveAddr fstLevel in
+      perform ctxEndPageIsPresent := readPresent ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+      if negb ctxEndPageIsPresent then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      (* check context end save address *)
-      perform endCtxToBeRestoredLastMMUPage := getTableAddr parentPageDir endVaddrCtxToBeRestored nbL in
-      perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
-      if endCtxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
+      perform ctxEndPageIsAccessible := readAccessible ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+      if negb ctxEndPageIsAccessible then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
-      perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb endPageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* ------- memory modification --------- *)
+      (* ------- memory modification ------- *)
+      saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;;
       setInterruptionMask callerVidt flagsOnYield ;;
       updateCurPartAndActivate parentPartDesc parentPageDir ;;
-(*       loadContext(vaddrCtxToBeRestored) ;; *)
+      (* loadContext(vaddrCtxToBeRestored) ;; *)
       ret SUCCESS
 
+    (* no need to check for callerContextSaveAddr validity *)
     else
-    (* transfer from parent to child *)
-
-      (* checking child validity *)
-      perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
-      perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
-      if childLastMMUTableIsNull then
-          ret FAIL_INVALID_CHILD
-      else
-      perform idxChildPartDesc := getIndexOfAddr targetPartitionDescriptor fstLevel in
-      perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
-      if negb childPartDescIsPresent then
-          ret FAIL_INVALID_CHILD
-      else
-
-      perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
-      if negb validChild then
-          ret FAIL_INVALID_CHILD
-      else
-
-      (* retrieving child page directory *)
-      perform childPartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
-      perform childPageDir := getPd childPartDesc in
-
-      perform childVidtLastMMUPage := getTableAddr childPageDir vidtVAddr nbL in
-      perform childVidtLastMMUPageisNull := comparePageToNull childVidtLastMMUPage in
-      if childVidtLastMMUPageisNull then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidtIsPresent := readPresent childVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb childVidtIsPresent then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidtIsAccessible := readAccessible childVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb childVidtIsAccessible then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidt := readPhyEntry childVidtLastMMUPage idxVidtInLastMMUPage in
-      (* checking if interruption is not masked *)
-      perform childInterruptionMask := readInterruptionMask childVidt in
-      perform maskedInterruptionInChild := isInterruptionMasked childInterruptionMask targetInterruption in
-      if maskedInterruptionInChild then
-        ret FAIL_MASKED_INTERRUPT
-      else
-
-      (* retrieving the context to be restored from child *)
-      perform vaddrCtxToBeRestored := readUserData childVidt (CIndex targetInterruption) in
-      perform ctxToBeRestoredLastMMUPage := getTableAddr childPageDir vaddrCtxToBeRestored nbL in
-      perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
-      if ctxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
-      perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* get ctx end addr *)
-      perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
-      perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
-      if targetCtxEndAddrOverflow then
-          ret FAIL_TARGET_CTX
-      else
-
-      (* check context end save address *)
-      perform endCtxToBeRestoredLastMMUPage := getTableAddr childPageDir endVaddrCtxToBeRestored nbL in
-      perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
-      if endCtxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
-      perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb endPageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-
-      (* ------- memory modification --------- *)
+      (* ------- memory modification ------- *)
       setInterruptionMask callerVidt flagsOnYield ;;
-      updateCurPartAndActivate childPartDesc childPageDir ;;
-(*       loadContext(vaddrCtxToBeRestored) ;; *)
+      updateCurPartAndActivate parentPartDesc parentPageDir ;;
+      (* loadContext(vaddrCtxToBeRestored) ;; *)
       ret SUCCESS
 
   else
+  (* transfer from parent to child *)
 
-    (* check context save address *)
-    perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
-    perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
-    if ctxLastMMUPageisNull then
-      ret FAIL_CTX_SAVE_ADDR
+    (* checking child validity *)
+    perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
+    perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
+    if childLastMMUTableIsNull then
+        ret FAIL_INVALID_CHILD
+    else
+    perform idxChildPartDesc := getIndexOfAddr targetPartitionDescriptor fstLevel in
+    perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
+    if negb childPartDescIsPresent then
+        ret FAIL_INVALID_CHILD
     else
 
-    perform idxCtxInLastMMUPage := getIndexOfAddr contextSaveAddr fstLevel in
-    perform ctxPageIsPresent := readPresent ctxLastMMUPage idxCtxInLastMMUPage in
-    if negb ctxPageIsPresent then
-      ret FAIL_CTX_SAVE_ADDR
+    perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
+    if negb validChild then
+        ret FAIL_INVALID_CHILD
     else
 
-    perform ctxPageIsAccessible := readAccessible ctxLastMMUPage idxCtxInLastMMUPage in
-    if negb ctxPageIsAccessible then
-      ret FAIL_CTX_SAVE_ADDR
-    else
-    (*--------------------------*)
+    (* retrieving child page directory *)
+    perform childPartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
+    perform childPageDir := getPd childPartDesc in
 
-    (* get end ctx address *)
-    perform contextEndSaveAddr := getNthVAddrFrom contextSaveAddr contextSizeMinusOne in
-    perform endAddrOverflow := firstVAddrGreaterThanSecond contextSaveAddr contextEndSaveAddr in
-    if endAddrOverflow then
+    perform childVidtLastMMUPage := getTableAddr childPageDir vidtVAddr nbL in
+    perform childVidtLastMMUPageisNull := comparePageToNull childVidtLastMMUPage in
+    if childVidtLastMMUPageisNull then
+      ret FAIL_TARGET_VIDT
+    else
+
+    perform childVidtIsPresent := readPresent childVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb childVidtIsPresent then
+      ret FAIL_TARGET_VIDT
+    else
+
+    perform childVidtIsAccessible := readAccessible childVidtLastMMUPage idxVidtInLastMMUPage in
+    if negb childVidtIsAccessible then
+      ret FAIL_TARGET_VIDT
+    else
+
+    perform childVidt := readPhyEntry childVidtLastMMUPage idxVidtInLastMMUPage in
+    (* checking if interruption is not masked *)
+    perform childInterruptionMask := readInterruptionMask childVidt in
+    perform maskedInterruptionInChild := isInterruptionMasked childInterruptionMask targetInterruption in
+    if maskedInterruptionInChild then
+      ret FAIL_MASKED_INTERRUPT
+    else
+
+    (* retrieving the context to be restored from parent *)
+    perform vaddrCtxToBeRestored := readUserData childVidt (CIndex targetInterruption) in
+    perform ctxToBeRestoredLastMMUPage := getTableAddr childPageDir vaddrCtxToBeRestored nbL in
+    perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
+    if ctxToBeRestoredLastMMUPageisNull then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
+    perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsPresent then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsAccessible then
+      ret FAIL_TARGET_CTX
+    else
+
+    (* get ctx end addr *)
+    perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
+    perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
+    if targetCtxEndAddrOverflow then
+      ret FAIL_TARGET_CTX
+    else
+
+    (* check context end save address *)
+    perform endCtxToBeRestoredLastMMUPage := getTableAddr childPageDir endVaddrCtxToBeRestored nbL in
+    perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
+    if endCtxToBeRestoredLastMMUPageisNull then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
+    perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
+    if negb endPageCtxToBeRestoredIsPresent then
+      ret FAIL_TARGET_CTX
+    else
+
+    perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
+    if negb pageCtxToBeRestoredIsAccessible then
+      ret FAIL_TARGET_CTX
+    else
+
+    (*############################*)
+
+    if (userWantsToSaveItsContext) then
+      (* check contextSaveAddr validity *)
+      perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
+      perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
+      if ctxLastMMUPageisNull then
         ret FAIL_CTX_SAVE_ADDR
-    else
-    (*--------------------------*)
-
-    (* check context save address *)
-    perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
-    perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
-    if ctxEndLastMMUPageisNull then
-      ret FAIL_CTX_SAVE_ADDR
-    else
-
-    perform idxCtxEndInLastMMUPage := getIndexOfAddr contextEndSaveAddr fstLevel in
-    perform ctxEndPageIsPresent := readPresent ctxEndLastMMUPage idxCtxEndInLastMMUPage in
-    if negb ctxEndPageIsPresent then
-      ret FAIL_CTX_SAVE_ADDR
-    else
-
-    perform ctxEndPageIsAccessible := readAccessible ctxEndLastMMUPage idxCtxEndInLastMMUPage in
-    if negb ctxEndPageIsAccessible then
-      ret FAIL_CTX_SAVE_ADDR
-    else
-    (*--------------------------*)
-
-    (* check context save index *)
-    perform userSaveIndexIsValid := checkCtxSaveIndex userSaveIndex in
-    if negb userSaveIndexIsValid then
-      ret FAIL_CTX_SAVE_INDEX
-    else
-
-    perform contextSaveIndex := getIndexFromUserValue userSaveIndex in
-
-    (*--------------------------*)
-
-    (* check caller vidt *)
-    perform vidtVaddr := getVidtVAddr in
-    perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
-    perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
-    if vidtLastMMUPageisNull then
-      ret FAIL_CALLER_VIDT
-    else
-
-    perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
-    perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
-    if negb callerVidtIsPresent then
-      ret FAIL_CALLER_VIDT
-    else
-
-    perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
-    if negb callerVidtIsAccessible then
-      ret FAIL_CALLER_VIDT
-    else
-
-    perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
-    perform targetPartitionIsDefault := compareVAddrToNull targetPartitionDescriptor in
-    if targetPartitionIsDefault then
-    (* transfer from child to parent *)
-
-      perform rootPartition := getMultiplexer in
-      perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
-      if currentPartitionIsRoot then
-        ret FAIL_ROOT_CALLER
       else
 
-      perform parentPartDesc := getParent currentPartition in
-      perform parentPageDir := getPd parentPartDesc in
-
-      perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
-      perform parentVidtLastMMUPageisNull := comparePageToNull parentVidtLastMMUPage in
-      if parentVidtLastMMUPageisNull then
-        ret FAIL_TARGET_VIDT
+      perform idxCtxInLastMMUPage := getIndexOfAddr contextSaveAddr fstLevel in
+      perform ctxPageIsPresent := readPresent ctxLastMMUPage idxCtxInLastMMUPage in
+      if negb ctxPageIsPresent then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform parentVidtIsPresent := readPresent parentVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb parentVidtIsPresent then
-        ret FAIL_TARGET_VIDT
+      perform ctxPageIsAccessible := readAccessible ctxLastMMUPage idxCtxInLastMMUPage in
+      if negb ctxPageIsAccessible then
+        ret FAIL_CTX_SAVE_ADDR
+      else
+      (*--------------------------*)
+
+      (* get end ctx address *)
+      perform contextEndSaveAddr := getNthVAddrFrom contextSaveAddr contextSizeMinusOne in
+      perform endAddrOverflow := firstVAddrGreaterThanSecond contextSaveAddr contextEndSaveAddr in
+      if endAddrOverflow then
+          ret FAIL_CTX_SAVE_ADDR
+      else
+      (*--------------------------*)
+
+      (* check context save address *)
+      perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
+      perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
+      if ctxEndLastMMUPageisNull then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform parentVidtIsAccessible := readAccessible parentVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb parentVidtIsAccessible then
-        ret FAIL_TARGET_VIDT
+      perform idxCtxEndInLastMMUPage := getIndexOfAddr contextEndSaveAddr fstLevel in
+      perform ctxEndPageIsPresent := readPresent ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+      if negb ctxEndPageIsPresent then
+        ret FAIL_CTX_SAVE_ADDR
       else
 
-      perform parentVidt := readPhyEntry parentVidtLastMMUPage idxVidtInLastMMUPage in
-      (* checking if interruption is not masked *)
-      perform parentInterruptionMask := readInterruptionMask parentVidt in
-      perform maskedInterruptionInParent := isInterruptionMasked parentInterruptionMask targetInterruption in
-      if maskedInterruptionInParent then
-        ret FAIL_MASKED_INTERRUPT
+      perform ctxEndPageIsAccessible := readAccessible ctxEndLastMMUPage idxCtxEndInLastMMUPage in
+      if negb ctxEndPageIsAccessible then
+        ret FAIL_CTX_SAVE_ADDR
       else
-
-      (* retrieving the context to be restored from parent *)
-      perform vaddrCtxToBeRestored := readUserData parentVidt (CIndex targetInterruption) in
-      perform ctxToBeRestoredLastMMUPage := getTableAddr parentPageDir vaddrCtxToBeRestored nbL in
-      perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
-      if ctxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
-      perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* get ctx end addr *)
-      perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
-      perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
-      if targetCtxEndAddrOverflow then
-          ret FAIL_TARGET_CTX
-      else
-
-      (* check context end save address *)
-      perform endCtxToBeRestoredLastMMUPage := getTableAddr parentPageDir endVaddrCtxToBeRestored nbL in
-      perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
-      if endCtxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
-      perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb endPageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* ------- memory modification --------- *)
-      saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;;
-      setInterruptionMask callerVidt flagsOnYield ;;
-      updateCurPartAndActivate parentPartDesc parentPageDir ;;
-(*       loadContext(vaddrCtxToBeRestored) ;; *)
-      ret SUCCESS
-
-    else
-    (* transfer from parent to child *)
-
-      (* checking child validity *)
-      perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
-      perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
-      if childLastMMUTableIsNull then
-          ret FAIL_INVALID_CHILD
-      else
-      perform idxChildPartDesc := getIndexOfAddr targetPartitionDescriptor fstLevel in
-      perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
-      if negb childPartDescIsPresent then
-          ret FAIL_INVALID_CHILD
-      else
-
-      perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
-      if negb validChild then
-          ret FAIL_INVALID_CHILD
-      else
-
-      (* retrieving child page directory *)
-      perform childPartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
-      perform childPageDir := getPd childPartDesc in
-
-      perform childVidtLastMMUPage := getTableAddr childPageDir vidtVAddr nbL in
-      perform childVidtLastMMUPageisNull := comparePageToNull childVidtLastMMUPage in
-      if childVidtLastMMUPageisNull then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidtIsPresent := readPresent childVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb childVidtIsPresent then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidtIsAccessible := readAccessible childVidtLastMMUPage idxVidtInLastMMUPage in
-      if negb childVidtIsAccessible then
-        ret FAIL_TARGET_VIDT
-      else
-
-      perform childVidt := readPhyEntry childVidtLastMMUPage idxVidtInLastMMUPage in
-      (* checking if interruption is not masked *)
-      perform childInterruptionMask := readInterruptionMask childVidt in
-      perform maskedInterruptionInChild := isInterruptionMasked childInterruptionMask targetInterruption in
-      if maskedInterruptionInChild then
-        ret FAIL_MASKED_INTERRUPT
-      else
-
-      (* retrieving the context to be restored from parent *)
-      perform vaddrCtxToBeRestored := readUserData childVidt (CIndex targetInterruption) in
-      perform ctxToBeRestoredLastMMUPage := getTableAddr childPageDir vaddrCtxToBeRestored nbL in
-      perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
-      if ctxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxPageInLastMMUPage := getIndexOfAddr vaddrCtxToBeRestored fstLevel in
-      perform pageCtxToBeRestoredIsPresent := readPresent ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible ctxToBeRestoredLastMMUPage idxCtxPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* get ctx end addr *)
-      perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
-      perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
-      if targetCtxEndAddrOverflow then
-        ret FAIL_TARGET_CTX
-      else
-
-      (* check context end save address *)
-      perform endCtxToBeRestoredLastMMUPage := getTableAddr childPageDir endVaddrCtxToBeRestored nbL in
-      perform endCtxToBeRestoredLastMMUPageisNull := comparePageToNull endCtxToBeRestoredLastMMUPage in
-      if endCtxToBeRestoredLastMMUPageisNull then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform idxCtxEndPageInLastMMUPage := getIndexOfAddr endVaddrCtxToBeRestored fstLevel in
-      perform endPageCtxToBeRestoredIsPresent := readPresent endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb endPageCtxToBeRestoredIsPresent then
-        ret FAIL_TARGET_CTX
-      else
-
-      perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-      if negb pageCtxToBeRestoredIsAccessible then
-        ret FAIL_TARGET_CTX
-      else
-
 
       (* ------- memory modification --------- *)
       saveCallerContext interruptedContext contextSaveAddr contextSaveIndex flagsOnWake ;;
       setInterruptionMask callerVidt flagsOnYield ;;
       updateCurPartAndActivate childPartDesc childPageDir ;;
-(*       loadContext(vaddrCtxToBeRestored) ;; *)
+      (* loadContext(vaddrCtxToBeRestored) ;; *)
+      ret SUCCESS
+
+    (* no need to check for callerContextSaveAddr validity *)
+    else
+
+      (* ------- memory modification --------- *)
+      setInterruptionMask callerVidt flagsOnYield ;;
+      updateCurPartAndActivate childPartDesc childPageDir ;;
+      (* loadContext(vaddrCtxToBeRestored) ;; *)
       ret SUCCESS.
