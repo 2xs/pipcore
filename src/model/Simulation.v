@@ -475,13 +475,13 @@ Definition memoryVidt : list (paddr * value):=
  (CPage 50, CIndex 11, PE (Build_Pentry false false false true  true  (CPage 53) )); (* valid ctx range, present to test for ctx end addr *)
 
  (CPage 99, CIndex 0,  PE (Build_Pentry false false false true  true  (CPage 70) ));
- (CPage 99, CIndex 1,  PE (Build_Pentry false false false false false defaultPage));
- (CPage 99, CIndex 2,  PE (Build_Pentry false false false false false defaultPage));
- (CPage 99, CIndex 3,  PE (Build_Pentry false false false false false defaultPage));
- (CPage 99, CIndex 4,  PE (Build_Pentry false false false false false defaultPage));
- (CPage 99, CIndex 5,  PE (Build_Pentry false false false false false defaultPage));
+ (CPage 99, CIndex 1,  PE (Build_Pentry false false false true  true  (CPage 87) ));
+ (CPage 99, CIndex 2,  PE (Build_Pentry false false false true  true  (CPage 88) ));
+ (CPage 99, CIndex 3,  PE (Build_Pentry false false false true  true  (CPage 89) ));
+ (CPage 99, CIndex 4,  PE (Build_Pentry false false false true  true  (CPage 90) ));
+ (CPage 99, CIndex 5,  PE (Build_Pentry false false false true  true  (CPage 91) ));
  (CPage 99, CIndex 6,  PE (Build_Pentry false false false true  true  (CPage 92) ));
- (CPage 99, CIndex 7,  PE (Build_Pentry false false false true  true  (CPage 93) ));
+ (CPage 99, CIndex 7,  PE (Build_Pentry false false false true  true  (CPage 93) )); (* child valid VIDT *)
  (CPage 99, CIndex 8,  PE (Build_Pentry false false false true  true  (CPage 94) ));
  (CPage 99, CIndex 9,  PE (Build_Pentry false false false true  true  (CPage 95) ));
  (CPage 99, CIndex 10, PE (Build_Pentry false false false true  true  (CPage 96) ));
@@ -649,6 +649,7 @@ Services.addVAddr (CVaddr [(CIndex 11); (CIndex 7 ); (CIndex 0)])
                   (CVaddr [(CIndex 11); (CIndex 11); (CIndex 0)])
                   false false false.
 
+(*
 Definition testYield_FAIL_VINT :=
 Services.yield   defaultVAddr
                  10 (* > maxVint *)
@@ -806,7 +807,7 @@ Services.yield   defaultVAddr (* targetPartitionDesc *)
 
 Eval vm_compute in testYield_FAIL_ROOT_CALLER.
 
-Definition testYield_FAIL_TARGET_VIDT_MMU_root :=
+Definition testYield_from_child_FAIL_TARGET_VIDT_mmu_root :=
 addChildVidtMMURoot ;;
 activate((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
@@ -817,9 +818,9 @@ Services.yield   defaultVAddr (* targetPartitionDesc *)
                  (CIntMask []) (* flagsOnYield *)
                  0 (* interruptedContext *).
 
-Eval vm_compute in testYield_FAIL_TARGET_VIDT_MMU_root.
+Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_mmu_root.
 
-Definition testYield_FAIL_TARGET_VIDT_not_present :=
+Definition testYield_from_child_FAIL_TARGET_VIDT_not_present :=
 addChildVidtNotPresent ;;
 activate((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
@@ -830,9 +831,9 @@ Services.yield   defaultVAddr (* targetPartitionDesc *)
                  (CIntMask []) (* flagsOnYield *)
                  0 (* interruptedContext *).
 
-Eval vm_compute in testYield_FAIL_TARGET_VIDT_not_present.
+Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_not_present.
 
-Definition testYield_FAIL_TARGET_VIDT_not_accessible :=
+Definition testYield_from_child_FAIL_TARGET_VIDT_not_accessible :=
 addChildVidtInaccessible ;;
 activate((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
@@ -843,7 +844,7 @@ Services.yield   defaultVAddr (* targetPartitionDesc *)
                  (CIntMask []) (* flagsOnYield *)
                  0 (* interruptedContext *).
 
-Eval vm_compute in testYield_FAIL_TARGET_VIDT_not_accessible.
+Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_not_accessible.
 
 (* Can't test if interrupts are masked, because it is not implemented in the model *)
 
@@ -961,6 +962,124 @@ Services.yield   (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)])
 
 Eval vm_compute in testYield_FAIL_TARGET_VIDT_not_accessible.
 
+Definition testYield_from_parent_FAIL_TARGET_CTX_mmu_root :=
+addChildVidt ;;
+writeVirtual   (CPage 93) (CIndex 1) (* Index 1 in child VIDT *)
+               (CVaddr [(CIndex  9); (CIndex  0); (CIndex 0)]);; (* not mapped in child *)
+Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
+               1 (* > maxVint *)
+               defaultVAddr
+               0 (* saveIndex *)
+               (CIntMask [])
+               (CIntMask [])
+               0.
+
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_mmu_root.
+
+Definition testYield_from_parent_FAIL_TARGET_CTX_not_present :=
+addChildVidt ;;
+writeVirtual   (CPage 93) (CIndex 1) (* Index 1 in child VIDT *)
+               (CVaddr [(CIndex 11); (CIndex  5); (CIndex 0)]);; (* not mapped in child, but 11,11 is mapped *)
+Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
+               1 (* > maxVint *)
+               defaultVAddr
+               0 (* saveIndex *)
+               (CIntMask [])
+               (CIntMask [])
+               0.
+
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_not_present.
+
+(* Midly tricky again, create a child inside a child to make pages inaccessible *)
+Definition testYield_from_parent_FAIL_TARGET_CTX_not_accessible :=
+addChildVidt ;;
+writeVirtual   (CPage 93) (CIndex 1) (* Index 1 in child VIDT *)
+               (CVaddr [(CIndex  11); (CIndex 1); (CIndex 0)]);; (* Page is mapped, but kernel-land *)
+(* giving to child 5 more pages to be able to map a child in the child *)
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  1); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex 11); (CIndex  1); (CIndex  0)])
+                  false false false ;;
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  2); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex 11); (CIndex  2); (CIndex  0)])
+                  false false false ;;
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)])
+                  false false false ;;
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  4); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex 11); (CIndex  4); (CIndex  0)])
+                  false false false ;;
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  5); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex 11); (CIndex  5); (CIndex  0)])
+                  false false false ;;
+(* switch to child partition *)
+activate((CPage 12)) ;;
+(* create a grandchild partition whose parent is the child, and give the kernel the child's VIDT  *)
+Services.createPartition (CVaddr [(CIndex 11); (CIndex  1);(CIndex 0)])
+                         (CVaddr [(CIndex 11); (CIndex  2);(CIndex 0)])
+                         (CVaddr [(CIndex 11); (CIndex  3);(CIndex 0)])
+                         (CVaddr [(CIndex 11); (CIndex  4);(CIndex 0)])
+                         (CVaddr [(CIndex 11); (CIndex  5);(CIndex 0)]) ;;
+(* switch back to the root partition *)
+activate((CPage  1)) ;;
+(* try to pass the execution flow to the child, whose VIDT isn't accessible anymore *)
+Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
+               1 (* > maxVint *)
+               defaultVAddr
+               0 (* saveIndex *)
+               (CIntMask [])
+               (CIntMask [])
+               0.
+
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_not_accessible.
+
+Definition testYield_from_parent_FAIL_TARGET_CTX_end_overflow :=
+addChildVidt ;;
+writeVirtual   (CPage 93) (CIndex 1) (* Index 1 in child VIDT *)
+               (CVaddr [(CIndex 11); (CIndex 11); (CIndex 11)]);; (* mapped in child, but will overflow *)
+Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+               1 (* > maxVint *)
+               defaultVAddr
+               0 (* saveIndex *)
+               (CIntMask [])
+               (CIntMask [])
+               0.
+
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_overflow. *)
+
+Definition testYield_from_parent_FAIL_TARGET_CTX_end_mmu_root :=
+addChildVidt ;;
+
+storeVirtual (CVaddr [(CIndex 11); (CIndex  2); (CIndex  0)]) (CIndex 0)
+             (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)]) ;;
+storeVirtual (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)]) (CIndex 0)
+             (CVaddr [(CIndex 11); (CIndex  4); (CIndex  0)]) ;;
+Services.prepare  (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
+                  (CVaddr [(CIndex  9); (CIndex  0); (CIndex 0)])
+                  (CVaddr [(CIndex 11); (CIndex  2); (CIndex 0)]) false.
+(* 
+Services.addVAddr (CVaddr [(CIndex 11); (CIndex  1); (CIndex  0)])
+                  (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+                  (CVaddr [(CIndex  9); (CIndex 11); (CIndex  0)])
+                  false false false ;;
+
+writeVirtual   (CPage 93) (CIndex 1) (* Index 1 in child VIDT *)
+               (CVaddr [(CIndex  9); (CIndex 11); (CIndex 11)]);; (* mapped in child, but will overflow *)
+Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
+               1 (* > maxVint *)
+               defaultVAddr
+               0 (* saveIndex *)
+               (CIntMask [])
+               (CIntMask [])
+               0. *)
+
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_mmu_root.
+
+(*
 Definition testYield_SUCCESS_FROM_ROOT_no_save :=
 addChildVidt ;;
 Services.yield   (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)])
@@ -984,7 +1103,7 @@ Services.yield   (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)])
                  0.
 
 
-Eval vm_compute in testYield_SUCCESS_FROM_ROOT_save.
+Eval vm_compute in testYield_SUCCESS_FROM_ROOT_save.*)
 
    END SIMULATION *)
 

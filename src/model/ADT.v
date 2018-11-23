@@ -100,7 +100,7 @@ Record interruptionMask := {
 Parameter index_d : index.
 Parameter page_d : page.
 Parameter level_d : level.
-Parameter int_mask_d : interruptionMask. 
+Parameter int_mask_d : interruptionMask.
 
 Require Import Coq.Program.Tactics.
 

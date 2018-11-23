@@ -1028,7 +1028,7 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
 
 (** *)
 Definition yield (targetPartitionDescriptor : vaddr)
-                 (targetInterruption : vint)
+                 (targetInterruption : userValue)
                  (contextSaveAddr : vaddr)
                  (userSaveIndex : userValue)
                  (flagsOnWake : interruptionMask)
@@ -1211,7 +1211,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
         ret FAIL_MASKED_INTERRUPT
       else
 
-      (* retrieving the context to be restored from parent *)
+      (* retrieving the context to be restored from child *)
       perform vaddrCtxToBeRestored := readUserData childVidt (CIndex targetInterruption) in
       perform ctxToBeRestoredLastMMUPage := getTableAddr childPageDir vaddrCtxToBeRestored nbL in
       perform ctxToBeRestoredLastMMUPageisNull := comparePageToNull ctxToBeRestoredLastMMUPage in
@@ -1499,7 +1499,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
       perform endVaddrCtxToBeRestored := getNthVAddrFrom vaddrCtxToBeRestored contextSizeMinusOne in
       perform targetCtxEndAddrOverflow := firstVAddrGreaterThanSecond vaddrCtxToBeRestored endVaddrCtxToBeRestored in
       if targetCtxEndAddrOverflow then
-          ret FAIL_TARGET_CTX
+        ret FAIL_TARGET_CTX
       else
 
       (* check context end save address *)
