@@ -458,7 +458,10 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
     then ret false
     else if (needNewConfigPagesList ) (**  Insert new page into SH3 if needed *)
       then
-        let newPageIntoConfigPagesList := fstVA  in
+         let newPageIntoConfigPagesList := fstVA  in
+          (** next Virtual address *)
+        perform zeroI := getStoreFetchIndex in 
+        perform nextVA := fetchVirtual fstVA zeroI in
         (**  Get the current partition  *)
         perform currentPart := getCurPartition in
         (** Get the pd of the current partition *)
@@ -474,7 +477,7 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
         linkNewListToConfigPagesList phyConfigPagesList phyNewPageIntoConfigPagesList 
         newPageIntoConfigPagesList ;;
         (** Get the shadow 1 of the current partition *)
-        perform currentShadow1 := getConfigTablesLinkedList currentPart in
+        perform currentShadow1 := getFstShadow currentPart in
         (** mark the newPageIntoConfigPagesList page as derived into its parent 
         (writing its virtual address into currentShadow1 *)
         setDerived va currentShadow1 descChild nbL ;;
@@ -482,10 +485,8 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
         writeAccessible pt idx false ;;
         (** mark the newPageIntoConfigPagesList as not accessible into its ancestors  *)
         writeAccessibleRec fstVA currentPart false;;
-        (** next Virtual address *)
-        perform zeroI := getStoreFetchIndex in 
-        perform nextVA := fetchVirtual fstVA zeroI in
-        prepareRec timeout1 descChild phyPDChild phySh1Child phySh2Child phyConfigPagesList va nextVA false nbL (**  Recall prepare, skipping the newly inserted page *)
+        prepareRec timeout1 descChild phyPDChild phySh1Child phySh2Child 
+        phyConfigPagesList va nextVA false nbL (**  Recall prepare, skipping the newly inserted page *)
       else (**  Else do the prepare stuff *)
         (**  Indirection table ? *)
         if isNotfstLevel

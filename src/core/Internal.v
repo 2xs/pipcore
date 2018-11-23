@@ -520,12 +520,12 @@ Definition checkEmptyTable tbl idx lvl :=
 (** The [parseConfigPagesListAux] function parses the list of the partition 
     configuration tables to find a virtual address in the parent context corresponding 
     to a given physical page *)
-Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  :=
+Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)  :=
   match timeout with
   | 0 => getDefaultVAddr
   | S timeout1 =>
     perform maxindex :=  getMaxIndex in (** Our last index is table size - 1, as we're indexed on zero*)
-    perform res := MALInternal.Index.eqb idx maxindex in
+    perform res := MALInternal.Index.eqb idxun maxindex in
     if (res)
     then
       perform nextIndirection :=  readPhysical sh maxindex  in (** get next table *) 
@@ -538,8 +538,8 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
         perform un := MALInternal.Index.succ zero in
         parseConfigPagesListAux timeout1 nextIndirection un tbl (** Recursive call on the next table *)
     else
-      perform idxsucc := MALInternal.Index.succ idx in
-      perform va := readVirtual sh idx in
+      perform idxsucc := MALInternal.Index.succ idxun in
+      perform va := readVirtual sh idxun in
       perform defaultVAddr := getDefaultVAddr in
       perform cmpva :=  MALInternal.VAddr.eqbList va defaultVAddr in
       if (cmpva)
@@ -551,17 +551,17 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
         perform cmp :=  MALInternal.Page.eqb pad tbl in
         if cmp
         then
-          perform vaRet :=  readVirtual sh idx  in  (** Read associated vaddr*)
+          perform vaRet :=  readVirtual sh idxun  in  (** Read associated vaddr*)
           (** Now we have to delete this entry*)
           perform zero := MALInternal.Index.zero in
           perform curNextIdx :=  readIndex sh zero in (** Get next entry index *)
           writeIndex sh idxsucc curNextIdx ;; (** Link this *)
-          writeIndex sh zero idx ;;
+          writeIndex sh zero idxun ;;
           perform nullAddrV :=  getDefaultVAddr in
-          writeVirtual sh idx nullAddrV ;; 
+          writeVirtual sh idxun nullAddrV ;; 
           ret vaRet
         else
-          perform idxsucc := MALInternal.Index.succ idx in
+          perform idxsucc := MALInternal.Index.succ idxun in
           perform idxsucc11 := MALInternal.Index.succ idxsucc in
           parseConfigPagesListAux timeout1 sh idxsucc11 tbl
   end.  (** Recursive call on this table *)

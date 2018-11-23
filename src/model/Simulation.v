@@ -1053,15 +1053,17 @@ Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_overflow. *)
 
 Definition testYield_from_parent_FAIL_TARGET_CTX_end_mmu_root :=
 addChildVidt ;;
-
+(* Services.countToMap (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
+                  (CVaddr [(CIndex  9); (CIndex  0); (CIndex 0)]).  *)
 storeVirtual (CVaddr [(CIndex 11); (CIndex  2); (CIndex  0)]) (CIndex 0)
              (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)]) ;;
 storeVirtual (CVaddr [(CIndex 11); (CIndex  3); (CIndex  0)]) (CIndex 0)
              (CVaddr [(CIndex 11); (CIndex  4); (CIndex  0)]) ;;
+storeVirtual (CVaddr [(CIndex 11); (CIndex  4); (CIndex  0)]) (CIndex 0)
+             (CVaddr [(CIndex 11); (CIndex  5); (CIndex  0)]) ;;
 Services.prepare  (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
                   (CVaddr [(CIndex  9); (CIndex  0); (CIndex 0)])
-                  (CVaddr [(CIndex 11); (CIndex  2); (CIndex 0)]) false.
-(* 
+                  (CVaddr [(CIndex 11); (CIndex  2); (CIndex 0)]) true ;;
 Services.addVAddr (CVaddr [(CIndex 11); (CIndex  1); (CIndex  0)])
                   (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
                   (CVaddr [(CIndex  9); (CIndex 11); (CIndex  0)])
@@ -1075,7 +1077,7 @@ Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
                0 (* saveIndex *)
                (CIntMask [])
                (CIntMask [])
-               0. *)
+               0.
 
 Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_mmu_root.
 
