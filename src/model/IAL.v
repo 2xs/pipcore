@@ -9,16 +9,12 @@ End Vint.
 Definition getMaxVint : LLI vint:=
   ret maxVint.
 
-Definition checkVint (interruption : vint) : LLI bool :=
-  (* perform maxVint := getMaxVint in *)
-  ret (interruption <=? maxVint).
+Definition checkVint (ctxSaveIndex : userValue) : LLI bool :=
+  ret (Nat.ltb ctxSaveIndex tableSize).
 
 Definition checkVidtIndex (saveIndex : index) : LLI bool :=
   (* perform maxVint := getMaxVint in *)
   ret (saveIndex <=? maxVint).
-
-Definition checkCtxSaveIndex (ctxSaveIndex : userValue) : LLI bool :=
-  ret (Nat.ltb ctxSaveIndex tableSize).
 
 Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
   ret (CIndex userIndex).
