@@ -652,14 +652,62 @@ Services.addVAddr (CVaddr [(CIndex 11); (CIndex 7 ); (CIndex 0)])
 (*
 Definition testYield_FAIL_VINT :=
 Services.yield   defaultVAddr
-                 10 (* > maxVint *)
-                 defaultVAddr
-                 (CIndex 0)
+                 15 (* > maxVint *)
+                 0
                  (CIntMask [])
                  (CIntMask [])
                  0.
 
 Eval vm_compute in testYield_FAIL_VINT.
+
+
+Definition testYield_FAIL_CTX_SAVE_INDEX :=
+put initWithVidt ;;
+Services.yield   defaultVAddr
+                 1
+                 15
+                 (CIntMask [])
+                 (CIntMask [])
+                 0.
+
+Eval vm_compute in testYield_FAIL_CTX_SAVE_INDEX.
+
+
+Definition testYield_FAIL_CALLER_VIDT_mmu_table :=
+put init ;; (* no vidt mapped in caller *)
+Services.yield   defaultVAddr (* targetPartitionDesc *)
+                 1 (* vint *)
+                 0 (* contextSaveIndex *)
+                 (CIntMask []) (* flagsOnWake *)
+                 (CIntMask []) (* flagsOnYield *)
+                 0 (* interruptedContext *).
+
+Eval vm_compute in testYield_FAIL_CALLER_VIDT_mmu_table.
+
+
+Definition testYield_FAIL_CALLER_VIDT_not_present :=
+put initWithVidtNotPresent ;; (* no vidt mapped in last MMU table *)
+Services.yield   defaultVAddr (* targetPartitionDesc *)
+                 1 (* vint *)
+                 0 (* contextSaveIndex *)
+                 (CIntMask []) (* flagsOnWake *)
+                 (CIntMask []) (* flagsOnYield *)
+                 0 (* interruptedContext *).
+
+Eval vm_compute in testYield_FAIL_CALLER_VIDT_not_present.
+
+
+Definition testYield_FAIL_CALLER_VIDT_inaccessible :=
+put initWithVidtInaccessible ;; (* vidt mapped but kernelland *)
+Services.yield   defaultVAddr (* targetPartitionDesc *)
+                 1 (* vint *)
+                 0 (* contextSaveIndex *)
+                 (CIntMask []) (* flagsOnWake *)
+                 (CIntMask []) (* flagsOnYield *)
+                 0 (* interruptedContext *).
+
+Eval vm_compute in testYield_FAIL_CALLER_VIDT_inaccessible.
+*)
 
 Definition testYield_FAIL_CTX_SAVE_ADDR_VIDT_mmu_table :=
 put initWithVidt ;;
@@ -745,55 +793,10 @@ Services.yield   defaultVAddr
 
 Eval vm_compute in testYield_FAIL_CTX_SAVE_ADDR_VIDT_end_addr_not_accessible. 
 
-Definition testYield_FAIL_CTX_SAVE_INDEX :=
-put initWithVidt ;;
-Services.yield   defaultVAddr
-                 1
-                 (CVaddr [(CIndex 11); (CIndex 0) ;(CIndex 0)]) (* vaddr is valid, and not overlapping on another page *)
-                 15
-                 (CIntMask [])
-                 (CIntMask [])
-                 0.
-
-Eval vm_compute in testYield_FAIL_CTX_SAVE_INDEX.
 
 
-Definition testYield_FAIL_CALLER_VIDT_mmu_table :=
-put init ;; (* no vidt mapped in caller *)
-Services.yield   defaultVAddr (* targetPartitionDesc *)
-                 1 (* vint *)
-                 defaultVAddr (* contextSaveAddr *)
-                 (CIndex 0) (* contextSaveIndex *)
-                 (CIntMask []) (* flagsOnWake *)
-                 (CIntMask []) (* flagsOnYield *)
-                 0 (* interruptedContext *).
-
-Eval vm_compute in testYield_FAIL_CALLER_VIDT_mmu_table.
 
 
-Definition testYield_FAIL_CALLER_VIDT_not_present :=
-put initWithVidtNotPresent ;; (* no vidt mapped in last MMU table *)
-Services.yield   defaultVAddr (* targetPartitionDesc *)
-                 1 (* vint *)
-                 defaultVAddr (* contextSaveAddr *)
-                 (CIndex 0) (* contextSaveIndex *)
-                 (CIntMask []) (* flagsOnWake *)
-                 (CIntMask []) (* flagsOnYield *)
-                 0 (* interruptedContext *).
-
-Eval vm_compute in testYield_FAIL_CALLER_VIDT_not_present.
-
-Definition testYield_FAIL_CALLER_VIDT_inaccessible :=
-put initWithVidtInaccessible ;; (* vidt mapped but kernelland *)
-Services.yield   defaultVAddr (* targetPartitionDesc *)
-                 1 (* vint *)
-                 defaultVAddr (* contextSaveAddr *)
-                 (CIndex 0) (* contextSaveIndex *)
-                 (CIntMask []) (* flagsOnWake *)
-                 (CIntMask []) (* flagsOnYield *)
-                 0 (* interruptedContext *).
-
-Eval vm_compute in testYield_FAIL_CALLER_VIDT_inaccessible.
 
 Definition testYield_FAIL_ROOT_CALLER :=
 put initWithVidt;;

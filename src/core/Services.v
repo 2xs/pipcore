@@ -1172,8 +1172,8 @@ Definition yield (targetPartitionDescriptor : vaddr)
       ret FAIL_TARGET_CTX
     else
 
-    perform pageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
-    if negb pageCtxToBeRestoredIsAccessible then
+    perform endPageCtxToBeRestoredIsAccessible := readAccessible endCtxToBeRestoredLastMMUPage idxCtxEndPageInLastMMUPage in
+    if negb endPageCtxToBeRestoredIsAccessible then
       ret FAIL_TARGET_CTX
     else
 
