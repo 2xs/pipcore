@@ -458,10 +458,7 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
     then ret false
     else if (needNewConfigPagesList ) (**  Insert new page into SH3 if needed *)
       then
-         let newPageIntoConfigPagesList := fstVA  in
-          (** next Virtual address *)
-        perform zeroI := getStoreFetchIndex in 
-        perform nextVA := fetchVirtual fstVA zeroI in
+        let newPageIntoConfigPagesList := fstVA  in
         (**  Get the current partition  *)
         perform currentPart := getCurPartition in
         (** Get the pd of the current partition *)
@@ -477,7 +474,7 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
         linkNewListToConfigPagesList phyConfigPagesList phyNewPageIntoConfigPagesList 
         newPageIntoConfigPagesList ;;
         (** Get the shadow 1 of the current partition *)
-        perform currentShadow1 := getFstShadow currentPart in
+        perform currentShadow1 := getConfigTablesLinkedList currentPart in
         (** mark the newPageIntoConfigPagesList page as derived into its parent 
         (writing its virtual address into currentShadow1 *)
         setDerived va currentShadow1 descChild nbL ;;
@@ -485,8 +482,10 @@ phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr)
         writeAccessible pt idx false ;;
         (** mark the newPageIntoConfigPagesList as not accessible into its ancestors  *)
         writeAccessibleRec fstVA currentPart false;;
-        prepareRec timeout1 descChild phyPDChild phySh1Child phySh2Child 
-        phyConfigPagesList va nextVA false nbL (**  Recall prepare, skipping the newly inserted page *)
+        (** next Virtual address *)
+        perform zeroI := getStoreFetchIndex in 
+        perform nextVA := fetchVirtual fstVA zeroI in
+        prepareRec timeout1 descChild phyPDChild phySh1Child phySh2Child phyConfigPagesList va nextVA false nbL (**  Recall prepare, skipping the newly inserted page *)
       else (**  Else do the prepare stuff *)
         (**  Indirection table ? *)
         if isNotfstLevel
@@ -1044,14 +1043,14 @@ Definition yield (targetPartitionDescriptor : vaddr)
   (*--------------------------*)
 
   perform callerPartition := getCurPartition in
-  perform callerPageDir := getPd currentPartition in
+  perform callerPageDir := getPd callerPartition in
   perform nbL := getNbLevel in
 
   (*--------------------------*)
 
   (* check context save index *)
   perform callerContextSaveIndexIsValid := checkVint callerContextSaveIndex in
-  if negb userSaveIndexIsValid then
+  if negb callerContextSaveIndexIsValid then
     ret FAIL_CTX_SAVE_INDEX
   else
 
@@ -1061,7 +1060,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
 
   (* check caller vidt *)
   perform vidtVaddr := getVidtVAddr in
-  perform callerVidtLastMMUPage := getTableAddr currentPageDir vidtVAddr nbL in
+  perform callerVidtLastMMUPage := getTableAddr callerPageDir vidtVAddr nbL in
   perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
   if vidtLastMMUPageisNull then
     ret FAIL_CALLER_VIDT
@@ -1094,7 +1093,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
 
     (* check if partition is root *)
     perform rootPartition := getMultiplexer in
-    perform currentPartitionIsRoot := Page.eqb rootPartition currentPartition in
+    perform currentPartitionIsRoot := Page.eqb rootPartition callerPartition in
     if currentPartitionIsRoot then
       ret FAIL_ROOT_CALLER
     else
@@ -1102,7 +1101,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
     (*############################*)
 
     (* check if target vidt is available *)
-    perform parentPartDesc := getParent currentPartition in
+    perform parentPartDesc := getParent callerPartition in
     perform parentPageDir := getPd parentPartDesc in
 
     perform parentVidtLastMMUPage := getTableAddr parentPageDir vidtVAddr nbL in
@@ -1182,7 +1181,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
 
     if (userWantsToSaveItsContext) then
       (* check contextSaveAddr validity *)
-      perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
+      perform ctxLastMMUPage := getTableAddr callerPageDir contextSaveAddr nbL in
       perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
       if ctxLastMMUPageisNull then
         ret FAIL_CTX_SAVE_ADDR
@@ -1209,7 +1208,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
       (*--------------------------*)
 
       (* check context save address *)
-      perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
+      perform ctxEndLastMMUPage := getTableAddr callerPageDir contextEndSaveAddr nbL in
       perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
       if ctxEndLastMMUPageisNull then
         ret FAIL_CTX_SAVE_ADDR
@@ -1245,7 +1244,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
   (* transfer from parent to child *)
 
     (* checking child validity *)
-    perform childLastMMUTable := getTableAddr currentPageDir targetPartitionDescriptor nbL in
+    perform childLastMMUTable := getTableAddr callerPageDir targetPartitionDescriptor nbL in
     perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
     if childLastMMUTableIsNull then
         ret FAIL_INVALID_CHILD
@@ -1256,7 +1255,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
         ret FAIL_INVALID_CHILD
     else
 
-    perform validChild := checkChild currentPartition nbL targetPartitionDescriptor in
+    perform validChild := checkChild callerPartition nbL targetPartitionDescriptor in
     if negb validChild then
         ret FAIL_INVALID_CHILD
     else
@@ -1337,7 +1336,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
 
     if (userWantsToSaveItsContext) then
       (* check contextSaveAddr validity *)
-      perform ctxLastMMUPage := getTableAddr currentPageDir contextSaveAddr nbL in
+      perform ctxLastMMUPage := getTableAddr callerPageDir contextSaveAddr nbL in
       perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
       if ctxLastMMUPageisNull then
         ret FAIL_CTX_SAVE_ADDR
@@ -1364,7 +1363,7 @@ Definition yield (targetPartitionDescriptor : vaddr)
       (*--------------------------*)
 
       (* check context save address *)
-      perform ctxEndLastMMUPage := getTableAddr currentPageDir contextEndSaveAddr nbL in
+      perform ctxEndLastMMUPage := getTableAddr callerPageDir contextEndSaveAddr nbL in
       perform ctxEndLastMMUPageisNull := comparePageToNull ctxEndLastMMUPage in
       if ctxEndLastMMUPageisNull then
         ret FAIL_CTX_SAVE_ADDR
