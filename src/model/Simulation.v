@@ -707,7 +707,60 @@ Services.yield   defaultVAddr (* targetPartitionDesc *)
                  0 (* interruptedContext *).
 
 Eval vm_compute in testYield_FAIL_CALLER_VIDT_inaccessible.
+
 *)
+(** Child to parent specific tests *)
+
+Definition testYield_FAIL_ROOT_CALLER :=
+put initWithVidt;;
+Services.yield defaultVAddr (* targetPartitionDesc *)
+               1 (* vint *)
+               0 (* contextSaveIndex *)
+               (CIntMask []) (* flagsOnWake *)
+               (CIntMask []) (* flagsOnYield *)
+               0 (* interruptedContext *).
+
+Eval vm_compute in testYield_FAIL_ROOT_CALLER.
+
+(** Parent to child specific tests *)
+
+
+Definition testYield_FAIL_INVALID_CHILD_mmu_root :=
+put initWithVidt ;;
+Services.yield   (CVaddr [(CIndex 3); (CIndex 0) ;(CIndex 0)])
+                 1 (* > maxVint *)
+                 0
+                 (CIntMask [])
+                 (CIntMask [])
+                 0.
+
+Eval vm_compute in testYield_FAIL_INVALID_CHILD_mmu_root.
+
+Definition testYield_FAIL_INVALID_CHILD_not_present :=
+put initWithVidt ;;
+Services.yield   (CVaddr [(CIndex 4); (CIndex 0) ;(CIndex 0)])
+                 1 (* > maxVint *)
+                 0
+                 (CIntMask [])
+                 (CIntMask [])
+                 0.
+
+Eval vm_compute in testYield_FAIL_INVALID_CHILD_not_present.
+
+Definition testYield_FAIL_INVALID_CHILD_not_a_child :=
+put initWithVidt ;;
+Services.yield   (CVaddr [(CIndex 4); (CIndex 5) ;(CIndex 0)])
+                 1 (* > maxVint *)
+                 0
+                 (CIntMask [])
+                 (CIntMask [])
+                 0.
+
+Eval vm_compute in testYield_FAIL_INVALID_CHILD_not_a_child.
+
+
+
+
 
 Definition testYield_FAIL_CTX_SAVE_ADDR_VIDT_mmu_table :=
 put initWithVidt ;;
@@ -798,17 +851,7 @@ Eval vm_compute in testYield_FAIL_CTX_SAVE_ADDR_VIDT_end_addr_not_accessible.
 
 
 
-Definition testYield_FAIL_ROOT_CALLER :=
-put initWithVidt;;
-Services.yield   defaultVAddr (* targetPartitionDesc *)
-                 1 (* vint *)
-                 defaultVAddr (* contextSaveAddr *)
-                 (CIndex 0) (* contextSaveIndex *)
-                 (CIntMask []) (* flagsOnWake *)
-                 (CIntMask []) (* flagsOnYield *)
-                 0 (* interruptedContext *).
 
-Eval vm_compute in testYield_FAIL_ROOT_CALLER.
 
 Definition testYield_from_child_FAIL_TARGET_VIDT_mmu_root :=
 addChildVidtMMURoot ;;
@@ -864,41 +907,7 @@ Services.yield   defaultVAddr
 
 Eval vm_compute in testYield_SUCCESS_FROM_CHILD_no_save.
 
-Definition testYield_FAIL_INVALID_CHILD_mmu_root :=
-put initWithVidt ;;
-Services.yield   (CVaddr [(CIndex 3); (CIndex 0) ;(CIndex 0)])
-                 1 (* > maxVint *)
-                 defaultVAddr
-                 (CIndex 0)
-                 (CIntMask [])
-                 (CIntMask [])
-                 0.
 
-Eval vm_compute in testYield_FAIL_INVALID_CHILD_mmu_root.
-
-Definition testYield_FAIL_INVALID_CHILD_not_present :=
-put initWithVidt ;;
-Services.yield   (CVaddr [(CIndex 4); (CIndex 0) ;(CIndex 0)])
-                 1 (* > maxVint *)
-                 defaultVAddr
-                 (CIndex 0)
-                 (CIntMask [])
-                 (CIntMask [])
-                 0.
-
-Eval vm_compute in testYield_FAIL_INVALID_CHILD_not_present.
-
-Definition testYield_FAIL_INVALID_CHILD_not_a_child :=
-put initWithVidt ;;
-Services.yield   (CVaddr [(CIndex 4); (CIndex 5) ;(CIndex 0)])
-                 1 (* > maxVint *)
-                 defaultVAddr
-                 (CIndex 0)
-                 (CIntMask [])
-                 (CIntMask [])
-                 0.
-
-Eval vm_compute in testYield_FAIL_INVALID_CHILD_not_a_child.
 
 Definition testYield_FAIL_TARGET_VIDT_mmu_root :=
 createPartitionVidt ;;
@@ -1052,7 +1061,7 @@ Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex  0)])
                (CIntMask [])
                0.
 
-Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_overflow. *)
+Eval vm_compute in testYield_from_parent_FAIL_TARGET_CTX_end_overflow.
 
 Definition testYield_from_parent_FAIL_TARGET_CTX_end_mmu_root :=
 addChildVidt ;;
