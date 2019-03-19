@@ -9,7 +9,7 @@ End Vint.
 Definition getMaxVint : LLI vint:=
   ret maxVint.
 
-Definition checkVint (userIndex : userValue) : LLI bool :=
+Definition checkIndexPropertyLTB (userIndex : userValue) : LLI bool :=
   ret (Nat.ltb userIndex tableSize).
 
 Definition checkVidtIndex (saveIndex : index) : LLI bool :=
@@ -42,13 +42,13 @@ Definition SUCCESS := SUCCESS_Cons.
 
 Definition contextSizeMinusOne := contextSize-1.
 
-Definition setInterruptionMask (vidt : page) (mask : interruptionMask) : LLI unit :=
+Definition setInterruptMask (vidt : page) (mask : interruptionMask) : LLI unit :=
   ret tt.
 
-Definition readInterruptionMask (childVidt : page) : LLI interruptionMask :=
+Definition readInterruptMask (childVidt : page) : LLI interruptionMask :=
   ret int_mask_d.
 
-Definition isInterruptionMasked (interruptionMask : interruptionMask) (interruption : vint) : LLI bool :=
+Definition isInterruptMasked (interruptionMask : interruptionMask) (interruption : vint) : LLI bool :=
   ret false.
 
 Definition saveCallerContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr)
