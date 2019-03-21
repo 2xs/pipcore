@@ -1029,7 +1029,7 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
 
 
 Definition switchContext (callerVidt     : page)
-                         (flagsOnYield   : interruptionMask)
+                         (flagsOnYield   : interruptMask)
                          (calleePartDesc : page)
                          (calleePageDir  : page)
                          (* calleeHandlerContext : vaddr *)
@@ -1044,8 +1044,8 @@ Definition saveCallerContext (callerPageDir            : page)
                              (callerVidt               : page)
                              (callerContextSaveIndex   : index)
                              (callerContextSaveVAddr   : vaddr)
-                             (flagsOnYield             : interruptionMask)
-                             (flagsOnWake              : interruptionMask)
+                             (flagsOnYield             : interruptMask)
+                             (flagsOnWake              : interruptMask)
                              (callerInterruptedContext : contextAddr)
                              (calleePartDesc           : page)
                              (calleePageDir            : page)
@@ -1097,7 +1097,7 @@ Definition saveCallerContext (callerPageDir            : page)
     ret FAIL_CTX_SAVE_ADDR
   else
 
-  saveCallerContext callerInterruptedContext callerContextSaveVAddr callerContextSaveIndex flagsOnWake ;;
+  writeContext callerInterruptedContext callerContextSaveVAddr flagsOnWake ;;
   switchContext callerVidt flagsOnYield calleePartDesc calleePageDir (* calleeHandlerContext *).
 
 Definition checkCalleeContext (calleePartDesc         : page)
@@ -1105,11 +1105,11 @@ Definition checkCalleeContext (calleePartDesc         : page)
                               (callerVidt             : page)
                               (nbL                    : level)
                               (idxVidtInLastMMUPage   : index)
-                              (targetInterrupt        : userValue)
+                              (targetInterrupt        : index)
                               (callerContextSaveIndex : index)
                               (callerInterruptedContext : contextAddr)
-                              (flagsOnYield             : interruptionMask)
-                              (flagsOnWake              : interruptionMask)
+                              (flagsOnYield             : interruptMask)
+                              (flagsOnWake              : interruptMask)
                               : LLI yield_checks :=
 
   (* check if callee vidt is available *)
@@ -1145,7 +1145,7 @@ Definition checkCalleeContext (calleePartDesc         : page)
   (*############################*)
 
   (* retrieving the callee's handler context *)
-  perform calleeContextVAddr := readUserData calleeVidt (CIndex targetInterrupt) in
+  perform calleeContextVAddr := readUserlandVAddr calleeVidt targetInterrupt in
   perform calleeContextLastMMUPage := getTableAddr calleePageDir calleeContextVAddr nbL in
   perform calleeContextLastMMUPageisNull := comparePageToNull calleeContextLastMMUPage in
   if calleeContextLastMMUPageisNull then
@@ -1189,7 +1189,7 @@ Definition checkCalleeContext (calleePartDesc         : page)
   else
 
   (* check if caller wants to save its context *)
-  perform callerContextSaveVAddr := readUserData callerVidt callerContextSaveIndex in
+  perform callerContextSaveVAddr := readUserlandVAddr callerVidt callerContextSaveIndex in
   perform callerWantsToSaveItsContext := compareVAddrToNull callerContextSaveVAddr in
 
 
@@ -1217,11 +1217,11 @@ Definition parentCallRelatedChecks (callerPartDesc           : page)
                                    (callerVidt               : page)
                                    (nbL                      : level)
                                    (idxVidtInLastMMUPage     : index)
-                                   (targetInterrupt          : userValue)
+                                   (targetInterrupt          : index)
                                    (callerContextSaveIndex   : index)
                                    (callerInterruptedContext : contextAddr)
-                                   (flagsOnWake              : interruptionMask)
-                                   (flagsOnYield             : interruptionMask)
+                                   (flagsOnWake              : interruptMask)
+                                   (flagsOnYield             : interruptMask)
                                    : LLI yield_checks :=
 
   (* check if partition is root *)
@@ -1252,11 +1252,11 @@ Definition childRelatedChecks (calleePartDescVAddr      : vaddr)
                               (callerVidt               : page)
                               (nbL                      : level)
                               (idxVidtInLastMMUPage     : index)
-                              (targetInterrupt          : userValue)
+                              (targetInterrupt          : index)
                               (callerContextSaveIndex   : index)
                               (callerInterruptedContext : contextAddr)
-                              (flagsOnWake              : interruptionMask)
-                              (flagsOnYield             : interruptionMask)
+                              (flagsOnWake              : interruptMask)
+                              (flagsOnYield             : interruptMask)
                               : LLI yield_checks :=
   (* checking child validity *)
   perform childLastMMUTable := getTableAddr callerPageDir calleePartDescVAddr nbL in
@@ -1289,18 +1289,20 @@ Definition childRelatedChecks (calleePartDescVAddr      : vaddr)
                      flagsOnWake.
 
 Definition yield (calleePartDescVAddr : vaddr)
-                 (targetInterrupt : userValue)
-                 (callerContextSaveIndex : userValue)
-                 (flagsOnWake : interruptionMask)
-                 (flagsOnYield : interruptionMask)
+                 (userTargetInterrupt : userValue)
+                 (userCallerContextSaveIndex : userValue)
+                 (flagsOnWake : interruptMask)
+                 (flagsOnYield : interruptMask)
                  (callerInterruptedContext : contextAddr)
                  : LLI yield_checks :=
 
   (* checkVint *)
-  perform vintIsValid := checkIndexPropertyLTB targetInterrupt in
-  if negb vintIsValid then
+  perform userTargetInterruptIsValid := checkIndexPropertyLTB userTargetInterrupt in
+  if negb userTargetInterruptIsValid then
     ret FAIL_VINT
   else
+
+  perform targetInterrupt := getIndexFromUserValue userTargetInterrupt in
   (*--------------------------*)
 
   perform callerPartDesc := getCurPartition in
@@ -1310,12 +1312,12 @@ Definition yield (calleePartDescVAddr : vaddr)
   (*--------------------------*)
 
   (* check context save index *)
-  perform callerContextSaveIndexIsValid := checkIndexPropertyLTB callerContextSaveIndex in
+  perform callerContextSaveIndexIsValid := checkIndexPropertyLTB userCallerContextSaveIndex in
   if negb callerContextSaveIndexIsValid then
     ret FAIL_CTX_SAVE_INDEX
   else
 
-  perform callerContextSaveIndex := getIndexFromUserValue callerContextSaveIndex in
+  perform callerContextSaveIndex := getIndexFromUserValue userCallerContextSaveIndex in
 
   (*--------------------------*)
 

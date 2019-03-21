@@ -92,7 +92,7 @@ Definition userValue := nat.
 Definition vint := nat.
 Definition contextAddr := nat.
 
-Record interruptionMask := {
+Record interruptMask := {
  m :> list bool;
  Hm : length m = maxVint+1;
 }.
@@ -100,7 +100,7 @@ Record interruptionMask := {
 Parameter index_d : index.
 Parameter page_d : page.
 Parameter level_d : level.
-Parameter int_mask_d : interruptionMask.
+Parameter int_mask_d : interruptMask.
 
 Require Import Coq.Program.Tactics.
 
@@ -131,6 +131,6 @@ Program Definition CLevel ( a :nat) : level :=
 if lt_dec a nbLevel then  Build_level a _ 
 else level_d .
 
-Program Definition CIntMask (m : list bool) : interruptionMask :=
-if Nat.eq_dec (length m) (maxVint+1) then Build_interruptionMask m _
+Program Definition CIntMask (m : list bool) : interruptMask :=
+if Nat.eq_dec (length m) (maxVint+1) then Build_interruptMask m _
 else int_mask_d.

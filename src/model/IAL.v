@@ -20,7 +20,7 @@ Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
   ret (CIndex userIndex).
 
 
-Definition readUserData (paddr : page) ( idx : index)  : LLI vaddr :=
+Definition readUserlandVAddr (paddr : page) ( idx : index)  : LLI vaddr :=
   perform s := get in
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
   match entry with
@@ -42,17 +42,16 @@ Definition SUCCESS := SUCCESS_Cons.
 
 Definition contextSizeMinusOne := contextSize-1.
 
-Definition setInterruptMask (vidt : page) (mask : interruptionMask) : LLI unit :=
+Definition setInterruptMask (vidt : page) (mask : interruptMask) : LLI unit :=
   ret tt.
 
-Definition readInterruptMask (childVidt : page) : LLI interruptionMask :=
+Definition readInterruptMask (childVidt : page) : LLI interruptMask :=
   ret int_mask_d.
 
-Definition isInterruptMasked (interruptionMask : interruptionMask) (interruption : vint) : LLI bool :=
+Definition isInterruptMasked (intMask : interruptMask) (interrupt : vint) : LLI bool :=
   ret false.
 
-Definition saveCallerContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr)
-                             (contextSaveIndex : index) (flagsOnWake : interruptionMask)
+Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
           : LLI unit := ret tt.
 
 Definition updateCurPartAndActivate(partDesc pageDir : page)
