@@ -1296,7 +1296,7 @@ Definition yield (calleePartDescVAddr : vaddr)
                  (callerInterruptedContext : contextAddr)
                  : LLI yield_checks :=
 
-  (* checkVint *)
+  (* checkIndexPropertyLTB *)
   perform userTargetInterruptIsValid := checkIndexPropertyLTB userTargetInterrupt in
   if negb userTargetInterruptIsValid then
     ret FAIL_VINT

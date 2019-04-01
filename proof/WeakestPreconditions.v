@@ -34,7 +34,7 @@
 (** * Summary  
     In this file we formalize and prove the weakest precondition of the 
     MAL and MALInternal functions *)
-Require Import Model.ADT Model.Hardware Model.MAL Model.Lib 
+Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Model.IAL
 Omega List StateLib.
 Lemma ret  (A : Type) (a : A) (P : A -> state -> Prop) : {{ P a }} ret a {{ P }}.
 Proof.
@@ -613,12 +613,12 @@ Lemma getNbLevel  (P : level -> state -> Prop) :
 {{fun s => nbLevel > 0  /\ (forall H, P {|
            l := nbLevel -1;
            Hl := MAL.getNbLevel_obligation_1 H
-           |}  s) }} 
+           |}  s) }}
 MAL.getNbLevel 
 {{P}}.
 Proof.
 unfold MAL.getNbLevel.
-eapply weaken. 
+eapply weaken.
 - instantiate (1:= fun s => nbLevel > 0 /\ forall H , P {|
            l := nbLevel-1;
            Hl := MAL.getNbLevel_obligation_1 H|}  s) .
@@ -687,5 +687,41 @@ unfold activate.
 eapply weaken.
 eapply modify .
 intros. simpl.
-assumption.  
+assumption.
+Qed.
+
+Lemma checkIndexPropertyLTB (userIndex : userValue) (P : bool -> state -> Prop) :
+{{fun s => P (Nat.ltb userIndex tableSize) s }} checkIndexPropertyLTB userIndex {{P}}.
+Proof.
+unfold checkIndexPropertyLTB.
+eapply weaken.
+eapply ret.
+trivial.
+Qed.
+
+Lemma getIndexFromUserValue (userIndex : userValue) (P : index -> state -> Prop) :
+{{fun s => userIndex < tableSize /\ P (CIndex userIndex) s}}
+  getIndexFromUserValue userIndex
+{{P}}.
+Proof.
+unfold getIndexFromUserValue.
+case_eq (lt_dec userIndex tableSize).
+- intro HUI_lt_TS.
+  intro.
+  unfold IAL.getIndexFromUserValue_obligation_1.
+  eapply weaken.
+  eapply ret.
+  intros.
+  unfold CIndex in H0.
+  rewrite H in H0.
+  destruct H0.
+  trivial.
+- intro.
+  intro.
+  eapply weaken.
+  eapply undefined.
+  intros.
+  destruct H0.
+  contradict H0.
+  assumption.
 Qed.

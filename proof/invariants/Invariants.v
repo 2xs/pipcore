@@ -34,7 +34,7 @@
 (**  * Summary 
     In this file we formalize and prove all invariants of the MAL and MALInternal functions *)
 Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal 
-Isolation Consistency Model.Lib StateLib 
+Isolation Consistency Model.Lib StateLib Model.IAL
 DependentTypeLemmas List Bool .
 Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
 
@@ -1117,8 +1117,23 @@ eapply WP.ret.
 simpl; trivial.
 Qed.
 
+Lemma checkIndexPropertyLTB (userIndex : userValue) (P : state -> Prop) :
+{{ fun s => P s }} checkIndexPropertyLTB userIndex {{ fun b s => P s /\ Nat.ltb userIndex tableSize = b}}.
+Proof.
+eapply WP.weaken.
+apply WP.checkIndexPropertyLTB.
+simpl.
+intros. split;trivial.
+Qed.
 
 
-
-
-
+Lemma getIndexFromUserValue (userIndex : userValue) (P : state -> Prop) :
+{{ fun s => P s /\ userIndex < tableSize}} getIndexFromUserValue userIndex {{ fun b s => P s /\ b = (CIndex userIndex)}}.
+Proof.
+eapply WP.weaken.
+apply WP.getIndexFromUserValue.
+simpl.
+intros.
+destruct H.
+repeat split;trivial.
+Qed.

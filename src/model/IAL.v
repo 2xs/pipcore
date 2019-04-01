@@ -16,9 +16,12 @@ Definition checkVidtIndex (saveIndex : index) : LLI bool :=
   (* perform maxVint := getMaxVint in *)
   ret (saveIndex <=? maxVint).
 
-Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
-  ret (CIndex userIndex).
-
+Program Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
+  (* ret (CIndex userIndex). *)
+  if lt_dec userIndex tableSize
+  then
+    ret (Build_index userIndex _ )
+  else undefined 85.
 
 Definition readUserlandVAddr (paddr : page) ( idx : index)  : LLI vaddr :=
   perform s := get in
