@@ -317,10 +317,16 @@ intuition.
 subst.
 trivial.
 simpl.
+intro callerVidt.
 
 (** compareVAddrToNull - calleePartDescVAddrIsDefault *)
+eapply bindRev.
+eapply Invariants.compareVAddrToNull.
+simpl.
+intro calleePartDescVAddrIsDefault.
 
-
+(** calleePartDescVAddrIsDefault *)
+case_eq calleePartDescVAddrIsDefault;intro;subst.
 
 
 Admitted. 
