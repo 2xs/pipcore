@@ -35,7 +35,7 @@
     This file contains the invariant of [yield]. 
     We prove that this PIP service preserves the isolation property *)
 
-Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal Model.MAL Core.Services DependentTypeLemmas InternalLemmas Isolation Invariants PropagatedProperties StateLib Consistency WeakestPreconditions GetTableAddr.
+Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal Model.MAL Core.Services CheckChild Consistency DependentTypeLemmas InternalLemmas Invariants Isolation PropagatedProperties StateLib WeakestPreconditions GetTableAddr.
 Import Omega List Bool.
 
 
@@ -61,11 +61,187 @@ Lemma childRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : userV
                                                    kernelDataIsolation s' /\
                                                    verticalSharing s' /\
                                                    consistency s' }}.
+Proof.
+
+(** getTableAddr - childLastMMUTable *)
+eapply bindRev.
+eapply weaken.
+apply getTableAddr.
+simpl.
+intros s H.
+split.
+destruct H.
+pattern s in H. 
+eexact H.
+unfold postConditionYieldBlock1 in H.
+instantiate (1:= PDidx).
+instantiate (1:= callerPartDesc).
+intuition. subst.
+unfold consistency in *. 
+unfold  currentPartitionInPartitionsList in *. 
+intuition.
+assert(Hcons : consistency s) by intuition.
+assert(Hlevel : Some nbL = StateLib.getNbLevel) by intuition. 
+assert(Hcp : callerPartDesc = currentPartition s) by intuition.
+assert (HnEIPP : nextEntryIsPP callerPartDesc PDidx callerPageDir s) by intuition.
+exists callerPageDir.
+split. intuition.
+
+unfold consistency in *.
+destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
+unfold partitionDescriptorEntry in Hpd.
+assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
+\/  PDidx  = PPRidx \/  PDidx = PRidx) as Htmp 
+by auto.
+generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
+generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+destruct Hpd as (Hidxpd & _& Hentry).
+destruct Hentry as (page1 & Hpd & Hnotnull).
+subst.
+split.
+ unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
+ [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
+ as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
+ now contradict H0 | 
+ subst;assumption | now contradict H0| now contradict H0 ]  
+ |now contradict H0] | now contradict H0].
+subst. left. split;intuition.
+intro childLastMMUPage. simpl.
+(** simplify the new precondition **)
+eapply WP.weaken.
+intros.
+Focus 2.
+intros.
+destruct H as (H0 & H1).
+assert ( (getTableAddrRoot' childLastMMUPage PDidx callerPartDesc calleePartDescVAddr s /\ childLastMMUPage = defaultPage) \/
+(forall idx : index,
+StateLib.getIndexOfAddr calleePartDescVAddr fstLevel = idx ->
+isPE childLastMMUPage idx s /\ getTableAddrRoot childLastMMUPage PDidx callerPartDesc calleePartDescVAddr s  )).
+{ destruct H1 as [H1 |(Hi & Hi1 & H1)].
+  + left. trivial.
+  + right. intros idx Hidx.
+    generalize (H1 idx Hidx);clear H1;intros H1.
+    destruct H1 as [(_& Hfalse) | [(_&Hfalse) | (Hpe &Htrue) ]].
+    - contradict Hfalse.
+      apply idxPDidxSh1notEq.
+    - contradict Hfalse.
+      apply idxPDidxSh2notEq.
+    - split; assumption.
+}
+assert (HP := conj H0 H).
+pattern s in HP.
+eapply HP.
+
+(** comparePageToNull - childLastMMUTableIsNull *)
+eapply bindRev.
+eapply Invariants.comparePageToNull.
+simpl.
+intro childLastMMUTableIsNull.
+simpl.
+case_eq childLastMMUTableIsNull.
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret .
+  simpl. intros.
+  unfold postConditionYieldBlock1 in H0.
+  intuition. }
+intros. 
+subst.
+(** hypothese cleanup *)
+eapply weaken.
+Focus 2.
+intros.
+destruct H as ((Hexec & Hconj) & Hlast).
+destruct Hconj as [HFalse | HTrue].
+- destruct HFalse.
+  subst.
+  rewrite Nat.eqb_refl in Hlast.
+  now contradict Hlast.
+Focus 2.
+destruct HTrue with (StateLib.getIndexOfAddr calleePartDescVAddr fstLevel).
+trivial.
+apply beq_nat_false in Hlast.
+assert (Hdef:= conj (conj (conj Hexec H) H0) Hlast).
+pattern s in Hdef.
+apply Hdef.
+
+(** getIndexOfAddr - idxChildPartDesc *)
+eapply bindRev.
+eapply Invariants.getIndexOfAddr.
+simpl.
+intro idxChildPartDesc.
+
+(** readPresent - childPartDescIsPresent *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.readPresent.
+intros.
+simpl.
+split.
+apply H.
+intuition.
+subst.
+trivial.
+simpl.
+intro childPartDescIsPresent.
+(** case_eq childPartDescIsPresent *)
+case_eq (negb childPartDescIsPresent).
+intros.
+eapply weaken.
+eapply WP.ret.
+intros.
+unfold postConditionYieldBlock1 in H0.
+intuition.
+intros.
+rewrite negb_false_iff in H.
+subst.
+
+(** checkChild - validChild *)
+eapply bindRev.
+eapply weaken.
+eapply CheckChild.checkChild.
+intros.
+simpl.
+split.
+apply H.
+unfold postConditionYieldBlock1 in H.
+intuition.
+simpl.
+intro validChild.
+
+(** case_eq - validChild *)
+case_eq (negb validChild).
+intro.
+eapply weaken.
+eapply ret.
+intros.
+simpl.
+unfold postConditionYieldBlock1 in H0.
+intuition.
+intro.
+rewrite negb_false_iff in H.
+subst.
+
+(** readPhyEntry - calleePartDesc *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.readPhyEntry.
+simpl.
+intros.
+split.
+apply H.
+intuition.
+subst.
+trivial.
+simpl.
+intro calleePartDesc.
+Admitted.
+(* Qed. *)
 
 Lemma parentCallRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : userValue)
                               (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)
                               (callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt : page)
-                              (calleePartDescVAddr: vaddr)
+                              (* (calleePartDescVAddr: vaddr) *)
                               (flagsOnWake flagsOnYield : interruptMask)
                               (nbL             : level)
                               (callerInterruptedContext : contextAddr) :
@@ -73,9 +249,8 @@ Lemma parentCallRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : 
    postConditionYieldBlock1 s userTargetInterrupt userCallerContextSaveIndex
                             targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage
                             callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt
-                            nbL /\
-   beqVAddr defaultVAddr calleePartDescVAddr = true }} 
-  parentCallRelatedChecks calleePartDescVAddr callerPartDesc callerPageDir
+                            nbL}} 
+  parentCallRelatedChecks callerPartDesc callerPageDir
     callerVidt nbL idxVidtInLastMMUPage targetInterrupt callerContextSaveIndex
     callerInterruptedContext flagsOnWake flagsOnYield {{ fun 
                                                      (_ : yield_checks)
@@ -84,6 +259,20 @@ Lemma parentCallRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : 
                                                    kernelDataIsolation s' /\
                                                    verticalSharing s' /\
                                                    consistency s' }}.
+Proof.
+unfold parentCallRelatedChecks.
+(** getMultiplexer - rootPartition *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.getMultiplexer.
+simpl.
+intros.
+eapply H.
+simpl.
+intro rootPartition.
+
+(** case_eq currentPartitionIsRoot *)
+Admitted.
 
 
 Lemma yield      (calleePartDescVAddr: vaddr)
@@ -98,7 +287,7 @@ Lemma yield      (calleePartDescVAddr: vaddr)
                      verticalSharing s /\
                      consistency s }}
 (* fonction monadique *)
-yield calleePartDescVAddr userTargetInterrupt userCallerContextSaveIndex flagsOnWake flagsOnYield interruptedContext
+yield calleePartDescVAddr userTargetInterrupt userCallerContextSaveIndex flagsOnWake flagsOnYield callerInterruptedContext
 (* Postcondition *)
 {{fun _ (s' : state) => partitionsIsolation s' /\
                        kernelDataIsolation s' /\
@@ -374,7 +563,15 @@ simpl.
 intro calleePartDescVAddrIsDefault.
 
 (** calleePartDescVAddrIsDefault *)
-case_eq calleePartDescVAddrIsDefault;intro;subst.
-
-
-Admitted. 
+case_eq calleePartDescVAddrIsDefault;intro;subst;eapply weaken;
+[apply parentCallRelatedChecks|trivial|apply childRelatedChecks|trivial];
+intros;
+simpl;
+unfold postConditionYieldBlock1;
+instantiate (1:=callerVidtLastMMUPage);
+instantiate (1:=userCallerContextSaveIndex);
+instantiate (1:=userTargetInterrupt);
+intuition;trivial;
+subst;
+contradiction.
+Qed.
