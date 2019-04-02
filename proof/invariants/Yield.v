@@ -271,7 +271,46 @@ eapply H.
 simpl.
 intro rootPartition.
 
+(** Page.eqb currentPartitionIsRoot *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.Page.eqb.
+simpl.
+intros.
+apply H.
+simpl.
+intro currentPartitionIsRoot.
+
 (** case_eq currentPartitionIsRoot *)
+case_eq currentPartitionIsRoot.
+intros.
+eapply weaken.
+eapply ret.
+simpl.
+intros.
+unfold postConditionYieldBlock1 in H0.
+intuition.
+intro.
+subst.
+
+(** getParent - calleePartDesc *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.getParent.
+simpl.
+intros.
+split.
+apply H.
+unfold postConditionYieldBlock1 in H.
+intuition.
+subst.
+unfold consistency in H4.
+intuition.
+simpl.
+intro calleePartDesc.
+
+(**  *)
+
 Admitted.
 
 
