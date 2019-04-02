@@ -35,22 +35,70 @@
     This file contains the invariant of [yield]. 
     We prove that this PIP service preserves the isolation property *)
 
-Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal Model.MAL Core.Services DependentTypeLemmas InternalLemmas Isolation Invariants StateLib Consistency WeakestPreconditions GetTableAddr.
+Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal Model.MAL Core.Services DependentTypeLemmas InternalLemmas Isolation Invariants PropagatedProperties StateLib Consistency WeakestPreconditions GetTableAddr.
 Import Omega List Bool.
 
-Lemma yield      (targetPartitionDescriptor : vaddr)
+
+Lemma childRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : userValue)
+                         (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)
+                         (callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt : page)
+                         (calleePartDescVAddr: vaddr)
+                         (flagsOnWake flagsOnYield : interruptMask)
+                         (nbL             : level)
+                         (callerInterruptedContext : contextAddr) :
+{{ fun s : state =>
+   postConditionYieldBlock1 s userTargetInterrupt userCallerContextSaveIndex
+                            targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage
+                            callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt
+                            nbL /\
+   beqVAddr defaultVAddr calleePartDescVAddr = false }} 
+  childRelatedChecks calleePartDescVAddr callerPartDesc callerPageDir
+    callerVidt nbL idxVidtInLastMMUPage targetInterrupt callerContextSaveIndex
+    callerInterruptedContext flagsOnWake flagsOnYield {{ fun 
+                                                     (_ : yield_checks)
+                                                     (s' : state) =>
+                                                   partitionsIsolation s' /\
+                                                   kernelDataIsolation s' /\
+                                                   verticalSharing s' /\
+                                                   consistency s' }}.
+
+Lemma parentCallRelatedChecks (userTargetInterrupt userCallerContextSaveIndex : userValue)
+                              (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)
+                              (callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt : page)
+                              (calleePartDescVAddr: vaddr)
+                              (flagsOnWake flagsOnYield : interruptMask)
+                              (nbL             : level)
+                              (callerInterruptedContext : contextAddr) :
+{{ fun s : state =>
+   postConditionYieldBlock1 s userTargetInterrupt userCallerContextSaveIndex
+                            targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage
+                            callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt
+                            nbL /\
+   beqVAddr defaultVAddr calleePartDescVAddr = true }} 
+  parentCallRelatedChecks calleePartDescVAddr callerPartDesc callerPageDir
+    callerVidt nbL idxVidtInLastMMUPage targetInterrupt callerContextSaveIndex
+    callerInterruptedContext flagsOnWake flagsOnYield {{ fun 
+                                                     (_ : yield_checks)
+                                                     (s' : state) =>
+                                                   partitionsIsolation s' /\
+                                                   kernelDataIsolation s' /\
+                                                   verticalSharing s' /\
+                                                   consistency s' }}.
+
+
+Lemma yield      (calleePartDescVAddr: vaddr)
                  (userTargetInterrupt : userValue)
                  (userCallerContextSaveIndex : userValue)
                  (flagsOnWake : interruptMask)
                  (flagsOnYield : interruptMask)
-                 (interruptedContext : contextAddr) :
+                 (callerInterruptedContext : contextAddr) :
 (* Precondition *)
 {{fun (s : state) => partitionsIsolation s /\ 
                      kernelDataIsolation s /\
                      verticalSharing s /\
                      consistency s }}
 (* fonction monadique *)
-yield targetPartitionDescriptor userTargetInterrupt userCallerContextSaveIndex flagsOnWake flagsOnYield interruptedContext
+yield calleePartDescVAddr userTargetInterrupt userCallerContextSaveIndex flagsOnWake flagsOnYield interruptedContext
 (* Postcondition *)
 {{fun _ (s' : state) => partitionsIsolation s' /\
                        kernelDataIsolation s' /\

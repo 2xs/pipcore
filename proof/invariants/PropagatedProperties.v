@@ -235,3 +235,29 @@ nextEntryIsPP phyDescChild sh2idx sh2Childphy s) /\
 isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s /\
 getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
 (defaultPage =? ptVaChildsh2) = false.
+
+
+Definition postConditionYieldBlock1   (s : state)
+                                      (userTargetInterrupt userCallerContextSaveIndex : userValue)
+                                      (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)
+                                      (callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt : page)
+                                      (nbL             : level)
+                                      :=
+  partitionsIsolation s /\
+  kernelDataIsolation s /\ verticalSharing s /\ consistency s /\
+  userTargetInterrupt < tableSize /\
+  targetInterrupt = CIndex userTargetInterrupt /\
+  callerPartDesc = currentPartition s /\
+  nextEntryIsPP callerPartDesc PDidx callerPageDir s /\
+  Some nbL = StateLib.getNbLevel /\
+  userCallerContextSaveIndex < tableSize /\
+  callerContextSaveIndex = CIndex userCallerContextSaveIndex /\
+  isPE callerVidtLastMMUPage
+  (StateLib.getIndexOfAddr MALInternal.vidtVAddr fstLevel) s /\
+  getTableAddrRoot callerVidtLastMMUPage PDidx callerPartDesc
+  MALInternal.vidtVAddr s /\ defaultPage <> callerVidtLastMMUPage /\
+  StateLib.getIndexOfAddr MALInternal.vidtVAddr fstLevel =
+  idxVidtInLastMMUPage /\
+  entryPresentFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  entryUserFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  isEntryPage callerVidtLastMMUPage idxVidtInLastMMUPage callerVidt s.

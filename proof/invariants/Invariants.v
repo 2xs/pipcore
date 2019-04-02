@@ -1118,7 +1118,7 @@ simpl; trivial.
 Qed.
 
 Lemma checkIndexPropertyLTB (userIndex : userValue) (P : state -> Prop) :
-{{ fun s => P s }} checkIndexPropertyLTB userIndex {{ fun b s => P s /\ Nat.ltb userIndex tableSize = b}}.
+{{ fun s => P s }} checkIndexPropertyLTB userIndex {{ fun b s => P s /\ (Nat.ltb userIndex tableSize) = b}}.
 Proof.
 eapply WP.weaken.
 apply WP.checkIndexPropertyLTB.
