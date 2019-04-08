@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -378,7 +378,7 @@ Fixpoint insertEntryIntoConfigPagesListAux timeout (va : vaddr) (pa sh3 : page) 
     if(res) (** Are we at the end of our table ? *)
     then
       (** Next page : recursive call *)
-      perform nextIndirection :=  readPhysical sh3 curIdx in 
+      perform nextIndirection :=  readPhyEntry sh3 curIdx in 
       insertEntryIntoConfigPagesListAux timeout1 va pa nextIndirection
     else
       (** We have a free entry : go on*)
@@ -386,7 +386,7 @@ Fixpoint insertEntryIntoConfigPagesListAux timeout (va : vaddr) (pa sh3 : page) 
       writeVirtual sh3 curIdx va ;; (** Write virtual address*)
       perform curIdxSucc := MALInternal.Index.succ curIdx in
       perform  nextFreeIndex :=  readIndex sh3 curIdxSucc in (** Get next index*)
-      writePhysical sh3 curIdxSucc pa (* false false false false false *);; (** Write physical address *)
+      writePhyEntry sh3 curIdxSucc pa false false false false false;; (** Write physical address *)
       writeIndex sh3 zero nextFreeIndex
   end. (** Update index *)
 
@@ -547,7 +547,7 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
         perform idxsucc11 := MALInternal.Index.succ idxsucc in
         parseConfigPagesListAux timeout1 sh idxsucc11 tbl
       else  (** Recursive call on this table *)
-        perform pad :=  readPhysical sh idxsucc in (** Get entry in table *)
+        perform pad :=  readPhyEntry sh idxsucc in (** Get entry in table *)
         perform cmp :=  MALInternal.Page.eqb pad tbl in
         if cmp
         then
@@ -594,7 +594,7 @@ Fixpoint enoughConfigPagesListEntriesAux timeout (sh : page) (idx : index)
        perform res := MALInternal.Index.eqb idx maxindex in
         if(res) (** End of table ? *)
         then
-          perform nextIndirection :=  readPhysical sh idx in (** Get next table addr*) 
+          perform nextIndirection :=  readPhyEntry sh idx in (** Get next table addr*) 
           perform nullAddr :=  getDefaultPage in
           perform cmp :=  MALInternal.Page.eqb nextIndirection nullAddr in
           if cmp (** No next table ? *)
@@ -729,12 +729,12 @@ Fixpoint linkNewListToConfigPagesListAux timeout sh p v :=
   | S timeout1 =>
     perform zero := MALInternal.Index.zero in
     perform maxindex :=  getMaxIndex in
-    perform nextPage :=  readPhysical sh maxindex in 
+    perform nextPage :=  readPhyEntry sh maxindex in 
     perform nullAddr :=  getDefaultPage in
     perform cmp :=  MALInternal.Page.eqb nextPage nullAddr in
     if cmp
     then
-      writePhysical sh maxindex p (* false false false false false *);;
+      writePhyEntry sh maxindex p false false false false false;;
       initConfigPagesList p zero ;;
       insertEntryIntoConfigPagesList v p p
     else linkNewListToConfigPagesListAux timeout1 nextPage p v

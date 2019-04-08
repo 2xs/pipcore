@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -1956,26 +1956,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
    Qed.
-Lemma getPDFlagGetPdsVAddr' sh1Childphy vaChild phyDescChild level s:
- nextEntryIsPP phyDescChild sh1idx sh1Childphy s -> 
-  getPDFlag sh1Childphy vaChild s = false -> 
-  StateLib.getNbLevel = Some level -> 
-  getFstShadow phyDescChild (memory s) = Some sh1Childphy -> 
-  ~ In vaChild (getPdsVAddr phyDescChild level getAllVAddr s).
-Proof.
-unfold getPDFlag.
-unfold getPdsVAddr.
-rewrite filter_In.
-intros Hpp Hpdflag Hlevel Hsh1 .
-apply or_not_and.
-right.
-unfold not;intros.
-unfold checkChild in *.
-rewrite Hlevel in *.
-rewrite Hsh1 in *.
-rewrite Hpdflag in *.
-now contradict H. 
-Qed.
+
 Lemma getChildrenMapMMUPage1 s ptVaChildpd idxvaChild phyVaChild r w e  pdChildphy currentPart
 presentvaChild vaChild phyDescChild level entry:
   wellFormedFstShadowIfNone s -> wellFormedFstShadowIfDefaultValues s->  

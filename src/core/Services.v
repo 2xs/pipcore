@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -730,7 +730,8 @@ Definition mappedInChild (vaChild : vaddr) : LLI vaddr :=
   perform idxVaChild := getIndexOfAddr vaChild fstLevel in
   (** 1 if the page is derived (use boolean) *)
   readVirEntry ptVaChildFromSh1 idxVaChild
- else ret defaultVAddr.
+else ret defaultVAddr.
+
 
 
 (** ** The removeVAddr PIP service *)
@@ -742,52 +743,49 @@ Definition mappedInChild (vaChild : vaddr) : LLI vaddr :=
 *)
 Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
   perform kmapVaChild := checkKernelMap vaChild in
-  if (negb kmapVaChild)
-  then
+  if kmapVaChild then ret false else
     (**  Get the current partition  *)
     perform currentPart := getCurPartition in
     (** Get the number of levels *)
     perform nbL := getNbLevel in
     (** check whether pd is a pd or not *)
     perform check := checkChild currentPart nbL descChild in
-    if(check)
-    then
-      (** Get the pd of the current partition *)
-      perform currentPD := getPd currentPart in
+    if(negb check) then ret false (*getDefaultVAddr*) else
+    (** Get the pd of the current partition *)
+    perform currentPD := getPd currentPart in
       (** Get the physical address of the reference page of the child *)
       perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
       perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
       perform idxDescChild := getIndexOfAddr descChild fstLevel in
+      perform present := readPresent ptDescChildFromPD idxDescChild in
+      if (negb present) then ret false else 
       perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
       (** Get the physical address of the page directory of the child *)
       perform phyPDChild := getPd phyDescChild in
       (** Get the page table and the index in which the address is mapped *)
-      perform ptDescChildFromPD := getTableAddr phyPDChild vaChild nbL in
-      perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
-      perform idxDescChild := getIndexOfAddr vaChild fstLevel in
+      perform idxvaChild := getIndexOfAddr vaChild fstLevel in
+      perform ptvaChildFromPD := getTableAddr phyPDChild vaChild nbL in
+      perform isNull := comparePageToNull ptvaChildFromPD in if isNull then ret false else
+      (**  true if accessible *)
+      perform access := readAccessible ptvaChildFromPD idxvaChild in
+      (**  true if present *)
+      perform present := readPresent ptvaChildFromPD idxvaChild in
       (**  access to the first shadow page of the child to test whether the page is derived or not *)
       perform shadow1Child := getFstShadow phyDescChild in
       perform ptVaChildFromSh1 := getTableAddr shadow1Child vaChild nbL in
       perform isNull := comparePageToNull ptVaChildFromSh1 in if isNull then ret false else
       (**  false if not derived *)
-      perform deriv := checkDerivation ptVaChildFromSh1 idxDescChild in
-      (**  true if accessible *)
-      perform access := readAccessible ptDescChildFromPD idxDescChild in
-      (**  true if present *)
-      perform present := readPresent ptDescChildFromPD idxDescChild in
+      perform deriv := checkDerivation ptVaChildFromSh1 idxvaChild in
       if (access && deriv && present )
       then
-        (**  Set the page as not present for the child *)
-        perform nullAddr := getDefaultPage in
-        writePhyEntry ptDescChildFromPD idxDescChild nullAddr false false false false false ;; 
+       
         (**  access to the second shadow page of the child to determine the
           virtual address which map this page into the current page directory *)
         perform shadow2Child := getSndShadow phyDescChild in
         perform ptVaChildFromSh2 := getTableAddr shadow2Child vaChild nbL in
         perform isNull := comparePageToNull ptVaChildFromSh2 in if isNull then ret false else
-
         (**  Get the virtual address into the current page directory *)
-        perform vaInParent := readVirtual ptVaChildFromSh2 idxDescChild in
+        perform vaInParent := readVirtual ptVaChildFromSh2 idxvaChild in
         (**  access to the first shadow page of the current page directory
           to mark the entry that correspond to the virtual address vaInCurrentPartition as underived*)
         perform currentSh1 := getFstShadow currentPart in
@@ -796,12 +794,14 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
         perform idxVaInParent := getIndexOfAddr vaInParent fstLevel in
         (**  mark page as not derived *)
         perform null := getDefaultVAddr in
+         (**  Set the page as not present for the child *)
+        perform nullAddr := getDefaultPage in
+        writePhyEntry ptvaChildFromPD idxvaChild nullAddr false false false false false ;; 
+        writeVirtual ptVaChildFromSh2 idxvaChild null ;; 
         writeVirEntry ptVaInParentFromSh1 idxVaInParent null ;;
-        writeVirtual ptVaChildFromSh2 idxDescChild null ;; 
         ret  true (*vaInParent*)
-      else ret false (*getDefaultVAddr*)
-    else ret false
-  else ret false.
+      
+    else ret false.
 
 
 (** ** The deletePartition PIP service *)
@@ -892,8 +892,8 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
   match timeout with
   | 0 => ret false (* getDefaultVAddr*)
   | S timeout1 =>
-    perform isFstLevel := Level.eqb currentLevel fstLevel in 
-    if isFstLevel then ret true else
+perform isFstLevel := Level.eqb currentLevel fstLevel in
+     if isFstLevel then ret true else
     perform ptVaToCollectFromPDChild := getTableAddr phyPDChild vaToCollect currentLevel in (** Get indirection table address, last nbL *)
 
     perform isNull := comparePageToNull ptVaToCollectFromPDChild in if isNull then ret false else

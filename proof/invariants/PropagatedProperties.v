@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -235,3 +235,69 @@ nextEntryIsPP phyDescChild sh2idx sh2Childphy s) /\
 isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s /\
 getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
 (defaultPage =? ptVaChildsh2) = false.
+
+Definition propagatedPropertiesRemoveVaddr s descChild (vaChild:vaddr) 
+currentPart 
+level 
+(* currentShadow1 *)
+idxDescChild
+ptDescChild
+(* ischild *) 
+currentPD  ptDescChildFromPD 
+idxDescChild1 
+(* presentDescPhy *)
+phyDescChild  pdChildphy 
+idxvaChild 
+ptVaChildpd  shadow1Child  ptVaChildFromSh1
+(* childListSh1Isnull *) 
+vainve 
+sh2Childphy  ptVaChildsh2
+vainparent vainparentdef 
+currentShadow  ptVaInCurPart 
+idxvainparent
+(* defautvaddr *)
+(* defaultpage *) 
+ismapped isaccessible:=
+partitionsIsolation s /\
+    kernelDataIsolation s /\
+    verticalSharing s /\
+    consistency s /\
+    (Kidx =? nth (length vaChild - (nbLevel - 1 + 2)) vaChild defaultIndex) =
+    false /\
+    currentPart = currentPartition s /\
+    Some level = getNbLevel /\
+    nextEntryIsPP currentPart sh1idx currentShadow s /\
+    getIndexOfAddr descChild fstLevel = idxDescChild /\
+    isVE ptDescChild (getIndexOfAddr descChild fstLevel) s /\
+    getTableAddrRoot ptDescChild sh1idx currentPart descChild s /\
+    (defaultPage =? ptDescChild) = false /\
+    entryPDFlag ptDescChild idxDescChild true s /\
+    nextEntryIsPP currentPart PDidx currentPD s /\
+    isPE ptDescChildFromPD (getIndexOfAddr descChild fstLevel) s /\
+    getTableAddrRoot ptDescChildFromPD PDidx currentPart descChild s /\
+    (defaultPage =? ptDescChildFromPD) = false /\
+    getIndexOfAddr descChild fstLevel = idxDescChild1 /\
+    entryPresentFlag ptDescChildFromPD idxDescChild1 true s /\
+    isEntryPage ptDescChildFromPD idxDescChild1 phyDescChild s /\
+    In phyDescChild (getChildren (currentPartition s) s) /\
+    nextEntryIsPP phyDescChild PDidx pdChildphy s /\
+    getIndexOfAddr vaChild fstLevel = idxvaChild /\
+    isPE ptVaChildpd (getIndexOfAddr vaChild fstLevel) s /\
+    getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s /\
+    (defaultPage =? ptVaChildpd) = false /\
+    entryUserFlag ptVaChildpd idxvaChild isaccessible s /\
+    entryPresentFlag ptVaChildpd idxvaChild ismapped s /\
+    nextEntryIsPP phyDescChild sh1idx shadow1Child s /\
+    isVE ptVaChildFromSh1 (getIndexOfAddr vaChild fstLevel) s /\
+    getTableAddrRoot ptVaChildFromSh1 sh1idx phyDescChild vaChild s /\
+    (defaultPage =? ptVaChildFromSh1) = false /\
+    isEntryVA ptVaChildFromSh1 idxvaChild vainve s /\
+    beqVAddr defaultVAddr vainve = true /\
+    nextEntryIsPP phyDescChild sh2idx sh2Childphy s /\
+    isVA ptVaChildsh2 (getIndexOfAddr vaChild fstLevel) s /\
+    getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
+    (defaultPage =? ptVaChildsh2) = false /\
+    isVA' ptVaChildsh2 idxvaChild vainparentdef s /\
+    isVE ptVaInCurPart (getIndexOfAddr vainparent fstLevel) s /\
+    getTableAddrRoot ptVaInCurPart sh1idx currentPart vainparent s /\
+    (defaultPage =? ptVaInCurPart) = false /\  getIndexOfAddr vainparent fstLevel = idxvainparent.

@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -196,7 +196,7 @@ simpl.
   (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2: {
   intros.
   destruct H as (H0 & H1).
   assert ( (getTableAddrRoot' ptDescChild sh1idx currentPart descChild s /\ ptDescChild = defaultPage) \/
@@ -216,7 +216,7 @@ simpl.
         symmetrynot. apply idxPDidxSh1notEq.  }
   assert (HP := conj H0 H).
   pattern s in HP.
-  eapply HP.
+  eapply HP. }
   rewrite assoc.
   (** comparePageToNull **) 
   eapply WP.bindRev.
@@ -333,7 +333,7 @@ intro ptVaInCurPart. simpl.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptVaInCurPart sh1idx currentPart vaInCurrentPartition s /\ ptVaInCurPart = defaultPage) \/
@@ -353,7 +353,7 @@ isVE ptVaInCurPart idx s /\ getTableAddrRoot ptVaInCurPart sh1idx currentPart va
       symmetrynot. apply idxPDidxSh1notEq.  }
 assert (HP := conj H0 H).
 pattern s in HP.
-eapply HP.
+eapply HP. }
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.
@@ -471,7 +471,7 @@ intro ptVaInCurPartpd. simpl.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptVaInCurPartpd PDidx currentPart vaInCurrentPartition s /\ ptVaInCurPartpd = defaultPage) \/
@@ -491,7 +491,7 @@ isPE ptVaInCurPartpd idx s /\ getTableAddrRoot ptVaInCurPartpd PDidx currentPart
     - split;trivial. }
 assert (HP := conj H0 H).
 pattern s in HP.
-eapply HP.
+eapply HP. }
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.
@@ -584,7 +584,7 @@ intro ptDescChildpd. simpl.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptDescChildpd PDidx currentPart descChild s /\ ptDescChildpd = defaultPage) \/
@@ -604,7 +604,7 @@ isPE ptDescChildpd idx s /\ getTableAddrRoot ptDescChildpd PDidx currentPart des
     - split;trivial. }
 assert (HP := conj H0 H).
 pattern s in HP.
-exact HP.
+exact HP. }
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.
@@ -800,7 +800,7 @@ intro ptVaChildpd. simpl.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptVaChildpd PDidx phyDescChild vaChild s /\ ptVaChildpd = defaultPage) \/
@@ -820,7 +820,8 @@ isPE ptVaChildpd idx s /\ getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChil
     - split;trivial. }
 assert (HP := conj H0 H).
 pattern s in HP.
-exact HP.
+exact HP. }
+
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.
@@ -949,7 +950,7 @@ intro ptVaChildsh2. simpl.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptVaChildsh2 sh2idx phyDescChild vaChild s /\ ptVaChildsh2 = defaultPage) \/
@@ -970,7 +971,7 @@ isVA ptVaChildsh2 idx s /\ getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaC
       apply idxPDidxSh2notEq. }
 assert (HP := conj H0 H).
 pattern s in HP.
-exact HP.
+exact HP. }
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.

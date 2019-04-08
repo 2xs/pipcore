@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -89,9 +89,9 @@ Inductive result (A : Type) : Type :=
 (* | hlt : result A *)
 | undef : nat -> state-> result A.
 
-Implicit Arguments val [ A ].
+(* Implicit *) Arguments val [ A ].
 (* Implicit Arguments hlt [ A ]. *)
-Implicit Arguments undef [ A ]. 
+(* Implicit *) Arguments undef [ A ]. 
 
 
 Definition LLI (A :Type) : Type := state -> result (A * state).
@@ -190,6 +190,32 @@ Lemma assoc (A B C : Type)(m : LLI A)(f : A -> LLI B)(g : B -> LLI C) :
 Proof.
 extensionality s; unfold bind; case (m s); trivial; tauto.
 Qed.
+
+
+(* Lemma runvaluebind {A : Type} (m e: LLI A) (s : state) : 
+runvalue (perform x := m in e) s = 
+match runvalue m s with 
+| None => runvalue e s 
+| Some x => runvalue e s 
+end.
+case_eq(runvalue m s);intros.
+unfold runvalue in *.
+case_eq(m s);intros.
+simpl.
+subst.
+case_eq((m;; e) s);intros.
+destruct p0.
+case_eq(e s);intros.
+destruct p0.
+subst.
+unfold bind in *.
+rewrite H0 in *.
+cbn in *.
+simpl in 
+*.
+
+simpl. *)
+
 
 Lemma postAnd :
   forall (A : Type) (P : state -> Prop) (Q R : A -> state -> Prop) (m : LLI A),

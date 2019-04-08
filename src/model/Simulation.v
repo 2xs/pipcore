@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -199,12 +199,12 @@ Services.deletePartition (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)]).
 (** deletePartition test : OK *)
 Eval vm_compute in deletePartition.
 
-(* Definition dispatch := 
+Definition dispatch := 
 addVAddr;;
 Services.dispatch (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)]).
 
 (** dispatch test : OK *)
-Eval vm_compute in dispatch.   *)
+Eval vm_compute in dispatch.  
 
    END SIMULATION *)
 

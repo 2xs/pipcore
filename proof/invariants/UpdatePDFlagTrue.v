@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -1675,11 +1675,11 @@ apply Hpde;trivial.
 right;left;trivial.
 case_eq ( getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
 intros Hsh1parent];rewrite Hsh1parent in *;trivial.
-Focus 2 .
+2: {
 destruct Hsh1propparent as (xx & Hsh1parentprop & Hnotnull).
 rewrite nextEntryIsPPgetFstShadow in *. 
 rewrite Hsh1parentprop in Hsh1parent.
-now contradict Hsh1parent.   
+now contradict Hsh1parent. }
 assert(Hind :  forall va root ,  
 getIndirection root va nbL (nbLevel - 1) s' =
 getIndirection root va nbL (nbLevel - 1) s).

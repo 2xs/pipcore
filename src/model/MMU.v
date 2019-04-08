@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -64,6 +64,15 @@ match entry with
   | None => undefined 17
 end.
 
+Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
+perform s := get in
+let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+match entry with
+  | Some (PE a) => ret a.(user)
+  | Some _ => undefined 12
+  | None => undefined 11
+end.
+
 (** The 'getTableAddrAux' returns the reference to the last page table  *)
 Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
   match timeout with
@@ -88,7 +97,8 @@ Definition  translate (pd : page) (va : vaddr) (l : level) : LLI (option page)  
   if isNull then ret None else
   perform idx :=  getIndexOfAddr va fstLevel in
   perform ispresent := readPresent lastTable idx in 
-  if ispresent then  
+  perform isaccessible := readAccessible lastTable idx in
+  if (ispresent && isaccessible) then  
   perform phypage := readPhyEntry lastTable idx in 
   ret (Some phypage)
   else ret None.

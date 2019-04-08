@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -255,7 +255,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -291,7 +291,7 @@ case_eq isMultiplexer.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
-  eapply HP.
+  eapply HP. }
   (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
@@ -453,7 +453,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+     2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -500,13 +500,13 @@ case_eq isMultiplexer.
       try repeat rewrite and_assoc in H0.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
-      eapply HP.
+      eapply HP. }
   (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -2192,7 +2192,7 @@ intuition.
    subst;trivial.
   subst;trivial. 
     
-
+}
 
 (** setAccessible failed **)
  intros.
@@ -2360,7 +2360,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -2397,7 +2397,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -2558,7 +2558,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -2606,12 +2606,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -4289,7 +4289,7 @@ destruct present;[| inversion Hmapped;subst;
   intuition.
   subst;trivial.
   subst;trivial.
-  subst;trivial.
+  subst;trivial. }
 (** setAccessible failed **)
  intros.
   eapply weaken.
@@ -4456,7 +4456,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -4493,7 +4493,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -4654,7 +4654,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -4702,12 +4702,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -6378,7 +6378,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)
@@ -6548,7 +6548,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -6585,7 +6585,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -6746,7 +6746,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -6794,12 +6794,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -8473,7 +8473,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)
@@ -8640,7 +8640,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -8677,7 +8677,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -8838,7 +8838,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -8886,12 +8886,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -10554,7 +10554,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)
@@ -10720,7 +10720,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -10757,7 +10757,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -10918,7 +10918,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -10966,12 +10966,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -12672,7 +12672,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)
@@ -12845,7 +12845,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -12882,7 +12882,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -13043,7 +13043,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -13091,12 +13091,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -14752,7 +14752,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)
@@ -14949,7 +14949,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -14986,7 +14986,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -15336,7 +15336,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -15384,7 +15384,7 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
@@ -17778,7 +17778,7 @@ case_eq isMultiplexer.
    (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
@@ -17815,7 +17815,7 @@ case_eq isMultiplexer.
   assert (HP := conj H0 H).
   pattern s in HP.
   eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
   intro ptsh2Isnull. simpl.
@@ -17981,7 +17981,7 @@ case_eq isMultiplexer.
        (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
@@ -18029,12 +18029,12 @@ case_eq isMultiplexer.
       assert (HP :=conj(conj (conj(conj (conj H0 Htableroot) Htrue )Hrest) H) isdefaultVAT).
       pattern s in HP.
       eapply HP.
-  (** comparePageToNull **) 
+  } (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
       intro ptvaInAncestorIsnull. simpl.
       case_eq ptvaInAncestorIsnull.
-      Focus 2.
+      2:{
       intros HptvaInAncestorIsnulll.
   (** StateLib.getIndexOfAddr **)                
       eapply WP.bindRev.
@@ -19715,7 +19715,7 @@ intuition.
  intuition.
  subst;trivial.
    subst;trivial.
-  subst;trivial.
+  subst;trivial. }
  
 
 (** setAccessible failed **)

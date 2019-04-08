@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -41,7 +41,7 @@ Require Import List Arith Omega.
 (** Define some constants *)
 (** default values *)
 Definition defaultIndex := CIndex 0.
-Definition defaultVAddr := CVaddr (repeat (CIndex 0) nbLevel).
+Definition defaultVAddr := CVaddr (repeat (CIndex 0) (nbLevel+1)).
 Definition defaultPage := CPage 0.
 
 (** Define first level number *)

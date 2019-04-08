@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -424,6 +424,23 @@ subst.
 now contradict Heq.
 Qed.
 
+Lemma listPageDecOrNot :
+forall x (l: list page), List.In x l \/ 
+              ~List.In x l.
+Proof.              
+induction l;trivial.
+right;intuition.
+simpl.
+assert(a=x \/ a<> x) by apply pageDecOrNot.
+destruct H.
+left;left;trivial.
+destruct IHl.
+left;right;trivial.
+right.
+apply Logic.Classical_Prop.and_not_or. intuition.
+Qed. 
+             
+             
 (** ADT : index **)
 Lemma indexEqFalse : 
 forall a b : nat , a < tableSize -> b < tableSize -> a <> b -> CIndex a <> CIndex b.
@@ -1014,49 +1031,99 @@ case_eq (table1 =? table2) ; case_eq(idx1 =? idx2);intuition.
   subst.
   now contradict H1.
 Qed.
+Require Import List Classical_Prop.
+Lemma listIndexDecOrNot :
+forall p1 p2 : list index, p1 = p2 \/ p1<>p2.
+Proof.
+induction p1;intros.
+induction p2;intros.
+left;trivial.
+simpl.
+right;intuition.
+now contradict H.
+now contradict H.
+induction p2;simpl;intros.
+right;intuition.
+now contradict H.
+destruct IHp2.
+rewrite H.
+right.
+clear.
+induction p2;simpl.
+intuition.
+now contradict H.
+unfold not;intros. contradict IHp2.
+inversion H.
+subst.
+trivial.
+apply NNPP.
+unfold not at  1.
+intros.
+apply not_or_and in H0.
+destruct H0.
+now contradict H1.
+Qed.
 
- Lemma idxPRsucNotEqidxPPR : PRidx < tableSize - 1 -> 
-    exists succidx1 : index, Index.succ PRidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
-    Proof. 
-    unfold Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
-    eexists.
-    split.
-    instantiate (1:= CIndex (PRidx + 1)).
-    f_equal.
-    unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
-    f_equal.
-    apply proof_irrelevance.
-    abstract omega.
-    unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+Lemma vaddrDecOrNot :
+forall p1 p2 : vaddr, p1 = p2 \/ p1<>p2.
+Proof.
+destruct p1;destruct p2;simpl in *.
+assert(Hor : va = va0 \/ va<>va0).
+apply listIndexDecOrNot.
+destruct Hor as [Hor | Hor].
+subst.
+left;simpl.
+f_equal.
+apply proof_irrelevance.
+right.
+simpl.
+unfold not;intros Hirr.
+inversion Hirr.
+subst;now contradict Hor.
+Qed.
     
-    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = PPRidx)
-    by trivial.
-    contradict Hi.
-    subst.
-    unfold PRidx. unfold PPRidx.
-    unfold CIndex at 3.
-    case_eq (lt_dec 10 tableSize); intros.
-    unfold not; intros Hii.
-    inversion Hii as (Hi2).
-    unfold CIndex in Hi2.
-    case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
-    simpl in *. 
-    inversion Hii.
-    abstract omega.
-    abstract omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    abstract omega.
-    assert (tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    abstract omega.
-    abstract omega.
-    Qed. 
+Lemma idxPRsucNotEqidxPPR : PRidx < tableSize - 1 -> 
+exists succidx1 : index, Index.succ PRidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+Proof. 
+unfold Index.succ.
+case_eq (lt_dec (PRidx + 1) tableSize); intros.
+eexists.
+split.
+instantiate (1:= CIndex (PRidx + 1)).
+f_equal.
+unfold CIndex .
+case_eq (lt_dec(PRidx + 1) tableSize); intros.
+f_equal.
+apply proof_irrelevance.
+abstract omega.
+unfold CIndex.
+case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+
+assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = PPRidx)
+by trivial.
+contradict Hi.
+subst.
+unfold PRidx. unfold PPRidx.
+unfold CIndex at 3.
+case_eq (lt_dec 10 tableSize); intros.
+unfold not; intros Hii.
+inversion Hii as (Hi2).
+unfold CIndex in Hi2.
+case_eq(lt_dec 0 tableSize); intros Hi1 Hi3; rewrite Hi3 in *.
+simpl in *. 
+inversion Hii.
+abstract omega.
+abstract omega.
+assert (tableSize > tableSizeLowerBound).
+apply tableSizeBigEnough.
+unfold tableSizeLowerBound in *.
+abstract omega.
+assert (tableSize > tableSizeLowerBound).
+apply tableSizeBigEnough.
+unfold tableSizeLowerBound in *.
+abstract omega.
+abstract omega.
+Qed. 
      Lemma idxPPRsuccNotEqidxPR : PPRidx < tableSize - 1 -> 
     exists succidx2 : index, Index.succ PPRidx = Some succidx2 /\ (succidx2 = PRidx -> False).
     Proof.  

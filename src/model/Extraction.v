@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -35,6 +35,7 @@
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
 Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
+Require Extraction.
 Extraction Language JSON.
 
 (** Coq standard library *)

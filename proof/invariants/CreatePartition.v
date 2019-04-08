@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université Lille 1, The Pip Development Team (2015-2017)                 *)
+(*  © Université Lille 1, The Pip Development Team (2015-2018)                 *)
 (*                                                                             *)
 (*  This software is a computer program whose purpose is to run a minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)
@@ -176,6 +176,16 @@ eapply WP.bindRev.
           intuition          subst. trivial. 
           }
       intro currentPD. simpl. 
+(* (** getNbLevel **)      
+      eapply WP.bindRev.
+      { eapply WP.weaken.
+        eapply Invariants.getNbLevel.
+        simpl.
+        intros.
+        try repeat rewrite and_assoc in H.
+        pattern s in H.
+        eapply H.
+        }  intro level.  *)  
 (** getTableAddr **)
       eapply WP.bindRev.
       eapply WP.weaken. 
@@ -230,7 +240,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptRefChild PDidx currentPart descChild s /\   ptRefChild = defaultPage) \/
@@ -252,7 +262,7 @@ eapply WP.bindRev.
      - assumption.  } 
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -354,7 +364,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot'  ptPDChild PDidx currentPart pdChild s /\    ptPDChild = defaultPage) \/
@@ -380,7 +390,7 @@ eapply WP.bindRev.
     assert (HP := conj H0 H).
 
         pattern s in HP.
-        eapply HP.      
+        eapply HP. }     
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -486,7 +496,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert(( getTableAddrRoot' ptSh1Child PDidx currentPart shadow1 s /\  ptSh1Child = defaultPage) \/
@@ -508,7 +518,7 @@ eapply WP.bindRev.
        
        assert (HP := conj H0 H).
        pattern s in HP.
-       eapply HP.   
+       eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -609,7 +619,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( ( getTableAddrRoot' ptSh2Child PDidx currentPart shadow2 s /\ ptSh2Child = defaultPage) \/
@@ -630,7 +640,7 @@ eapply WP.bindRev.
        assumption. }
        assert (HP := conj H0 H).
        pattern s in HP.
-       eapply HP.  
+       eapply HP. } 
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -730,7 +740,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
        assert( ( getTableAddrRoot' ptConfigPagesList PDidx currentPart list s /\ ptConfigPagesList = defaultPage) \/
@@ -750,7 +760,7 @@ eapply WP.bindRev.
        assumption. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -876,7 +886,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' ptRefChildFromSh1 sh1idx currentPart descChild s /\ ptRefChildFromSh1 = defaultPage) \/
@@ -895,7 +905,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP. 
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -978,7 +988,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
           
@@ -999,7 +1009,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1084,7 +1094,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' ptSh1ChildFromSh1 sh1idx currentPart shadow1 s /\  ptSh1ChildFromSh1 = defaultPage) \/
@@ -1103,7 +1113,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1189,7 +1199,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert (  (getTableAddrRoot' childSh2 sh1idx currentPart shadow2 s /\ childSh2 = defaultPage) \/
@@ -1208,7 +1218,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1296,7 +1306,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' childListSh1 sh1idx currentPart list s /\ childListSh1 = defaultPage) \/
@@ -1315,7 +1325,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -2118,9 +2128,9 @@ intros [].
      (forall idx : index,
       StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\ 
       StateLib.readPresent phyPDChild idx (memory s) = Some false)).
-      Focus 2.
+      2: {
       simpl;
-      intuition.  
+      intuition.  }
       eapply WP.bindRev.
     eapply preAndPost.
     eapply WP.weaken.
