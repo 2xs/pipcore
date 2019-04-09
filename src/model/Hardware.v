@@ -32,35 +32,27 @@
 (*******************************************************************************)
 
 (** * Summary 
-So the theorem holds. 
-This file contains the monad state and Hoare logic formalization.
--State monad is formalized as follows: 
-  
- -The type constructor [LLI]
-        
- -Two operations : [bind] to compose a sequence of monadic functions and [ret] to create monadic values. 
-
--We use state monad to simulate side effects like state updates so we define the following functions: 
- 
- -[get] to get back the current state
- 
- -[put] to update the current state
- 
--The state contains mainly the physical memory. In our Hardware model, physical
- memory is an associaton list that keeps only relevent data. Its key is a the
- physical address and the value is the data to store into physical memory.
- 
--Hoare logic formalization <<{{ P }} m {{ Q }}>>:  
-   
- - <<m>> is a monadic function 
-  
- - <<P>> is the precondition of the function <<m>>, it is an unary predicate which depends on the state   
-   
- - <<Q>> is the postcondition of the function <<m>>, it is a binary predicate which depends on the new state and the return value  
- 
-
--We define some lemmas like [weaken] and [bindWP] to facilitate Hoare logic 
-     and monad manipulation.
+    This file contains the monad state and Hoare logic formalization.
+     + State monad formalization : 
+        ** The type constructor "LLI"
+        ** Two operations : "bind" to compose a sequence of monadic functions 
+           and "ret" to create monadic values. 
+     + We use state monad to simulate side effects like state updates so we 
+       define the following functions: 
+        ** "get" to get back the current state
+        ** "put" to update the current state  
+     + The state contains mainly the physical memory.
+       In our Hardware model, physical memory is an associaton list that keeps 
+       only relevent data. Its key is a the physical address and the value is 
+       the data to store into physical memory.
+     + Hoare logic formalization : "{{ P }} m {{ Q }}"
+        ** "m" is a monadic function 
+        ** "P" is the precondition of the function "m", it is an unary predicate 
+            which depends on the state
+        ** "Q" is the postcondition of the function "m", it is a binary predicate
+            which depends on the new state and the return value
+       We define some lemmas like "weaken" and "bindWP" to facilitate Hoare logic 
+       and monad manipulation.
 *)
 Require Import FunctionalExtensionality Model.ADT.
 
@@ -97,9 +89,9 @@ Inductive result (A : Type) : Type :=
 (* | hlt : result A *)
 | undef : nat -> state-> result A.
 
-Implicit Arguments val [ A ].
+(* Implicit *) Arguments val [ A ].
 (* Implicit Arguments hlt [ A ]. *)
-Implicit Arguments undef [ A ]. 
+(* Implicit *) Arguments undef [ A ]. 
 
 
 Definition LLI (A :Type) : Type := state -> result (A * state).
@@ -198,6 +190,32 @@ Lemma assoc (A B C : Type)(m : LLI A)(f : A -> LLI B)(g : B -> LLI C) :
 Proof.
 extensionality s; unfold bind; case (m s); trivial; tauto.
 Qed.
+
+
+(* Lemma runvaluebind {A : Type} (m e: LLI A) (s : state) : 
+runvalue (perform x := m in e) s = 
+match runvalue m s with 
+| None => runvalue e s 
+| Some x => runvalue e s 
+end.
+case_eq(runvalue m s);intros.
+unfold runvalue in *.
+case_eq(m s);intros.
+simpl.
+subst.
+case_eq((m;; e) s);intros.
+destruct p0.
+case_eq(e s);intros.
+destruct p0.
+subst.
+unfold bind in *.
+rewrite H0 in *.
+cbn in *.
+simpl in 
+*.
+
+simpl. *)
+
 
 Lemma postAnd :
   forall (A : Type) (P : state -> Prop) (Q R : A -> state -> Prop) (m : LLI A),

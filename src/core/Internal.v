@@ -409,7 +409,7 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
     if (res) (**  if last entry *)
     then
       (**  get the address of the next page *)
-      perform next :=  readPhyEntry list maxindex in 
+      perform next :=  readPhysical list maxindex in 
       perform null :=  getDefaultPage in
       perform cmp :=  MALInternal.Page.eqb next null in
       if cmp (**  no more pages ? *)
@@ -528,7 +528,7 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
     perform res := MALInternal.Index.eqb idx maxindex in
     if (res)
     then
-      perform nextIndirection :=  readPhyEntry sh maxindex  in (** get next table *) 
+      perform nextIndirection :=  readPhysical sh maxindex  in (** get next table *) 
       perform nullAddr :=  getDefaultPage in
       perform cmp2 :=  MALInternal.Page.eqb nextIndirection nullAddr in
       if cmp2 (** ensure we're not on an empty table *)

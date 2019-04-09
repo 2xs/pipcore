@@ -41,7 +41,7 @@ Require Import List Arith Omega.
 (** Define some constants *)
 (** default values *)
 Definition defaultIndex := CIndex 0.
-Definition defaultVAddr := CVaddr (repeat (CIndex 0) nbLevel).
+Definition defaultVAddr := CVaddr (repeat (CIndex 0) (nbLevel+1)).
 Definition defaultPage := CPage 0.
 
 (** Define first level number *)

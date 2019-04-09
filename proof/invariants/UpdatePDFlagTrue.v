@@ -33,7 +33,8 @@
 Require Import Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL UpdateShadow1Structure InternalLemmas DependentTypeLemmas Lib
-WriteAccessible InitConfigPagesList InitPEntryTable DependentTypeLemmas  GetTableAddr
+WriteAccessible
+  InitConfigPagesList InitPEntryTable DependentTypeLemmas  GetTableAddr
  WriteAccessibleRec UpdateMappedPageContent InternalLemmas 
 UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure .
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
@@ -1674,11 +1675,11 @@ apply Hpde;trivial.
 right;left;trivial.
 case_eq ( getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
 intros Hsh1parent];rewrite Hsh1parent in *;trivial.
-Focus 2 .
+2: {
 destruct Hsh1propparent as (xx & Hsh1parentprop & Hnotnull).
 rewrite nextEntryIsPPgetFstShadow in *. 
 rewrite Hsh1parentprop in Hsh1parent.
-now contradict Hsh1parent.   
+now contradict Hsh1parent. }
 assert(Hind :  forall va root ,  
 getIndirection root va nbL (nbLevel - 1) s' =
 getIndirection root va nbL (nbLevel - 1) s).
@@ -3525,7 +3526,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       assert( Hchild2part : In child2 (getPartitions multiplexer s)).
       apply childrenPartitionInPartitionList with currentPart;trivial. 
       unfold consistency in *. intuition. 
-      (** all physical pages are not config pages (already into hypothesis)
+      (** * all physical pages are not config pages (already into hypothesis)
           * all physical pages are not mapped into any child 
             (have to prove this before writeVirEntry) @_@ *)
       unfold Lib.disjoint.
@@ -3534,7 +3535,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       rewrite in_app_iff.
       apply Classical_Prop.and_not_or.
       split.
-      (** all physical pages are not config pages (already into hypothesis) *)
+      (** * all physical pages are not config pages (already into hypothesis) *)
       unfold getConfigPages.
       simpl.
       destruct Hpage as [H1 |[H1 | [ H1 | [H1 | [ H1 | H1]]]]];
@@ -3626,16 +3627,16 @@ destruct Hparteq as [Hparteq | Hparteq].
         assert( Hchild2part : In child1 (getPartitions multiplexer s)).
       apply childrenPartitionInPartitionList with currentPart;trivial.
       unfold consistency in *. intuition. 
-      (** all physical pages are not config pages (already into hypothesis)
+      (** * all physical pages are not config pages (already into hypothesis)
           * all physical pages are not mapped into any child 
-             *)
+            (have to prove this before writeVirEntry) @_@ *)
       unfold Lib.disjoint.
       intros apage Hpage.
       simpl in Hpage.
       rewrite in_app_iff.
       apply Classical_Prop.and_not_or.
       split.
-      (** all physical pages are not config pages (already into hypothesis) *)
+      (** * all physical pages are not config pages (already into hypothesis) *)
       unfold getConfigPages.
       simpl.
       destruct Hpage as [H1 |[H1 | [ H1 | [H1 | [ H1 | H1]]]]];
@@ -3654,7 +3655,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       apply Ha4;trivial.
       apply Ha5;trivial.
       now contradict H1.     
-      (** all physical pages are not mapped into any child 
+      (* * all physical pages are not mapped into any child 
             (have to prove this before writeVirEntry) @_@
             forall child, In child (getChildren currentPart s), ~ In apage (getMappedPages child s) *) 
     - unfold s'.

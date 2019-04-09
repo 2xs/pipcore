@@ -55,7 +55,7 @@
            for mapping
     Step 7 "deletePartition" : The multiplexer deletes the child and gets 
             all used pages back *) 
-Require Import List Core.Services Model.Hardware Isolation  
+Require Import List Core.Services Model.Hardware   
 Model.ADT Model.MALInternal Model.MAL.
 Import List.ListNotations.
 

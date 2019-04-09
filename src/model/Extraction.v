@@ -35,6 +35,7 @@
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
 Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
+Require Extraction.
 Extraction Language JSON.
 
 (** Coq standard library *)
