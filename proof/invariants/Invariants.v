@@ -33,9 +33,7 @@
 
 (**  * Summary 
     In this file we formalize and prove all invariants of the MAL and MALInternal functions *)
-Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal 
-Isolation Consistency Model.Lib StateLib Model.IAL
-DependentTypeLemmas List Bool .
+Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal  Isolation Consistency Model.Lib StateLib Model.IAL DependentTypeLemmas List Bool .
 Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
 
 Require WeakestPreconditions.
@@ -1136,4 +1134,83 @@ simpl.
 intros.
 destruct H.
 repeat split;trivial.
+Qed.
+
+Lemma readInterruptMask (calleeVidt : page) (P : state -> Prop) :
+{{ fun s => P s}} readInterruptMask calleeVidt {{ fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.readInterruptMask.
+simpl.
+trivial.
+Qed.
+
+Lemma isInterruptMasked (interruptMask : interruptMask) (targetInterrupt : index) (P : state -> Prop)  :
+{{fun s => P s}}
+isInterruptMasked interruptMask targetInterrupt
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.isInterruptMasked.
+simpl.
+trivial.
+Qed.
+
+Lemma readUserlandVAddr  (paddr : page) ( idx : index) (P : state -> Prop) :
+{{fun s => P s}}
+readUserlandVAddr paddr idx
+{{fun vaddr s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.readUserlandVAddr.
+simpl.
+intros.
+case_eq (lookup paddr idx (memory s) beqPage beqIndex); intros; try assumption.
+case_eq v; intros; assumption.
+Qed.
+
+Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : state -> Prop) :
+{{fun s => P s}}
+IAL.getNthVAddrFrom va n
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.getNthVAddrFrom.
+cbn.
+trivial.
+Qed.
+
+Lemma firstVAddrGreaterThanSecond (first second : vaddr) (P : state -> Prop):
+{{fun s => P s}}
+firstVAddrGreaterThanSecond first second
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.firstVAddrGreaterThanSecond.
+cbn.
+trivial.
+Qed.
+
+Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(P : state -> Prop) :
+{{fun s => P s}}
+writeContext callingContextAddr contextSaveAddr flagsOnWake
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.writeContext.
+cbn.
+trivial.
+Qed.
+
+Lemma setInterruptMask (vidt : page) (mask : interruptMask)
+(P : state -> Prop) :
+{{fun s => P s}}
+setInterruptMask vidt mask
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.setInterruptMask.
+cbn.
+trivial.
 Qed.

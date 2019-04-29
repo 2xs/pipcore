@@ -76,8 +76,7 @@ Inductive value : Type:=
 |VE : Ventry -> value
 |PP : page -> value
 |VA : vaddr -> value
-|I  : index -> value.  
-
+|I  : index -> value.
 
 Record state : Type := {
  currentPartition : page;

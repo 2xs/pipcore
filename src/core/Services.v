@@ -1190,10 +1190,10 @@ Definition checkCalleeContext (calleePartDesc         : page)
 
   (* check if caller wants to save its context *)
   perform callerContextSaveVAddr := readUserlandVAddr callerVidt callerContextSaveIndex in
-  perform callerWantsToSaveItsContext := compareVAddrToNull callerContextSaveVAddr in
+  perform callerWantsToDropItsContext := compareVAddrToNull callerContextSaveVAddr in
 
 
-  if (callerWantsToSaveItsContext) then
+  if negb callerWantsToDropItsContext then
     saveCallerContext callerPageDir
                       callerVidt
                       callerContextSaveIndex

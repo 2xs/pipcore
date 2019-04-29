@@ -725,3 +725,110 @@ case_eq (lt_dec userIndex tableSize).
   contradict H0.
   assumption.
 Qed.
+
+Lemma readInterruptMask (calleeVidt : page) (P : interruptMask -> state -> Prop) :
+{{ fun s => P int_mask_d s}}
+readInterruptMask calleeVidt
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma isInterruptMasked (interruptMask : interruptMask) (targetInterrupt : index) (P : bool -> state -> Prop) :
+{{fun s => P false s}}
+isInterruptMasked interruptMask targetInterrupt
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma readUserlandVAddr (paddr : page) ( idx : index) (P : vaddr -> state -> Prop):
+{{fun s => 
+  match (lookup paddr idx s.(memory) beqPage beqIndex) with
+  | Some (VA a) => P a s
+  | _ => P defaultVAddr s
+  end}}
+readUserlandVAddr paddr idx
+{{P}}.
+Proof.
+unfold readUserlandVAddr.
+eapply bindRev.
+- eapply weaken. eapply get.
+  intros s HP; simpl.
+  pattern s in HP.
+  match type of HP with 
+  | ?HT s => instantiate (1 := fun s s' => HT s /\ s = s')
+  end.
+  simpl.
+  split.
+  apply HP.
+  trivial.
+- simpl.
+  intros.
+  case_eq (lookup paddr idx a.(memory) beqPage beqIndex).
+  + intros v Hpage.
+    case_eq v; intros; subst; eapply weaken;
+    intuition ; eapply ret ; subst; trivial.
+  + intros v. eapply weaken. eapply ret. intuition subst. assumption.
+Qed.
+
+Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : vaddr -> state -> Prop):
+{{fun s => P (getNthVAddrFromAux va n) s}}
+IAL.getNthVAddrFrom va n
+{{P}}.
+Proof.
+unfold IAL.getNthVAddrFrom.
+eapply weaken.
+eapply ret.
+intros.
+assumption.
+Qed.
+
+Lemma firstVAddrGreaterThanSecond (first second : vaddr) (P : bool -> state -> Prop):
+{{fun s => P (firstVAddrGreaterThanSecondAux first second (IAL.firstVAddrGreaterThanSecond_obligation_1 first second)) s}}
+firstVAddrGreaterThanSecond first second
+{{P}}.
+Proof.
+unfold firstVAddrGreaterThanSecond.
+eapply weaken.
+eapply ret.
+trivial.
+Qed.
+
+Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+writeContext callingContextAddr contextSaveAddr flagsOnWake
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma setInterruptMask (vidt : page) (mask : interruptMask)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+setInterruptMask vidt mask
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma updateCurPartAndActivate (partDesc pageDir : page)
+(P : unit -> state -> Prop) :
+{{fun s => P tt {|
+  currentPartition := partDesc;
+  memory := memory s |}}}
+updateCurPartAndActivate partDesc pageDir
+{{P}}.
+Proof.
+unfold updateCurPartAndActivate.
+eapply bindRev.
+eapply weaken.
+apply activate.
+intros.
+cbn.
+apply H.
+intro a.
+case a.
+eapply ret.
+Qed.

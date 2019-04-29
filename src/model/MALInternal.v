@@ -119,8 +119,8 @@ then
 else  undefined 28.
 (* Next Obligation.
   omega.
-  Qed.
-  *)
+Qed.
+ *)
 End Index. 
 
 Module Page.

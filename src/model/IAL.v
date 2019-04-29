@@ -28,8 +28,7 @@ Definition readUserlandVAddr (paddr : page) ( idx : index)  : LLI vaddr :=
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
   match entry with
   | Some (VA a) => ret a
-  | Some _ => ret defaultVAddr
-  | None => ret defaultVAddr
+  | _ => ret defaultVAddr
   end.
 
 Definition FAIL_VINT := FAIL_VINT_Cons.
@@ -57,46 +56,19 @@ Definition isInterruptMasked (intMask : interruptMask) (interrupt : vint) : LLI 
 Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
           : LLI unit := ret tt.
 
+Definition updateCR3(pageDir : page)
+          : LLI unit := ret tt.
+
 Definition updateCurPartAndActivate(partDesc pageDir : page)
-          : LLI unit := activate partDesc;; ret tt.
+          : LLI unit := activate partDesc;; updateCR3 pageDir.
 
+Definition getNthVAddrFrom (start : vaddr) (range : nat) : LLI vaddr :=
+  ret (getNthVAddrFromAux start range).
 
-Fixpoint getNextVaddrAux (indexList : list index) : LLI (bool * (list index)) :=
-match indexList with
-| nil   =>  ret (true, nil)
-| h::t  =>  perform recursiveCall := getNextVaddrAux t in
-            if (fst recursiveCall) then
-              if (Nat.eq_dec (h+1) tableSize) then
-                ret (true, (CIndex 0)::(snd recursiveCall))
-              else
-                ret (false, (CIndex (h+1)::(snd recursiveCall)))
-            else
-                ret (false, CIndex h::(snd recursiveCall))
-end.
-
-Definition getNextVaddr (va : vaddr) :=
-perform auxRes := getNextVaddrAux va in
-ret (CVaddr (snd auxRes)).
-
-Fixpoint getNthVAddrFrom (start : vaddr) (range : nat) : LLI vaddr :=
-match range with
-| 0   => ret start
-| S n => perform nextVAddr := getNextVaddr start in
-         getNthVAddrFrom nextVAddr n
-end.
-
-
-Fixpoint firstVAddrGreaterThanSecondAux (firstIndexList secondIndexList : list index) : LLI bool :=
-  match (firstIndexList, secondIndexList) with
-  | (nil, nil) => ret true
-  | (hf::tf, hs::ts) => perform trueOnTail := firstVAddrGreaterThanSecondAux tf ts in
-                        if (trueOnTail) then
-                          ret (Nat.leb hs hf)
-                        else
-                          ret false
-  | (_, _) => undefined 34
-  end.
-
-Definition firstVAddrGreaterThanSecond (first second : vaddr) : LLI bool :=
-  perform res := firstVAddrGreaterThanSecondAux first second in
-  ret res.
+Program Definition firstVAddrGreaterThanSecond (first second : vaddr) : LLI bool :=
+  ret (firstVAddrGreaterThanSecondAux first second _).
+Next Obligation.
+rewrite (ADT.Hva first ).
+rewrite (ADT.Hva second).
+reflexivity.
+Qed.

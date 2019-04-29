@@ -261,3 +261,61 @@ Definition postConditionYieldBlock1   (s : state)
   entryPresentFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
   entryUserFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
   isEntryPage callerVidtLastMMUPage idxVidtInLastMMUPage callerVidt s.
+
+Definition yieldPreWritingProperties
+      (s : state)
+      (userTargetInterrupt userCallerContextSaveIndex : userValue)
+      (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)
+      (callerPartDesc callerPageDir callerVidtLastMMUPage callerVidt : page)
+      (calleePartDesc calleePageDir calleeVidtLastMMUPage calleeVidt : page)
+      (calleeContextVAddr calleeContextEndVAddr : vaddr)
+      (calleeContextLastMMUPage calleeContextEndLastMMUPage : page)
+      (idxCalleeContextPageInLastMMUPage idxCalleeContextEndPageInLastMMUPage : index)
+      (nbL             : level)
+      :=
+
+  partitionsIsolation s /\
+  kernelDataIsolation s /\
+  verticalSharing s /\
+  consistency s /\
+  userTargetInterrupt < tableSize /\
+  targetInterrupt = CIndex userTargetInterrupt /\
+  callerPartDesc = currentPartition s /\
+  nextEntryIsPP callerPartDesc PDidx callerPageDir s /\
+  Some nbL = StateLib.getNbLevel /\
+  userCallerContextSaveIndex < tableSize /\
+  callerContextSaveIndex = CIndex userCallerContextSaveIndex /\
+  isPE callerVidtLastMMUPage (StateLib.getIndexOfAddr vidtVAddr fstLevel) s /\
+  getTableAddrRoot callerVidtLastMMUPage PDidx callerPartDesc vidtVAddr s /\
+  defaultPage <> callerVidtLastMMUPage /\
+  StateLib.getIndexOfAddr vidtVAddr fstLevel = idxVidtInLastMMUPage /\
+  entryPresentFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  entryUserFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  isEntryPage callerVidtLastMMUPage idxVidtInLastMMUPage callerVidt s /\
+  In calleePartDesc (getPartitions multiplexer s) /\
+  calleePartDesc <> defaultPage /\
+  nextEntryIsPP calleePartDesc PDidx calleePageDir s /\
+  defaultPage <> calleeVidtLastMMUPage /\
+  getTableAddrRoot calleeVidtLastMMUPage PDidx calleePartDesc vidtVAddr s /\
+  (forall idx : index,
+    StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+    isPE calleeVidtLastMMUPage idx s) /\
+  entryPresentFlag calleeVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  entryUserFlag calleeVidtLastMMUPage idxVidtInLastMMUPage true s /\
+  isEntryPage calleeVidtLastMMUPage idxVidtInLastMMUPage calleeVidt s /\
+  getTableAddrRoot calleeContextLastMMUPage PDidx calleePartDesc calleeContextVAddr s /\
+  calleeContextLastMMUPage <> defaultPage /\
+  (forall idx : index,
+    StateLib.getIndexOfAddr calleeContextVAddr fstLevel = idx ->
+    isPE calleeContextLastMMUPage idx s) /\
+  StateLib.getIndexOfAddr calleeContextVAddr fstLevel = idxCalleeContextPageInLastMMUPage /\
+  entryPresentFlag calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage true s /\
+  entryUserFlag calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage true s /\
+  getTableAddrRoot calleeContextEndLastMMUPage PDidx calleePartDesc calleeContextEndVAddr s /\
+  calleeContextEndLastMMUPage <> defaultPage /\
+  (forall idx : index,
+    StateLib.getIndexOfAddr calleeContextEndVAddr fstLevel = idx ->
+    isPE calleeContextEndLastMMUPage idx s) /\
+  StateLib.getIndexOfAddr calleeContextEndVAddr fstLevel = idxCalleeContextEndPageInLastMMUPage /\
+  entryPresentFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s /\
+  entryUserFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s.

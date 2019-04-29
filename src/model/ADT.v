@@ -128,7 +128,7 @@ Qed.
 
 
 Program Definition CLevel ( a :nat) : level := 
-if lt_dec a nbLevel then  Build_level a _ 
+if lt_dec a nbLevel then Build_level a _ 
 else level_d .
 
 Program Definition CIntMask (m : list bool) : interruptMask :=
