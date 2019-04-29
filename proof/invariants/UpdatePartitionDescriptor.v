@@ -37,7 +37,15 @@ Require Import Core.Internal Isolation Consistency WeakestPreconditions
 Invariants StateLib Model.Hardware Model.ADT Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties UpdateMappedPageContent.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
-
+Definition initConfigPagesListPostCondition phyConfigPagesList s :=
+StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
+                 = Some defaultPage /\
+                 StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
+                 = Some defaultVAddr /\
+                  (forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
+                  exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
+                 (forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
+                 StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
 Lemma updatePartitionDescriptorPropagatedProperties 
 
 (idxroot : index) table1 idxVa1 pt1 va1  value1 value2 zero nullv presentConfigPagesList 
@@ -73,12 +81,7 @@ presentConfigPagesList = true /\ presentSh1 = true /\ presentSh2 = true ->
     (forall idx : index,
      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
-    StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
-    (forall idx : index,
-     idx <> CIndex (tableSize - 1) ->
-     Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
-    (forall idx : index,
-     Nat.Even idx -> exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+initConfigPagesListPostCondition phyConfigPagesList s /\
     nullv = defaultVAddr /\ idxPR = PRidx /\ idxPD = PDidx /\ idxSH1 = sh1idx /\ idxSH2 = sh2idx /\ idxSH3 = sh3idx) /\
    idxPPR = PPRidx  /\
    (forall partition : page,
@@ -123,12 +126,7 @@ Internal.updatePartitionDescriptor table1 idxroot value1 value2
     (forall idx : index,
      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
-    StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
-    (forall idx : index,
-     idx <> CIndex (tableSize - 1) ->
-     Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
-    (forall idx : index,
-     Nat.Even idx -> exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+    initConfigPagesListPostCondition phyConfigPagesList s   /\
     nullv = defaultVAddr /\ idxPR = PRidx /\ idxPD = PDidx /\ idxSH1 = sh1idx /\ idxSH2 = sh2idx /\ idxSH3 = sh3idx) /\
    idxPPR = PPRidx   }}.
 Proof.
@@ -295,8 +293,9 @@ eapply bindRev.
     apply readPhyEntryUpdateMappedPageData; trivial.
     symmetry.
     apply readPresentUpdateMappedPageData;trivial.
-    split. 
-   assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
+    split.
+    admit.  
+(*    assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
     by intuition.
     { rewrite <- Htable.
       apply readPhysicalUpdateMappedPageData; trivial.
@@ -315,7 +314,7 @@ eapply bindRev.
     exists idxValue.
     { rewrite <- Htable.
       apply readIndexUpdateMappedPageData; trivial.
-      } 
+      }  *)
     assert(Htableroot1 : forall idx : index,
       StateLib.getIndexOfAddr va1 fstLevel = idx ->
       isPE pt1 idx s /\ getTableAddrRoot pt1 PDidx (currentPartition s) va1 s) by intuition.
@@ -496,8 +495,9 @@ eapply bindRev.
     apply readPhyEntryUpdateMappedPageData; trivial.
     symmetry.
     apply readPresentUpdateMappedPageData;trivial.
-    split. 
-   assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
+    split.
+    admit. 
+   (*assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
     by intuition.
     { rewrite <- Htable.
       apply readPhysicalUpdateMappedPageData; trivial.
@@ -516,10 +516,10 @@ eapply bindRev.
     exists idxValue.
     { rewrite <- Htable.
       apply readIndexUpdateMappedPageData; trivial.
-      }
+      } *)
       intuition.
-      intuition. 
-Qed. 
+      intuition.  
+Admitted. 
 
 
 Lemma updatePartitionDescriptorNewProperty (phyDescChild : page) (value2 : vaddr) value1 (idxPR : index) :

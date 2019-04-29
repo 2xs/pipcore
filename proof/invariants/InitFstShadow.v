@@ -39,18 +39,39 @@ UpdateMappedPageContent Model.Lib InternalLemmas PropagatedProperties
 InitPEntryTable InitVEntryTable .
 Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
 
-Lemma initFstShadowNewProperty table (nbL : level)(curidx : index):
-{{ fun s => (nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
+(******************************TO BE MOVED ***********************)
+Definition initFstShadowPreconditionToProveNewProperty nbL s table  curidx:=
+ (nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
 (StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
  StateLib.readPresent table idx (memory s) = Some false )) \/ 
- 
  (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
 (StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
- StateLib.readPDflag table idx (memory s) = Some false )) }} 
+ StateLib.readPDflag table idx (memory s) = Some false)). 
+ 
+Lemma index0Ltfalse (idx:index):
+idx < CIndex 0 -> False.
+Proof.
+intros.
+unfold CIndex in H.
+case_eq (lt_dec 0 tableSize).
+intros.
+rewrite H0 in H.
+simpl in *. omega.
+intros.
+contradict H0.
+assert (tableSize > tableSizeLowerBound).
+apply tableSizeBigEnough.
+unfold tableSizeLowerBound in *.
+omega.
+Qed.
+(********************************************)
+Lemma initFstShadowNewProperty table (nbL : level)(curidx : index):
+{{ fun s => initFstShadowPreconditionToProveNewProperty nbL s table  curidx }} 
 Internal.initFstShadow table nbL curidx 
 {{fun _ s => isWellFormedFstShadow  nbL table s
   }}.
 Proof.
+unfold initFstShadowPreconditionToProveNewProperty.
 unfold Internal.initFstShadow.
 eapply WP.bindRev.
 + eapply WP.weaken.
@@ -66,7 +87,8 @@ eapply WP.bindRev.
     eapply strengthen.
     eapply postAnd.
     eapply weaken.
-    apply initVEntryTableNewProperty.
+    apply initVEntryTableNewPropertyL.
+    unfold initVEntryTablePreconditionToProveNewProperty.
     simpl.
     intros. 
     destruct H0 as (Htable & Hi).
@@ -96,8 +118,9 @@ eapply WP.bindRev.
     eapply strengthen.
     eapply postAnd.
     eapply weaken.
-    apply initPEntryTableNewProperty.
+    apply initPEntryTableNewPropertyL.
     simpl.
+    unfold initPEntryTablePreconditionToProveNewProperty.
     intros.
     destruct H0 as (Htable & Hi).
     destruct Htable .
@@ -294,4 +317,166 @@ eapply WP.bindRev.
     simpl.
     destruct H0.
     eapply H0.
+Qed.
+
+
+Lemma initFstShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+      lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
+      currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI :
+{{ fun s : state =>
+(propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+  lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
+  currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
+  false false true true true idxFstVA idxSndVA idxTrdVA zeroI /\
+writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
+writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
+writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\ StateLib.Level.pred l = Some lpred) /\
+isWellFormedMMUTables phyMMUaddr s }} initFstShadow phySh1addr lpred zeroI 
+{{fun _ s => (propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+  lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
+  currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
+  false false true true true idxFstVA idxSndVA idxTrdVA zeroI /\
+writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
+writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
+writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\ StateLib.Level.pred l = Some lpred) /\
+isWellFormedMMUTables phyMMUaddr s /\ isWellFormedFstShadow lpred phySh1addr s }}.
+Proof.
+unfold initFstShadow.
+eapply WP.bindRev.
++ eapply WP.weaken.
+  eapply Invariants.Level.eqb.
+  simpl.
+  intros.
+  pattern s in H.
+  eassumption.
++ simpl. 
+  intros isFstLevel.
+  case_eq isFstLevel.
+  - intros.
+  eapply strengthen.
+  eapply weaken.
+  eapply postAnd.
+  eapply postAnd. 
+  eapply postAnd.
+  5:{ intros. eapply H0. }
+  eapply weaken.
+  (** propagatedPropertiesPrepare **)
+  eapply initVEntryTablePropagateProperties with (zeroI:=zeroI).
+  intros. simpl.
+  destruct H0.
+  destruct H0.
+  intuition.
+  eassumption.
+  trivial.
+  trivial.
+  trivial.
+  eassumption.
+  unfold propagatedPropertiesPrepare in *.
+  intuition.
+  unfold propagatedPropertiesPrepare in *;intuition. (* initPEntryTablePreconditionToPropagatePrepareProperties *)
+  eapply weaken.
+  (** propagate isWellFormedMMUTables **)
+  eapply initVEntryTablePropagateIsWellFormedMMUTable with (phyPage1:=phySh1addr) (phyPage2:= phyMMUaddr)
+  (va1:=sndVA) (va2 :=fstVA) (table1:=ptMMUSndVA) (table2:=  ptMMUFstVA) 
+  (partition:= currentPart) (level := nbLgen)  (currentPD:= currentPD).
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+      in *;intuition;subst;trivial.
+  unfold consistency in *;intuition.
+  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
+  unfold consistency in *;intuition.
+  (** propagate new property *)
+  eapply weaken.
+  eapply initVEntryTableNewPropertyL.
+  simpl. intros.
+  unfold initVEntryTablePreconditionToProveNewProperty.
+  intros idx Hfalse.
+  assert(Hzero: zeroI = CIndex 0).
+  { unfold propagatedPropertiesPrepare in *.
+    intuition. }
+  subst.
+  apply index0Ltfalse in Hfalse.
+  now contradict Hfalse.
+  simpl.
+  eapply weaken.
+  eapply initVEntryTablePreservesProp with (v:= true)( nbL:= lpred).
+  intros. intuition.
+  simpl;intros.
+  intuition.
+  unfold isWellFormedFstShadow.
+  unfold initVEntryTableNewProperty in *.
+  assert(Hpred:true = StateLib.Level.eqb lpred fstLevel) by trivial.
+  unfold StateLib.Level.eqb in *.
+  symmetry in Hpred.
+  apply beq_nat_true in Hpred.
+  right.
+  split;trivial.
+  subst.
+  destruct lpred;simpl in *.
+  destruct fstLevel;simpl in *.
+  subst;f_equal;apply proof_irrelevance.
+  - intros. subst.
+  eapply strengthen.
+  eapply weaken.
+  eapply postAnd.
+  eapply postAnd. 
+  eapply postAnd.
+  5:{ intros. eapply H. }
+  eapply weaken.
+  (** propagatedPropertiesPrepare **)
+  eapply initPEntryTablePropagateProperties with (zeroI:=zeroI).
+  intros. simpl.
+  destruct H.
+  destruct H.
+  intuition.
+  eassumption.
+  trivial.
+  trivial.
+  trivial.
+  eassumption.
+  unfold propagatedPropertiesPrepare in *.
+  intuition.
+  unfold propagatedPropertiesPrepare in *;intuition.
+  eapply weaken.
+  (** propagate isWellFormedMMUTables **)
+  eapply initPEntryTablePropagateIsWellFormedMMUTable with (phyPage2:= phyMMUaddr)
+  (va1:=sndVA) (va2 :=fstVA) (table1:=ptMMUSndVA) (table2:=  ptMMUFstVA) 
+  (partition:= currentPart) (level := nbLgen) (currentPD:= currentPD).
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+      in *;intuition;subst;trivial.
+  unfold consistency in *;intuition.
+  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
+  unfold consistency in *;intuition.
+  (** propagate new property *)
+  eapply weaken.
+  eapply initPEntryTableNewPropertyL.
+  simpl. intros.
+  unfold initVEntryTablePreconditionToProveNewProperty.
+  intros idx Hfalse.
+  assert(Hzero: zeroI = CIndex 0).
+  { unfold propagatedPropertiesPrepare in *.
+    intuition. }
+  subst.
+  apply index0Ltfalse in Hfalse.
+  now contradict Hfalse.
+  simpl.
+  eapply weaken.
+  eapply initPEntryTablePreservesProp with ( nbL:= lpred).
+  intros. intuition.
+  simpl;intros.
+  intuition.
+  unfold isWellFormedFstShadow.
+  assert(Hwell:isWellFormedMMUTables phySh1addr s) by trivial.
+  unfold isWellFormedMMUTables in Hwell.
+  assert(Hpred:false = StateLib.Level.eqb lpred fstLevel) by trivial.
+  unfold StateLib.Level.eqb in *.
+  symmetry in Hpred.
+  apply beq_nat_false in Hpred.
+  left.
+  split;trivial.
+  subst.
+  destruct lpred;simpl in *.
+  destruct fstLevel;simpl in *.
+  contradict Hpred.
+  inversion Hpred.
+  trivial.
 Qed.

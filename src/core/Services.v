@@ -208,7 +208,7 @@ else
       perform  ptConfigPagesListFromSh1 := getTableAddr currentShadow1 ConfigPagesList nbL in
       perform isNull := comparePageToNull ptConfigPagesListFromSh1 in
       if isNull then ret false else
-      (**  true if derived *)
+      (**  true if not derived *)
       perform derivedConfigPagesList := checkDerivation ptConfigPagesListFromSh1 idxConfigPagesList in
 
       if (derivedDescChild && derivedPDChild && derivedSh1Child  && derivedSh2Child
@@ -362,12 +362,14 @@ Fixpoint countToMapRec timeout (pdChild configPagesListChild: page) (va : vaddr)
         (**  Now we have to check if we have enough space in shadow 3 to map all this *)
         perform zeroI := MALInternal.Index.zero in
         perform zeroC := MALInternal.Count.zero in
-        perform freeSpace := enoughConfigPagesListEntries configPagesListChild zeroI zeroC nbL in
-        if (negb freeSpace )
-        then perform prod3 := MALInternal.Count.mul3 nbL in
-          MALInternal.Count.succ prod3  (**  Not enough space, we need another shadow 3 page *)
-        else MALInternal.Count.mul3 nbL (**  Enough space, never mind *)
-      else
+        perform lastLLTable := checkEnoughEntriesLinkedList configPagesListChild in 
+        perform isNull := comparePageToNull lastLLTable in
+        (* Check if we need to insert a new page at the end of the linked list *)  
+        if (isNull) then (* We don't need to link a new LL table *)  
+            perform prod3 := MALInternal.Count.mul3 nbL in
+            MALInternal.Count.succ prod3  (**  Not enough space, we need another shadow 3 page *)
+          else MALInternal.Count.mul3 nbL (**  Enough space, never mind *)
+        else
         perform levelPred := MALInternal.Level.pred nbL in
         countToMapRec timeout1 addr configPagesListChild va levelPred
     else MALInternal.Count.zero (**  Everything is mapped : we need no additional pages *)
@@ -399,7 +401,7 @@ Definition countToMap (descChild vaChild : vaddr) :=
   (** Get the physical address of the page directory of the child *)
   perform phyPDChild := getPd phyDescChild in
   (** Get the third shadow of the child *)
-  perform configPagesListChild := getConfigTablesLinkedList phyDescChild in
+  perform configPagesListChild := getConfigTablesLinkedList phyDescChild in 
   (** Call  countToMapAux *)
   countToMapAux phyPDChild configPagesListChild vaChild nbL.
 
@@ -438,151 +440,234 @@ Definition countToMap (descChild vaChild : vaddr) :=
                                  configuration tables list 
 
       <<nbL>> a level number of the MMU
- *)
-Fixpoint prepareRec timeout (descChild : vaddr) (phyPDChild phySh1Child 
-phySh2Child phyConfigPagesList : page)(va : vaddr) (fstVA : vaddr) 
-(needNewConfigPagesList : bool) (nbL : level) :=
+ *) 
+Fixpoint prepareRec timeout (descChild : vaddr) (phyDescChild phyPDChild phySh1Child 
+phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr) 
+ (nbL : level) : LLI boolvaddr :=
   match timeout with
-  | 0 => ret false
+  | 0 => prepareType false fstVA
   | S timeout1 =>
-    (** Get the current partition  *)
+  perform islevel0 := Level.eqb nbL fstLevel in
+  if islevel0 then prepareType true fstVA
+  else 
+  perform isNull := compareVAddrToNull fstVA in 
+  if isNull then prepareType false fstVA
+  else
+    (*  Get the current partition  *)
     perform currentPart := getCurPartition in
-    (** Get the pd of the current partition *)
+    (* Get current partition data structures *)
     perform currentPD := getPd currentPart in
-    (** Get the first shadow physical page *)
-    perform currentShadow1 := getFstShadow currentPart in
-    (** Verify if the first virtual address is available to be used as a config table *)
-    perform legitAccess := verifyProperties currentPD currentShadow1 nbL fstVA in
-    perform isNotfstLevel := MALInternal.Level.gtb nbL fstLevel in 
-    if negb legitAccess
-    then ret false
-    else if (needNewConfigPagesList ) (**  Insert new page into SH3 if needed *)
-      then
-        let newPageIntoConfigPagesList := fstVA  in
-        (**  Get the current partition  *)
-        perform currentPart := getCurPartition in
-        (** Get the pd of the current partition *)
-        perform currentPD := getPd currentPart in
-        (** Get the page table and the index in which newPageIntoConfigPagesList is mapped *)
-        perform pt := getTableAddr currentPD  newPageIntoConfigPagesList nbL in
-        perform isNull := comparePageToNull pt in if isNull then ret false else
-        perform idx :=  getIndexOfAddr newPageIntoConfigPagesList fstLevel in
-        (** Get the physical address *)
-        perform phyNewPageIntoConfigPagesList :=  readPhyEntry pt idx in
-        (** insert newPageIntoConfigPagesList and its virtual address into 
-        the last phyConfigPagesList *)
-        linkNewListToConfigPagesList phyConfigPagesList phyNewPageIntoConfigPagesList 
-        newPageIntoConfigPagesList ;;
-        (** Get the shadow 1 of the current partition *)
-        perform currentShadow1 := getConfigTablesLinkedList currentPart in
-        (** mark the newPageIntoConfigPagesList page as derived into its parent 
-        (writing its virtual address into currentShadow1 *)
-        setDerived va currentShadow1 descChild nbL ;;
-        (** mark the newPageIntoConfigPagesList page as not accessible into its parent  *)
-        writeAccessible pt idx false ;;
-        (** mark the newPageIntoConfigPagesList as not accessible into its ancestors  *)
-        writeAccessibleRec fstVA currentPart false;;
-        (** next Virtual address *)
-        perform zeroI := getStoreFetchIndex in 
-        perform nextVA := fetchVirtual fstVA zeroI in
-        prepareRec timeout1 descChild phyPDChild phySh1Child phySh2Child phyConfigPagesList va nextVA false nbL (**  Recall prepare, skipping the newly inserted page *)
-      else (**  Else do the prepare stuff *)
-        (**  Indirection table ? *)
-        if isNotfstLevel
-        then
-          perform idx := getIndexOfAddr va nbL in (**  Get index of address at the current indirection level *)
-          perform addr := readPhyEntry phyPDChild idx in (**  Read stored address *)
-          perform null := getDefaultPage in
-          perform cmp := MALInternal.Page.eqb  addr null in
-          if cmp (**  Null address ? Insert it. *)
-          then
-            perform zeroI := getStoreFetchIndex in 
-            perform sndVA := fetchVirtual fstVA zeroI in
-            perform sndLegitAccess  := verifyProperties currentPD currentShadow1 nbL sndVA in
-            if negb sndLegitAccess
-            then ret false
-            else
-              perform zeroI := getStoreFetchIndex in 
-              perform thdVA := fetchVirtual sndVA zeroI in
-              perform thdLegitAccess := verifyProperties currentPD currentShadow1  nbL thdVA in
-              if negb thdLegitAccess
-              then ret false
-              else
+    perform currentSh1 := getFstShadow currentPart in
+    perform currentSh2 := getSndShadow currentPart in
+    (* Check if the current MMU level needs to be configued *)
+    perform idxToPrepare := getIndexOfAddr vaToPrepare nbL in (**  Get index of address at the current indirection level *)
+    perform indMMUToPrepare := readPhyEntry phyPDChild idxToPrepare in (**  Read stored address *)
+    perform isNull := comparePageToNull indMMUToPrepare in
+    if (negb isNull) then 
+    (* This MMU level is already configued *)
+    perform levelPred := MALInternal.Level.pred nbL in
+    perform indSh1ToPrepare := readPhyEntry phySh1Child idxToPrepare in 
+    perform indSh2ToPrepare := readPhyEntry phySh2Child idxToPrepare in
+    (* Move to the next MMU level *)
+    prepareRec timeout1 descChild phyDescChild indMMUToPrepare indSh1ToPrepare indSh2ToPrepare lastLLtable vaToPrepare fstVA levelPred
+    else (* The current level should be configued *)
+      perform nbLgen := getNbLevel in
+      perform idxstorefetch := getStoreFetchIndex in 
+   (* Get the FIRST virtual addresses and check if null, present and accessible *)
+      perform idxFstVA :=  getIndexOfAddr fstVA fstLevel in
+      perform ptMMUFstVA := getTableAddr currentPD  fstVA nbLgen in
+      (* fstVA : check if there is a mapping *) 
+      perform isNull := comparePageToNull ptMMUFstVA in 
+      if isNull then prepareType false fstVA else 
+      (* fstVA : check if accessible *) 
+      perform fstVAisAccessible := readAccessible ptMMUFstVA idxFstVA in
+      if negb fstVAisAccessible then prepareType false fstVA else 
+      (* fstVA : check if present *) 
+      perform fstVAisPresent := readPresent ptMMUFstVA idxFstVA in
+      if negb fstVAisPresent then prepareType false fstVA else 
+      (* fstVA : get the physical page *)
+      perform phyMMUaddr := readPhyEntry ptMMUFstVA idxFstVA in
+      (* read the content of fstVA : it should be sndVA *)
+      perform sndVA := readVirtualUser phyMMUaddr idxstorefetch in 
+      (* check if sndVA is null *)
+      perform isNull := compareVAddrToNull sndVA in 
+      if isNull then prepareType false fstVA else
+   (* Get the SECOND virtual addresses and check if null, present and accessible *)
+      perform idxSndVA :=  getIndexOfAddr sndVA fstLevel in
+      perform ptMMUSndVA := getTableAddr currentPD  sndVA nbLgen in
+      (* fstVA : check if there is a mapping *) 
+      perform isNull := comparePageToNull ptMMUSndVA in 
+      if isNull then prepareType false fstVA else 
+      (* fstVA : check if accessible *) 
+      perform sndVAisAccessible := readAccessible ptMMUSndVA idxSndVA in
+      if negb sndVAisAccessible then prepareType false fstVA else 
+      (* fstVA : check if present *) 
+      perform sndVAisPresent := readPresent ptMMUSndVA idxSndVA in
+      if negb sndVAisPresent then prepareType false sndVA else 
+      (* fstVA : get the physical page *)
+      perform physh1addr := readPhyEntry ptMMUSndVA idxSndVA in
+      (* read the content of fstVA : it should be sndVA *)
+      perform trdVA := readVirtualUser physh1addr idxstorefetch in 
+      (* check if sndVA is null *)
+      perform isNull := compareVAddrToNull trdVA in 
+      if isNull then prepareType false fstVA else
+      perform zeroI := MALInternal.Index.zero in
+      (** Check if virtual addresses are equal *)
+      perform v1v2 := checkVAddrsEqualityWOOffset fstVA sndVA nbLgen in
+      perform v1v3 := checkVAddrsEqualityWOOffset fstVA trdVA nbLgen in
+      perform v2v3 := checkVAddrsEqualityWOOffset sndVA trdVA nbLgen in
+      if (v1v2 || v1v3 || v2v3) then prepareType false fstVA else
+      (* Check if the next three virtual addresses could be lent to the kernel *)
 
-                (**  Get index of the given pages into the indirection tables *)
-                perform idxFstVA :=  getIndexOfAddr fstVA fstLevel in
-                perform idxSndVA :=  getIndexOfAddr sndVA fstLevel in
-                perform idxThdVA :=  getIndexOfAddr thdVA fstLevel in
+      (** FST addr : check sharing *)
+      perform ptSh1FstVA := getTableAddr currentSh1 fstVA nbLgen in
+      perform isNull := comparePageToNull ptSh1FstVA in
+      if isNull then prepareType false fstVA else
+      perform fstVAnotShared := checkDerivation ptSh1FstVA idxFstVA in
 
-                (**  Get the current partition  *)
-                perform currentPart := getCurPartition in
-                (** Get the pd of the current partition *)
-                perform currentPD := getPd currentPart in
-                (**  Get the number of indirections  *)
-                perform nbIdx :=   getNbLevel in
-                (**  Get indirection tables corresponding to shadow pages *)
-                perform phy :=  getTableAddr currentPD fstVA nbIdx in  (**  Get physical address of table for PT *)
-                perform isNull := comparePageToNull phy in if isNull then ret false else
-                perform physh1 :=  getTableAddr currentPD sndVA nbIdx in (**  Get physical address of table for SH1 *)
-                perform isNull := comparePageToNull physh1 in if isNull then ret false else
-                perform physh2 :=  getTableAddr currentPD thdVA nbIdx in (**  Get physical address of table for SH2 *)
-                perform isNull := comparePageToNull physh2 in if isNull then ret false else
-                (**  Get physical addresses *)
-                perform phyaddr :=   readPhyEntry phy idxFstVA in (**  Get Page of page for page table *)
-                perform physh1addr :=   readPhyEntry physh1 idxSndVA in (**  Get Page of page for shadow 1 *)
-                perform physh2addr :=   readPhyEntry physh2 idxThdVA in (**  Get Page of page for shadow 2 *)
-                (**  Insert pages *)
-                writePhyEntry phyPDChild idx phyaddr true true true true true ;; (**  Insert frame and continue \o/ *) 
-                writePhyEntry phySh1Child idx physh1addr true true true true true ;; (**  same for sh1 *) 
-                writePhyEntry phySh2Child idx physh2addr true true true true true ;;(**  same for sh2 *) 
-                (**  Set used pages as inaccessible *)
-                writeAccessible phy idxFstVA false ;;
-                writeAccessibleRec fstVA currentPart false;;
-                writeAccessible physh1 idxSndVA false ;;
-                writeAccessibleRec sndVA currentPart false;;
-                writeAccessible physh2 idxThdVA false ;;
-                writeAccessibleRec thdVA currentPart false;;
-                (** Set used pages as derived *)
-                perform currentShadow1 := getFstShadow currentPart in
-                setDerived fstVA currentShadow1 descChild nbL ;;
-                setDerived sndVA currentShadow1 descChild nbL ;;
-                setDerived thdVA currentShadow1 descChild nbL ;;
-                (**  Write entries into third shadow *)
-                insertEntryIntoConfigPagesList fstVA phyaddr phyConfigPagesList ;;
-                insertEntryIntoConfigPagesList sndVA physh1addr phyConfigPagesList ;;
-                insertEntryIntoConfigPagesList thdVA physh2addr phyConfigPagesList ;;
-                (** Initialize new pages **)
-                perform leveltwo := MALInternal.Level.succ fstLevel in
-                perform isSndLevel := MALInternal.Level.eqb nbL leveltwo in 
-                if isSndLevel 
-                then
-                  perform zero := MALInternal.Index.zero in
-                  initPEntryTable phyaddr zero ;;
-                  initVEntryTable physh1addr zero ;;
-                  initVAddrTable physh2addr zero  ;;
-                  ret true
-                else
-                  perform zero := MALInternal.Index.zero in
-                  initPEntryTable phyaddr zero ;;
-                  initPEntryTable physh1addr zero ;;
-                  initPEntryTable physh2addr zero ;;
-                  (**  We're done adding the indirection level, continue on next level, giving
-                    the inserted page tables as parameters *)
-                  perform levelPred := MALInternal.Level.pred nbL in
-                  perform zeroI := getStoreFetchIndex in 
-                  perform nextVA := fetchVirtual thdVA zeroI in
-                  (* perform n :=  *) prepareRec timeout1 descChild phyaddr physh1addr physh2addr phyConfigPagesList va nextVA false levelPred
-                  (**  we added 3 pages :  ret 3 + recursion *)
-                  (*  in ret (3 + n) *)
+      (** SND addr : check sharing *)
+      perform ptSh1SndVA := getTableAddr currentSh1 sndVA nbLgen in
+      perform isNull := comparePageToNull ptSh1SndVA in
+      if isNull then prepareType false fstVA else
+      perform sndVAnotShared := checkDerivation ptSh1SndVA idxSndVA in
 
-          else  ret false
-        else  ret false
+      (** TRD Addr *)
+      (* Get the THIRD virtual addresses and check if null, present and accessible *)
+      perform idxTrdVA :=  getIndexOfAddr trdVA fstLevel in
+      perform ptMMUTrdVA := getTableAddr currentPD  trdVA nbLgen in
+      (* fstVA : check if there is a mapping *) 
+      perform isNull := comparePageToNull ptMMUTrdVA in 
+      if isNull then prepareType false fstVA else 
+      (* fstVA : check if accessible *) 
+      perform trdVAisAccessible := readAccessible ptMMUTrdVA idxTrdVA in
+      if negb trdVAisAccessible then prepareType false fstVA else 
+      (* fstVA : check if present *) 
+      perform trdVAisPresent := readPresent ptMMUTrdVA idxTrdVA in
+      if negb trdVAisPresent then prepareType false trdVA else 
+      (* fstVA : get the physical page *)
+      perform physh2addr := readPhyEntry ptMMUTrdVA idxTrdVA in
+      (* Check sharing *)
+      perform ptSh1TrdVA := getTableAddr currentSh1 trdVA nbLgen in
+      perform isNull := comparePageToNull ptSh1TrdVA in
+      if isNull then prepareType false fstVA else
+      perform trdVAnotShared := checkDerivation ptSh1TrdVA idxTrdVA in
+
+      (* Check if the current MMU level could be configued according to the properties about the first free pages given by the partition *)
+      if (fstVAnotShared && sndVAnotShared && trdVAnotShared) then
+      perform lastLLTable := checkEnoughEntriesLinkedList lastLLtable in 
+      perform isNull := comparePageToNull lastLLTable in
+      (* Check if we need to insert a new page at the end of the linked list *)  
+      if (negb isNull) then (* We don't need to link a new LL table *)  
+        (* read the content of trdVA : it should be nextVA *)
+        perform nextVA := readVirtualUser physh2addr idxstorefetch in 
+        (**  Set all given pages as not accessible into parent and ancestors *)
+        writeAccessible ptMMUFstVA idxFstVA false ;;
+        writeAccessibleRec fstVA currentPart false ;;
+        writeAccessible ptMMUSndVA idxSndVA false ;;
+        writeAccessibleRec sndVA currentPart false ;;
+        writeAccessible ptMMUTrdVA idxTrdVA false ;;
+        writeAccessibleRec trdVA currentPart false ;;
+
+        (* Initialize tables *)
+        perform nbLPred := MALInternal.Level.pred nbL in
+        initPEntryTable phyMMUaddr zeroI;;
+        initFstShadow physh1addr nbLPred zeroI;;
+        initSndShadow physh2addr nbLPred zeroI;;
+
+        (* Set used pages as shared *)
+        writeVirEntry ptSh1FstVA idxFstVA fstVA ;;
+        writeVirEntry ptSh1FstVA idxSndVA sndVA ;;
+        writeVirEntry ptSh1FstVA idxFstVA trdVA ;;
+
+        (*  Insert pages into the current level *)
+        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
+        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
+        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
+
+        (* Store phy/virt addresses into LL *)
+        insertEntryIntoLL lastLLtable fstVA phyMMUaddr ;;
+        insertEntryIntoLL lastLLtable sndVA physh1addr ;;
+        insertEntryIntoLL lastLLtable trdVA physh2addr ;;
+
+        prepareRec timeout1 descChild phyDescChild phyMMUaddr physh1addr physh2addr lastLLtable vaToPrepare nextVA  nbLPred
+        else 
+
+        (* FTH Addr *)
+        (* Get the next Virtual address *)
+
+        perform fthVA := fetchVirtual trdVA idxstorefetch in     
+        perform isNull := compareVAddrToNull fthVA in 
+        if isNull then prepareType false fstVA
+        else 
+        (*** Check equality *)
+        perform v4v1 := checkVAddrsEqualityWOOffset fthVA fstVA nbLgen in
+        perform v4v2 := checkVAddrsEqualityWOOffset fthVA sndVA nbLgen in
+        perform v4v3 := checkVAddrsEqualityWOOffset fthVA trdVA nbLgen in
+        if (v4v1 || v4v2 || v4v3) then prepareType false fstVA else
+        (* Get the page table and the index in which sndVA is mapped *)
+        perform idxFthVA :=  getIndexOfAddr fthVA fstLevel in
+        perform ptMMUFthVA := getTableAddr currentPD  fthVA nbLgen in
+        perform ptSh1FthVA := getTableAddr currentSh1 fthVA nbLgen in
+        perform fthVAisOK := verifyProperties ptMMUFthVA ptSh1FthVA idxFthVA in 
+        if (negb fthVAisOK) then prepareType false fstVA
+        else 
+        (**  Get the physical address *)
+        perform newFstLL := readPhyEntry ptMMUFthVA idxFthVA in
+        perform nextVA := fetchVirtual fthVA idxstorefetch in
+
+        (** set fthVA as not accessible **)
+        writeAccessible ptMMUFthVA idxFthVA false ;;
+        writeAccessibleRec fthVA currentPart false ;;
+
+        (* Set used pages as shared *)
+        writeVirEntry ptSh1FthVA idxFthVA fthVA ;;
+
+        (** link new page in LL *) 
+        PushNewPageOntoLL phyDescChild newFstLL fthVA ;;
+
+        (*  Get physical addresses *)
+        perform phyMMUaddr := readPhyEntry ptMMUFstVA idxFstVA in 
+        perform physh1addr := readPhyEntry ptMMUSndVA idxSndVA in 
+        perform physh2addr := readPhyEntry ptMMUTrdVA idxTrdVA in 
+
+        (**  Set all given pages as not accessible into parent and ancestors *)
+        writeAccessible ptMMUFstVA idxFstVA false ;;
+        writeAccessibleRec fstVA currentPart false ;;
+        writeAccessible ptMMUSndVA idxSndVA false ;;
+        writeAccessibleRec sndVA currentPart false ;;
+        writeAccessible ptMMUTrdVA idxTrdVA false ;;
+        writeAccessibleRec trdVA currentPart false ;;
+
+        (* Initialize tables *)
+        perform nbLPred := MALInternal.Level.pred nbL in
+        initPEntryTable phyMMUaddr zeroI;;
+        initFstShadow physh1addr nbLPred zeroI;;
+        initSndShadow physh2addr nbLPred zeroI;;
+
+        (* Set used pages as shared *)
+        writeVirEntry ptSh1FstVA idxFstVA fstVA ;;
+        writeVirEntry ptSh1FstVA idxSndVA sndVA ;;
+        writeVirEntry ptSh1FstVA idxFstVA trdVA ;;
+
+        (*  Insert pages into the current level *)
+        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
+        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
+        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
+
+        (* Store phy/virt addresses into LL *)
+        insertEntryIntoLL newFstLL fstVA phyMMUaddr ;;
+        insertEntryIntoLL newFstLL sndVA physh1addr ;;
+        insertEntryIntoLL newFstLL trdVA physh2addr ;;
+
+        prepareRec timeout1 descChild phyDescChild phyMMUaddr physh1addr physh2addr newFstLL vaToPrepare nextVA nbLPred  
+
+    else prepareType false fstVA  
   end.
 
 (** - The [prepareAux] fixes the timout value of [prepareRec] *)
-Definition prepareAux (descChild : vaddr) (pd : page) (phySh1Child : page) (phySh2Child : page) (phyConfigPagesList : page) (va : vaddr)
-  (fstVA : vaddr) (needNewConfigPagesList : bool) (nbL : level) :=
-  prepareRec N descChild pd phySh1Child phySh2Child phyConfigPagesList va fstVA needNewConfigPagesList nbL.
+Definition prepareAux (descChild : vaddr) (phyDescChild pd : page) (phySh1Child : page) (phySh2Child : page) (phyConfigPagesList : page) (va : vaddr)
+  (fstVA : vaddr) (nbL : level) :=
+  prepareRec (nbLevel+1) descChild phyDescChild pd phySh1Child phySh2Child phyConfigPagesList va fstVA  nbL.
 
 (** The [prepare] function fixes the [prepareAux] required parameters values
 
@@ -595,9 +680,11 @@ Definition prepareAux (descChild : vaddr) (pd : page) (phySh1Child : page) (phyS
               addresses which will be used as configuration tables into the 
               child partion; fstVA is the header of this linkList)
 
-    <<needNewConfigPagesList>> The boolean value  
+    <<needNewConfigPagesList>> The boolean value
+
+Before starting configuration we should verifiy that  <<descChild>> is a child partition
   *)
-Definition prepare (descChild : vaddr)  (va : vaddr) (fstVA : vaddr) (needNewConfigPagesList : bool) : LLI bool :=
+Definition prepare (descChild : vaddr)  (va : vaddr) (fstVA : vaddr): LLI boolvaddr :=
   (**  Get the current partition  *)
   perform currentPart := getCurPartition in
   (** Get the pd of the current partition *)
@@ -607,15 +694,19 @@ Definition prepare (descChild : vaddr)  (va : vaddr) (fstVA : vaddr) (needNewCon
   if(check)
   then
     perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
-    perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
+    perform isNull := comparePageToNull ptDescChildFromPD in if isNull then prepareType false fstVA else
     perform idxDescChild := getIndexOfAddr descChild fstLevel in
-    perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
-    perform phyPDChild := getPd phyDescChild in
-    perform phySh1Child := getFstShadow phyDescChild in
-    perform phySh2Child := getSndShadow phyDescChild in
-    perform phyConfigPagesList  := getConfigTablesLinkedList phyDescChild in
-    prepareAux descChild phyPDChild phySh1Child phySh2Child phyConfigPagesList va fstVA needNewConfigPagesList nbL
-  else ret false.
+    perform presentPhyDesc := readPresent ptDescChildFromPD idxDescChild in
+    if negb presentPhyDesc 
+     then prepareType false fstVA
+     else
+      perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
+      perform phyPDChild := getPd phyDescChild in
+      perform phySh1Child := getFstShadow phyDescChild in
+      perform phySh2Child := getSndShadow phyDescChild in
+      perform phyConfigPagesList  := getConfigTablesLinkedList phyDescChild in
+      prepareAux descChild phyDescChild phyPDChild phySh1Child phySh2Child phyConfigPagesList va fstVA  nbL
+  else prepareType false fstVA.
 
 (** ** The addVAddr PIP service *)
 (** The [addVAddr] function maps a virtual address into the given child 

@@ -210,6 +210,27 @@ apply proof_irrelevance.
 subst. reflexivity.
 intuition. 
 Qed.
+Lemma pred (idx : index ) P :
+{{fun s => P s  /\ idx > 0}} MALInternal.Index.pred idx 
+{{fun (idxpred : index) (s : state) => P s  /\ StateLib.Index.pred idx = Some idxpred }}.
+Proof.
+eapply WP.weaken. 
+eapply  WeakestPreconditions.Index.pred.
+cbn.
+intros.
+split.  
+intuition.
+intros.
+split. intuition.
+unfold StateLib.Index.pred.
+subst.
+destruct (gt_dec idx 0).
+f_equal.
+f_equal.
+apply proof_irrelevance.
+subst.
+intuition. 
+Qed.
 End Index.
 
 Module Level.
@@ -320,6 +341,21 @@ destruct (lookup table idx (memory s) beqPage beqIndex)
        as [v |];  [ destruct v as [ p |v|p|v|i]; [ exists p;repeat split;trivial | now contradict Hpage | 
        now contradict Hpage| now contradict Hpage| now contradict Hpage ] | now contradict Hpage].
 Qed.
+
+Lemma readIndex (table : page) (idx : index) (P : state -> Prop):
+{{fun s => P s /\  isI table idx s}} MAL.readIndex table idx 
+{{fun (ivalue : index) (s : state) => P s /\ isIndexValue table idx ivalue s}}.
+Proof.
+eapply WP.weaken.
+eapply WP.readIndex .
+simpl. intros.
+destruct H as (H & Hpage).
+unfold isI, isIndexValue in *.
+destruct (lookup table idx (memory s) beqPage beqIndex)
+       as [v |];  [ destruct v as [ p |v|p|v|i]; [ now contradict Hpage | 
+       now contradict Hpage| now contradict Hpage| now contradict Hpage |exists i;repeat split;trivial  ] | now contradict Hpage].
+Qed.
+
 
 Lemma getDefaultPage P : 
 {{fun s => P s}} MALInternal.getDefaultPage 
@@ -721,6 +757,18 @@ destruct (lookup table idx (memory s) beqPage beqIndex)
         now contradict Hpage| eexists; repeat split;trivial| now contradict Hpage ] | now contradict Hpage].
 Qed.
 
+Lemma readVirtualUser (table : page) (idx : index) (P : state -> Prop):
+{{fun s => P s}} MAL.readVirtualUser table idx 
+{{fun (va : vaddr) (s : state) => P s /\ isVAUser table idx va s}}.
+Proof.
+eapply WP.weaken.
+eapply WeakestPreconditions.readVirtualUser .
+simpl. intros.
+unfold isVAUser.
+destruct (lookup table idx (memory s) beqPage beqIndex)
+       as [v |];  [ destruct v as [ p |v|p|v|i]|];split;trivial.
+Qed.
+
 Lemma getSndShadow (PR : page) (P : state -> Prop) :
 {{fun s => P s  /\ partitionDescriptorEntry s /\ In PR (getPartitions multiplexer s) }} Internal.getSndShadow PR 
 {{fun (sh2 : page) (s : state) => P s /\ nextEntryIsPP PR sh2idx sh2 s }}.
@@ -889,6 +937,64 @@ apply proof_irrelevance.
 split;trivial.
 right;left;trivial.
 Qed.
+
+Lemma getConfigTablesLinkedList  (partition : page) (P : state -> Prop) :
+{{fun s => P s  /\ partitionDescriptorEntry s /\ 
+In partition (getPartitions multiplexer s)  }} 
+Internal.getConfigTablesLinkedList  partition
+{{fun (LL : page) (s : state) => P s /\ nextEntryIsPP partition sh3idx LL s }}.
+Proof.
+unfold Internal.getConfigTablesLinkedList .
+eapply WP.bindRev.
+(** getPDidx **)
+apply getSh3idx.
+intro idxSh3. 
+simpl. 
+(** MALInternal.Index.succ **)
+eapply WP.bindRev.
+eapply WP.weaken.
+eapply Index.succ.
+intros. simpl.
+split.
+pattern s in H. 
+eapply H.
+subst.
+intuition. subst.
+unfold partitionDescriptorEntry in *.
+unfold currentPartitionInPartitionsList in *.
+generalize (H0 partition H3); clear H0; intros H0.
+assert (sh3idx = PDidx \/ sh3idx = sh1idx \/ sh3idx = sh2idx \/ sh3idx = sh3idx 
+\/  sh3idx  = PPRidx \/  sh3idx  = PRidx ) as Htmp by auto.
+generalize (H0 sh3idx Htmp); clear H0; intros H0.
+destruct H0; trivial.
+(** readPhysical **)
+intro idxsucc. simpl.
+eapply WP.weaken.
+eapply WeakestPreconditions.readPhysical .
+simpl. intros.
+destruct H as (((HP & Hpde & Hpr) &Hidx) & Hidxsucc).
+subst.
+unfold partitionDescriptorEntry in *.
+apply Hpde with partition sh3idx in Hpr.
+destruct Hpr as (_ & Hva & Hpage).
+destruct Hpage as (page1 & Hpp & Hnotnul).
+subst. exists page1.
+split.
+unfold nextEntryIsPP in Hpp.
+destruct (StateLib.Index.succ sh3idx);inversion Hidxsucc;subst. 
+destruct (lookup partition idxsucc (memory s) beqPage beqIndex);
+try now contradict Hpp.
+destruct v ; try now contradict Hpp.
+destruct page1;destruct p;simpl in *. 
+do 2 f_equal.
+inversion Hpp.
+subst. 
+f_equal.
+apply proof_irrelevance.
+split;trivial.
+do 3 right;left;trivial.
+Qed.
+
 
 Lemma checkKernelMap  (va: vaddr) (P : state -> Prop): 
 {{fun s => P s }} checkKernelMap va 
@@ -1116,7 +1222,5 @@ intros; simpl.
 eapply WP.ret.
 simpl; trivial.
 Qed.
-
-
 
 

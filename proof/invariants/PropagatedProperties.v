@@ -301,3 +301,195 @@ partitionsIsolation s /\
     isVE ptVaInCurPart (getIndexOfAddr vainparent fstLevel) s /\
     getTableAddrRoot ptVaInCurPart sh1idx currentPart vainparent s /\
     (defaultPage =? ptVaInCurPart) = false /\  getIndexOfAddr vainparent fstLevel = idxvainparent.
+
+Definition initConfigPagesListPostCondition phyConfigPagesList s :=
+StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
+= Some defaultPage /\
+StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
+= Some defaultVAddr /\
+(forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
+exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
+(forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
+StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
+
+Definition indirectionDescription s descChildphy indirection idxroot vaToPrepare l:=
+exists (tableroot : page), 
+    nextEntryIsPP descChildphy idxroot tableroot s/\
+    tableroot <> defaultPage /\  
+    ( (tableroot = indirection /\ Some l = StateLib.getNbLevel ) \/
+    (exists nbL stop, Some nbL = StateLib.getNbLevel /\ stop <= nbL /\
+    StateLib.getIndirection tableroot vaToPrepare nbL stop s = Some indirection /\
+    indirection <> defaultPage  /\ 
+    l = CLevel (nbL - stop))).
+
+Definition initPEntryTablePreconditionToPropagatePrepareProperties s table:=
+(forall partition : page,  In partition (getPartitions multiplexer s) ->
+  ~In table (getConfigPages partition s) )
+  /\ (defaultPage =? table) = false.
+
+Definition propagatedPropertiesPrepare (s:state) ( ptMMUTrdVA phySh2addr phySh1addr
+indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
+phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
+descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA: vaddr) (nbLgen  l:level)
+(userMMUFstVA userMMUSndVA userMMUTrdVA fstVAIsShared sndVAIsShared trdVAIsShared:bool)
+(idxFstVA idxSndVA idxTrdVA zeroI: index):=
+
+kernelDataIsolation s /\ 
+partitionsIsolation s /\ 
+verticalSharing s /\ 
+consistency s /\ 
+(StateLib.getIndexOfAddr fstVA fstLevel) = idxFstVA /\
+(StateLib.getIndexOfAddr sndVA fstLevel)= idxSndVA /\
+(StateLib.getIndexOfAddr trdVA fstLevel) = idxTrdVA  /\
+getTableAddrRoot ptMMUTrdVA PDidx (currentPartition s) trdVA s /\ 
+isPE ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s /\ 
+(* isVAUser phySh2addr storeFetchIndex nextVA s /\  *)
+(defaultPage =? lastLLTable) = false /\ 
+(exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) va s /\ beqVAddr defaultVAddr va = trdVAIsShared) /\ 
+(defaultPage =? ptSh1TrdVA) = false /\ 
+getTableAddrRoot ptSh1TrdVA sh1idx (currentPartition s) trdVA s/\ 
+isVE ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s/\ 
+isEntryPage ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) phySh2addr s/\ 
+entryPresentFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) true s/\ 
+entryUserFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) userMMUTrdVA s/\ 
+
+getTableAddrRoot ptMMUSndVA PDidx (currentPartition s) sndVA s/\ 
+isPE ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s/\ 
+(exists va : vaddr, isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) va s /\ beqVAddr defaultVAddr va = sndVAIsShared)/\ 
+(defaultPage =? ptMMUTrdVA) = false /\ 
+(defaultPage =? ptSh1SndVA) = false/\ 
+getTableAddrRoot ptSh1SndVA sh1idx (currentPartition s) sndVA s/\ 
+isVE ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) s/\ 
+(exists va : vaddr, isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) va s /\ beqVAddr defaultVAddr va = fstVAIsShared) /\ 
+(defaultPage =? ptSh1FstVA) = false /\  
+getTableAddrRoot ptSh1FstVA sh1idx (currentPartition s) fstVA s/\ 
+isVE ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) s/\ 
+false = checkVAddrsEqualityWOOffset nbLevel sndVA trdVA nbLgen /\ 
+false = checkVAddrsEqualityWOOffset nbLevel fstVA trdVA nbLgen /\ 
+false = checkVAddrsEqualityWOOffset nbLevel fstVA sndVA nbLgen /\ 
+beqVAddr defaultVAddr trdVA = false /\ 
+(* isVAUser phySh1addr storeFetchIndex trdVA s /\  *)
+isEntryPage ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) phySh1addr s /\ 
+entryPresentFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) true s /\ 
+entryUserFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) userMMUSndVA s /\ 
+getTableAddrRoot ptMMUFstVA PDidx (currentPartition s) fstVA s /\ 
+isPE ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) s /\ 
+beqVAddr defaultVAddr sndVA = false /\ 
+(defaultPage =? ptMMUSndVA) = false /\ 
+(* isVAUser phyMMUaddr storeFetchIndex sndVA s /\  *)
+entryUserFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) userMMUFstVA s /\ 
+entryPresentFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) true s /\ 
+isEntryPage ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) phyMMUaddr s /\ 
+(defaultPage =? ptMMUFstVA) = false /\ 
+Some nbLgen = StateLib.getNbLevel /\ 
+(defaultPage =? indMMUToPrepare) = true /\ 
+isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s /\ 
+
+nextEntryIsPP (currentPartition s) sh2idx currentShadow2 s /\ 
+nextEntryIsPP (currentPartition s) PDidx currentPD s /\ 
+nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s /\ 
+
+beqVAddr defaultVAddr fstVA = false /\ 
+ false = StateLib.Level.eqb l fstLevel /\ 
+In descChildphy (getPartitions multiplexer s) /\ 
+indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l/\ 
+indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\ 
+indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
+(currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr.
+
+
+Definition writeAccessibleRecInternalPropertiesPrepare currentPart descParent ancestor pdAncestor pt va 
+sh2 lastIndex ptsh2 vaInAncestor entry L defaultV ptvaInAncestor idxva s:=
+In currentPart (getPartitions multiplexer s) /\
+isAncestor currentPart descParent s /\
+In descParent (getPartitions multiplexer s) /\
+(defaultPage =? pa entry) = false /\
+isPE pt (StateLib.getIndexOfAddr va fstLevel) s /\
+getTableAddrRoot pt PDidx descParent va s /\
+(defaultPage =? pt) = false /\
+entryPresentFlag pt (StateLib.getIndexOfAddr va fstLevel) true s /\
+entryUserFlag pt (StateLib.getIndexOfAddr va fstLevel) false s /\
+isEntryPage pt (StateLib.getIndexOfAddr va fstLevel) (pa entry) s /\
+multiplexer = multiplexer /\
+false = StateLib.Page.eqb descParent multiplexer /\
+nextEntryIsPP descParent sh2idx sh2 s /\
+Some L = StateLib.getNbLevel /\
+StateLib.getIndexOfAddr va fstLevel = lastIndex /\
+isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\
+getTableAddrRoot ptsh2 sh2idx descParent va s /\
+(defaultPage =? ptsh2) = false /\
+isVA' ptsh2 lastIndex vaInAncestor s /\
+nextEntryIsPP descParent PPRidx ancestor s /\
+nextEntryIsPP ancestor PDidx pdAncestor s /\
+defaultV = defaultVAddr /\
+false = StateLib.VAddr.eqbList defaultV vaInAncestor /\
+isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\
+getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s /\
+(defaultPage =? ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva. 
+
+Definition writeAccessibleRecRecurtionInvariantConj (va:vaddr) (descParent phypage pt:page) currentPart s:=
+isAccessibleMappedPageInParent descParent va phypage s = true
+/\ partitionsIsolation s
+/\ consistency s 
+/\ In currentPart (getPartitions MALInternal.multiplexer s) 
+/\ isAncestor currentPart descParent s
+/\ In descParent (getPartitions MALInternal.multiplexer s)
+/\ (defaultPage =? phypage) = false
+/\ isPE pt (StateLib.getIndexOfAddr va fstLevel) s 
+/\ getTableAddrRoot pt PDidx descParent va s
+/\ (defaultPage =? pt) = false
+/\ entryPresentFlag pt (StateLib.getIndexOfAddr va fstLevel) true s
+/\ entryUserFlag pt (StateLib.getIndexOfAddr va fstLevel) false s
+/\ isEntryPage pt (StateLib.getIndexOfAddr va fstLevel) phypage s.
+
+Definition preconditionToPropagateWriteAccessibleRecProperty s ptToUpdate vaToUpdate idxToUpdate:=
+ (StateLib.getIndexOfAddr vaToUpdate fstLevel) = idxToUpdate
+/\ isPE ptToUpdate (StateLib.getIndexOfAddr vaToUpdate fstLevel) s.
+
+Definition writeAccessibleRecPreparePostcondition descParent phypage s:=
+(forall partition : page,
+    In partition (getAncestors descParent s) -> ~ In phypage (getAccessibleMappedPages partition s)).
+
+Definition initPEntryTablePreconditionToProveNewProperty s table curidx:= 
+forall idx : index, idx < curidx -> 
+(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+                        StateLib.readPresent table idx (memory s) = Some false.
+Definition isWellFormedMMUTables table  s:=
+forall idx, StateLib.readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+                        StateLib.readPresent table idx (memory s) = Some false .  
+Definition initVEntryTablePreconditionToProveNewProperty s table curidx:= 
+forall idx : index, idx < curidx -> 
+(StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+                        StateLib.readPDflag table idx (memory s) = Some false.
+Definition initVEntryTableNewProperty table  s:=
+forall idx, StateLib.readVirEntry table  idx s.(memory) = Some defaultVAddr /\ 
+                        StateLib.readPDflag table idx (memory s) = Some false .
+Definition initVAddrTablePreconditionToProveNewProperty s table curidx:= 
+forall idx : index, idx < curidx -> 
+(StateLib.readVirtual table idx (memory s) = Some defaultVAddr).
+
+Definition initVAddrTableNewProperty table  s:=
+forall idx, StateLib.readVirtual table  idx s.(memory) = Some defaultVAddr. 
+
+Definition PreCtoPropagateIsWellFormedMMUTables phyPage1 phyPage2 
+va1 va2  (table1 table2 partition:page) level currentPD s:=
+consistency s /\
+(defaultPage =? table1) = false /\
+(defaultPage =? table2) = false /\
+nextEntryIsPP partition PDidx currentPD s /\
+In partition (getPartitions multiplexer s)  /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phyPage1 /\
+( (defaultPage =? phyPage1) = false) /\ 
+isEntryPage table1 (StateLib.getIndexOfAddr va1 fstLevel ) phyPage1 s /\
+isEntryPage table2 (StateLib.getIndexOfAddr va2 fstLevel) phyPage2 s /\
+ isPE table1 (StateLib.getIndexOfAddr va1 fstLevel ) s /\
+ getTableAddrRoot table1 PDidx partition va1 s /\
+isPE table2 (StateLib.getIndexOfAddr va2 fstLevel) s /\ 
+getTableAddrRoot table2 PDidx partition va2 s /\
+Some level = StateLib.getNbLevel /\
+false = checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
+entryPresentFlag table1 (StateLib.getIndexOfAddr va1 fstLevel ) true s /\ 
+entryPresentFlag table2 (StateLib.getIndexOfAddr va2 fstLevel) true s.

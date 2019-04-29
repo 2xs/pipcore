@@ -223,6 +223,23 @@ unfold tableSize in *.
    END SIMULATION *)
 omega.
 Qed.
+Lemma pred  (idx : index) (P: index -> state -> Prop) :
+{{ fun s : state => idx > 0 /\ forall Hi : idx - 1 < tableSize,  
+                   P {| i := idx -1; Hi := Hi |} s }} MALInternal.Index.pred idx {{ P }}.
+Proof.
+unfold MALInternal.Index.pred.
+destruct idx.
+simpl.
+case_eq ( gt_dec i 0) .
+intros.
+eapply weaken.
+eapply ret .
+intros. intuition.
+intros. eapply weaken.
+eapply undefined .
+simpl. intros.
+omega.
+Qed.
 End Index.
 
 Module Level.
@@ -364,6 +381,43 @@ eapply bind .
        rewrite Hpage in Hpage'.
        subst. inversion Hpage'.
   - eapply weaken. eapply get . intuition.  
+Qed.
+
+Lemma readVirtualUser  table idx  (P : vaddr -> state -> Prop) :
+{{fun  s => match lookup table idx s.(memory) beqPage beqIndex with 
+| Some ( VA a) => P a s
+| _ => P defaultVAddr s 
+end  }} MAL.readVirtualUser table idx {{P}}.
+Proof.
+unfold readVirtualUser.
+eapply bind .
+  - intro s. simpl. 
+    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+     + intros v Hpage.
+       instantiate (1:= fun s s0 => s=s0 /\match lookup table idx s.(memory) beqPage beqIndex with 
+                    | Some ( VA entry) => P entry s
+                    | _ => P defaultVAddr s 
+                    end ).
+      case_eq v; intros;subst;
+      subst;eapply weaken.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+    + intros. eapply weaken.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H0& H1);subst;rewrite H in H1;trivial.
+ - eapply weaken. eapply get . intuition.  
 Qed.
 
 Lemma writePhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> state -> Prop) :
@@ -676,6 +730,31 @@ eapply bind .
        subst. inversion Hpage'.
   - eapply weaken.
    eapply get . intuition.
+Qed.
+Lemma readIndex  table idx  (P : index -> state -> Prop) :
+{{fun  s => exists ivalue : index, lookup table idx s.(memory) beqPage beqIndex = Some ( I ivalue) /\ 
+             P ivalue s }} MAL.readIndex table idx {{P}}.
+Proof.
+unfold   MAL.readIndex.
+eapply bind .
+  - intro s. simpl. 
+    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+     + intros v Hpage.
+       instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
+         lookup table idx s.(memory) beqPage beqIndex = Some (I entry) /\ P entry s).
+       simpl.
+       case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
+       intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
+       try rewrite Hpage in Hpage';
+       subst;try inversion Hpage'.
+       unfold Hardware.ret.
+       eassumption.  
+       intuition.
+     + intros Hpage; eapply weaken; try eapply undefined ;simpl.
+       intros s0 H0.  destruct H0 as (Hs & p1 & Hpage' & Hret) .
+       rewrite Hpage in Hpage'.
+       subst. inversion Hpage'.
+  - eapply weaken. eapply get . intuition.  
 Qed.
 
 Lemma activate (partitionDescriptor : page) (P : unit -> state -> Prop) :

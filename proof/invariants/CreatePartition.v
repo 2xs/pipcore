@@ -1977,7 +1977,7 @@ eapply WP.bindRev.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply initPEntryTablePropagateProperties1.
-    eapply initPEntryTableNewProperty.
+    eapply initPEntryTableNewPropertyL.
     { intros. simpl.
       split. split.
        repeat rewrite  and_assoc in H0.
@@ -1988,6 +1988,8 @@ eapply WP.bindRev.
       intros.
       assert (zero = CIndex 0) as Hzero.
       intuition.
+      unfold initPEntryTablePreconditionToProveNewProperty.
+      intros.
       subst.
       unfold CIndex in H1.
       case_eq (lt_dec 0 tableSize).
@@ -2068,7 +2070,8 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    split.
    {
   repeat rewrite and_assoc.
-   unfold propagatedProperties in *.   
+   unfold propagatedProperties in *. 
+   unfold isWellFormedMMUTables in *.  
    assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
    {unfold consistency in *. 
    intuition. 
@@ -2078,6 +2081,7 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    try repeat split;trivial; try (  
     apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition). }
    intuition.
+   unfold isWellFormedMMUTables.
    intros.
    unfold StateLib.readPhyEntry, StateLib.readPresent  in *.
    cbn.
@@ -2391,43 +2395,57 @@ intros [].
     destruct Hlegit as (H1 & _ & H2 & _ & H3 & _ & H4 & _ & H5 & _ ).
     subst.
     apply H0.
-    left. intuition.
-    split.
-    left;intuition.
-    split.
-    intros.
-    assert (zero = CIndex 0) as Hzero.
-    intuition.
-    subst. (* 
-    left; trivial.
-    assert (zero = CIndex 0) as Hzero.
     intuition.
     subst.
-    split; intros. *)
-    unfold CIndex in H3.
-    case_eq (lt_dec 0 tableSize).
-    intros.
-    rewrite H4 in H3.
-    simpl in *. omega.
-    intros.
-    contradict H4.
+    unfold CIndex.
+    case_eq(lt_dec 0 tableSize);intros.
+    simpl.
+    unfold Nat.Even.
+    exists 0.
+    omega.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     omega.
     intros.
-    intuition; subst.
-    unfold CIndex in H2.
+    assert(Nat.Even zero).
+    { intuition. subst.
+    unfold CIndex.
+    case_eq(lt_dec 0 tableSize);intros.
+    simpl.
+    unfold Nat.Even.
+    exists 0.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega. }
+    split;trivial.
+    split;intros;intuition;subst.
+    intuition.
+    subst.
+    unfold CIndex in H5.
     case_eq (lt_dec 0 tableSize).
     intros.
-    rewrite H3 in H2.
+    rewrite H6 in H5.
     simpl in *. omega.
     intros.
-    contradict H.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     omega.
+    
+    unfold CIndex in H5.
+    case_eq (lt_dec 0 tableSize).
+    intros.
+    rewrite H6 in H5.
+    simpl in *. omega.
+    intros.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    
     intros [].
     simpl.
 (** getDefaultVAddr **)
@@ -3522,7 +3540,9 @@ apply idxPPRsuccNotEqidxSh2;trivial.
     split.
    unfold propagatedProperties in *.
    eassumption.
-   eapply H1.
+   unfold newPropagatedProperties.
+   unfold UpdatePartitionDescriptor.initConfigPagesListPostCondition.
+   (* eapply H1.  *) admit.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
@@ -3603,9 +3623,9 @@ unfold newPropagatedProperties in *.
     zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR pdChild
 currentPart currentPD level ptRefChild descChild ptPDChild idxPDChild ptSh1Child shadow1 idxSh1 ptSh2Child
 shadow2 idxSh2 ptConfigPagesList idxConfigPagesList currentShadow1 derivedRefChild ptPDChildSh1 ptSh1ChildFromSh1
-childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition.
-
-    intros []. 
+childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;admit.
+(* subst.
+ *)    intros []. 
    eapply WP.weaken. eapply WP.ret .
    simpl. intuition.
  - intros HNotlegit. 
@@ -3616,4 +3636,4 @@ childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
       simpl. intuition.
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
-      Qed. 
+Admitted. 

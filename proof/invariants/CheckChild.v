@@ -118,7 +118,7 @@ simpl.
 intros ptsh1.
 eapply WP.weaken.
 intros.
-Focus 2.
+2:{
 intros.
 destruct H as (H0 & H1).
 assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
@@ -159,7 +159,7 @@ assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
           omega. apply tableSizeBigEnough. omega. }
 assert (HP := conj H0 H).
 pattern s in HP.
-eapply HP.
+eapply HP. }
 (** comparePageToNull  **)
 eapply bindRev.
 eapply weaken.
@@ -447,7 +447,7 @@ Proof.
 (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert ( (getTableAddrRoot' ptRefChild sh1idx currentPart descChild s /\ ptRefChild = defaultPage) \/
@@ -467,7 +467,7 @@ Proof.
         symmetrynot. apply idxPDidxSh1notEq.  }
   assert (HP := conj H0 H).
   pattern s in HP.
-  eapply HP.
+  eapply HP. }
 (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.

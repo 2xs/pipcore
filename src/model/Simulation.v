@@ -138,20 +138,26 @@ Notation "'VAddr' v" := (Build_vaddr v _) ( at level 9).
 
 Definition createPartition :=
 put init ;;
-Services.createPartition (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)] )
-                              (CVaddr [(CIndex 2); (CIndex 1);(CIndex 0)])
+Services.createPartition (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)] ) (* child*)
+                              (CVaddr [(CIndex 2); (CIndex 1);(CIndex 0)]) 
                               (CVaddr [(CIndex 2); (CIndex 2);(CIndex 0)])
                               (CVaddr [(CIndex 2); (CIndex 3);(CIndex 0)])
                               (CVaddr [(CIndex 2); (CIndex 4);(CIndex 0)]).
 (** createPartition test : OK *)
 Eval vm_compute in  createPartition.
 
+(* Definition initConfigPagesListAux :=
+createPartition;; 
+Internal.initConfigPagesListAux 20 (CPage 12) (CIndex 0). 
+Eval vm_compute in initConfigPagesListAux.  *)
+
 Definition countToPrepare := 
 createPartition;;
-Services.countToMap (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)])
-                           (CVaddr [(CIndex 2); (CIndex 3);(CIndex 0)]).
+Services.countToMap (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)]) (* child *)
+                           (CVaddr [(CIndex 5); (CIndex 3);(CIndex 0)]). (* vaddr to prepare in the child *)
 (** countToPrepare test : OK *)
 Eval vm_compute in  countToPrepare.
+
 
 Definition prepare := 
 createPartition;;
@@ -159,11 +165,37 @@ storeVirtual (CVaddr [(CIndex 2); (CIndex 5); CIndex 0]) (CIndex 0)
              (CVaddr [(CIndex 2); (CIndex 6); CIndex 0]) ;;
 storeVirtual (CVaddr [(CIndex 2); (CIndex 6); CIndex 0]) (CIndex 0)
              (CVaddr [(CIndex 2); (CIndex 7); CIndex 0]) ;;
-Services.prepare (CVaddr [(CIndex 2); (CIndex 0); CIndex 0])
-                            (CVaddr [(CIndex 3); (CIndex 3) ; CIndex 0])
-                            (CVaddr [(CIndex 2); (CIndex 5); CIndex 0]) false.
+Services.prepare (CVaddr [(CIndex 2); (CIndex 0); CIndex 0]) (* child *)
+                            (CVaddr [(CIndex 3); (CIndex 3) ; CIndex 0]) (* vaddr to prepare in the child *)
+                            (CVaddr [(CIndex 2); (CIndex 5); CIndex 0]) (* fst vaddr lent to the kernel *).
 (** prepare test : OK *)
 Eval vm_compute in prepare.
+
+ Definition countToPrepare1 := 
+prepare;;
+Services.countToMap (CVaddr [(CIndex 2); (CIndex 0);(CIndex 0)])
+                           (CVaddr [(CIndex 5); (CIndex 3);(CIndex 0)]).
+(** countToPrepare test : OK *)
+Eval vm_compute in  countToPrepare1.
+
+Definition prepareStore := 
+prepare;;
+storeVirtual (CVaddr [(CIndex 2); (CIndex 8); CIndex 0]) (CIndex 0)
+             (CVaddr [(CIndex 2); (CIndex 9); CIndex 0]) ;;
+storeVirtual (CVaddr [(CIndex 2); (CIndex 9); CIndex 0]) (CIndex 0)
+             (CVaddr [(CIndex 2); (CIndex 9); CIndex 0]) ;;
+storeVirtual (CVaddr [(CIndex 2); (CIndex 10); CIndex 0]) (CIndex 0)
+             (CVaddr [(CIndex 2); (CIndex 11); CIndex 0]).
+(** prepare test : OK *)
+Eval vm_compute in prepareStore.
+
+Definition prepare1:=
+prepareStore ;;
+Services.prepare (CVaddr [(CIndex 2); (CIndex 0); CIndex 0])
+                            (CVaddr [(CIndex 5); (CIndex 2) ; CIndex 0])
+                            (CVaddr [(CIndex 2); (CIndex 8); CIndex 0]).
+(** prepare test : OK *)
+Eval vm_compute in prepare1.
 
 Definition addVAddr := 
 prepare ;;

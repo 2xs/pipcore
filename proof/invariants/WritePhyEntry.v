@@ -3667,7 +3667,7 @@ page is already accessible **)
         assert( beqPairs (ptSh2Child, idxSh2) (ptSh2Child, idxSh2) beqPage beqIndex = true) as Hpairs.
         apply beqPairsTrue.  split;trivial.
         rewrite Hpairs.  cbn. reflexivity. }
-Qed.
+        Qed.
  
 Lemma writeInaccessibleConfigList accessibleChild accessibleSh1 accessibleSh2 accessibleList 
 pdChild currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild

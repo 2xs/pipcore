@@ -82,10 +82,15 @@ Record count := {
   c :> nat ;
   Hnb : c <= (3*nbLevel) + 1  ;
  }.
+Record boolvaddr := {
+success : bool;
+FFvaddr : vaddr;
+}.
 
 Parameter index_d : index.
 Parameter page_d : page.
 Parameter level_d : level.
+Parameter count_d : count.
 
 Require Import Coq.Program.Tactics.
 
@@ -114,3 +119,8 @@ Qed.
 Program Definition CLevel ( a :nat) : level := 
 if lt_dec a nbLevel then  Build_level a _ 
 else level_d .
+
+
+Program Definition CCount ( a :nat) : count := 
+if le_dec a ((3*nbLevel) + 1) then  Build_count a _ 
+else count_d .

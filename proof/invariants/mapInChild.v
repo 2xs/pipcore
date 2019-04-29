@@ -133,7 +133,7 @@ intro currentPD. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2:{
       intros.
       destruct H as (H0 & H1).
       assert(( getTableAddrRoot' ptvaChildFromPD PDidx currentPart vaChild s /\  ptvaChildFromPD = defaultPage) \/
@@ -155,7 +155,7 @@ intro currentPD. simpl.
        
        assert (HP := conj H0 H).
        pattern s in HP.
-       eapply HP.   
+       eapply HP. }   
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -261,7 +261,7 @@ intros ptVaChildFromSh1.
 (** simplify the new precondition **)     
 eapply WP.weaken.
 intros.
-Focus 2.
+2:{
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' ptVaChildFromSh1 sh1idx currentPart vaChild s /\ 
@@ -283,7 +283,7 @@ isVE ptVaChildFromSh1 idx s /\ getTableAddrRoot ptVaChildFromSh1 sh1idx currentP
       apply idxPDidxSh1notEq. }
 assert (HP := conj H0 H).
 pattern s in HP.
-exact HP.
+exact HP. }
 (** comparePageToNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.

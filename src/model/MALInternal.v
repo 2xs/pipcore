@@ -89,6 +89,7 @@ Definition ltb (a b : index) : LLI bool := ret (a <? b).
 Definition gtb (a b : index) : LLI bool := ret (b <? a).
 Definition eqb (a b : index) : LLI bool := ret (a =? b). 
 Program Definition zero : LLI index:= ret (Build_index 0 _).
+Definition const3 := ret (CIndex 3).
 Next Obligation.
 assert (tableSize > 14).
 apply tableSizeBigEnough.
@@ -164,10 +165,13 @@ Program Definition zero : LLI count :=  ret (Build_count 0 _).
 Next Obligation.
 omega.
 Qed.
+Definition eqb (a b : count) : LLI bool := ret (b =? a).
+
 Program Definition succ (n : count) : LLI count :=
 let isucc := n+1 in
 if le_dec isucc ((3*nbLevel) + 1)
 then
   ret (Build_count isucc _ )
 else  undefined 34.
+
 End Count.
