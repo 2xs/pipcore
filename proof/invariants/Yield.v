@@ -197,7 +197,7 @@ subst.
 
 (** hypotheses cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H.
 destruct H.
@@ -223,6 +223,7 @@ assert (getTableAddrRoot ctxLastMMUPage PDidx callerPartDesc callerContextSaveVA
 rewrite pageEqNatEqEquiv in H0.
 assert (HP := conj (conj H H0) H2).
 apply HP.
+}
 
 (** getIndexOfAddr - idxCtxInLastMMUPage *)
 eapply bindRev.
@@ -372,7 +373,7 @@ subst.
 
 (** hypotheses cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H.
 destruct H.
@@ -398,6 +399,7 @@ assert (getTableAddrRoot ctxEndLastMMUPage PDidx callerPartDesc callerContextEnd
 rewrite pageEqNatEqEquiv in H0.
 assert (HP := conj (conj H H0) H2).
 apply HP.
+}
 
 (** getIndexOfAddr - idxCtxEndInLastMMUPage *)
 eapply bindRev.
@@ -594,7 +596,7 @@ subst.
 
 (** hypotheses cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H.
 destruct H.
@@ -620,6 +622,7 @@ assert (getTableAddrRoot calleeVidtLastMMUPage PDidx calleePartDesc vidtVAddr s 
 rewrite pageEqNatEqEquiv in H0.
 assert (HP := conj (conj H H0) H2).
 apply HP.
+}
 
 (** readPresent - calleeVidtIsPresent *)
 eapply bindRev.
@@ -795,7 +798,7 @@ subst.
 (** simplify the new precondition **)
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as ((H0 & H1) & H2).
 assert (getTableAddrRoot calleeContextLastMMUPage PDidx calleePartDesc
@@ -826,6 +829,7 @@ assert (getTableAddrRoot calleeContextLastMMUPage PDidx calleePartDesc
 assert (HP := conj H0 H).
 pattern s in HP.
 eapply HP.
+}
 
 (** getIndexOfAddr - idxCalleeContextPageInLastMMUPage *)
 eapply bindRev.
@@ -981,7 +985,7 @@ subst.
 (** simplify the new precondition **)
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as ((H0 & H1) & H2).
 assert (getTableAddrRoot calleeContextEndLastMMUPage PDidx calleePartDesc
@@ -1012,6 +1016,7 @@ assert (getTableAddrRoot calleeContextEndLastMMUPage PDidx calleePartDesc
 assert (HP := conj H0 H).
 pattern s in HP.
 eapply HP.
+}
 
 (** getIndexOfAddr - idxCalleeContextEndPageInLastMMUPage *)
 eapply bindRev.
@@ -1236,7 +1241,7 @@ intro childLastMMUPage. simpl.
 (** simplify the new precondition **)
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' childLastMMUPage PDidx callerPartDesc calleePartDescVAddr s /\ childLastMMUPage = defaultPage) \/
@@ -1257,6 +1262,7 @@ isPE childLastMMUPage idx s /\ getTableAddrRoot childLastMMUPage PDidx callerPar
 assert (HP := conj H0 H).
 pattern s in HP.
 eapply HP.
+}
 
 (** comparePageToNull - childLastMMUTableIsNull *)
 eapply bindRev.
@@ -1275,21 +1281,21 @@ intros.
 subst.
 (** hypothese cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H as ((Hexec & Hconj) & Hlast).
 destruct Hconj as [HFalse | HTrue].
-- destruct HFalse.
-  subst.
-  rewrite Nat.eqb_refl in Hlast.
-  now contradict Hlast.
-Focus 2.
+destruct HFalse.
+subst.
+rewrite Nat.eqb_refl in Hlast.
+now contradict Hlast.
 destruct HTrue with (StateLib.getIndexOfAddr calleePartDescVAddr fstLevel).
 trivial.
 apply beq_nat_false in Hlast.
 assert (Hdef:= conj (conj (conj Hexec H) H0) Hlast).
 pattern s in Hdef.
 apply Hdef.
+}
 
 (** getIndexOfAddr - idxChildPartDesc *)
 eapply bindRev.
@@ -1364,7 +1370,7 @@ intro calleePartDesc.
 
 (** hypotheses restructure *)
 eapply weaken.
-Focus 2.
+2: {
 unfold postConditionYieldBlock1.
 intros.
 assert (In calleePartDesc (getPartitions multiplexer s)).
@@ -1391,6 +1397,7 @@ assert (HpC : postConditionYieldBlock1 s userTargetInterrupt userCallerContextSa
                             nbL) by (unfold postConditionYieldBlock1; intuition).
 assert (HP := conj HpC (conj H0 H1)).
 apply HP.
+}
 apply calleeContextChecks.
 Qed.
 
@@ -1466,7 +1473,7 @@ intro calleePartDesc.
 
 (** Hypotheses cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H as (((HpC & _) & _) & HnEIPP).
 assert (HpIPT : In calleePartDesc (getPartitions multiplexer s)).
@@ -1495,6 +1502,7 @@ assert (HpNotDef : calleePartDesc <> defaultPage).
 }
 assert (HP := conj HpC (conj HpIPT HpNotDef)).
 apply HP.
+}
 apply calleeContextChecks.
 Qed.
 
@@ -1659,7 +1667,7 @@ intro callerVidtLastMMUPage. simpl.
 (** simplify the new precondition **)
 eapply WP.weaken.
 intros.
-Focus 2.
+2: {
 intros.
 destruct H as (H0 & H1).
 assert ( (getTableAddrRoot' callerVidtLastMMUPage PDidx callerPartDesc MALInternal.vidtVAddr s /\ callerVidtLastMMUPage = defaultPage) \/
@@ -1680,6 +1688,8 @@ isPE callerVidtLastMMUPage idx s /\ getTableAddrRoot callerVidtLastMMUPage PDidx
 assert (HP := conj H0 H).
 pattern s in HP.
 eapply HP.
+}
+
 (** comparePageToNull - vidtLastMMUPageisNull **) 
 eapply WP.bindRev.
 eapply Invariants.comparePageToNull.
@@ -1694,21 +1704,21 @@ intros.
 subst.
 (** hypotheses cleanup *)
 eapply weaken.
-Focus 2.
+2: {
 intros.
 destruct H as ((Hexec & Hconj) & Hlast).
 destruct Hconj as [HFalse | HTrue].
-- destruct HFalse.
-  subst.
-  rewrite Nat.eqb_refl in Hlast.
-  now contradict Hlast.
-Focus 2.
+destruct HFalse.
+subst.
+rewrite Nat.eqb_refl in Hlast.
+now contradict Hlast.
 destruct HTrue with (StateLib.getIndexOfAddr MALInternal.vidtVAddr fstLevel).
 trivial.
 apply beq_nat_false in Hlast.
 assert (Hdef:= conj (conj (conj Hexec H) H0) Hlast).
 pattern s in Hdef.
 apply Hdef.
+}
 (** getIndexOfAddr - idxVidtInLastMMUPage *)
 eapply bindRev.
 eapply Invariants.getIndexOfAddr.
