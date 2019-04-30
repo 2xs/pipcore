@@ -228,11 +228,7 @@ omega.
 Qed.
 (* END NOT SIMULATION *)
 
-(** The 'getnbFreeEntriesLL' function returns the number of the available entries into a given LL table *)
-Definition getnbFreeEntriesLL sh3 :=
-perform zeroI :=  MALInternal.Index.zero in
-perform oneI :=  MALInternal.Index.succ zeroI in 
-readIndex sh3 oneI.
+
 
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=

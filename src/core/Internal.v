@@ -562,6 +562,11 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)
 Definition parseConfigPagesList (sh : page) (idx : index) (tbl :page) :=
   parseConfigPagesListAux N sh idx tbl.
 
+(** The 'getnbFreeEntriesLL' function returns the number of the available entries into a given LL table *)
+Definition getnbFreeEntriesLL sh3 :=
+perform zeroI :=  MALInternal.Index.zero in
+perform oneI :=  MALInternal.Index.succ zeroI in 
+readIndex sh3 oneI.
 
 (** The [checkEnoughEntriesLinkedListAux] function checks if there are [cnt]
     availeble entries into the partition configuration pages list *)
@@ -572,7 +577,7 @@ match timeout with
  | S timeout1 =>
   perform threeI := MALInternal.Index.const3 in
   (* this entry contains the number of available entries *)
-  perform nbfree := MAL.getnbFreeEntriesLL LL in 
+  perform nbfree := getnbFreeEntriesLL LL in 
   perform res := MALInternal.Index.geb nbfree threeI in
   if(res) 
   then ret LL (** this page contains at least three available entries *)
@@ -851,3 +856,4 @@ ret vidtIsAccessible.
 Definition getContextEndAddr (contextAddr : vaddr) : LLI vaddr :=
   perform contextEndAddr := getNthVAddrFrom contextAddr contextSizeMinusOne in
   ret contextEndAddr.
+
