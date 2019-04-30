@@ -76,13 +76,24 @@ Inductive value : Type:=
 |VE : Ventry -> value
 |PP : page -> value
 |VA : vaddr -> value
-|I  : index -> value.  
-
+|I  : index -> value.
 
 Record state : Type := {
  currentPartition : page;
  memory : list (paddr * value)
 }.
+
+Inductive yield_checks : Type :=
+| FAIL_VINT_Cons
+| FAIL_CTX_SAVE_INDEX_Cons
+| FAIL_CTX_SAVE_ADDR_Cons
+| FAIL_TARGET_VIDT_Cons
+| FAIL_TARGET_CTX_Cons
+| FAIL_CALLER_VIDT_Cons
+| FAIL_ROOT_CALLER_Cons
+| FAIL_INVALID_CHILD_Cons
+| FAIL_MASKED_INTERRUPT_Cons
+| SUCCESS_Cons.
 
 Inductive result (A : Type) : Type :=
 | val : A -> result A

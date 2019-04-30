@@ -2836,3 +2836,30 @@ by trivial.
       omega. apply tableSizeBigEnough. omega.
       Qed.
 
+Lemma pageEqNatEqEquiv : forall (a b : page), eq (p a) (p b) <-> (eq a b).
+Proof.
+split.
+intro.
+destruct a; destruct b.
+simpl in *.
+subst.
+f_equal. apply proof_irrelevance.
+
+intro.
+rewrite H.
+reflexivity.
+Qed.
+
+Lemma pageNeqNatNeqEquiv : forall (a b : page), (p a) <> (p b) <-> a <> b.
+Proof.
+intro; split; intro.
+destruct a; destruct b.
+cbn in *.
+injection.
+intro.
+contradict H1.
+assumption.
+
+contradict H.
+apply pageEqNatEqEquiv; assumption.
+Qed.

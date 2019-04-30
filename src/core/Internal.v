@@ -33,7 +33,7 @@
 
 (** * Summary 
     This file contains some internal functions used by services *)
-Require Import Model.Hardware Model.ADT Model.MAL Bool Arith List Coq.Init.Peano.
+Require Import Model.Hardware Model.ADT Model.MAL Model.MALInternal Model.IAL Bool Arith List Coq.Init.Peano.
 Definition N := 100.
 
 (** The [getPd] function returns the page directory of a given partition *)
@@ -512,12 +512,12 @@ Definition checkEmptyTable tbl idx lvl :=
 (** The [parseConfigPagesListAux] function parses the list of the partition 
     configuration tables to find a virtual address in the parent context corresponding 
     to a given physical page *)
-Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  :=
+Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)  :=
   match timeout with
   | 0 => getDefaultVAddr
   | S timeout1 =>
     perform maxindex :=  getMaxIndex in (** Our last index is table size - 1, as we're indexed on zero*)
-    perform res := MALInternal.Index.eqb idx maxindex in
+    perform res := MALInternal.Index.eqb idxun maxindex in
     if (res)
     then
       perform nextIndirection :=  readPhysical sh maxindex  in (** get next table *) 
@@ -530,8 +530,8 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
         perform un := MALInternal.Index.succ zero in
         parseConfigPagesListAux timeout1 nextIndirection un tbl (** Recursive call on the next table *)
     else
-      perform idxsucc := MALInternal.Index.succ idx in
-      perform va := readVirtual sh idx in
+      perform idxsucc := MALInternal.Index.succ idxun in
+      perform va := readVirtual sh idxun in
       perform defaultVAddr := getDefaultVAddr in
       perform cmpva :=  MALInternal.VAddr.eqbList va defaultVAddr in
       if (cmpva)
@@ -539,21 +539,21 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idx : index) (tbl :page)  
         perform idxsucc11 := MALInternal.Index.succ idxsucc in
         parseConfigPagesListAux timeout1 sh idxsucc11 tbl
       else  (** Recursive call on this table *)
-        perform pad :=  readPhyEntry sh idxsucc in (** Get entry in table *)
+        perform pad :=  readPhysical sh idxsucc in (** Get entry in table *)
         perform cmp :=  MALInternal.Page.eqb pad tbl in
         if cmp
         then
-          perform vaRet :=  readVirtual sh idx  in  (** Read associated vaddr*)
+          perform vaRet :=  readVirtual sh idxun  in  (** Read associated vaddr*)
           (** Now we have to delete this entry*)
           perform zero := MALInternal.Index.zero in
           perform curNextIdx :=  readIndex sh zero in (** Get next entry index *)
           writeIndex sh idxsucc curNextIdx ;; (** Link this *)
-          writeIndex sh zero idx ;;
+          writeIndex sh zero idxun ;;
           perform nullAddrV :=  getDefaultVAddr in
-          writeVirtual sh idx nullAddrV ;; 
+          writeVirtual sh idxun nullAddrV ;; 
           ret vaRet
         else
-          perform idxsucc := MALInternal.Index.succ idx in
+          perform idxsucc := MALInternal.Index.succ idxun in
           perform idxsucc11 := MALInternal.Index.succ idxsucc in
           parseConfigPagesListAux timeout1 sh idxsucc11 tbl
   end.  (** Recursive call on this table *)
@@ -726,7 +726,7 @@ Definition initVAddrTable sh2 n :=
 (** The [initPEntryTableAux] function initialize physical entries [PEntry] of 
     a given table [ind] by default value (defaultPage for [pa] and false for 
     other flags *) 
-Fixpoint initPEntryTableAux timeout  table idx :=
+Fixpoint initPEntryTableAux timeout table idx :=
   match timeout with
   |0 =>  ret tt
   | S timeout1 => perform maxindex := getMaxIndex in
@@ -761,8 +761,6 @@ writePhysical newLL maxindex fstLL;;
 (* push a new top onto LL : modify the partition descriptor *)
 perform idxLL := getSh3idx in
 updatePartitionDescriptor partition idxLL newLL v.
-
-
 
 (** The [checkChild] function checks whether the given virtual address [va] is 
     marked as a child of a given partition *)
@@ -822,4 +820,34 @@ if res
 then 
 initVAddrTable table zero
 else 
-initPEntryTable table zero. 
+initPEntryTable table zero.
+
+Definition isVAddrAccessible (pageVAddr : vaddr) (pageDirectory : page) : LLI bool :=
+(* checking last mmu table  *)
+perform nbL := getNbLevel in
+perform pageLastMMUTable := getTableAddr pageDirectory pageVAddr nbL in
+perform pageLastMMUTableisNull := comparePageToNull pageLastMMUTable in
+if pageLastMMUTableisNull then
+  ret false
+else
+
+perform idxPageInTable := getIndexOfAddr pageVAddr nbL in
+perform pageIsPresent := readPresent pageLastMMUTable idxPageInTable in
+if negb pageIsPresent then
+  ret false
+else
+
+perform pageIsAccessible := readAccessible pageLastMMUTable idxPageInTable in
+if negb pageIsAccessible then
+  ret false
+else
+  ret true.
+
+Definition checkVidtAccessibility (pageDirectory : page) : LLI bool :=
+perform vidtVaddr := getVidtVAddr in
+perform vidtIsAccessible := isVAddrAccessible vidtVaddr pageDirectory in
+ret vidtIsAccessible.
+
+Definition getContextEndAddr (contextAddr : vaddr) : LLI vaddr :=
+  perform contextEndAddr := getNthVAddrFrom contextAddr contextSizeMinusOne in
+  ret contextEndAddr.

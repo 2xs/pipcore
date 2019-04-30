@@ -44,7 +44,7 @@
       - part 3 : <<funtionName>> is the PIP service. It calls <<functionNameAux>> 
                 with the required parameters *)
 
-Require Import Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal Arith  List.
+Require Import Model.IAL Model.Hardware Model.ADT Model.Lib Model.MAL Bool Core.Internal Arith  List.
 Import List.ListNotations.
 
 (** ** The createPartition PIP service
@@ -983,8 +983,9 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
   match timeout with
   | 0 => ret false (* getDefaultVAddr*)
   | S timeout1 =>
-perform isFstLevel := Level.eqb currentLevel fstLevel in
-     if isFstLevel then ret true else
+
+    perform isFstLevel := Level.eqb currentLevel fstLevel in 
+    if isFstLevel then ret true else
     perform ptVaToCollectFromPDChild := getTableAddr phyPDChild vaToCollect currentLevel in (** Get indirection table address, last nbL *)
 
     perform isNull := comparePageToNull ptVaToCollectFromPDChild in if isNull then ret false else
@@ -1116,3 +1117,344 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
       collectAux phyPDChild phySh1Child phySh2Child phyConfigPagesList vaToCollect nbL defAddr
     else ret false
   else ret false.
+
+
+
+Definition switchContext (callerVidt     : page)
+                         (flagsOnYield   : interruptMask)
+                         (calleePartDesc : page)
+                         (calleePageDir  : page)
+                         (* calleeHandlerContext : vaddr *)
+                         : LLI yield_checks :=
+
+  setInterruptMask callerVidt flagsOnYield ;;
+  updateCurPartAndActivate calleePartDesc calleePageDir ;;
+  (* loadContext(calleeHandlerContext) ;; *)
+  ret SUCCESS.
+
+Definition saveCallerContext (callerPageDir            : page)
+                             (callerVidt               : page)
+                             (callerContextSaveIndex   : index)
+                             (callerContextSaveVAddr   : vaddr)
+                             (flagsOnYield             : interruptMask)
+                             (flagsOnWake              : interruptMask)
+                             (callerInterruptedContext : contextAddr)
+                             (calleePartDesc           : page)
+                             (calleePageDir            : page)
+                             (nbL                      : level)
+                             (fstLevel                 : level)
+                             : LLI yield_checks :=
+  (* check contextSaveAddr validity *)
+  perform ctxLastMMUPage := getTableAddr callerPageDir callerContextSaveVAddr nbL in
+  perform ctxLastMMUPageisNull := comparePageToNull ctxLastMMUPage in
+  if ctxLastMMUPageisNull then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+
+  perform idxCtxInLastMMUPage := getIndexOfAddr callerContextSaveVAddr fstLevel in
+  perform ctxPageIsPresent := readPresent ctxLastMMUPage idxCtxInLastMMUPage in
+  if negb ctxPageIsPresent then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+
+  perform ctxPageIsAccessible := readAccessible ctxLastMMUPage idxCtxInLastMMUPage in
+  if negb ctxPageIsAccessible then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+  (*--------------------------*)
+
+  (* get end ctx address *)
+  perform callerContextEndSaveVAddr := getNthVAddrFrom callerContextSaveVAddr contextSizeMinusOne in
+  perform endAddrOverflow := firstVAddrGreaterThanSecond callerContextSaveVAddr callerContextEndSaveVAddr in
+  if endAddrOverflow then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+  (*--------------------------*)
+
+  (* check context save address *)
+  perform callerCtxEndLastMMUPage := getTableAddr callerPageDir callerContextEndSaveVAddr nbL in
+  perform callerCtxEndLastMMUPageisNull := comparePageToNull callerCtxEndLastMMUPage in
+  if callerCtxEndLastMMUPageisNull then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+
+  perform idxCallerCtxEndInLastMMUPage := getIndexOfAddr callerContextEndSaveVAddr fstLevel in
+  perform callerCtxEndPageIsPresent := readPresent callerCtxEndLastMMUPage idxCallerCtxEndInLastMMUPage in
+  if negb callerCtxEndPageIsPresent then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+
+  perform callerCtxEndPageIsAccessible := readAccessible callerCtxEndLastMMUPage idxCallerCtxEndInLastMMUPage in
+  if negb callerCtxEndPageIsAccessible then
+    ret FAIL_CTX_SAVE_ADDR
+  else
+
+  writeContext callerInterruptedContext callerContextSaveVAddr flagsOnWake ;;
+  switchContext callerVidt flagsOnYield calleePartDesc calleePageDir (* calleeHandlerContext *).
+
+Definition checkCalleeContext (calleePartDesc         : page)
+                              (callerPageDir          : page)
+                              (callerVidt             : page)
+                              (nbL                    : level)
+                              (idxVidtInLastMMUPage   : index)
+                              (targetInterrupt        : index)
+                              (callerContextSaveIndex : index)
+                              (callerInterruptedContext : contextAddr)
+                              (flagsOnYield             : interruptMask)
+                              (flagsOnWake              : interruptMask)
+                              : LLI yield_checks :=
+
+  (* check if callee vidt is available *)
+  perform calleePageDir := getPd calleePartDesc in
+
+  perform calleeVidtLastMMUPage := getTableAddr calleePageDir vidtVAddr nbL in
+  perform calleeVidtLastMMUPageisNull := comparePageToNull calleeVidtLastMMUPage in
+  if calleeVidtLastMMUPageisNull then
+    ret FAIL_TARGET_VIDT
+  else
+
+  perform calleeVidtIsPresent := readPresent calleeVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb calleeVidtIsPresent then
+    ret FAIL_TARGET_VIDT
+  else
+
+  perform calleeVidtIsAccessible := readAccessible calleeVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb calleeVidtIsAccessible then
+    ret FAIL_TARGET_VIDT
+  else
+
+  perform calleeVidt := readPhyEntry calleeVidtLastMMUPage idxVidtInLastMMUPage in
+
+  (*############################*)
+
+  (* checking if interruption is not masked *)
+  perform calleeInterruptMask := readInterruptMask calleeVidt in
+  perform calleeMaskedInterrupt := isInterruptMasked calleeInterruptMask targetInterrupt in
+  if calleeMaskedInterrupt then
+    ret FAIL_MASKED_INTERRUPT
+  else
+
+  (*############################*)
+
+  (* retrieving the callee's handler context *)
+  perform calleeContextVAddr := readUserlandVAddr calleeVidt targetInterrupt in
+  perform calleeContextLastMMUPage := getTableAddr calleePageDir calleeContextVAddr nbL in
+  perform calleeContextLastMMUPageisNull := comparePageToNull calleeContextLastMMUPage in
+  if calleeContextLastMMUPageisNull then
+    ret FAIL_TARGET_CTX
+  else
+
+  perform idxCalleeContextPageInLastMMUPage := getIndexOfAddr calleeContextVAddr fstLevel in
+  perform calleeContextPageIsPresent := readPresent calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage in
+  if negb calleeContextPageIsPresent then
+    ret FAIL_TARGET_CTX
+  else
+
+  perform calleeContextPageIsAccessible := readAccessible calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage in
+  if negb calleeContextPageIsAccessible then
+    ret FAIL_TARGET_CTX
+  else
+
+  (* get ctx end addr *)
+  perform calleeContextEndVAddr := getNthVAddrFrom calleeContextVAddr contextSizeMinusOne in
+  perform calleeContextEndVAddrOverflow := firstVAddrGreaterThanSecond calleeContextVAddr calleeContextEndVAddr in
+  if calleeContextEndVAddrOverflow then
+    ret FAIL_TARGET_CTX
+  else
+
+  (* check context end save address *)
+  perform calleeContextEndLastMMUPage := getTableAddr calleePageDir calleeContextEndVAddr nbL in
+  perform calleeContextEndLastMMUPageisNull := comparePageToNull calleeContextEndLastMMUPage in
+  if calleeContextEndLastMMUPageisNull then
+    ret FAIL_TARGET_CTX
+  else
+
+  perform idxCalleeContextEndPageInLastMMUPage := getIndexOfAddr calleeContextEndVAddr fstLevel in
+  perform calleeContextEndPageIsPresent := readPresent calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage in
+  if negb calleeContextEndPageIsPresent then
+    ret FAIL_TARGET_CTX
+  else
+
+  perform calleeContextEndPageIsAccessible := readAccessible calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage in
+  if negb calleeContextEndPageIsAccessible then
+    ret FAIL_TARGET_CTX
+  else
+
+  (* check if caller wants to save its context *)
+  perform callerContextSaveVAddr := readUserlandVAddr callerVidt callerContextSaveIndex in
+  perform callerWantsToDropItsContext := compareVAddrToNull callerContextSaveVAddr in
+
+
+  if negb callerWantsToDropItsContext then
+    saveCallerContext callerPageDir
+                      callerVidt
+                      callerContextSaveIndex
+                      callerContextSaveVAddr
+                      flagsOnYield
+                      flagsOnWake
+                      callerInterruptedContext
+                      calleePartDesc
+                      calleePageDir
+                      nbL
+                      fstLevel
+  else
+    switchContext callerVidt
+                  flagsOnYield
+                  calleePartDesc
+                  calleePageDir
+                  (* calleeHandlerContext : vaddr *).
+
+Definition parentCallRelatedChecks (callerPartDesc           : page)
+                                   (callerPageDir            : page)
+                                   (callerVidt               : page)
+                                   (nbL                      : level)
+                                   (idxVidtInLastMMUPage     : index)
+                                   (targetInterrupt          : index)
+                                   (callerContextSaveIndex   : index)
+                                   (callerInterruptedContext : contextAddr)
+                                   (flagsOnWake              : interruptMask)
+                                   (flagsOnYield             : interruptMask)
+                                   : LLI yield_checks :=
+
+  (* check if partition is root *)
+  perform rootPartition := getMultiplexer in
+  perform currentPartitionIsRoot := Page.eqb rootPartition callerPartDesc in
+  if currentPartitionIsRoot then
+    ret FAIL_ROOT_CALLER
+  else
+
+  (*############################*)
+
+  (* check if target vidt is available *)
+  perform calleePartDesc := getParent callerPartDesc in
+  checkCalleeContext calleePartDesc
+                     callerPageDir
+                     callerVidt
+                     nbL
+                     idxVidtInLastMMUPage
+                     targetInterrupt
+                     callerContextSaveIndex
+                     callerInterruptedContext
+                     flagsOnYield
+                     flagsOnWake.
+
+Definition childRelatedChecks (calleePartDescVAddr      : vaddr)
+                              (callerPartDesc           : page)
+                              (callerPageDir            : page)
+                              (callerVidt               : page)
+                              (nbL                      : level)
+                              (idxVidtInLastMMUPage     : index)
+                              (targetInterrupt          : index)
+                              (callerContextSaveIndex   : index)
+                              (callerInterruptedContext : contextAddr)
+                              (flagsOnWake              : interruptMask)
+                              (flagsOnYield             : interruptMask)
+                              : LLI yield_checks :=
+  (* checking child validity *)
+  perform childLastMMUTable := getTableAddr callerPageDir calleePartDescVAddr nbL in
+  perform childLastMMUTableIsNull := comparePageToNull childLastMMUTable in
+  if childLastMMUTableIsNull then
+    ret FAIL_INVALID_CHILD
+  else
+  perform idxChildPartDesc := getIndexOfAddr calleePartDescVAddr fstLevel in
+  perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
+  if negb childPartDescIsPresent then
+    ret FAIL_INVALID_CHILD
+  else
+
+  perform validChild := checkChild callerPartDesc nbL calleePartDescVAddr in
+  if negb validChild then
+    ret FAIL_INVALID_CHILD
+  else
+
+  (* retrieving child page directory *)
+  perform calleePartDesc := readPhyEntry childLastMMUTable idxChildPartDesc in
+  checkCalleeContext calleePartDesc
+                     callerPageDir
+                     callerVidt
+                     nbL
+                     idxVidtInLastMMUPage
+                     targetInterrupt
+                     callerContextSaveIndex
+                     callerInterruptedContext
+                     flagsOnYield
+                     flagsOnWake.
+
+Definition yield (calleePartDescVAddr : vaddr)
+                 (userTargetInterrupt : userValue)
+                 (userCallerContextSaveIndex : userValue)
+                 (flagsOnWake : interruptMask)
+                 (flagsOnYield : interruptMask)
+                 (callerInterruptedContext : contextAddr)
+                 : LLI yield_checks :=
+
+  (* checkIndexPropertyLTB *)
+  perform userTargetInterruptIsValid := checkIndexPropertyLTB userTargetInterrupt in
+  if negb userTargetInterruptIsValid then
+    ret FAIL_VINT
+  else
+
+  perform targetInterrupt := getIndexFromUserValue userTargetInterrupt in
+  (*--------------------------*)
+
+  perform callerPartDesc := getCurPartition in
+  perform callerPageDir := getPd callerPartDesc in
+  perform nbL := getNbLevel in
+
+  (*--------------------------*)
+
+  (* check context save index *)
+  perform callerContextSaveIndexIsValid := checkIndexPropertyLTB userCallerContextSaveIndex in
+  if negb callerContextSaveIndexIsValid then
+    ret FAIL_CTX_SAVE_INDEX
+  else
+
+  perform callerContextSaveIndex := getIndexFromUserValue userCallerContextSaveIndex in
+
+  (*--------------------------*)
+
+  (* check caller vidt *)
+  perform vidtVaddr := getVidtVAddr in
+  perform callerVidtLastMMUPage := getTableAddr callerPageDir vidtVAddr nbL in
+  perform vidtLastMMUPageisNull := comparePageToNull callerVidtLastMMUPage in
+  if vidtLastMMUPageisNull then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
+  perform callerVidtIsPresent := readPresent callerVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb callerVidtIsPresent then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform callerVidtIsAccessible := readAccessible callerVidtLastMMUPage idxVidtInLastMMUPage in
+  if negb callerVidtIsAccessible then
+    ret FAIL_CALLER_VIDT
+  else
+
+  perform callerVidt := readPhyEntry callerVidtLastMMUPage idxVidtInLastMMUPage in
+
+  perform calleePartDescVAddrIsDefault := compareVAddrToNull calleePartDescVAddr in
+  if calleePartDescVAddrIsDefault then
+    parentCallRelatedChecks callerPartDesc
+                            callerPageDir
+                            callerVidt
+                            nbL
+                            idxVidtInLastMMUPage
+                            targetInterrupt
+                            callerContextSaveIndex
+                            callerInterruptedContext
+                            flagsOnWake
+                            flagsOnYield
+  else
+    childRelatedChecks calleePartDescVAddr
+                       callerPartDesc
+                       callerPageDir
+                       callerVidt
+                       nbL
+                       idxVidtInLastMMUPage
+                       targetInterrupt
+                       callerContextSaveIndex
+                       callerInterruptedContext
+                       flagsOnWake
+                       flagsOnYield.

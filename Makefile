@@ -154,6 +154,7 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
 	    -m MALInternal -d :MALInternal.json                           \
 	    -m MAL -d :MAL.json                                           \
+	    -m IAL -d :IAL.json						  \
 	    -m ADT -m Nat                                                 \
 	    -m Internal -d :Internal.json                                 \
 	    -q maldefines.h -q Internal.h                                 \
@@ -163,10 +164,11 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
 	    -m MALInternal -d :MALInternal.json                           \
 	    -m MAL -d :MAL.json                                           \
+	    -m IAL -m :IAL.json						  \
 	    -m ADT -m Nat                                                 \
 	    -m Internal -d :Internal.json                                 \
 	    -q maldefines.h -q Internal.h                                 \
-		--header													  \
+	    --header							  \
 	    Services.json                                                 \
 	      -o $(TARGET_DIR)/Services.h
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
