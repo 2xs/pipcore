@@ -399,7 +399,10 @@ indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
 initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
 initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr.
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr (* /\
+isPartitionFalse  ptSh1FstVA  idxFstVA s /\
+isPartitionFalse  ptSh1SndVA  idxSndVA s /\
+isPartitionFalse  ptSh1TrdVA  idxTrdVA s  *).
 
 
 Definition writeAccessibleRecInternalPropertiesPrepare currentPart descParent ancestor pdAncestor pt va 
