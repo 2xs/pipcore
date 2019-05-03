@@ -577,7 +577,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         (* Set used pages as shared *)
         writeVirEntry ptSh1FstVA idxFstVA fstVA ;;
         writeVirEntry ptSh1SndVA idxSndVA sndVA ;;
-        writeVirEntry ptSh1TrdVA idxFstVA trdVA ;;
+        writeVirEntry ptSh1TrdVA idxTrdVA trdVA ;;
 
         (*  Insert pages into the current level *)
         writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
@@ -647,7 +647,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         (* Set used pages as shared *)
         writeVirEntry ptSh1FstVA idxFstVA fstVA ;;
         writeVirEntry ptSh1SndVA idxSndVA sndVA ;;
-        writeVirEntry ptSh1TrdVA idxFstVA trdVA ;;
+        writeVirEntry ptSh1TrdVA idxTrdVA trdVA ;;
 
         (*  Insert pages into the current level *)
         writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 

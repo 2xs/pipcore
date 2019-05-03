@@ -1688,8 +1688,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     intros [].
 (** writeVirEntry **)
     eapply bindRev.
+    eapply writeVirEntrySndVA.
 (** writeVirEntry **)
-
+    intros [].
+    eapply bindRev.
+    eapply writeVirEntryTrdVA.
 
 (** TODO : To be proved *)
 Admitted.
