@@ -39,7 +39,7 @@ Require Import Model.ADT Model.Hardware Core.Services Core.Internal Isolation Co
 WeakestPreconditions Invariants StateLib Model.Lib Model.MAL GetTableAddr 
 InternalLemmas DependentTypeLemmas LinkedListConfig PropagatedProperties 
 WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable UpdateMappedPageContent
-InitFstShadow InitSndShadow.
+InitFstShadow InitSndShadow UpdateShadow1StructurePrepare.
 
 Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
 
@@ -1680,9 +1680,14 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     intros [].
 (** writeVirEntry **)
     eapply bindRev.
-    
+    eapply weaken.
+    eapply writeVirEntryFstVA.
+    simpl.
+    intros.
+    intuition eassumption.
+    intros [].
 (** writeVirEntry **)
-
+    eapply bindRev.
 (** writeVirEntry **)
 
 

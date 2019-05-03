@@ -402,7 +402,11 @@ initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
 initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr (* /\
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\
-isPartitionFalse  ptSh1TrdVA  idxTrdVA s  *).
+isPartitionFalse  ptSh1TrdVA  idxTrdVA s /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr *).
+
 
 
 Definition writeAccessibleRecInternalPropertiesPrepare currentPart descParent ancestor pdAncestor pt va 
