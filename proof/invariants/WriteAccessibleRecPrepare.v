@@ -415,14 +415,16 @@ Lemma WriteAccessibleRecPropagatePrepareProperties currentPart pt phypage descPa
 {{ fun s : state => 
 (propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart  trdVA
-     nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI)
+     nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI 
+     /\  isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA )
 /\ writeAccessibleRecRecurtionInvariantConj va descParent phypage pt currentPart s 
 }} 
 Internal.writeAccessibleRecAux (nbPage +1) va descParent false
 {{ fun _ s =>
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA
-     nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI}}.
+     nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI 
+     /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA}}.
 Proof.
 unfold writeAccessibleRecRecurtionInvariantConj.
  revert va descParent  pt phypage .
@@ -720,7 +722,7 @@ case_eq isMultiplexer.
   destruct Hlookup as (entry & Hlookup).
   exists entry ; split;trivial. 
   repeat rewrite and_assoc in H.
-  destruct H as (Hpostcondition (* : YOUR precondition to prove the postcondition *) & Hfalse & Hrest). 
+  destruct H as (Hpostcondition & Hnotpd (* : YOUR precondition to prove the postcondition *) & Hfalse & Hrest). 
   (** prove that the same page is mapped in the parent and associated to the va stored into the second shadow structure **)
   assert(Heqphy : phypage = pa entry). {
   intuition;subst.
@@ -733,7 +735,8 @@ case_eq isMultiplexer.
   unfold consistency in Hcons.
   apply isAccessibleMappedPageInParentTrue with descParent va (pa entry) ptvaInAncestor ptsh2 pdAncestor;
   intuition;subst;trivial. }
-  assert(Hx:= conj Htrue Hrest ).    
+  assert(Hx':= conj Htrue Hrest).    
+  assert(Hx:= conj Hnotpd Hx').
  (*  assert(Hpostcondition :True) by trivial. *)  
   assert (H:= conj Hpostcondition Hx).
   pattern s in H.
@@ -787,6 +790,11 @@ case_eq isMultiplexer.
   subst.
   assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
+  rewrite  and_assoc.
+  split.
+  unfold isPartitionFalseAll in *;
+  unfold isPartitionFalse; unfold s'; cbn.
+  repeat rewrite readPDflagUpdateUserFlag;trivial.
   apply WriteAccessibleRecRecursionInvariant.
   intuition;subst;trivial.
   unfold writeAccessibleRecInternalPropertiesPrepare;intuition;trivial.

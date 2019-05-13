@@ -6086,6 +6086,22 @@ right;right;trivial.
   unfold consistency in *;intuition.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateMappedPageContent;trivial.
   unfold consistency in *;intuition.
+(* + unfold isPartitionFalseAll in *.
+  unfold isPartitionFalse;unfold s';cbn;
+  repeat  rewrite readPDflagUpdateMappedPageData;trivial;
+  unfold not;intros Hfalse1;symmetry in Hfalse1;contradict Hfalse1. 
+  apply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx trdVA idxTrdVA s ;
+      trivial.
+  right; left;trivial.
+  intros;split;subst;trivial.
+  apply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx sndVA idxSndVA s ;
+      trivial.
+  right; left;trivial.
+  intros;split;subst;trivial.
+  apply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx fstVA idxFstVA s ;
+      trivial.
+  right; left;trivial.
+  intros;split;subst;trivial. *)
 Qed.
 
 

@@ -194,6 +194,7 @@ Lemma propagatedPropertiesPrepareUpdateShadow1Structure b1 b2 b3 b4 b5 b6  (vaVa
 PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure b1 b2 b3 b4 b5 b6  
 vaValue fstVA sndVA trdVA ptMMU ptSh1 pg ptSh1FstVA ptSh1SndVA ptSh1TrdVA phyMMUaddr phySh1addr phySh2addr
  ptMMUFstVA ptMMUSndVA ptMMUTrdVA idxFstVA idxSndVA idxTrdVA idx-> 
+isPartitionFalse ptSh1 idx s ->
 propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -208,8 +209,9 @@ propagatedPropertiesPrepare  {|  currentPartition := currentPartition s;
        idxFstVA idxSndVA idxTrdVA zeroI.
 Proof.
 set (s':= {|currentPartition:= _ |}) in *.
-intros Hor Hprops.
-unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
+intros Hor Hispart Hprops.
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, 
+initPEntryTablePreconditionToPropagatePreparePropertiesAll, isPartitionFalseAll in *.  
 assert((defaultPage =? ptMMU) = false 
         /\ entryPresentFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s
         (* /\ entryUserFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s *)
@@ -221,9 +223,11 @@ assert((defaultPage =? ptMMU) = false
         /\ StateLib.getIndexOfAddr vaValue fstLevel = idx
         /\ beqVAddr defaultVAddr vaValue = false
         /\ (defaultPage =? ptSh1) = false
-        /\ getTableAddrRoot ptSh1 sh1idx (currentPartition s) vaValue s
+        /\ getTableAddrRoot ptSh1 sh1idx (currentPartition s) vaValue s 
+        /\ isPartitionFalse ptSh1 idx s 
+        
 ) as (Hnotdef &Hpres (* &Huser *) & Hentryp & Hpe & Htblmmu & Hsh1notdef
-& Hve & Hidx  & Hvanotnull & Hptsh1notnull & Htblsh1).
+& Hve & Hidx  & Hvanotnull & Hptsh1notnull & Htblsh1 &Hreadflag).
 { unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure in *;intuition;subst;trivial. }
 assert(Hlookup :exists entry, 
  lookup ptSh1 idx (memory s) beqPage beqIndex = Some (VE entry)).
@@ -237,25 +241,6 @@ assert(Hlookup :exists entry,
  do 2 f_equal.
  exists v;trivial. }
  destruct Hlookup as(v0 & Hlookup).
- 
-assert (Hreadflag : isPartitionFalse ptSh1 idx s ).
-{ admit.  (* unfold isPartitionFalse.
-unfold consistency in *. 
-assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
-unfold accessibleVAIsNotPartitionDescriptor in *.
-assert (Hflag : getPDFlag currentShadow1 vaValue s = false).
-{ eapply Haccessva with (partition:= (currentPartition s)) (pd:= currentPD) (page0:=pg).
-  unfold consistency in *.
-  unfold currentPartitionInPartitionsList in *.
-  intuition.
-  apply nextEntryIsPPgetPd; intuition.
-  apply nextEntryIsPPgetFstShadow;intuition.
-  intuition;subst.  
-  eapply isAccessibleMappedPage2  with (currentPartition s) ptMMU;trivial.
-  intros;subst;split;trivial. }
-apply getPDFlagReadPDflag with currentShadow1 vaValue currentPart;trivial.
-intuition;subst;trivial.
-intros;intuition;subst;trivial. *) }
 assert(Hpartitions: getPartitions multiplexer s' = getPartitions multiplexer s) by 
 (apply getPartitionsAddDerivation with v0;trivial).
 intuition;subst;trivial;simpl.
@@ -399,7 +384,7 @@ intuition;subst;trivial;simpl.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
-Admitted.
+Qed.
 
 Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -439,12 +424,13 @@ assert(Hlookup :exists entry,
  exists v;trivial. }
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
-as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+as (Hinit1 & Hinit2 & Hinit3) by (unfold propagatedPropertiesPrepare in *;intuition ).
 unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + apply propagatedPropertiesPrepareUpdateShadow1Structure with true true true ptMMUFstVA phyMMUaddr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   left;intuition.
+  admit. (** isPartitionFalse**)
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
@@ -504,12 +490,13 @@ assert(Hlookup :exists entry,
  exists v;trivial. }
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
-as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+as (Hinit1 & Hinit2 & Hinit3)  by (unfold propagatedPropertiesPrepare in *;intuition ).
 unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false true true ptMMUSndVA phySh1addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   right;left; intuition.
+  admit. (** isPartitionFalse**)  
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
@@ -581,12 +568,13 @@ assert(Hlookup :exists entry,
  exists v;trivial. }
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
-as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+as (Hinit1 & Hinit2 & Hinit3) by (unfold propagatedPropertiesPrepare in *;intuition ).
 unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false false true ptMMUTrdVA phySh2addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   right;right; intuition.
+  admit. (** isPartitionFalse**)  
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.

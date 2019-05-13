@@ -51,6 +51,7 @@ Lemma writeAccessibleRecPreconditionProofFstVA s currentPart ptMMUTrdVA phySh2ad
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false true true  true true true
   idxFstVA idxSndVA idxTrdVA zeroI/\
+  isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart fstVA phyMMUaddr s = true -> 
   writeAccessibleRecRecurtionInvariantConj fstVA currentPart phyMMUaddr ptMMUFstVA currentPart s.
 Proof.
@@ -92,6 +93,7 @@ Lemma writeAccessibleRecPreconditionProofSndVA s currentPart ptMMUTrdVA phySh2ad
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false true true true true
   idxFstVA idxSndVA idxTrdVA zeroI  /\
+  isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart sndVA phySh1addr s = true -> 
   writeAccessibleRecRecurtionInvariantConj sndVA currentPart phySh1addr ptMMUSndVA currentPart s.
 Proof.
@@ -133,6 +135,7 @@ Lemma writeAccessibleRecPreconditionProofTrdVA s currentPart ptMMUTrdVA phySh2ad
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true
   idxFstVA idxSndVA idxTrdVA zeroI /\
+  isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart trdVA phySh2addr s = true -> 
   writeAccessibleRecRecurtionInvariantConj trdVA currentPart phySh2addr ptMMUTrdVA currentPart s.
 Proof.
@@ -1229,14 +1232,17 @@ descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fs
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l true userMMUSndVA userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA zeroI
+idxFstVA idxSndVA idxTrdVA zeroI 
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUFstVA idxFstVA false 
 {{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false userMMUSndVA userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA zeroI /\ isAccessibleMappedPageInParent currentPart fstVA phyMMUaddr s = true }}.
+idxFstVA idxSndVA idxTrdVA zeroI 
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
+/\ isAccessibleMappedPageInParent currentPart fstVA phyMMUaddr s = true }}.
 Proof.
 intros.
 subst.
@@ -1326,6 +1332,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ unfold isPartitionFalseAll in *;
+  unfold isPartitionFalse; unfold s'; cbn.
+  repeat rewrite readPDflagUpdateUserFlag;trivial.
 + assert(Hisaccessible : isAccessibleMappedPageInParent (currentPartition s) fstVA phyMMUaddr s = true).
   assert(Hcons : consistency s) by (unfold propagatedProperties in *; intuition).
   unfold consistency in Hcons.
@@ -1349,7 +1358,8 @@ descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fs
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false true userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA  zeroI
+idxFstVA idxSndVA idxTrdVA  zeroI 
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUSndVA idxSndVA false 
 {{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
@@ -1357,6 +1367,7 @@ indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false userMMUTrdVA true true true
 idxFstVA idxSndVA idxTrdVA  zeroI
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 /\ isAccessibleMappedPageInParent currentPart sndVA phySh1addr s = true }}.
 Proof.
 intros.
@@ -1444,6 +1455,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ unfold isPartitionFalseAll in *;
+  unfold isPartitionFalse; unfold s'; cbn.
+  repeat rewrite readPDflagUpdateUserFlag;trivial. 
 + assert(Hisaccessible : isAccessibleMappedPageInParent (currentPartition s) sndVA phySh1addr s = true).
   assert(Hcons : consistency s) by (unfold propagatedProperties in *; intuition).
   unfold consistency in Hcons.
@@ -1468,6 +1482,7 @@ indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false true true true true
 idxFstVA idxSndVA idxTrdVA  zeroI
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUTrdVA idxTrdVA false 
 {{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
@@ -1475,6 +1490,7 @@ indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false false true true true
 idxFstVA idxSndVA idxTrdVA  zeroI
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 /\ isAccessibleMappedPageInParent currentPart trdVA phySh2addr s = true }}.
 Proof.
 intros.
@@ -1562,6 +1578,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ unfold isPartitionFalseAll in *;
+  unfold isPartitionFalse; unfold s'; cbn.
+  repeat rewrite readPDflagUpdateUserFlag;trivial. 
 + assert(Hisaccessible : isAccessibleMappedPageInParent (currentPartition s) trdVA phySh2addr s = true).
   assert(Hcons : consistency s) by (unfold propagatedProperties in *; intuition).
   unfold consistency in Hcons.
@@ -1937,4 +1956,7 @@ apply childAncestorConfigTablesAreDifferent with s
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
+(* + unfold isPartitionFalseAll in *;
+  unfold isPartitionFalse; unfold s'; cbn.
+  repeat rewrite readPDflagUpdateUserFlag;trivial. *)
 Qed.

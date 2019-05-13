@@ -1450,8 +1450,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     apply proveInitPEntryTablePreconditionToPropagatePrepareProperties
      with ptMMUTrdVA trdVA  (currentPartition s) nbLgen currentPD;intuition; subst;trivial.
      unfold consistency in *;intuition.
+    assert(Hispart :isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA) by admit.
     pattern s in H. 
-    assert(Hnew:= conj (conj (conj H Hconfig1) Hconfig2) Hconfig3).
+    assert(Hnew:= conj (conj (conj (conj H Hconfig1) Hconfig2) Hconfig3) Hispart).
     apply Hnew.
     simpl.
     intros nextVA.
@@ -1487,6 +1488,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     destruct H as (_ & Hi).
     eapply Hi.
     intros;simpl.
+    apply and_assoc in H.
+    destruct H as (H&_).
     split;[eapply H|].
     apply writeAccessibleRecPreconditionProofFstVA in H;trivial.
     simpl.
@@ -1700,6 +1703,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply bindRev.
     eapply writeVirEntryTrdVA.
     intros [].
+(** writePhyEntry **)
 
 (** TODO : To be proved *)
 Admitted.

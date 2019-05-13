@@ -389,6 +389,11 @@ indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l/\
 indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\ 
 indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l.
 
+Definition isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA:=
+isPartitionFalse  ptSh1FstVA  idxFstVA s /\
+isPartitionFalse  ptSh1SndVA  idxSndVA s /\
+isPartitionFalse  ptSh1TrdVA  idxTrdVA s. 
+
 Definition propagatedPropertiesPrepare (s:state) ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
@@ -456,7 +461,7 @@ beqVAddr defaultVAddr fstVA = false /\
 In descChildphy (getPartitions multiplexer s) /\ 
 indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l /\
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
-initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr. 
+initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr.
 (* 
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\
