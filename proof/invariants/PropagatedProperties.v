@@ -167,6 +167,67 @@ isPartitionFalse childListSh1 idxConfigPagesList s /\
 isPartitionFalse ptRefChildFromSh1 idxRefChild s /\
 isPartitionFalse ptPDChildSh1 idxPDChild s .
 
+Definition initConfigPagesListPostCondition phyConfigPagesList s :=
+StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
+= Some defaultPage /\
+StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
+= Some defaultVAddr /\
+(forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
+exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
+(forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
+StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
+
+Definition newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
+idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
+phyConfigPagesList phyDescChild := 
+(forall partition : page,
+In partition (getAncestors currentPart s) ->
+~ In phyPDChild (getAccessibleMappedPages partition s)) /\
+(forall partition : page,
+In partition (getAncestors currentPart s) ->
+~ In phySh1Child (getAccessibleMappedPages partition s)) /\
+(forall partition : page,
+In partition (getAncestors currentPart s) ->
+~ In phySh2Child (getAccessibleMappedPages partition s)) /\
+(forall partition : page,
+In partition (getAncestors currentPart s) ->
+~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
+(forall partition : page,
+In partition (getAncestors currentPart s) ->
+~ In phyDescChild (getAccessibleMappedPages partition s)) /\
+zero = CIndex 0 /\
+isWellFormedSndShadow level phySh2Child s /\
+isWellFormedFstShadow level phySh1Child s /\
+(forall idx : index,
+StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
+initConfigPagesListPostCondition phyConfigPagesList s /\
+(* StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
+(forall idx : index,
+idx <> CIndex (tableSize - 1) ->
+Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
+(forall idx : index,
+Nat.Even idx ->
+exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\ *)
+nullv = defaultVAddr /\
+idxPR = PRidx /\
+idxPD = PDidx /\
+idxSH1 = sh1idx /\
+idxSH2 = sh2idx /\
+idxSH3 = sh3idx /\
+idxPPR = PPRidx /\
+isVA phyDescChild idxPPR s /\
+nextEntryIsPP phyDescChild idxPPR currentPart s /\
+isVA phyDescChild idxSH3 s /\
+nextEntryIsPP phyDescChild idxSH3 phyConfigPagesList s /\
+isVA phyDescChild idxSH2 s /\
+nextEntryIsPP phyDescChild idxSH2 phySh2Child s /\
+isVA phyDescChild idxSH1 s /\
+nextEntryIsPP phyDescChild idxSH1 phySh1Child s /\
+isVA phyDescChild idxPD s /\
+nextEntryIsPP phyDescChild idxPD phyPDChild s /\
+isVA phyDescChild idxPR s /\ nextEntryIsPP phyDescChild idxPR phyDescChild s.
+
 
 Definition propagatedPropertiesAddVaddr s (vaInCurrentPartition vaChild: vaddr)  currentPart
 currentShadow descChild idxDescChild ptDescChild ptVaInCurPart idxvaInCurPart
@@ -302,16 +363,6 @@ partitionsIsolation s /\
     isVE ptVaInCurPart (getIndexOfAddr vainparent fstLevel) s /\
     getTableAddrRoot ptVaInCurPart sh1idx currentPart vainparent s /\
     (defaultPage =? ptVaInCurPart) = false /\  getIndexOfAddr vainparent fstLevel = idxvainparent.
-
-Definition initConfigPagesListPostCondition phyConfigPagesList s :=
-StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
-= Some defaultPage /\
-StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
-= Some defaultVAddr /\
-(forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
-exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
-(forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
-StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
 
 Definition indirectionDescription s descChildphy indirection idxroot vaToPrepare l:=
 exists (tableroot : page), 

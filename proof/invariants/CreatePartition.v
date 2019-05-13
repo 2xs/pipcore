@@ -3541,8 +3541,8 @@ apply idxPPRsuccNotEqidxSh2;trivial.
    unfold propagatedProperties in *.
    eassumption.
    unfold newPropagatedProperties.
-   unfold UpdatePartitionDescriptor.initConfigPagesListPostCondition.
-   (* eapply H1.  *) admit.
+    assert( initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+   intuition; try eassumption;subst;trivial.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
@@ -3617,13 +3617,15 @@ verticalSharing s /\
 consistency s).
 simpl.
 
-unfold propagatedProperties in *.
+(* unfold propagatedProperties in *.
 unfold newPropagatedProperties in *. 
+unfold initConfigPagesListPostCondition in *. *)
     apply createPartitionPostcondition with 
-    zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR pdChild
+    (* (CIndex 0) nullv PRidx PDidx sh1idx sh2idx sh3idx PPRidx *) pdChild
 currentPart currentPD level ptRefChild descChild ptPDChild idxPDChild ptSh1Child shadow1 idxSh1 ptSh2Child
 shadow2 idxSh2 ptConfigPagesList idxConfigPagesList currentShadow1 derivedRefChild ptPDChildSh1 ptSh1ChildFromSh1
-childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;admit.
+childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition;subst;trivial.
+
 (* subst.
  *)    intros []. 
    eapply WP.weaken. eapply WP.ret .
@@ -3636,4 +3638,4 @@ childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
       simpl. intuition.
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
-Admitted. 
+Qed. 

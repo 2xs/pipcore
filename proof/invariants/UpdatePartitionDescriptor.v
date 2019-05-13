@@ -37,15 +37,7 @@ Require Import Core.Internal Isolation Consistency WeakestPreconditions
 Invariants StateLib Model.Hardware Model.ADT Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties UpdateMappedPageContent.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
-Definition initConfigPagesListPostCondition phyConfigPagesList s :=
-StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
-                 = Some defaultPage /\
-                 StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
-                 = Some defaultVAddr /\
-                  (forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
-                  exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
-                 (forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
-                 StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
+
 Lemma updatePartitionDescriptorPropagatedProperties 
 
 (idxroot : index) table1 idxVa1 pt1 va1  value1 value2 zero nullv presentConfigPagesList 

@@ -3517,55 +3517,7 @@ Qed.
    
    
    
-Definition newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
-idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
-phyConfigPagesList phyDescChild := 
-     (forall partition : page,
-      In partition (getAncestors currentPart s) ->
-      ~ In phyPDChild (getAccessibleMappedPages partition s)) /\
-     (forall partition : page,
-      In partition (getAncestors currentPart s) ->
-      ~ In phySh1Child (getAccessibleMappedPages partition s)) /\
-     (forall partition : page,
-      In partition (getAncestors currentPart s) ->
-      ~ In phySh2Child (getAccessibleMappedPages partition s)) /\
-     (forall partition : page,
-      In partition (getAncestors currentPart s) ->
-      ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) /\
-     (forall partition : page,
-      In partition (getAncestors currentPart s) ->
-      ~ In phyDescChild (getAccessibleMappedPages partition s)) /\
-     zero = CIndex 0 /\
-     isWellFormedSndShadow level phySh2Child s /\
-     isWellFormedFstShadow level phySh1Child s /\
-     (forall idx : index,
-      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
-      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
-     StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
-     (forall idx : index,
-      idx <> CIndex (tableSize - 1) ->
-      Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
-     (forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
-     nullv = defaultVAddr /\
-     idxPR = PRidx /\
-     idxPD = PDidx /\
-     idxSH1 = sh1idx /\
-     idxSH2 = sh2idx /\
-     idxSH3 = sh3idx /\
-     idxPPR = PPRidx /\
-     isVA phyDescChild idxPPR s /\
-     nextEntryIsPP phyDescChild idxPPR currentPart s /\
-     isVA phyDescChild idxSH3 s /\
-     nextEntryIsPP phyDescChild idxSH3 phyConfigPagesList s /\
-     isVA phyDescChild idxSH2 s /\
-     nextEntryIsPP phyDescChild idxSH2 phySh2Child s /\
-     isVA phyDescChild idxSH1 s /\
-     nextEntryIsPP phyDescChild idxSH1 phySh1Child s /\
-     isVA phyDescChild idxPD s /\
-     nextEntryIsPP phyDescChild idxPD phyPDChild s /\
-     isVA phyDescChild idxPR s /\ nextEntryIsPP phyDescChild idxPR phyDescChild s.
+
 
 Lemma writeVirEntryPD     
 pdChild currentPart currentPD level ptRefChild descChild idxRefChild 
@@ -4164,26 +4116,24 @@ assert(Hispart : isPartitionFalse ptPDChildSh1 idxPDChild s ) by intuition.
       destruct Hii with idx as (_ & Hi).
       rewrite <- Hi.
       apply readPresentAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
+    + assert(initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+      unfold initConfigPagesListPostCondition.
+      split. 
+      rewrite <- Hi1.
       apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
+      split.
+      rewrite <- Hi2.
       apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
+      split.
+      intros idx Ha1 Ha2 Ha3.
+      generalize (Hi3 idx Ha1 Ha2 Ha3);clear Hi3;intros Hi3.
+      destruct Hi3 as (idxValue & Hi3).
       exists idxValue.
-      rewrite <- Hidx.
+      rewrite <-Hi3.
       apply readIndexAddDerivation with v0; trivial.
+      intros. 
+      rewrite <- Hi4 with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
     + apply isVAAddDerivation with v0;trivial.
     + apply nextEntryIsPPAddDerivation with v0;trivial.
     + apply isVAAddDerivation with v0;trivial.
@@ -4814,26 +4764,24 @@ unfold consistency in *;intuition.
       destruct Hii with idx as (_ & Hi).
       rewrite <- Hi.
       apply readPresentAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
+    + assert(initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+      unfold initConfigPagesListPostCondition.
+      split. 
+      rewrite <- Hi1.
       apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
+      split.
+      rewrite <- Hi2.
       apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
+      split.
+      intros idx Ha1 Ha2 Ha3.
+      generalize (Hi3 idx Ha1 Ha2 Ha3);clear Hi3;intros Hi3.
+      destruct Hi3 as (idxValue & Hi3).
       exists idxValue.
-      rewrite <- Hidx.
+      rewrite <-Hi3.
       apply readIndexAddDerivation with v0; trivial.
+      intros. 
+      rewrite <- Hi4 with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
     + apply isVAAddDerivation with v0;trivial.
     + apply nextEntryIsPPAddDerivation with v0;trivial.
     + apply isVAAddDerivation with v0;trivial.
@@ -5418,26 +5366,24 @@ unfold consistency in *;intuition.
       destruct Hii with idx as (_ & Hi).
       rewrite <- Hi.
       apply readPresentAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
+    + assert(initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+      unfold initConfigPagesListPostCondition.
+      split. 
+      rewrite <- Hi1.
       apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
+      split.
+      rewrite <- Hi2.
       apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
+      split.
+      intros idx Ha1 Ha2 Ha3.
+      generalize (Hi3 idx Ha1 Ha2 Ha3);clear Hi3;intros Hi3.
+      destruct Hi3 as (idxValue & Hi3).
       exists idxValue.
-      rewrite <- Hidx.
+      rewrite <-Hi3.
       apply readIndexAddDerivation with v0; trivial.
+      intros. 
+      rewrite <- Hi4 with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
     + apply isVAAddDerivation with v0;trivial.
     + apply nextEntryIsPPAddDerivation with v0;trivial.
     + apply isVAAddDerivation with v0;trivial.
@@ -6006,26 +5952,24 @@ unfold consistency in *;intuition.
       destruct Hii with idx as (_ & Hi).
       rewrite <- Hi.
       apply readPresentAddDerivation with v0;trivial.
-    + assert(Hi : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = 
-              Some defaultPage)by intuition.
-      rewrite <- Hi.
+    + assert(initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+      unfold initConfigPagesListPostCondition.
+      split. 
+      rewrite <- Hi1.
       apply readPhysicalAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      (idx = CIndex (tableSize - 1) -> False) ->
-      Nat.Odd idx -> 
-      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) by intuition.
-      rewrite <- Hi with idx;trivial.
+      split.
+      rewrite <- Hi2.
       apply readVirtualAddDerivation with v0; trivial.
-    + assert(Hi : forall idx : index,
-      Nat.Even idx ->
-      exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-      by trivial.
-      assert (Heven : Nat.Even idx) by trivial.
-      apply Hi in Heven.
-      destruct Heven as (idxValue & Hidx).
+      split.
+      intros idx Ha1 Ha2 Ha3.
+      generalize (Hi3 idx Ha1 Ha2 Ha3);clear Hi3;intros Hi3.
+      destruct Hi3 as (idxValue & Hi3).
       exists idxValue.
-      rewrite <- Hidx.
+      rewrite <-Hi3.
       apply readIndexAddDerivation with v0; trivial.
+      intros. 
+      rewrite <- Hi4 with idx;trivial.
+      apply readVirtualAddDerivation with v0; trivial.
     + apply isVAAddDerivation with v0;trivial.
     + apply nextEntryIsPPAddDerivation with v0;trivial.
     + apply isVAAddDerivation with v0;trivial.

@@ -5070,6 +5070,7 @@ now contradict H2.
 Qed.
 
 Lemma getTrdShadowsOnlyRoot root s:
+initConfigPagesListPostCondition root s -> (* 
 StateLib.readPhysical root (CIndex (tableSize - 1)) (memory s) = Some defaultPage -> 
 (forall idx : index,
 idx <> CIndex (tableSize - 1) ->
@@ -5080,13 +5081,13 @@ Some defaultVAddr) ->
 Nat.Even idx ->
 exists idxValue : index,
 StateLib.readIndex root idx (memory s) = Some idxValue) ->  
-getTrdShadows root s (nbPage+1) = 
+ *)
+ getTrdShadows root s (nbPage+1) = 
 [root].
 Proof.
-intros  HphyListcontent1 HphyListcontent2 HphyListcontent3 .
-
- assert(Hi : 0<nbPage+1) by omega.
-
+unfold initConfigPagesListPostCondition.
+intros  (HphyListcontent1 & HphyListcontent2 & HphyListcontent3 & HphyListcontent4) .
+assert(Hi : 0<nbPage+1) by omega.
 destruct (nbPage+1).
 simpl. 
 omega.
