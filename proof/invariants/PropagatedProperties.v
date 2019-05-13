@@ -328,6 +328,16 @@ Definition initPEntryTablePreconditionToPropagatePrepareProperties s table:=
   ~In table (getConfigPages partition s) )
   /\ (defaultPage =? table) = false.
 
+Definition initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr:=
+initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr.
+
+Definition indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l:=
+indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l/\ 
+indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\ 
+indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l.
+
 Definition propagatedPropertiesPrepare (s:state) ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
@@ -393,19 +403,13 @@ nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s /\
 beqVAddr defaultVAddr fstVA = false /\ 
  false = StateLib.Level.eqb l fstLevel /\ 
 In descChildphy (getPartitions multiplexer s) /\ 
-indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l/\ 
-indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\ 
-indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
+indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l /\
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr (* /\
+initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr. 
+(* 
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\
-isPartitionFalse  ptSh1TrdVA  idxTrdVA s /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr *).
+isPartitionFalse  ptSh1TrdVA  idxTrdVA s  *)
 
 
 
@@ -584,3 +588,22 @@ Definition yieldPreWritingProperties
   StateLib.getIndexOfAddr calleeContextEndVAddr fstLevel = idxCalleeContextEndPageInLastMMUPage /\
   entryPresentFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s /\
   entryUserFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s.
+Definition PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure  b1 b2 b3 b4 b5 b6  
+(vaValue fstVA sndVA trdVA:vaddr) (ptMMU ptSh1 pg ptSh1FstVA ptSh1SndVA ptSh1TrdVA phyMMUaddr 
+phySh1addr phySh2addr ptMMUFstVA ptMMUSndVA ptMMUTrdVA :page) 
+(idxFstVA idxSndVA idxTrdVA idx:index):=
+(ptSh1 =ptSh1FstVA /\ idx= idxFstVA /\ vaValue = fstVA /\ pg=phyMMUaddr /\ ptMMU= ptMMUFstVA  /\ b1 = true /\ b4=false /\ b3 = b6 /\ b2 = b5) 
+\/ (ptSh1 =ptSh1SndVA /\ idx= idxSndVA /\ vaValue = sndVA /\ pg=phySh1addr /\ ptMMU= ptMMUSndVA /\ b2 = true /\ b5=false /\ b1= b4 /\ b3 = b6) 
+\/ (ptSh1 = ptSh1TrdVA/\ idx= idxTrdVA /\ vaValue = trdVA /\ pg=phySh2addr /\ ptMMU= ptMMUTrdVA /\ b3 = true /\ b6=false /\ b1=b4 /\ b2=b5).
+
+Definition writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s:=
+writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
+/\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
+/\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s.
+
+Definition  isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s :=
+isWellFormedMMUTables phyMMUaddr s
+/\ isWellFormedFstShadow lpred phySh1addr s 
+/\ isWellFormedSndShadow lpred phySh2addr s.
+
+

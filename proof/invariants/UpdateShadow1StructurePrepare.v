@@ -42,19 +42,6 @@ UpdateShadow1Structure.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
 
 (************************************To MOVE******************************************)
-Definition PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure  b1 b2 b3 b4 b5 b6  
-(vaValue fstVA sndVA trdVA:vaddr) (ptMMU ptSh1 pg ptSh1FstVA ptSh1SndVA ptSh1TrdVA phyMMUaddr 
-phySh1addr phySh2addr ptMMUFstVA ptMMUSndVA ptMMUTrdVA :page) 
-(idxFstVA idxSndVA idxTrdVA idx:index):=
-(ptSh1 =ptSh1FstVA /\ idx= idxFstVA /\ vaValue = fstVA /\ pg=phyMMUaddr /\ ptMMU= ptMMUFstVA  /\ b1 = true /\ b4=false /\ b3 = b6 /\ b2 = b5) 
-\/ (ptSh1 =ptSh1SndVA /\ idx= idxSndVA /\ vaValue = sndVA /\ pg=phySh1addr /\ ptMMU= ptMMUSndVA /\ b2 = true /\ b5=false /\ b1= b4 /\ b3 = b6) 
-\/ (ptSh1 = ptSh1TrdVA/\ idx= idxTrdVA /\ vaValue = trdVA /\ pg=phySh2addr /\ ptMMU= ptMMUTrdVA /\ b3 = true /\ b6=false /\ b1=b4 /\ b2=b5).
-
-Definition initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr:=
-initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
-initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr.
-
 Lemma indirectionDescriptionAddDerivation ptSh1 vaValue flag l descChildphy 
 phyPDChild vaToPrepare v0 idxroot s:
 let s':= {|
@@ -80,7 +67,7 @@ right.
 exists nbL, stop.
 intuition.
 rewrite <- Hind.
-apply getIndirectionAddDerivation with v0;trivial.
+apply getIndirectionAddDerivation with v0;trivial. 
 Qed.
 
 Lemma initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation pg
@@ -222,7 +209,7 @@ propagatedPropertiesPrepare  {|  currentPartition := currentPartition s;
 Proof.
 set (s':= {|currentPartition:= _ |}) in *.
 intros Hor Hprops.
-unfold propagatedPropertiesPrepare in *.
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
 assert((defaultPage =? ptMMU) = false 
         /\ entryPresentFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s
         (* /\ entryUserFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s *)
@@ -413,7 +400,7 @@ intuition;subst;trivial;simpl.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 Admitted.
- 
+
 Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred:
@@ -421,13 +408,9 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI 
-   /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+   /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
-   /\ isWellFormedMMUTables phyMMUaddr s 
-   /\ isWellFormedFstShadow lpred phySh1addr s 
-   /\ isWellFormedSndShadow lpred phySh2addr s }} 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s }} 
   
   writeVirEntry ptSh1FstVA idxFstVA fstVA 
   
@@ -435,13 +418,9 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA idxSndVA idxTrdVA zeroI 
-   /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+   /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
-   /\ isWellFormedMMUTables phyMMUaddr s 
-   /\ isWellFormedFstShadow lpred phySh1addr s 
-   /\ isWellFormedSndShadow lpred phySh2addr s 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s}}.
 Proof.
 eapply weaken. 
@@ -461,6 +440,7 @@ assert(Hlookup :exists entry,
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
 as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + apply propagatedPropertiesPrepareUpdateShadow1Structure with true true true ptMMUFstVA phyMMUaddr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
@@ -492,29 +472,22 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA
      idxSndVA idxTrdVA zeroI /\
-   writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
-   writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
-   writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\
+   writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
    StateLib.Level.pred l = Some lpred /\
-   isWellFormedMMUTables phyMMUaddr s /\
-   isWellFormedFstShadow lpred phySh1addr s /\
-   isWellFormedSndShadow lpred phySh2addr s /\ isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
+   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\ isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
   writeVirEntry ptSh1SndVA idxSndVA sndVA 
     
   {{fun _ s  => 
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA idxSndVA idxTrdVA zeroI 
-   /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+   /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
-   /\ isWellFormedMMUTables phyMMUaddr s 
-   /\ isWellFormedFstShadow lpred phySh1addr s 
-   /\ isWellFormedSndShadow lpred phySh2addr s 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}}.
 Proof.
+unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables.
 eapply weaken. 
 eapply WP.writeVirEntry.
 simpl;intros.
@@ -532,6 +505,7 @@ assert(Hlookup :exists entry,
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
 as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false true true ptMMUSndVA phySh1addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
@@ -572,29 +546,21 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA
-     idxSndVA idxTrdVA zeroI /\
-   writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
-   writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
-   writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\
-   StateLib.Level.pred l = Some lpred /\
-   isWellFormedMMUTables phyMMUaddr s /\
-   isWellFormedFstShadow lpred phySh1addr s /\
-   isWellFormedSndShadow lpred phySh2addr s /\ 
-   isEntryVA ptSh1FstVA idxFstVA fstVA s    /\ 
-   isEntryVA  ptSh1SndVA idxSndVA sndVA s}} 
+     idxSndVA idxTrdVA zeroI 
+    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
+   /\ StateLib.Level.pred l = Some lpred 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
+   /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}} 
   writeVirEntry ptSh1TrdVA idxTrdVA trdVA 
     
   {{fun _ s  => 
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI 
-   /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
-   /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+   /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
-   /\ isWellFormedMMUTables phyMMUaddr s 
-   /\ isWellFormedFstShadow lpred phySh1addr s 
-   /\ isWellFormedSndShadow lpred phySh2addr s 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s
    /\ isEntryVA  ptSh1TrdVA idxTrdVA trdVA s}}.
@@ -616,6 +582,7 @@ assert(Hlookup :exists entry,
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
 as (Hinit1 & Hinit2 & Hinit3) by admit. (* initPEntryTablePreconditionToPropagatePreparePropertiesAll *)
+unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
 intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false false true ptMMUTrdVA phySh2addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.

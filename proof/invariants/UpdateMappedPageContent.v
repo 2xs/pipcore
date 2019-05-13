@@ -5908,7 +5908,9 @@ intros.
 set (s' := {|
   currentPartition := _|}) in *.
 unfold propagatedPropertiesPrepare in *.
-intros. 
+intros.
+unfold indirectionDescriptionAll in *.
+unfold  initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
 assert(Hnoduptree : noDupPartitionTree s) .
 unfold consistency in *. intuition.
 split. 
@@ -6062,6 +6064,7 @@ intuition try assumption.
   assert(Hindchild :
   In phyPDChild (getConfigPages descChildphy s)) .
   apply indirectionDescriptionIsConfigPage  with vaToPrepare l;trivial.
+  
   assert (Hchildpart :  In descChildphy (getPartitions multiplexer s)) by trivial.
   unfold not . intros.
   apply Hnotconfig with descChildphy ;trivial.

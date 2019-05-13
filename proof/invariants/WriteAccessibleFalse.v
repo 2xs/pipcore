@@ -1258,7 +1258,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartition
 { apply getPartitionsUpdateUserFlag; trivial.
  unfold propagatedPropertiesPrepare in *.
  intuition;subst;trivial. }
-unfold propagatedPropertiesPrepare in *.
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
 intuition;subst;trivial.
 + apply kernelDataIsolationUpdateUserFlagFalse;trivial.
 + apply partitionsIsolationUpdateUserFlag;trivial.
@@ -1365,7 +1365,7 @@ eapply WP.weaken.
 eapply WP.writeAccessible.
 simpl.
 intros;simpl.
-unfold propagatedPropertiesPrepare in *.  
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
 assert (exists entry : Pentry,
 lookup ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
 { apply isPELookupEq.
@@ -1483,7 +1483,7 @@ eapply WP.weaken.
 eapply WP.writeAccessible.
 simpl.
 intros;simpl.
-unfold propagatedPropertiesPrepare in *.  
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
 assert (exists entry : Pentry,
 lookup ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) (memory s) beqPage beqIndex = Some (PE entry)) as Hlookup.
 { apply isPELookupEq.
@@ -1869,7 +1869,7 @@ intros.
   currentPartition := _ |}).
  *) 
 intuition;subst.
-unfold propagatedPropertiesPrepare in *. 
+unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
 intros.
 assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
 { apply getPartitionsUpdateUserFlag; trivial. }

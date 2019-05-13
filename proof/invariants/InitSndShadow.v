@@ -483,7 +483,7 @@ eapply WP.bindRev.
   eassumption.
   unfold propagatedPropertiesPrepare in *.
   intuition.
-  unfold propagatedPropertiesPrepare in *.
+  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
   intuition.
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
@@ -492,7 +492,8 @@ eapply WP.bindRev.
   (phyPage2:= phyMMUaddr)
   (va1:=trdVA) (va2 :=fstVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUFstVA) 
   (partition:= currentPart) (level:=nbLgen) (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+  initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   apply phyPageNotDefault with ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s;trivial.
@@ -518,7 +519,8 @@ eapply WP.bindRev.
   eapply initVAddrTablePropagateIsWellFormedFstShadow with (phyPage2:= phySh1addr)
   (va1:=trdVA) (va2 :=sndVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUSndVA) 
   (partition:= currentPart) (level0 := nbLgen)(lpred:=lpred) (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+  initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   apply phyPageNotDefault with ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s;trivial.
@@ -562,13 +564,14 @@ eapply WP.bindRev.
   eassumption.
   unfold propagatedPropertiesPrepare in *.
   intuition.
-  unfold propagatedPropertiesPrepare in *;intuition.
+  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
   eapply initPEntryTablePropagateIsWellFormedMMUTable  with (phyPage2:= phyMMUaddr)
   (va1:=trdVA) (va2 :=fstVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUFstVA) 
   (partition:= currentPart) (level := nbLgen) (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+  initPEntryTablePreconditionToPropagatePreparePropertiesAll 
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   unfold propagatedPropertiesPrepare in *.
@@ -597,7 +600,8 @@ eapply WP.bindRev.
   (phyPage2:= phySh1addr)
   (va1:=trdVA) (va2 :=sndVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUSndVA) 
   (partition:= currentPart) (level0 := nbLgen) (lpred:= lpred) (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+  initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   apply phyPageNotDefault with ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s;trivial.

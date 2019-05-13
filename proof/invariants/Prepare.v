@@ -1472,7 +1472,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     intros.
     simpl.
     intuition;subst;trivial.
-    unfold propagatedPropertiesPrepare.
+    unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
     intuition;subst;trivial.
     intros [].
     (** writeAccessibleRec **)
@@ -1651,11 +1651,13 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply H.
     intuition.
     eassumption. 
-    unfold propagatedPropertiesPrepare in *;intuition.
-    unfold propagatedPropertiesPrepare in *;intuition.
-    unfold  initPEntryTablePreconditionToProveNewProperty.
+    unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
+    intuition.
+    unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
+    intuition.
+    unfold initPEntryTablePreconditionToProveNewProperty.
     intros.
-     assert (zeroI = CIndex 0) as Hzero by (unfold propagatedPropertiesPrepare in *;intuition).    
+     assert (zeroI = CIndex 0) as Hzero by (unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition).    
     subst.
     unfold CIndex in H1.
     case_eq (lt_dec 0 tableSize).
@@ -1684,15 +1686,20 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply writeVirEntryFstVA.
     simpl.
     intros.
-    intuition eassumption.
+    unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables.
+    intuition try eassumption.
     intros [].
 (** writeVirEntry **)
     eapply bindRev.
+    eapply weaken.
     eapply writeVirEntrySndVA.
+    simpl;intros.
+    intuition; try eassumption.
 (** writeVirEntry **)
     intros [].
     eapply bindRev.
     eapply writeVirEntryTrdVA.
+    intros [].
 
 (** TODO : To be proved *)
 Admitted.

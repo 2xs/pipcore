@@ -373,14 +373,14 @@ eapply WP.bindRev.
   eassumption.
   unfold propagatedPropertiesPrepare in *.
   intuition.
-  unfold propagatedPropertiesPrepare in *;intuition. (* initPEntryTablePreconditionToPropagatePrepareProperties *)
+  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition. (* initPEntryTablePreconditionToPropagatePrepareProperties *)
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
   eapply initVEntryTablePropagateIsWellFormedMMUTable with (phyPage1:=phySh1addr) (phyPage2:= phyMMUaddr)
   (va1:=sndVA) (va2 :=fstVA) (table1:=ptMMUSndVA) (table2:=  ptMMUFstVA) 
   (partition:= currentPart) (level := nbLgen)  (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
-      in *;intuition;subst;trivial.
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+initPEntryTablePreconditionToPropagatePreparePropertiesAll      in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
   unfold consistency in *;intuition.
@@ -435,13 +435,14 @@ eapply WP.bindRev.
   eassumption.
   unfold propagatedPropertiesPrepare in *.
   intuition.
-  unfold propagatedPropertiesPrepare in *;intuition.
+  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
   eapply initPEntryTablePropagateIsWellFormedMMUTable with (phyPage2:= phyMMUaddr)
   (va1:=sndVA) (va2 :=fstVA) (table1:=ptMMUSndVA) (table2:=  ptMMUFstVA) 
   (partition:= currentPart) (level := nbLgen) (currentPD:= currentPD).
-  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare
+  unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
+  initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
   apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
