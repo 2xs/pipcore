@@ -6193,3 +6193,57 @@ intuition.
   trivial. left;trivial.
   intros;subst;split;trivial.
 Qed.
+
+Lemma isPartitionFalseAllUpdateMappedPageContent s currentShadow1 table curidx  ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA  (fstVA sndVA trdVA : vaddr) x:
+ initPEntryTablePreconditionToPropagatePrepareProperties s table ->
+isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA ->
+In (currentPartition s) (getPartitions multiplexer s) ->
+nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s ->
+consistency s -> 
+StateLib.getIndexOfAddr trdVA fstLevel = idxTrdVA ->
+isVE ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s ->
+getTableAddrRoot ptSh1TrdVA sh1idx (currentPartition s) trdVA s ->
+(defaultPage =? ptSh1TrdVA) = false ->
+StateLib.getIndexOfAddr sndVA fstLevel = idxSndVA ->
+isVE ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) s ->
+getTableAddrRoot ptSh1SndVA sh1idx (currentPartition s) sndVA s ->
+(defaultPage =? ptSh1SndVA) = false ->
+StateLib.getIndexOfAddr fstVA fstLevel = idxFstVA ->
+isVE ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) s ->
+getTableAddrRoot ptSh1FstVA sh1idx (currentPartition s) fstVA s ->
+(defaultPage =? ptSh1FstVA) = false ->
+isPartitionFalseAll
+  {|
+  currentPartition := currentPartition s;
+  memory := add table curidx
+              x (memory s) beqPage beqIndex |}
+  ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA.
+  Proof.
+  intros Hinit Hi.
+  intros.
+    unfold isPartitionFalseAll in *.
+        unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+
+    unfold isPartitionFalse in *;cbn;
+    repeat  rewrite readPDflagUpdateMappedPageData;trivial;
+    unfold not;intros Hfalse1;symmetry in Hfalse1;contradict Hfalse1.  
+
+    eapply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx trdVA idxTrdVA s ;
+      trivial.
+    right; left;trivial.
+    intuition.
+    unfold consistency in *;intuition.
+    intros;split;subst;trivial.
+    apply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx sndVA idxSndVA s ;
+      trivial.
+    right; left;trivial.
+    intuition.
+     unfold consistency in *;intuition.
+    intros;split;subst;trivial.
+    apply mappedPageIsNotPTable with (currentPartition s) currentShadow1 isVE sh1idx fstVA idxFstVA s ;
+      trivial.
+    right; left;trivial.
+    intuition.
+     unfold consistency in *;intuition.    
+    intros;split;subst;trivial.
+Qed.

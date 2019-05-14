@@ -8961,4 +8961,41 @@ true nbL true pdPart;intuition;subst;trivial.
 unfold consistency in *;intuition.
 Qed.
     
-    
+
+Lemma isPartitionFalseProof  idxRefChild 
+(currentShadow1 currentPart currentPD phyDescChild ptRefChild ptRefChildFromSh1:page) (descChild :vaddr) idx s :
+consistency s ->
+In currentPart (getPartitions multiplexer s) ->
+nextEntryIsPP currentPart PDidx currentPD s ->
+nextEntryIsPP currentPart sh1idx currentShadow1 s ->
+(defaultPage =? ptRefChild) = false ->
+entryPresentFlag ptRefChild (StateLib.getIndexOfAddr descChild fstLevel) true s ->
+entryUserFlag ptRefChild (StateLib.getIndexOfAddr descChild fstLevel) true s ->
+isEntryPage ptRefChild (StateLib.getIndexOfAddr descChild fstLevel) phyDescChild s ->
+nextEntryIsPP (currentPartition s) PDidx currentPD s ->
+StateLib.getIndexOfAddr descChild fstLevel = idx ->
+isPE ptRefChild idx s ->
+getTableAddrRoot ptRefChild PDidx (currentPartition s) descChild s ->
+(ptRefChildFromSh1 =? defaultPage) = false ->
+StateLib.getIndexOfAddr descChild fstLevel = idxRefChild ->
+isVE ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel) s ->
+getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s ->
+isPartitionFalse ptRefChildFromSh1 idxRefChild s.
+Proof.
+intros.
+unfold isPartitionFalse.
+unfold consistency in *. 
+assert(Haccessva : accessibleVAIsNotPartitionDescriptor s) by intuition.
+unfold accessibleVAIsNotPartitionDescriptor in *.
+assert (Hflag : getPDFlag currentShadow1 descChild s = false).
+{ apply Haccessva with currentPart currentPD phyDescChild.
+unfold consistency in *.
+unfold currentPartitionInPartitionsList in *.
+intuition.
+apply nextEntryIsPPgetPd; intuition.
+apply nextEntryIsPPgetFstShadow;intuition.  
+apply isAccessibleMappedPage2 with (currentPartition s) ptRefChild;intuition;subst;trivial. }
+apply getPDFlagReadPDflag with currentShadow1 descChild currentPart;trivial.
+intuition;subst;trivial.
+Qed.  
+

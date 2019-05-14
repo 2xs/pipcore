@@ -904,6 +904,7 @@ propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare p
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
         false false true true true idxFstVA idxSndVA idxTrdVA zeroI
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
 /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
 /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
 /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
@@ -917,6 +918,7 @@ propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare p
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
         false false true true true idxFstVA idxSndVA idxTrdVA zeroI
+/\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
 /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
 /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s 
 /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
@@ -984,6 +986,9 @@ induction n.  simpl.
     apply propagatePropertiesPrepareUpdateMappedPageContent;trivial.
     (** writeAccessibleRecPreparePostcondition  **)
     assert(initPEntryTablePreconditionToPropagatePrepareProperties s table) as (Hi & Hfalse) by intuition.
+    split. 
+    unfold propagatedPropertiesPrepare in *;intuition.
+    apply isPartitionFalseAllUpdateMappedPageContent with currentShadow1 fstVA sndVA trdVA;trivial.
     unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePrepareProperties in *;intuition subst;trivial;
     unfold writeAccessibleRecPreparePostcondition in *.
     apply writeAccessibleRecPostCondUpdateMappedPageData;trivial.
@@ -1085,6 +1090,9 @@ induction n.  simpl.
   (** propagatedPropertiesPrepare *)
   intuition;subst.
   apply propagatePropertiesPrepareUpdateMappedPageContent;trivial.
+  split.
+  unfold propagatedPropertiesPrepare in *;intuition.
+  apply isPartitionFalseAllUpdateMappedPageContent with currentShadow1 fstVA sndVA trdVA;trivial.
   (** writeAccessibleRecPreparePostcondition  **)
   assert(initPEntryTablePreconditionToPropagatePrepareProperties s table) as (Hi & Hfalse) by intuition.
   unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePrepareProperties in *;intuition subst;trivial;

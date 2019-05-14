@@ -42,6 +42,45 @@ UpdateShadow1Structure.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
 
 (************************************To MOVE******************************************)
+Lemma isPartitionFalseAddDerivationNotEq childSh2 idxSh2 ( ptSh1ChildFromSh1:page) idxSh1 descChild (shadow2 shadow1: vaddr) ( currentShadow1:page) (l:level) s: 
+isPartitionFalse childSh2 idxSh2 s ->
+(defaultPage =? childSh2) = false ->
+(defaultPage =? ptSh1ChildFromSh1) = false ->
+consistency s ->
+StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2 ->
+StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1 ->
+false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 l ->
+isVE childSh2 (StateLib.getIndexOfAddr shadow2 fstLevel) s->
+getTableAddrRoot childSh2 sh1idx (currentPartition s) shadow2 s ->
+isVE ptSh1ChildFromSh1 (StateLib.getIndexOfAddr shadow1 fstLevel) s ->
+getTableAddrRoot ptSh1ChildFromSh1 sh1idx (currentPartition s) shadow1 s ->
+nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s ->
+Some l = StateLib.getNbLevel ->
+isPartitionFalse childSh2 idxSh2
+  {|
+  currentPartition := currentPartition s;
+  memory := add ptSh1ChildFromSh1 idxSh1
+              (VE {| pd := false;
+                     va := descChild |}) (memory s) beqPage beqIndex |}.
+Proof.
+intros ispart.
+intros.
+unfold isPartitionFalse in *.
+simpl in *.
+assert(Hreadflag : StateLib.readPDflag childSh2 idxSh2
+  (add ptSh1ChildFromSh1 idxSh1 (VE {| pd := false; va := descChild |})        
+  (memory s) beqPage beqIndex) = StateLib.readPDflag childSh2 idxSh2
+  (memory s)).
+apply  readPDflagAddDerivation.
+eapply toApplyPageTablesOrIndicesAreDifferent with shadow2 shadow1 (currentPartition s) 
+currentShadow1 sh1idx l isVE  s;trivial.
+right;left;trivial.
+subst.
+rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
+intros;split;subst;trivial.
+intros;split;subst;trivial.
+rewrite Hreadflag;trivial.
+Qed.
 Lemma indirectionDescriptionAddDerivation ptSh1 vaValue flag l descChildphy 
 phyPDChild vaToPrepare v0 idxroot s:
 let s':= {|
@@ -386,6 +425,8 @@ intuition;subst;trivial;simpl.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 Qed.
 
+
+
 Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred:
@@ -393,6 +434,7 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+   /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s }} 
@@ -403,6 +445,8 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA idxSndVA idxTrdVA zeroI 
+   /\ isPartitionFalse ptSh1SndVA idxSndVA s 
+   /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
@@ -425,12 +469,15 @@ assert(Hlookup :exists entry,
  destruct Hlookup as(v0 & Hlookup).
 assert(initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr)
 as (Hinit1 & Hinit2 & Hinit3) by (unfold propagatedPropertiesPrepare in *;intuition ).
-unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables in *. 
+unfold writeAccessibleRecPreparePostconditionAll, isWellFormedTables,  isPartitionFalseAll in *. 
 intuition.
 + apply propagatedPropertiesPrepareUpdateShadow1Structure with true true true ptMMUFstVA phyMMUaddr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   left;intuition.
-  admit. (** isPartitionFalse**)
++ unfold propagatedPropertiesPrepare in *;intuition.
+  apply isPartitionFalseAddDerivationNotEq with sndVA fstVA currentShadow1 nbLgen;trivial.
++ unfold propagatedPropertiesPrepare in *;intuition.
+  apply isPartitionFalseAddDerivationNotEq with trdVA fstVA currentShadow1 nbLgen;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
@@ -447,7 +494,7 @@ intuition.
     split; trivial. }
   rewrite Htrue.
   cbn;trivial.
-Admitted.
+Qed.
 
 Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -457,8 +504,10 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA
-     idxSndVA idxTrdVA zeroI /\
-   writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
+     idxSndVA idxTrdVA zeroI 
+ /\ isPartitionFalse ptSh1SndVA idxSndVA s 
+ /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
+ /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
    StateLib.Level.pred l = Some lpred /\
    isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\ isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
   writeVirEntry ptSh1SndVA idxSndVA sndVA 
@@ -467,6 +516,7 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA idxSndVA idxTrdVA zeroI 
+   /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
@@ -496,7 +546,8 @@ intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false true true ptMMUSndVA phySh1addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   right;left; intuition.
-  admit. (** isPartitionFalse**)  
++ unfold propagatedPropertiesPrepare in *;intuition.
+  apply isPartitionFalseAddDerivationNotEq with trdVA sndVA currentShadow1 nbLgen;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
@@ -523,7 +574,7 @@ intuition.
     split; trivial. }
   rewrite Htrue.
   cbn;trivial.
- Admitted.
+Qed.
  
 Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -534,7 +585,8 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA
      idxSndVA idxTrdVA zeroI 
-    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
+   /\ isPartitionFalse ptSh1TrdVA idxTrdVA s  
+   /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
@@ -574,7 +626,6 @@ intuition.
 + eapply propagatedPropertiesPrepareUpdateShadow1Structure with false false true ptMMUTrdVA phySh2addr; trivial.
   unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure.
   right;right; intuition.
-  admit. (** isPartitionFalse**)  
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
 + apply writeAccessibleRecPreparePostconditionAddDerivation with v0;trivial.
@@ -610,4 +661,4 @@ intuition.
     split; trivial. }
   rewrite Htrue.
   cbn;trivial.
-Admitted.
+Qed.

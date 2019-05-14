@@ -1450,7 +1450,15 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     apply proveInitPEntryTablePreconditionToPropagatePrepareProperties
      with ptMMUTrdVA trdVA  (currentPartition s) nbLgen currentPD;intuition; subst;trivial.
      unfold consistency in *;intuition.
-    assert(Hispart :isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA) by admit.
+    assert(Hispart :isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA).
+    { unfold isPartitionFalseAll.
+      intuition;subst.
+      eapply isPartitionFalseProof with (currentPart:=currentPartition s);trivial;try eassumption.
+      unfold consistency in *;intuition.
+      rewrite Nat.eqb_sym;trivial.
+     admit.
+     admit. }
+
     pattern s in H. 
     assert(Hnew:= conj (conj (conj (conj H Hconfig1) Hconfig2) Hconfig3) Hispart).
     apply Hnew.
@@ -1488,9 +1496,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     destruct H as (_ & Hi).
     eapply Hi.
     intros;simpl.
-    apply and_assoc in H.
-    destruct H as (H&_).
+    split.
     split;[eapply H|].
+    intuition.
     apply writeAccessibleRecPreconditionProofFstVA in H;trivial.
     simpl.
     intros[].
@@ -1531,10 +1539,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply WriteAccessibleRecPropagatePrepareProperties
       with(va:=sndVA) (descParent:= currentPart) (phypage:= phySh1addr) (pt:= ptMMUSndVA). 
     simpl;intros.
-    split;[destruct H;eapply H|].
-    destruct H as ((Hi & Hii )& _).
-    assert(hnew:= conj Hi Hii).
-    apply writeAccessibleRecPreconditionProofSndVA in hnew;trivial.
+    split.
+    intuition; try eassumption.
+    destruct H as (H & Hi).
+    
+
+    apply writeAccessibleRecPreconditionProofSndVA in H;trivial.
     simpl.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phyMMUaddr). 
@@ -1546,10 +1556,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply weaken.    
     eapply WriteAccessibleRecPrepareNewProperty with (va:=sndVA) (descParent:= currentPart) (phypage:= phySh1addr) (pt:= ptMMUSndVA). 
     simpl;intros.
-    destruct H as ((Hi & Hii )& _).
-    assert(hnew:= conj Hi Hii).
-    apply writeAccessibleRecPreconditionProofSndVA in hnew;trivial.
-    eapply hnew.
+    destruct H as (Hi & Hii ).
+    apply writeAccessibleRecPreconditionProofSndVA in Hi;trivial.
+    eapply Hi.
     simpl.    
     intros[].
     (** writeAccessible *)
@@ -1598,33 +1607,40 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply WriteAccessibleRecPropagatePrepareProperties
       with(va:=trdVA) (descParent:= currentPart) (phypage:= phySh2addr) (pt:= ptMMUTrdVA). 
     simpl;intros.
-    split;[destruct H;eapply H|].
-    destruct H as (((Hi & Hii )& _) & _).
-    assert(hnew:= conj Hi Hii).
-    apply writeAccessibleRecPreconditionProofTrdVA in hnew;trivial.
-    simpl.
+    split.
+    intuition;try eassumption.
+    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
+        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+    intuition.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phyMMUaddr). 
     intros;simpl. 
-    destruct H as (( H & Hi)& _).
-    apply writeAccessibleRecPreconditionProofTrdVA in H;trivial.
-    split;eassumption.
-    simpl.
+    split;intuition;try eassumption.
+    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
+        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+    intuition;try eassumption.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phySh1addr). 
-    intros;simpl. 
-    destruct H as (( H & _)& Hi).
-    apply writeAccessibleRecPreconditionProofTrdVA in H;trivial.
-    split;eassumption.
-    simpl.  
+    intros;simpl.
+    split;intuition;try eassumption.
+    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
+        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+    intuition;try eassumption.
     eapply weaken.
     eapply WriteAccessibleRecPrepareNewProperty with (descParent:= currentPart) 
     (phypage:= phySh2addr) (pt:= ptMMUTrdVA). 
     simpl;intros.
-    destruct H as ((H & Hii )& _).
-    apply writeAccessibleRecPreconditionProofTrdVA in H;trivial.
-    eapply H.
-    simpl.    
+    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
+        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+    intuition;try eassumption.
     intros[].
    (**  Level.pred *)
     simpl.

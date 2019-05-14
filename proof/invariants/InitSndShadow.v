@@ -436,19 +436,27 @@ Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
    (propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false
-      false true true true idxFstVA idxSndVA idxTrdVA zeroI /\
-    writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
-    writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
-    writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\ StateLib.Level.pred l = Some lpred) /\
-   isWellFormedMMUTables phyMMUaddr s /\ isWellFormedFstShadow lpred phySh1addr s }} 
-  initSndShadow phySh2addr lpred zeroI {{ fun _ s => (propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+      false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+    /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
+    /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
+    /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s
+    /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+    /\ StateLib.Level.pred l = Some lpred) 
+    /\ isWellFormedMMUTables phyMMUaddr s 
+    /\ isWellFormedFstShadow lpred phySh1addr s }} 
+  initSndShadow phySh2addr lpred zeroI 
+{{ fun _ s => (propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
-      false false true true true idxFstVA idxSndVA idxTrdVA zeroI /\
-    writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s /\
-    writeAccessibleRecPreparePostcondition currentPart phySh1addr s /\
-    writeAccessibleRecPreparePostcondition currentPart phySh2addr s /\ StateLib.Level.pred l = Some lpred) /\
-   isWellFormedMMUTables phyMMUaddr s /\ isWellFormedFstShadow lpred phySh1addr s /\ isWellFormedSndShadow lpred phySh2addr s }}.
+      false false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+    /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
+    /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s
+    /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s
+    /\ writeAccessibleRecPreparePostcondition currentPart phySh2addr s 
+    /\ StateLib.Level.pred l = Some lpred) 
+    /\ isWellFormedMMUTables phyMMUaddr s 
+    /\ isWellFormedFstShadow lpred phySh1addr s 
+    /\ isWellFormedSndShadow lpred phySh2addr s }}.
    Proof.
  unfold initSndShadow. 
 eapply WP.bindRev.
@@ -471,20 +479,9 @@ eapply WP.bindRev.
   6:{ intros. eapply H0. }
   eapply weaken.
   (** propagatedPropertiesPrepare **)
-  eapply initVAddrTablePropagateProperties with (zeroI:=zeroI).
-  intros. simpl.
-  destruct H0.
-  destruct H0.
-  intuition.
-  eassumption.
-  trivial.
-  trivial.
-  trivial.
-  eassumption.
-  unfold propagatedPropertiesPrepare in *.
-  intuition.
-  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
-  intuition.
+  eapply initVAddrTablePropagateProperties with (zeroI:=zeroI);trivial.
+  intuition;try eassumption;unfold propagatedPropertiesPrepare in *;intuition.
+  unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
   eapply initVAddrTablePropagateIsWellFormedMMUTable 
@@ -552,19 +549,9 @@ eapply WP.bindRev.
   6:{ intros. eapply H. }
   eapply weaken.  
   (** propagatedPropertiesPrepare **)
-  eapply initPEntryTablePropagateProperties with (zeroI:=zeroI).
-  intros. simpl.
-  destruct H.
-  destruct H.
-  intuition.
-  eassumption.
-  trivial.
-  trivial.
-  trivial.
-  eassumption.
-  unfold propagatedPropertiesPrepare in *.
-  intuition.
-  unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
+  eapply initPEntryTablePropagateProperties with (zeroI:=zeroI);trivial.
+  intuition;try eassumption;unfold propagatedPropertiesPrepare in *;intuition.
+  unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
   eapply weaken.
   (** propagate isWellFormedMMUTables **)
   eapply initPEntryTablePropagateIsWellFormedMMUTable  with (phyPage2:= phyMMUaddr)
