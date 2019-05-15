@@ -579,15 +579,15 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         writeVirEntry ptSh1SndVA idxSndVA sndVA ;;
         writeVirEntry ptSh1TrdVA idxTrdVA trdVA ;;
 
-        (*  Insert pages into the current level *)
-        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
-        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
-        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
-
         (* Store phy/virt addresses into LL *)
         insertEntryIntoLL lastLLtable fstVA phyMMUaddr ;;
         insertEntryIntoLL lastLLtable sndVA physh1addr ;;
         insertEntryIntoLL lastLLtable trdVA physh2addr ;;
+
+        (*  Insert pages into the current level *)
+        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
+        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
+        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
 
         prepareRec timeout1 descChild phyDescChild phyMMUaddr physh1addr physh2addr lastLLtable vaToPrepare nextVA  nbLPred
         else 
@@ -649,15 +649,15 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         writeVirEntry ptSh1SndVA idxSndVA sndVA ;;
         writeVirEntry ptSh1TrdVA idxTrdVA trdVA ;;
 
-        (*  Insert pages into the current level *)
-        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
-        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
-        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
-
         (* Store phy/virt addresses into LL *)
         insertEntryIntoLL newFstLL fstVA phyMMUaddr ;;
         insertEntryIntoLL newFstLL sndVA physh1addr ;;
         insertEntryIntoLL newFstLL trdVA physh2addr ;;
+
+        (*  Insert pages into the current level *)
+        writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
+        writePhyEntry phySh1Child idxToPrepare physh1addr true true true true true ;;
+        writePhyEntry phySh2Child idxToPrepare physh2addr true true true true true ;;
 
         prepareRec timeout1 descChild phyDescChild phyMMUaddr physh1addr physh2addr newFstLL vaToPrepare nextVA nbLPred  
 
