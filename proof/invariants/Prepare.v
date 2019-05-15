@@ -1456,9 +1456,16 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       eapply isPartitionFalseProof with (currentPart:=currentPartition s);trivial;try eassumption.
       unfold consistency in *;intuition.
       rewrite Nat.eqb_sym;trivial.
-     admit.
-     admit. }
-
+      unfold isPartitionFalseAll.
+      intuition;subst.
+      eapply isPartitionFalseProof with (currentPart:=currentPartition s)
+      (descChild:= sndVA) (ptRefChild:=ptMMUSndVA) ;trivial;try eassumption.
+      unfold consistency in *;intuition.
+      rewrite Nat.eqb_sym;trivial.
+      eapply isPartitionFalseProof with (currentPart:=currentPartition s)
+      (descChild:= trdVA) (ptRefChild:=ptMMUTrdVA) ;trivial;try eassumption.
+      unfold consistency in *;intuition.
+      rewrite Nat.eqb_sym;trivial. }
     pattern s in H. 
     assert(Hnew:= conj (conj (conj (conj H Hconfig1) Hconfig2) Hconfig3) Hispart).
     apply Hnew.
