@@ -554,8 +554,8 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
 
       (* Check if the current MMU level could be configued according to the properties about the first free pages given by the partition *)
       if (fstVAnotShared && sndVAnotShared && trdVAnotShared) then
-      perform lastLLTable := checkEnoughEntriesLinkedList lastLLtable in 
-      perform isNull := comparePageToNull lastLLTable in
+      perform newLastLLable := checkEnoughEntriesLinkedList lastLLtable in 
+      perform isNull := comparePageToNull newLastLLable in
       (* Check if we need to insert a new page at the end of the linked list *)  
       if (negb isNull) then (* We don't need to link a new LL table *)  
         (* read the content of trdVA : it should be nextVA *)
@@ -580,9 +580,9 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         writeVirEntry ptSh1TrdVA idxTrdVA trdVA ;;
 
         (* Store phy/virt addresses into LL *)
-        insertEntryIntoLL lastLLtable fstVA phyMMUaddr ;;
-        insertEntryIntoLL lastLLtable sndVA physh1addr ;;
-        insertEntryIntoLL lastLLtable trdVA physh2addr ;;
+        insertEntryIntoLL newLastLLable fstVA phyMMUaddr ;;
+        insertEntryIntoLL newLastLLable sndVA physh1addr ;;
+        insertEntryIntoLL newLastLLable trdVA physh2addr ;;
 
         (*  Insert pages into the current level *)
         writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true ;; 
