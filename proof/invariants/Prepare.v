@@ -39,7 +39,7 @@ Require Import Model.ADT Model.Hardware Core.Services Core.Internal Isolation Co
 WeakestPreconditions Invariants StateLib Model.Lib Model.MAL GetTableAddr 
 InternalLemmas DependentTypeLemmas LinkedListConfig PropagatedProperties 
 WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable UpdateMappedPageContent
-InitFstShadow InitSndShadow UpdateShadow1StructurePrepare.
+InitFstShadow InitSndShadow UpdateShadow1StructurePrepare InsertEntryIntoLL.
 
 Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
 
@@ -1726,7 +1726,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply bindRev.
     eapply writeVirEntryTrdVA.
     intros [].
-(** writePhyEntry **)
+(** insertEntryIntoLL**)
+    eapply bindRev.
+    
+    unfold insertEntryIntoLL.
+
 
 (** TODO : To be proved *)
 Admitted.
