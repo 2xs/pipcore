@@ -36,7 +36,8 @@
     structure preserves isolation and consistency properties  *)
 Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware  Model.MAL 
-DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateShadow2Structure.
+DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateShadow2Structure
+writePhysical.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool.
 (************************** TO MOVE ******************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
@@ -44,17 +45,20 @@ Definition LLconfiguration3 s:=
 forall part fstLL LLtable,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s nbPage) -> 
+In LLtable (getTrdShadows part s (nbPage+1)) -> 
 isI LLtable (CIndex 0) s.
 
 Definition LLconfiguration4 s:=
 forall part fstLL LLtable,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s nbPage) -> 
-exists FFI,
-StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI /\
-isVA LLtable FFI s.
+In LLtable (getTrdShadows part s (nbPage+1)) -> 
+exists FFI nextFFI,
+StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI 
+/\ isVA LLtable FFI s /\ FFI < tableSize - 1 
+/\ StateLib.Index.succ FFI = Some nextFFI
+/\ isI LLtable nextFFI s.
+
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
 (*%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%*)
@@ -106,7 +110,26 @@ unfold Lib.disjoint in *.
 contradict Hi2.
 apply Hdisjoint;subst;trivial.
 Qed.
-
+Lemma inGetTrdShadowInConfigPages partition LL table s:
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+In table (getTrdShadows LL s (nbPage + 1)) ->
+getConfigTablesLinkedList partition (memory s) = Some LL  ->
+In table (getConfigPages  partition s).
+Proof.
+intros Hpde Hgetparts Hconfig Hpd .
+ apply pdSh1Sh2ListExistsNotNull with s partition  in Hpde;trivial.
+  destruct Hpde as ((pd1 & Hpd1 & Hpdnotnull) 
+    & (sh1 & Hsh1 & Hsh1notnull) & (sh22 & Hsh22 & Hsh2notnull) & 
+    (sh3 & Hsh3 & Hsh3notnull)).
+  unfold getConfigPages.
+  unfold getConfigPagesAux.
+  rewrite Hpd1, Hsh1, Hsh22, Hpd.
+  simpl.
+  right.
+  do 3 (rewrite in_app_iff;
+  right);trivial.
+Qed.
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
@@ -529,6 +552,128 @@ LLDescChild;trivial. unfold consistency; intuition.
 - apply wellFormedFstShadowIfNoneUpdateSh2 with entry;trivial.
 - apply wellFormedFstShadowIfDefaultValuesUpdateSh2 with entry;trivial.
 Qed.
+Lemma indirectionDescriptionUpdateLLContent s descChildphy phyPDChild idxroot 
+vaToPrepare l newLastLLable FFI x entry:
+lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
+indirectionDescription s descChildphy phyPDChild idxroot vaToPrepare l ->
+indirectionDescription  
+{| currentPartition := currentPartition s; 
+   memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |}  
+   descChildphy phyPDChild idxroot vaToPrepare l.
+Proof.
+intros Hlookup Htoprop.
+intros.
+unfold indirectionDescription in *.
+destruct Htoprop as (tableroot & Hpp & Hnotnull & Htableroot).
+exists tableroot;split.
+rewrite <- nextEntryIsPPUpdateSh2 with entry;trivial.
+split;trivial.
+destruct Htableroot as [Htableroot | Htableroot] ;[left;trivial|right].
+destruct Htableroot as (nbL0 & stop & Hnbl0 & Hstop & Hind & Hdef & Hnbl).
+exists nbL0;exists stop. try repeat split;trivial.
+rewrite <- Hind.
+apply getIndirectionUpdateSh2 with entry;trivial.
+Qed.
+
+Lemma initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLContent x table newLastLLable FFI entry s:
+lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
+initPEntryTablePreconditionToPropagatePrepareProperties s table ->
+initPEntryTablePreconditionToPropagatePrepareProperties 
+{| currentPartition := currentPartition s; memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |} table.
+Proof.
+intros.
+assert(Hi: getPartitions multiplexer {| currentPartition := currentPartition s; memory := add newLastLLable FFI 
+(VA x) (memory s) beqPage beqIndex |} = getPartitions multiplexer s).
+symmetry;apply getPartitionsUpdateSh2 with entry;trivial.
+unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+intros.
+split;[|intuition].
+intros.
+rewrite Hi in *;clear Hi.
+assert(Hi: getConfigPages partition {| currentPartition := currentPartition s; memory := add newLastLLable FFI 
+(VA x) (memory s) beqPage beqIndex |} = getConfigPages partition s).
+apply getConfigPagesUpdateSh2 with entry;trivial.
+rewrite Hi;trivial.
+destruct H0.
+apply H0;trivial.
+Qed. 
+
+Lemma writeAccessibleRecPreparePostconditionUpdateLLContent s currentPart phyMMUaddr newLastLLable FFI x entry:
+lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
+writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s ->
+writeAccessibleRecPreparePostcondition currentPart phyMMUaddr 
+{| currentPartition := currentPartition s; 
+   memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |}.
+Proof.
+set(s':= {| currentPartition := _ |}).
+intros Hlookup Htoprop.
+intros.
+unfold writeAccessibleRecPreparePostcondition in *.
+intros.
+assert(Hpartitions : getAncestors currentPart s = getAncestors currentPart s').
+symmetry;apply getAncestorsUpdateSh2 with entry; trivial.
+rewrite <- Hpartitions in *; clear Hpartitions;trivial.
+assert(Haccessmap : forall partition, getAccessibleMappedPages partition s' =
+getAccessibleMappedPages partition s).
+{ intros. apply getAccessibleMappedPagesUpdateSh2 with entry;trivial. }
+rewrite Haccessmap in *. clear Haccessmap.
+apply Htoprop;trivial.
+Qed.
+
+Lemma isWellFormedTablesUpdateLLContent (phyMMUaddr phySh1addr phySh2addr : page) (lpred : level) (s : state)
+ newLastLLable FFI x entry LLDescChild descChildphy:
+initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr->
+In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild ->
+In descChildphy (getPartitions multiplexer s) ->
+lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
+isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s  ->
+consistency s ->
+isWellFormedTables  phyMMUaddr phySh1addr phySh2addr lpred 
+{| currentPartition := currentPartition s; 
+   memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |}.
+Proof.
+set(s':= {| currentPartition := _ |}).
+intros Hnotconfig Htrd HLL Hchildpart Hlookup Htoprop Hcons.
+intros.
+unfold isWellFormedTables in *.
+destruct Htoprop as (Ha1 & Ha2 & Ha3).
+intuition.
++ unfold isWellFormedMMUTables in *;intros;
+  destruct Ha1 with idx as (Hi1 & Hi2);
+  unfold s';simpl;
+  rewrite <- Hi1;rewrite<- Hi2;split.
+  apply readPhyEntryUpdateSh2 with entry;trivial.
+  apply readPresentUpdateSh2 with entry;trivial.
++ unfold isWellFormedFstShadow in *.
+  destruct Ha2 as [(Hx & Ha2) | (Hx & Ha2)];[left|right];split;trivial;
+  intros;
+  destruct Ha2 with idx as (Hi1 & Hi2);
+  unfold s';simpl;rewrite <- Hi1;rewrite <- Hi2;split.
+  apply readPhyEntryUpdateSh2 with entry;trivial.
+  apply readPresentUpdateSh2 with entry;trivial.
+  apply readVirEntryUpdateSh2 with entry;trivial.
+  apply readPDflagUpdateSh2 with entry;trivial.
++ unfold isWellFormedSndShadow in *.
+  destruct Ha3 as [(Hx & Ha3) | (Hx & Hi1)];[left|right];split;trivial;
+  intros;[
+  destruct Ha3 with idx as (Hi1 & Hi2)|]. 
+  unfold s';simpl;rewrite <- Hi1;rewrite <- Hi2;split.
+  apply readPhyEntryUpdateSh2 with entry;trivial.
+  apply readPresentUpdateSh2 with entry;trivial.
+  destruct Hi1 with idx.
+  apply readVirtualUpdateSh2.
+  left.
+  assert(Hconfig: In newLastLLable (getConfigPages  descChildphy s)).
+  { apply inGetTrdShadowInConfigPages with LLDescChild;trivial.
+  unfold consistency in *;intuition. }
+  unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+  destruct Hnotconfig as (Hnotconfig & _).
+  contradict Hconfig.
+  subst.
+  apply Hnotconfig;trivial.
+Qed.
+
 
 Lemma propagatedPropertiesPrepareUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
@@ -547,13 +692,64 @@ propagatedPropertiesPrepare
   vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI.
 Proof.
 unfold propagatedPropertiesPrepare;intros.
+set (s':= {| currentPartition := _ |}).
 intuition;subst.
-apply kernelDataIsolationUpdateSh2 with entry;trivial.
-apply partitionsIsolationUpdateSh2 with entry;trivial.
-apply verticalSharingUpdateSh2 with entry; trivial.
-apply consistencyUpdateLLContent with descChildphy LLDescChild entry;trivial.
-admit. (** getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild **)
-admit. (** In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) *)
++ apply kernelDataIsolationUpdateSh2 with entry;trivial.
++ apply partitionsIsolationUpdateSh2 with entry;trivial.
++ apply verticalSharingUpdateSh2 with entry; trivial.
++ apply consistencyUpdateLLContent with descChildphy LLDescChild entry;trivial.
+  admit. (** getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild **)
+  admit. (** In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) *)
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isPEUpdateSh2 with entry;trivial.
++ assert(Hva: exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) 
+          va s /\ beqVAddr defaultVAddr va = false) by trivial.
+  destruct Hva as (va & Hva & Htrue).
+  exists va;split;trivial.
+  unfold s'.
+  apply isEntryVAUpdateSh2 with entry;trivial.
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isVEUpdateSh2 with entry;trivial.
++ apply isEntryPageUpdateSh2  with entry;trivial.
++ apply entryPresentFlagUpdateSh2  with entry;trivial.
++ apply entryUserFlagUpdateSh2  with entry;trivial.
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isPEUpdateSh2 with entry;trivial.
++ assert(Hva: exists va : vaddr, isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel)  
+          va s /\ beqVAddr defaultVAddr va = false) by trivial.
+  destruct Hva as (va & Hva & Htrue).
+  exists va;split;trivial.
+  unfold s'.
+  apply isEntryVAUpdateSh2 with entry;trivial.
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isVEUpdateSh2 with entry;trivial.
++ assert(Hva: exists va : vaddr, isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) 
+          va s /\ beqVAddr defaultVAddr va = false) by trivial.
+  destruct Hva as (va & Hva & Htrue).
+  exists va;split;trivial.
+  unfold s'.
+  apply isEntryVAUpdateSh2 with entry;trivial.
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isVEUpdateSh2 with entry;trivial.
++ apply isEntryPageUpdateSh2  with entry;trivial.
++ apply entryPresentFlagUpdateSh2  with entry;trivial.
++ apply entryUserFlagUpdateSh2  with entry;trivial.
++ apply getTableAddrRootUpdateSh2 with entry;trivial.
++ apply isPEUpdateSh2 with entry;trivial.
++ apply entryUserFlagUpdateSh2  with entry;trivial.
++ apply entryPresentFlagUpdateSh2  with entry;trivial.
++ apply isEntryPageUpdateSh2  with entry;trivial.
++ apply isEntryPageUpdateSh2  with entry;trivial.
++ apply nextEntryIsPPUpdateSh2  with entry;trivial.
++ apply nextEntryIsPPUpdateSh2  with entry;trivial.
++ apply nextEntryIsPPUpdateSh2  with entry;trivial.
++ assert(Hi: getPartitions multiplexer s' = getPartitions multiplexer s).
+  symmetry;apply getPartitionsUpdateSh2 with entry;trivial.
+  rewrite Hi;trivial.
++ unfold indirectionDescriptionAll in *.  
+  intuition; apply indirectionDescriptionUpdateLLContent  with entry;trivial.
++ unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
+  intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLContent with entry;trivial.
 Admitted.
 
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
@@ -576,10 +772,42 @@ insertEntryIntoLLPC
 Proof.
 unfold insertEntryIntoLLPC;intros.
 intuition.
++ apply propagatedPropertiesPrepareUpdateLLContent with entry;trivial.
++  unfold writeAccessibleRecPreparePostconditionAll in *.  
+  intuition;apply writeAccessibleRecPreparePostconditionUpdateLLContent with entry;trivial.
++ unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
+  eapply isWellFormedTablesUpdateLLContent with (entry:= entry)  (descChildphy:=descChildphy);
+  trivial.
+  admit. (** In newLastLLable (getTrdShadows ?LLDescChild s (nbPage + 1)) **)
+  admit. (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
++ apply isEntryVAUpdateSh2 with entry;trivial.
++ apply isEntryVAUpdateSh2 with entry;trivial.
++ apply isEntryVAUpdateSh2 with entry;trivial.
 Admitted.
-  
-  
-  
+Lemma isIndexValueVAUpdateLLContent idx  table  entry s   x newLastLLable zeroI' FFI:
+lookup table idx (memory s) beqPage beqIndex = Some (VA entry) ->
+isIndexValue newLastLLable zeroI' FFI s -> 
+isIndexValue newLastLLable zeroI' FFI
+  {|
+currentPartition := currentPartition s;
+memory := add table idx (VA x)
+            (memory s) beqPage beqIndex |}.
+Proof.
+intros Hentry.
+unfold isIndexValue.
+cbn.
+case_eq (beqPairs (table, idx) (newLastLLable, zeroI')  beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   rewrite Hentry.
+   trivial.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup newLastLLable zeroI' (removeDup table idx (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  newLastLLable zeroI' (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed.
+
 Lemma writeVirtualUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -594,7 +822,7 @@ zeroI lpred zeroI' newLastLLable FFI:
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
       phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred /\
-    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s }}.
+    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s}}.
 Proof.
 eapply weaken.
 eapply WP.writeVirtual.
@@ -604,9 +832,15 @@ assert(Hlookup :exists entry,
  admit. (** Consistency not found : LLconfiguration4 *) 
 destruct Hlookup as (entry & Hlookup). 
 intuition.
++ apply insertEntryIntoLLPCUpdateLLContent with entry;trivial.
++ apply isIndexValueVAUpdateLLContent with entry;trivial.
++ unfold isVA'.
+  simpl.
+  assert(Htrue: beqPairs (newLastLLable, FFI) (newLastLLable, FFI) beqPage beqIndex = true).
+  apply beqPairsTrue;split;trivial.
+  rewrite Htrue;trivial.
 Admitted.
- 
- 
+
 Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -656,8 +890,29 @@ intros FFI.
 eapply bindRev.
 eapply weaken.
 apply writeVirtualUpdateLLContent.
-
-
+simpl;intros.
+eassumption.
+intros[].
+(** Index.succ **)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.Index.succ.
+simpl;intros.
+split.
+eapply H.
+admit. (** Consistency not found : LLconfiguration4 (FFI < tableSize - 1) **)
+intros nextFFI.
+(**  readIndex  **)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.readIndex;simpl.
+simpl;intros.
+split. 
+eapply H.
+admit. (** Consistency not found : LLconfiguration4 (isI LLtable nextFFI s.) **) 
+intros newFFI;simpl.
+(** writePhysical **)
+eapply bindRev.
 
 
 Admitted.
