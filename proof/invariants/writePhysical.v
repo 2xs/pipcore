@@ -1417,8 +1417,9 @@ rewrite <- H with partition va pd sh1 page;trivial.
 apply getPDFlagUpdateLLCouplePPVA with entry;trivial.
 Qed. 
 
-Lemma readVirtualUpdateLLCouplePPVA table1 table2 idx1 idx2  x s :
+Lemma readVirtualUpdateLLCouplePPVA table1 table2 idx1 idx2  x entry s :
 (* table1 <> table2 \/ idx1 <> idx2 ->  *)
+lookup table2 idx2 (memory s) beqPage beqIndex = Some (PP entry) ->
  StateLib.readVirtual table1 idx1
          (add table2 idx2 (PP x) (memory s) beqPage
      beqIndex)  = 
@@ -1426,24 +1427,16 @@ Lemma readVirtualUpdateLLCouplePPVA table1 table2 idx1 idx2  x s :
 Proof.
 unfold StateLib.readVirtual.
 cbn.
+intros Hentry.
 case_eq( beqPairs  (table2, idx2) (table1, idx1) beqPage beqIndex); intros.
 apply beqPairsTrue in H.
 destruct H; subst.
 rewrite Hentry; trivial.
 apply beqPairsFalse in H.
-assert(Hmemory : lookup p idx1 (removeDup table idx (memory s) beqPage beqIndex) beqPage beqIndex = 
- lookup p idx1 (memory s) beqPage beqIndex ); intros.
+assert(Hmemory : lookup table1 idx1 (removeDup table2 idx2 (memory s) beqPage beqIndex) beqPage beqIndex = 
+ lookup table1 idx1 (memory s)  beqPage beqIndex ); intros.
  { apply removeDupIdentity ; intuition. }
 rewrite Hmemory; reflexivity.
-
-assert(Hfalse : beqPairs (table2, idx2) (table1, idx1) beqPage beqIndex = false).
-apply beqPairsFalse; intuition.
-rewrite Hfalse.
-assert(Hmemory : lookup table1 idx1 (removeDup table2 idx2 (memory s) beqPage beqIndex) 
-          beqPage beqIndex =  lookup table1 idx1 (memory s) beqPage beqIndex ).
-apply removeDupIdentity ; intuition.
-rewrite Hmemory.
-trivial. 
 Qed.
 
 
@@ -1775,7 +1768,7 @@ case_eq (defaultPage =? tbl);trivial.
 intros Htblnotnul.
 simpl.
 symmetry.
-apply readVirtualUpdateLLCouplePPVA ;trivial.
+apply readVirtualUpdateLLCouplePPVA with entry ;trivial.
 Qed.
 
 Lemma isDerivedUpdateLLCouplePPVA  s vaInCurrentPartition table idx entry parent va: 
@@ -2148,6 +2141,7 @@ Qed.
 
 Lemma isAccessibleMappedPageInParentUpdateSh2 s entry v table idx parent va pg:
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+~In table (getAncestors parent s) ->
 parent <> table ->
 isAccessibleMappedPageInParent parent va pg  s =
 isAccessibleMappedPageInParent parent va pg
@@ -2164,14 +2158,39 @@ getSndShadow parent (memory s')).
    apply getSndShadowUpdateLLCouplePPVA with entry;trivial. }
 rewrite <- Hsh2s. 
 case_eq(getSndShadow parent (memory s)); [intros sh2 Hsh2|];trivial.
-getVirtualAddressSh1UpdateLLCouplePPVA
-Admitted.
+assert(Hgetvir2:  getVirtualAddressSh2 sh2 s va =  getVirtualAddressSh2 sh2 s' va ).
+apply getVirtualAddressSh2UpdateLLCouplePPVA with entry;trivial.
+rewrite <- Hgetvir2.
+case_eq(getVirtualAddressSh2 sh2 s va);[intros vaInParent HvaInParent |];trivial.
+assert(Hparents:getParent parent (memory s) =
+getParent parent (memory s')).
+{ unfold s';simpl;symmetry;
+   apply getParentUpdateLLCouplePPVA with entry;trivial. }
+rewrite <- Hparents.
+case_eq(   getParent parent (memory s));[intros ancestor Hancestor|];trivial.
+assert(Hancestors:StateLib.getPd ancestor (memory s) =
+StateLib.getPd ancestor (memory s')).
+{ unfold s';simpl;symmetry;
+   apply getPdUpdateLLCouplePPVA with entry;trivial.
+   contradict H0.
+   unfold getAncestors.
+   subst table.
+   destruct nbPage;simpl;rewrite Hancestor;simpl;left;trivial. }
+rewrite <- Hancestors.
+case_eq(  StateLib.getPd ancestor (memory s));[intros pd Hpds|];trivial.
 
-
+assert(Haccess:getAccessibleMappedPage pd s vaInParent =
+getAccessibleMappedPage pd s' vaInParent).
+{ unfold s';simpl;symmetry;
+   apply getAccessibleMappedPageUpdateLLCouplePPVA with entry;trivial. }
+rewrite <- Haccess;trivial.
+Qed.
 
 Lemma accessibleChildPageIsAccessibleIntoParentUpdateSh2 s entry v table nextFFI:
 lookup table nextFFI  (memory s) beqPage beqIndex = Some (PP entry) ->
 ~ In table (getPartitions multiplexer s) ->
+parentInPartitionList s ->
+isChild s ->
 accessibleChildPageIsAccessibleIntoParent s ->
 accessibleChildPageIsAccessibleIntoParent
    {|
@@ -2200,11 +2219,14 @@ StateLib.getPd partition
 contradict Hkey;subst;trivial.
  }
 rewrite <- Hpd in *.
-rewrite <- H with  partition va pd accessiblePage;trivial.
+rewrite <- H1 with  partition va pd accessiblePage;trivial.
 symmetry.
 apply isAccessibleMappedPageInParentUpdateSh2 with entry;trivial.
+contradict Hkey.
+apply ancestorInPartitionTree with partition;trivial.
 contradict Hkey;subst;trivial.
 Qed.
+
 Lemma consistencyUpdateLLCouplePPVA newLastLLable nextFFI v entry s:
 lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)->
 ~ In newLastLLable (getPartitions multiplexer s) ->
@@ -2223,8 +2245,9 @@ unfold consistency;intuition.
 + apply noDupConfigPagesListUpdateLLCouplePPVA with entry;trivial.
 + apply parentInPartitionListUpdateLLCouplePPVA with entry;trivial.
 + apply accessibleVAIsNotPartitionDescriptorUpdateLLCouplePPVA with entry;trivial.
-+ apply accessib
-Qed.
++ apply accessibleChildPageIsAccessibleIntoParentUpdateSh2 with entry;trivial.
+
+Admitted.
 
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
