@@ -1815,7 +1815,7 @@ Qed.
         currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
         currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA lpred zeroI:
 {{ fun s : state =>
-propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+propagatedPropertiesPrepare fstLL LLChildphy s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
         false false true true true idxFstVA idxSndVA idxTrdVA zeroI
@@ -1829,7 +1829,7 @@ propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare p
 
       Internal.initPEntryTable table curidx 
 
-{{ fun _ (s : state) => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+{{ fun _ (s : state) => propagatedPropertiesPrepare fstLL LLChildphy s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
         false false true true true idxFstVA idxSndVA idxTrdVA zeroI

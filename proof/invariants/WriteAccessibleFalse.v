@@ -46,8 +46,8 @@ Import List.ListNotations.
 Lemma writeAccessibleRecPreconditionProofFstVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI : 
- propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable: 
+ propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false true true  true true true
   idxFstVA idxSndVA idxTrdVA zeroI/\
@@ -88,8 +88,8 @@ Qed.
 Lemma writeAccessibleRecPreconditionProofSndVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI: 
- propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable :  
+ propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false true true true true
   idxFstVA idxSndVA idxTrdVA zeroI  /\
@@ -130,8 +130,8 @@ Qed.
 Lemma writeAccessibleRecPreconditionProofTrdVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI: 
- propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable : 
+ propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true
   idxFstVA idxSndVA idxTrdVA zeroI /\
@@ -1227,8 +1227,8 @@ Lemma writeAccessiblePropagatePropertiesPrepareFstVA ( ptMMUTrdVA phySh2addr phy
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) (userMMUSndVA userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI:
-{{ fun s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+(nbLgen  l:level) (userMMUSndVA userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable :
+{{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l true userMMUSndVA userMMUTrdVA true true true
@@ -1236,7 +1236,7 @@ idxFstVA idxSndVA idxTrdVA zeroI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUFstVA idxFstVA false 
-{{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+{{  fun _ s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false userMMUSndVA userMMUTrdVA true true true
@@ -1332,6 +1332,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ admit.
++ admit.
++ admit.  
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial.
@@ -1347,14 +1350,14 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *. 
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition. 
-Qed.
+Admitted.
 
 Lemma writeAccessiblePropagatePropertiesPrepareSndVA ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) ( userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI:
-{{ fun s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+(nbLgen  l:level) ( userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+{{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false true userMMUTrdVA true true true
@@ -1362,7 +1365,7 @@ idxFstVA idxSndVA idxTrdVA  zeroI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUSndVA idxSndVA false 
-{{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+{{  fun _ s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false userMMUTrdVA true true true
@@ -1455,6 +1458,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ admit.
++ admit.
++ admit.  
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial. 
@@ -1470,14 +1476,14 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *.
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition.
-Qed. 
+Admitted. 
  
 Lemma writeAccessiblePropagatePropertiesPrepareTrdVA ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) (* ( userMMUTrdVA :bool)  *)idxFstVA idxSndVA idxTrdVA zeroI:
-{{ fun s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+(nbLgen  l:level) (* ( userMMUTrdVA :bool)  *)idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+{{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false true true true true
@@ -1485,7 +1491,7 @@ idxFstVA idxSndVA idxTrdVA  zeroI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUTrdVA idxTrdVA false 
-{{  fun _ s => propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr
+{{  fun _ s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false false true true true
@@ -1578,6 +1584,9 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
++ admit.
++ admit.
++ admit.  
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial. 
@@ -1593,7 +1602,7 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *.
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition.
-Qed. 
+Admitted. 
   
 Lemma writeAccessiblePropagateWriteAccessibleRecProperty pg currentPart idxToUpdate ptToUpdate (vaToUpdate: vaddr):
 {{ fun s => preconditionToPropagateWriteAccessibleRecProperty s ptToUpdate vaToUpdate idxToUpdate
@@ -1829,7 +1838,7 @@ Qed.
 Lemma propagatedPropertiesPrepareUpdateUserFlag s descParent pt sh2 lastIndex ancestor pdAncestor ptsh2 defaultV va ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 idxFstVA idxSndVA
-           idxTrdVA entry idxva ptvaInAncestor vaInAncestor zeroI:
+           idxTrdVA entry idxva ptvaInAncestor vaInAncestor zeroI LLroot LLChildphy newLastLLable:
 let s' := 
   {|
   currentPartition := currentPartition s;
@@ -1842,7 +1851,7 @@ let s' :=
                  present := present entry;
                  user := false;
                  pa := pa entry |}) (memory s) beqPage beqIndex |}  in            
-propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
+propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 true true true idxFstVA idxSndVA
            idxTrdVA zeroI ->
@@ -1878,15 +1887,12 @@ partitionsIsolation s /\
      getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s /\
      (defaultPage =? ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva -> 
 accessibleVAIsNotPartitionDescriptor s' -> 
-propagatedPropertiesPrepare s' ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
+propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s' ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 true true true idxFstVA idxSndVA
            idxTrdVA zeroI.
 Proof.
 intros.
-(* set(s':=   {|
-  currentPartition := _ |}).
- *) 
 intuition;subst.
 unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
 intros.
@@ -1956,7 +1962,7 @@ apply childAncestorConfigTablesAreDifferent with s
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-(* + unfold isPartitionFalseAll in *;
-  unfold isPartitionFalse; unfold s'; cbn.
-  repeat rewrite readPDflagUpdateUserFlag;trivial. *)
-Qed.
++ admit.
++ admit.
++ admit.  
+Admitted.

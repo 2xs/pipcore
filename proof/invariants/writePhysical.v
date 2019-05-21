@@ -50,18 +50,6 @@ isIndexValue LLtable (CIndex 0) FFI s ->
 StateLib.Index.succ FFI = Some nextFFI ->
 StateLib.getMaxIndex <> Some nextFFI. 
 (*%%%%%%%%%%%%%%%% PropagatedProperties %%%%%%%%%%%%%%%%%%*)
-Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
-ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
-ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred:=
-propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
-     currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-     currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI /\
-writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
-StateLib.Level.pred l = Some lpred /\
-isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\
-isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
 (*%%%%%%%%%%%%%%%% InternalLemmas %%%%%%%%%%%%%%%%%%*)
 Lemma inGetTrdShadowInConfigPagesAux partition LL table s:
 partitionDescriptorEntry s ->
@@ -2695,33 +2683,35 @@ Qed.
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred newLastLLable nextFFI (LLDescChild:page) entry:
+      zeroI lpred newLastLLable nextFFI (* (LLDescChild:page) *) entry fstLL LLChildphy:
 lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry) ->
 StateLib.getMaxIndex <> Some nextFFI ->  
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred ->
+      zeroI lpred fstLL LLChildphy newLastLLable ->
 insertEntryIntoLLPC {|
   currentPartition := currentPartition s;
   memory := add newLastLLable nextFFI (PP phyMMUaddr) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred.
+      zeroI lpred fstLL LLChildphy newLastLLable.
 Proof.
 intros Hlookup Hkey2.
 intros.
 set(s':=  {|
-     currentPartition := _|}). 
-assert (HtableinLL: In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1))) by admit. 
-assert(HLL: getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild) by admit.
+     currentPartition := _|}).
+assert (HtableinLL: In newLastLLable (getTrdShadows fstLL s (nbPage + 1))).
+unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.
+assert(HLL: getConfigTablesLinkedList descChildphy (memory s) = Some fstLL).
+unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.
 assert(Hchildpart:In descChildphy (getPartitions multiplexer s)) by (unfold insertEntryIntoLLPC, 
                         propagatedPropertiesPrepare in *;intuition).
 assert(Htableinconfig: In newLastLLable (getConfigPages descChildphy s)).
-{ apply inGetTrdShadowInConfigPages with LLDescChild;trivial.
+{ apply inGetTrdShadowInConfigPages with fstLL;trivial.
     unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *;intuition. }
 assert(Htablenotpart : ~ In newLastLLable (getPartitions multiplexer s)).
-{  apply LLtableNotPartition with descChildphy LLDescChild;trivial;
+{  apply LLtableNotPartition with descChildphy fstLL;trivial;
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *;intuition. }
 assert(Hpartitions : getPartitions multiplexer s = getPartitions multiplexer s') by (
     apply getPartitionsUpdateLLCouplePPVA with entry; trivial).
@@ -2775,6 +2765,9 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
   intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLCouplePPVA
   with entry;trivial.
++ admit.   
++ admit. 
++ admit.
 + unfold writeAccessibleRecPreparePostconditionAll in *;intuition;
   apply writeAccessibleRecPreparePostconditionUpdateLLCouplePPVA with entry;trivial.
 + unfold isWellFormedTables in *; intuition.
@@ -2799,7 +2792,7 @@ assert(Hbeqtrue:beqPairs (newLastLLable, nextFFI) (newLastLLable, nextFFI) beqPa
 rewrite Hbeqtrue;trivial.
 Qed.
  
-Lemma writePhysicalUpdateLLCouplePPVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
+(* Lemma writePhysicalUpdateLLCouplePPVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
         idxFstVA idxSndVA idxTrdVA zeroI lpred zeroI' FFI newLastLLable nextFFI newFFI:
@@ -2833,3 +2826,4 @@ apply isVA'UpdateLLCouplePPVA with entry;trivial.
 apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
 apply isPP'SameValueUpdateLLCouplePPVA;trivial.
 Admitted.
+ *)

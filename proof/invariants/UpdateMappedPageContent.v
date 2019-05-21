@@ -5883,7 +5883,7 @@ apply Hcond;trivial.
 Qed.
 Lemma  propagatePropertiesPrepareUpdateMappedPageContent  s table curidx ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
             currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA x zeroI:
+            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA x zeroI fstLL LLChildphy newLastLLable:
 match x with 
 | PE a => isPresentNotDefaultIff {|
                     currentPartition := currentPartition s;
@@ -5891,11 +5891,11 @@ match x with
                               x (memory s) beqPage beqIndex |} 
 | _ => True
 end ->             
- propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
+ propagatedPropertiesPrepare fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
             currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
             currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI -> 
  initPEntryTablePreconditionToPropagatePrepareProperties s table -> 
- propagatedPropertiesPrepare
+ propagatedPropertiesPrepare fstLL LLChildphy newLastLLable
    {|      currentPartition := currentPartition s;
             memory := add table curidx
                               x (memory s) beqPage beqIndex |}ptMMUTrdVA
@@ -6086,7 +6086,8 @@ right;right;trivial.
   unfold consistency in *;intuition.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateMappedPageContent;trivial.
   unfold consistency in *;intuition.
-(* + unfold isPartitionFalseAll in *.
++ 
+(* (* + unfold isPartitionFalseAll in *.
   unfold isPartitionFalse;unfold s';cbn;
   repeat  rewrite readPDflagUpdateMappedPageData;trivial;
   unfold not;intros Hfalse1;symmetry in Hfalse1;contradict Hfalse1. 
@@ -6102,7 +6103,8 @@ right;right;trivial.
       trivial.
   right; left;trivial.
   intros;split;subst;trivial. *)
-Qed.
+Qed. *)
+Admitted.
 
 
 

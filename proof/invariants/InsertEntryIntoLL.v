@@ -648,14 +648,14 @@ Qed.
 Lemma propagatedPropertiesPrepareUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry (LLDescChild:page):
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry LLroot LLChildphy :
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
-propagatedPropertiesPrepare
+propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
  s ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI ->
-propagatedPropertiesPrepare
+propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
   {| currentPartition := currentPartition s; memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |} ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
@@ -667,9 +667,9 @@ intuition;subst.
 + apply kernelDataIsolationUpdateSh2 with entry;trivial.
 + apply partitionsIsolationUpdateSh2 with entry;trivial.
 + apply verticalSharingUpdateSh2 with entry; trivial.
-+ apply consistencyUpdateLLContent with descChildphy LLDescChild entry;trivial.
-  admit. (** getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild **)
-  admit. (** In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) *)
++ apply consistencyUpdateLLContent with descChildphy LLroot entry;trivial.
+  (** getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild **)
+  (** In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) *)
 + apply getTableAddrRootUpdateSh2 with entry;trivial.
 + apply isPEUpdateSh2 with entry;trivial.
 + assert(Hva: exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) 
@@ -725,12 +725,12 @@ Admitted.
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry:
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry LLroot LLChildphy:
       lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred ->
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable ->
 insertEntryIntoLLPC
   {|
   currentPartition := currentPartition s;
@@ -738,7 +738,7 @@ insertEntryIntoLLPC
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
   currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA
-  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred.
+  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable.
 Proof.
 unfold insertEntryIntoLLPC;intros.
 intuition.
@@ -748,8 +748,10 @@ intuition.
 + unfold propagatedPropertiesPrepare, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;intuition.
   eapply isWellFormedTablesUpdateLLContent with (entry:= entry)  (descChildphy:=descChildphy);
   trivial.
-  admit. (** In newLastLLable (getTrdShadows ?LLDescChild s (nbPage + 1)) **)
-  admit. (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
+  eassumption.
+  trivial.
+  (** In newLastLLable (getTrdShadows ?LLDescChild s (nbPage + 1)) **)
+  (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
@@ -782,16 +784,16 @@ Lemma writeVirtualUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepa
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI:
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot:
 {{ fun s : state =>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred /\
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred  LLroot LLChildphy newLastLLable/\
     zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s }} writeVirtual newLastLLable FFI fstVA
  {{ fun _ s=>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred /\
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable/\
     zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s}}.
 Proof.
 eapply weaken.
@@ -815,19 +817,19 @@ Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred newLastLLable:
+zeroI lpred LLroot LLChildphy newLastLLable:
 {{ fun s : state =>
    insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred }} 
+zeroI lpred LLroot LLChildphy newLastLLable}} 
 insertEntryIntoLL newLastLLable fstVA phyMMUaddr  
 {{ fun _ s  => insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred}}.
+zeroI lpred LLroot LLChildphy newLastLLable}}.
 Proof.
 unfold insertEntryIntoLL. 
 eapply bindRev.

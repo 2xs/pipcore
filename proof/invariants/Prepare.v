@@ -46,13 +46,15 @@ Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
 
 
 (* We need  descChild as a virtual address to set up a correct sharing configuration into the parent partition*)
-Lemma prepareRec (descChild : vaddr) (descChildphy phyPDChild phySh1Child phySh2Child LLChildphy: page)  (vaToPrepare : vaddr) 
+Lemma prepareRec (descChild : vaddr) (descChildphy phyPDChild phySh1Child phySh2Child LLChildphy fstLL: page)  (vaToPrepare : vaddr) 
 (fstVA : vaddr) (l:level) :
 {{fun s => partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s 
 /\ In descChildphy (getPartitions multiplexer s) /\
 indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l /\
 indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\
-indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l 
+indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
+getConfigTablesLinkedList descChildphy (memory s) = Some fstLL /\
+In LLChildphy (getTrdShadows fstLL s (nbPage + 1))
      }} 
 prepareRec (nbLevel+1) descChild descChildphy phyPDChild phySh1Child phySh2Child LLChildphy vaToPrepare fstVA l
 {{fun _ s  => partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
