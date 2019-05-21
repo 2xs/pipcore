@@ -110,39 +110,9 @@ unfold Lib.disjoint in *.
 contradict Hi2.
 apply Hdisjoint;subst;trivial.
 Qed.
-Lemma inGetTrdShadowInConfigPages partition LL table s:
-partitionDescriptorEntry s ->
-In partition (getPartitions multiplexer s) ->
-In table (getTrdShadows LL s (nbPage + 1)) ->
-getConfigTablesLinkedList partition (memory s) = Some LL  ->
-In table (getConfigPages  partition s).
-Proof.
-intros Hpde Hgetparts Hconfig Hpd .
- apply pdSh1Sh2ListExistsNotNull with s partition  in Hpde;trivial.
-  destruct Hpde as ((pd1 & Hpd1 & Hpdnotnull) 
-    & (sh1 & Hsh1 & Hsh1notnull) & (sh22 & Hsh22 & Hsh2notnull) & 
-    (sh3 & Hsh3 & Hsh3notnull)).
-  unfold getConfigPages.
-  unfold getConfigPagesAux.
-  rewrite Hpd1, Hsh1, Hsh22, Hpd.
-  simpl.
-  right.
-  do 3 (rewrite in_app_iff;
-  right);trivial.
-Qed.
+
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
-Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
-ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
-ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred:=
-propagatedPropertiesPrepare s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
-     currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-     currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI /\
-writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
-StateLib.Level.pred l = Some lpred /\
-isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\
-isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
+
 (********************************************************************)
 Lemma getVirtualAddressSh2UpdateLLContent newLastLLable FFI x sh2 va entry LL partition s:
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->

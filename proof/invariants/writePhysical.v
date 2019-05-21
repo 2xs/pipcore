@@ -40,6 +40,15 @@ DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool Logic.Classical_Prop.
 
 (***************** To move ************************)
+(*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
+Definition LLconfiguration5 s:=
+forall partition LL LLtable FFI nextFFI, 
+In partition (getPartitions multiplexer s) ->
+getConfigTablesLinkedList partition (memory s) = Some LL ->
+In LLtable (getTrdShadows LL s (nbPage + 1)) ->
+isIndexValue LLtable (CIndex 0) FFI s ->
+StateLib.Index.succ FFI = Some nextFFI ->
+StateLib.getMaxIndex <> Some nextFFI. 
 (*%%%%%%%%%%%%%%%% PropagatedProperties %%%%%%%%%%%%%%%%%%*)
 Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
@@ -333,8 +342,51 @@ f_equal.
 apply IHl.
 Qed.
 
+Lemma readPhysicalUpdateLLCouplePPVA  idx1
+table idx (s : state)  p   x: 
+table <> p \/ idx <> idx1 ->
+StateLib.readPhysical p idx1
+  (add table idx (PP x) (memory s) beqPage beqIndex) =
+StateLib.readPhysical p idx1 (memory s).
+Proof.
+intros Hentry.
+unfold StateLib.readPhysical.
+cbn.
+assert(beqPairs (table, idx) (p, idx1) beqPage beqIndex= false).
+apply beqPairsFalse;trivial.
+rewrite H.
+assert(Hmemory : lookup p idx1 (removeDup table idx (memory s) beqPage beqIndex) beqPage beqIndex = 
+ lookup p idx1 (memory s) beqPage beqIndex ); intros.
+ { apply removeDupIdentity ; intuition. }
+rewrite Hmemory; reflexivity.
+Qed.
+
+
+Lemma getTrdShadowsUpdateLLCouplePPVA table idx p2 s x :
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+StateLib.getMaxIndex <> Some idx ->            
+getTrdShadows p2 s' (nbPage + 1) = getTrdShadows p2 s (nbPage + 1).
+Proof.
+intros.
+revert p2.
+induction  (nbPage + 1);simpl;trivial.
+case_eq( StateLib.getMaxIndex);intros;trivial.
+assert(Hreadp: StateLib.readPhysical p2 i (add table idx (PP x) (memory s) beqPage beqIndex) =
+StateLib.readPhysical p2 i (memory s)).
+apply readPhysicalUpdateLLCouplePPVA.
+right.
+contradict H;subst;trivial.
+rewrite Hreadp.
+destruct(StateLib.readPhysical p2 i (memory s));trivial.
+rewrite <- IHn;trivial.
+Qed.
+
 Lemma getConfigPagesUpdateLLCouplePPVA s x table idx entry part: 
 part <> table ->
+StateLib.getMaxIndex <> Some idx ->  
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
  getConfigPages part {|
 currentPartition := currentPartition s;
@@ -372,9 +424,8 @@ assert(Hind : forall root, getIndirections root s' = getIndirections root s).
   apply getIndirectionsUpdateLLCouplePPVA with entry;trivial. }
 do 3 rewrite Hind.
 do 3 f_equal.
-admit.
-Admitted.
-
+apply getTrdShadowsUpdateLLCouplePPVA ;trivial.
+Qed.
 
 Lemma getIndirectionUpdateLLCouplePPVA sh1 table idx s entry va nbL stop x:
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
@@ -820,6 +871,28 @@ f_equal.
 trivial.
 Qed.
 
+Lemma nextEntryIsPPUpdateLLCouplePPVA table idx0 partition idx v x entry s :
+lookup table idx0 (memory s) beqPage beqIndex = Some (PP entry) ->
+table <> partition ->
+nextEntryIsPP partition idx v s <-> 
+nextEntryIsPP partition idx v
+  {|
+currentPartition := currentPartition s;
+memory := add table idx0 (PP x)
+            (memory s) beqPage beqIndex |}.
+Proof.
+intros;
+unfold nextEntryIsPP in *;
+case_eq(StateLib.Index.succ idx ); [intros idxsucc Hidxsucc| intros Hidxsucc];simpl;split;trivial;intros;
+assert(Hbeqfalse:  beqPairs (table, idx0) (partition, idxsucc) beqPage beqIndex = false) by
+(apply beqPairsFalse;left;trivial);trivial;
+rewrite Hbeqfalse in *;
+ assert (lookup  partition idxsucc (removeDup table idx0 (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  partition idxsucc   (memory s) beqPage beqIndex) as Hmemory by
+(apply removeDupIdentity; intuition);
+     rewrite Hmemory in *; trivial.
+Qed.
+
 Lemma isVAUpdateLLCouplePPVA idx partition table entry idxroot s x:
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
 isVA partition idxroot s -> 
@@ -991,6 +1064,55 @@ case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex)
      rewrite Hmemory. trivial.
 Qed.
 
+Lemma isIndexValueUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+isIndexValue ptVaInCurPart idxvaInCurPart vainve s -> 
+isIndexValue ptVaInCurPart idxvaInCurPart vainve
+  {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |}.
+Proof.
+intros Hentry.
+unfold isIndexValue.
+cbn.
+case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   rewrite Hentry.
+   trivial.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed.
+
+Lemma isVA'UpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+isVA' ptVaInCurPart idxvaInCurPart vainve s -> 
+isVA' ptVaInCurPart idxvaInCurPart vainve
+  {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |}.
+Proof.
+intros Hentry.
+unfold isVA'.
+cbn.
+case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   rewrite Hentry.
+   trivial.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed.
+
+
 Lemma isEntryPageUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
 isEntryPage ptVaInCurPart idxvaInCurPart vainve s -> 
@@ -1019,6 +1141,7 @@ Lemma partitionsIsolationUpdateLLCouplePPVA s x table idx entry:
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
 partitionsIsolation s ->
 ~ In table (getPartitions multiplexer s)  ->
+StateLib.getMaxIndex <> Some idx -> 
 noDupPartitionTree s ->
 partitionsIsolation {|
 currentPartition := currentPartition s;
@@ -1026,7 +1149,7 @@ memory := add table idx (PP x)
             (memory s) beqPage beqIndex |}. 
 Proof.
 intros Hlookup Hisopart.
-intros.
+intros Hkey1 Hkey2 Hnodup.
 set(s' :=  {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -1053,7 +1176,7 @@ rewrite <- Hparts in *;trivial.
     rewrite Hmap in *;trivial. trivial. trivial. }    
   assert(Hchildren : getChildren parent s = getChildren parent s').
   apply getChildrenUpdateLLCouplePPVA with entry;trivial.
-  contradict H;subst;trivial.
+  contradict Hkey1;subst;trivial.
   rewrite <- Hchildren in *. clear Hchildren.
   assert( In child1 (getPartitions multiplexer s)).
   apply childrenPartitionInPartitionList with parent;trivial.
@@ -1062,11 +1185,12 @@ rewrite <- Hparts in *;trivial.
   rewrite Hused;trivial.
   rewrite Hused;trivial.
   apply Hisopart with parent;trivial.
-  contradict H2;subst;trivial.
-  contradict H1;subst;trivial.
+  contradict H0;subst;trivial.
+  contradict H;subst;trivial.
 Qed.
 
 Lemma kernelDataIsolationUpdateLLCouplePPVA s x table idx entry: 
+StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
 kernelDataIsolation s ->
@@ -1075,6 +1199,7 @@ currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |}. 
 Proof.
+intros Hkey2.
 intro.
 intros Hlookup.
 set(s' :=  {|
@@ -1099,6 +1224,7 @@ apply Hkdi;trivial.
 Qed.  
 
 Lemma verticalSharingUpdateLLCouplePPVA s x table idx entry: 
+StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
 noDupPartitionTree s ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
@@ -1108,6 +1234,7 @@ currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |}. 
 Proof.
+intros Hkey2.
 intros H H0.
 intros Hlookup.
 set(s' :=  {|
@@ -1143,6 +1270,82 @@ rewrite Hused;trivial.
 apply Hvs;trivial.
 contradict H;subst;trivial.
 contradict H;subst;trivial.
+Qed.
+
+
+Lemma isPPUpdateLLCouplePPVA table p idx idx0 x entry s:
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+isPP p idx0 s -> 
+isPP p idx0 {|
+      currentPartition := currentPartition s;
+      memory := add table idx (PP x) (memory s) beqPage beqIndex |}.
+Proof.      
+intros.
+unfold isPP in *.
+simpl.
+case_eq (beqPairs  (table, idx) (p, idx0)  beqPage beqIndex);trivial;intros Hpairs.
+apply beqPairsFalse in Hpairs.    
+assert (lookup p idx0 (removeDup table idx   (memory s) beqPage beqIndex)
+       beqPage beqIndex = lookup  p idx0  (memory s) beqPage beqIndex) as Hmemory.
+{ apply removeDupIdentity. intuition. }
+ rewrite Hmemory. trivial.
+Qed.
+
+
+Lemma dataStructurePdSh1Sh2asRootUpdateLLCouplePPVA s x table idx entry idxroot: 
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+~ In table (getPartitions multiplexer s) ->
+dataStructurePdSh1Sh2asRoot idxroot s ->
+dataStructurePdSh1Sh2asRoot idxroot {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |}. 
+Proof.
+intros Hlookup Hkey Hds.
+set(s' :=  {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |}) in *. 
+unfold dataStructurePdSh1Sh2asRoot in *.
+intros.
+assert(Hpartitions : getPartitions multiplexer
+    s = 
+getPartitions multiplexer s').
+apply getPartitionsUpdateLLCouplePPVA with entry; trivial.
+rewrite Hpartitions in *; clear Hpartitions.
+unfold s' in *.
+intros.
+rewrite <- nextEntryIsPPUpdateLLCouplePPVA in H0; try eassumption.
+assert (Hind : getIndirection entry0 va level stop s = Some indirection).
+{ rewrite <- H3. symmetry.
+  apply getIndirectionUpdateLLCouplePPVA with entry; trivial. }
+clear H3.
+assert(Hdss :indirection = defaultPage \/
+      (stop < level /\ isPE indirection idx0 s \/
+       stop >= level /\
+       (isVE indirection idx0 s /\ idxroot = sh1idx \/
+        isVA indirection idx0 s /\ idxroot = sh2idx \/ isPE indirection idx0 s /\ idxroot = PDidx)) /\
+      indirection <> defaultPage).
+apply Hds with partition entry0 va; trivial.
+clear Hds.
+destruct Hdss as [Hds | Hds];[left;trivial|].
+right.
+destruct Hds as (Hds & Hnotnull); split; trivial.
+destruct Hds as [(Hlt & Hpe) | Hds].
++ left; split; trivial.
+  apply isPEUpdateLLCouplePPVA with entry; trivial.
++ right.
+  destruct Hds as (Hlevel & [(Hve & Hidx) | [(Hva & Hidx) | (Hpe & Hidx)]]).
+  split; trivial.
+  - left; split; trivial.
+    apply isVEUpdateLLCouplePPVA with entry; trivial.
+  - split; trivial.
+    right; left;split; trivial.
+    apply isVAUpdateLLCouplePPVA with entry; trivial.
+  - split;trivial.
+    right;right; split; trivial.
+    apply isPEUpdateLLCouplePPVA with entry; trivial.
++ contradict Hkey;subst;trivial.
 Qed.
 
 Lemma partitionDescriptorEntryUpdateLLCouplePPVA s x table idx entry: 
@@ -1185,7 +1388,7 @@ assert(Hidx : idxroot < tableSize - 1 ).
   unfold PPRidx.
   unfold CIndex.
   case_eq( lt_dec 10 tableSize );intros;
-  simpl;omega.    
+  simpl;omega.
   unfold PRidx.
   unfold CIndex.
   case_eq( lt_dec 0 tableSize );intros;
@@ -1193,28 +1396,27 @@ assert(Hidx : idxroot < tableSize - 1 ).
 assert(Hparts : getPartitions multiplexer s = getPartitions multiplexer s').
 apply getPartitionsUpdateLLCouplePPVA with entry;trivial.
 rewrite <- Hparts in *;trivial. clear Hparts.
-assert (HPP : forall p idx, isPP p idx s -> isPP p idx s').
+assert (HPP : forall p idx, isVA p idx s -> isVA p idx s').
 { intros.
- (*  apply  isPPUpdateLLCouplePPVA with entry;trivial. *) admit. }
-assert (HPE : forall p idx x, nextEntryIsPP p idx x s -> 
+  apply isVAUpdateLLCouplePPVA with entry;trivial. }
+assert (HPE : forall p idx x, table <> p -> nextEntryIsPP p idx x s -> 
             nextEntryIsPP   p idx x s').
-{ intros. admit. }
-admit. (*
+{ intros.
+  apply nextEntryIsPPUpdateLLCouplePPVA with entry;trivial. }
+
 assert(Hconcl : idxroot < tableSize - 1 /\
-       isPP part idxroot s /\
-       (exists entry : page,
-          nextEntryIsPP part idxroot entry s /\ entry <> defaultPage)).
+       isVA part idxroot s /\
+       (exists entry : page, nextEntryIsPP part idxroot entry s /\ entry <> defaultPage)).
 apply Hpde;trivial.
 destruct Hconcl as (Hi1 & Hi2 & Hi3).
 split;trivial.
 split.
-apply HVA;trivial.
+apply HPP;trivial.
 destruct Hi3 as (entry0 & Hentry & Htrue).
 exists entry0;split;trivial.
 apply HPE;trivial.
-Qed. *)
-Admitted.
-
+contradict Hkey;subst;trivial.
+Qed. 
 
 Lemma currentPartitionInPartitionsListUpdateLLCouplePPVA s x table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
@@ -1276,6 +1478,7 @@ apply H;trivial.
 Qed.
 
 Lemma noDupConfigPagesListUpdateLLCouplePPVA s x table idx entry : 
+StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
 noDupConfigPagesList s ->
@@ -1285,6 +1488,7 @@ noDupConfigPagesList
   memory := add table idx (PP x) (memory s) beqPage
               beqIndex |}. 
 Proof.
+intros Hkey2.
 intro Hkey.
 intros Hlookup.
 unfold noDupConfigPagesList.
@@ -1334,11 +1538,12 @@ getPartitions multiplexer {|
 apply getPartitionsUpdateLLCouplePPVA with entry; trivial.
 rewrite <- Hpartitions in *; clear Hpartitions;trivial.
 apply H with partition;trivial.
-admit. (* 
-rewrite nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
-eapply H1.
-eapply Hlookup. *)
-Admitted. 
+rewrite nextEntryIsPPUpdateLLCouplePPVA with  entry;trivial.
+eassumption;trivial.
+trivial.
+contradict Hkey;subst;trivial.
+Qed.
+
 
 Lemma getPDFlagUpdateLLCouplePPVA s x table idx entry sh1 va: 
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
@@ -1471,10 +1676,10 @@ assert(Hpd : forall partition, In partition (getPartitions multiplexer s)
   apply getPdUpdateLLCouplePPVA with entry;trivial. }
 rewrite Hpd in *;trivial. clear Hpd.
 assert(Hpp : nextEntryIsPP partition idxroot structroot s ). 
-(* rewrite nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
-eassumption. *) 
+rewrite nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
+eassumption. 
 trivial.
-admit.
+contradict Hkey;subst;trivial.
 assert(Hind : forall root, getIndirection root va nbL stop
     {|
     currentPartition := currentPartition s;
@@ -1492,10 +1697,11 @@ exists indirection2;split;trivial.
 rewrite <- Hind1.
 apply Hind;trivial.
 contradict Hkey;subst;trivial.
-Admitted.
+Qed.
 
 Lemma getTableAddrRootUpdateLLCouplePPVA s vaInCurrentPartition table idx entry  idxroot 
 ptDescChild descChild currentPart: 
+table <> currentPart ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
 getTableAddrRoot ptDescChild idxroot currentPart descChild  s-> 
 getTableAddrRoot ptDescChild idxroot currentPart descChild
@@ -1504,15 +1710,16 @@ getTableAddrRoot ptDescChild idxroot currentPart descChild
   memory := add table idx (PP  vaInCurrentPartition) (memory s)
               beqPage beqIndex |}.
 Proof.
-intros Hlookup.
+intros Hkey Hlookup.
 unfold getTableAddrRoot.
 intros Hcond.
 destruct Hcond as(Hi & Hcond).
 split;trivial.
 intros. 
 assert(Hpp : nextEntryIsPP currentPart idxroot tableroot s ). 
-(* rewrite nextEntryIsPPUpdateLLCouplePPVA with entry;trivial. *) admit.
-(* eassumption. *)
+rewrite nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
+eassumption.
+trivial.
 trivial.
 apply Hcond in Hpp.
 destruct Hpp as (nbL & HnbL & stop & Hstop & Hind). 
@@ -1522,7 +1729,7 @@ exists stop.
 split;trivial. 
 rewrite <- Hind.
 apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
-Admitted.
+Qed.
 
 Lemma getAncestorsUpdateLLCouplePPVA s x table idx entry partition: 
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
@@ -1595,6 +1802,7 @@ apply H1;trivial.
 Qed.
 
 Lemma configTablesAreDifferentUpdateLLCouplePPVA s vaInCurrentPartition table idx entry :
+StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
 configTablesAreDifferent s -> 
@@ -1604,6 +1812,7 @@ configTablesAreDifferent
   memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
               beqIndex |}.
 Proof.
+intro Hkey2.
 intro Hkey.
 intros Hlookup.
 unfold configTablesAreDifferent.
@@ -2016,6 +2225,60 @@ contradict Hkey;subst;trivial.
 contradict Hkey;subst;trivial.
 Qed.
 
+Lemma wellFormedSndShadowUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
+~ In table (getPartitions multiplexer s) ->
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+wellFormedSndShadow s -> 
+wellFormedSndShadow
+  {|
+  currentPartition := currentPartition s;
+  memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
+              beqIndex |}.
+Proof.
+intro Hkey.
+intros Hlookup.
+unfold wellFormedSndShadow.
+intros.
+simpl in *.
+assert(Hpartitions : getPartitions multiplexer
+    s = 
+getPartitions multiplexer {|
+     currentPartition := currentPartition s;
+     memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
+                 beqIndex |}).
+apply getPartitionsUpdateLLCouplePPVA with entry; trivial.
+rewrite <- Hpartitions in *; clear Hpartitions;trivial.
+assert(Hpd : forall partition, In partition (getPartitions multiplexer s) 
+    -> partition <> table -> StateLib.getPd partition
+       (add table idx (PP vaInCurrentPartition) (memory s) beqPage beqIndex)
+       =  StateLib.getPd partition (memory s)).
+{ intros. apply getPdUpdateLLCouplePPVA with entry;trivial.  }
+rewrite Hpd in *;trivial. clear Hpd.
+assert(Hmap : forall pd va,  getMappedPage pd
+ {| currentPartition := currentPartition s;
+    memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
+             beqIndex |} va = getMappedPage pd s va ).
+{ intros. apply getMappedPageUpdateLLCouplePPVA with entry;trivial. }
+rewrite Hmap in *;trivial. clear Hmap.
+assert(Hsh1 :  forall partition, In partition (getPartitions multiplexer s) 
+    -> partition <> table -> StateLib.getSndShadow partition (memory s) =
+StateLib.getSndShadow partition
+    (add table idx (PP vaInCurrentPartition) (memory s) beqPage beqIndex)).
+{ symmetry. apply getSndShadowUpdateLLCouplePPVA with entry;trivial.  }
+rewrite <- Hsh1 in *;trivial. clear Hsh1.
+assert(Hgetvir1 : getVirtualAddressSh2 sh2 s va  =
+getVirtualAddressSh2 sh2 {|
+    currentPartition := currentPartition s;
+    memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
+                beqIndex |} va ).
+apply getVirtualAddressSh2UpdateLLCouplePPVA with entry;trivial.
+rewrite <- Hgetvir1;trivial.
+apply H with partition pg pd;trivial.
+contradict Hkey;subst;trivial.
+contradict Hkey;subst;trivial.
+Qed.
+
+
 Lemma wellFormedFstShadowIfNoneUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
 lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
@@ -2228,31 +2491,213 @@ contradict Hkey;subst;trivial.
 Qed.
 
 Lemma consistencyUpdateLLCouplePPVA newLastLLable nextFFI v entry s:
+StateLib.getMaxIndex <> Some nextFFI -> 
 lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)->
 ~ In newLastLLable (getPartitions multiplexer s) ->
 consistency s -> consistency {|
   currentPartition := currentPartition s;
   memory := add newLastLLable nextFFI (PP v) (memory s) beqPage beqIndex |}.
 Proof.
-intros Hlookup.
+intros Hkey2 Hlookup.
 unfold consistency;intuition.
 + apply partitionDescriptorEntryUpdateLLCouplePPVA with entry;trivial.
-+ admit.
-+ admit.
-+ admit.
++ apply dataStructurePdSh1Sh2asRootUpdateLLCouplePPVA with entry;trivial.
++ apply dataStructurePdSh1Sh2asRootUpdateLLCouplePPVA with entry;trivial.
++ apply dataStructurePdSh1Sh2asRootUpdateLLCouplePPVA with entry;trivial.
 + apply currentPartitionInPartitionsListUpdateLLCouplePPVA with entry;trivial.
 + apply noDupMappedPagesListUpdateLLCouplePPVA with entry;trivial.
 + apply noDupConfigPagesListUpdateLLCouplePPVA with entry;trivial.
 + apply parentInPartitionListUpdateLLCouplePPVA with entry;trivial.
 + apply accessibleVAIsNotPartitionDescriptorUpdateLLCouplePPVA with entry;trivial.
 + apply accessibleChildPageIsAccessibleIntoParentUpdateSh2 with entry;trivial.
++ apply noCycleInPartitionTreeUpdateLLCouplePPVA with entry;trivial.
++ apply configTablesAreDifferentUpdateLLCouplePPVA with entry;trivial.
++ apply isChildUpdateLLCouplePPVA with entry;trivial.
++ apply isPresentNotDefaultIffUpdateLLCouplePPVA with entry;trivial.
++ apply physicalPageNotDerivedUpdateLLCouplePPVA with entry;trivial.
++ apply multiplexerWithoutParentUpdateLLCouplePPVA with entry;trivial.
++ apply isParentUpdateLLCouplePPVA with entry;trivial.
++ apply noDupPartitionTreeUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedFstShadowUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedSndShadowUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedShadowsUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedShadowsUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedFstShadowIfNoneUpdateLLCouplePPVA with entry;trivial.
++ apply wellFormedFstShadowIfDefaultValuesUpdateLLCouplePPVA with entry;trivial.
+Qed.
 
-Admitted.
+Lemma isEntryVAExistsUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s   x:
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+(exists va : vaddr,
+       isEntryVA ptVaInCurPart idxvaInCurPart va s/\
+        beqVAddr defaultVAddr va = false)
+ -> exists va : vaddr,
+isEntryVA ptVaInCurPart idxvaInCurPart va 
+  {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |}/\
+        beqVAddr defaultVAddr va = false.
+Proof.
+intros Hentry.
+cbn.
+intros.
+destruct H as (va & Hva & Hx).
+exists va;split;trivial.
+apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
+Qed.
+Lemma indirectionDescriptionUpdateLLCouplePPVA    l descChildphy x idx table entry
+phyPDChild vaToPrepare  idxroot s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+table <> descChildphy ->
+indirectionDescription s descChildphy phyPDChild idxroot vaToPrepare l -> 
+indirectionDescription s' descChildphy phyPDChild idxroot vaToPrepare l.
+Proof.
+intros s' Hlookup  Hkey Hind.
+unfold indirectionDescription in *.
+destruct Hind as (tableroot & Hpp & Hnotdef & Hor).
+exists tableroot.
+split;trivial.
+unfold s'.
+
+rewrite <- nextEntryIsPPUpdateLLCouplePPVA;trivial.
+ eassumption.
+split;trivial.
+destruct Hor as  [(Hroot & Hl) |(nbL & stop& HnbL & Hstop & Hind & Hnotdefind & Hl)].
+left;split;trivial.
+right.
+exists nbL, stop.
+intuition.
+rewrite <- Hind.
+apply getIndirectionUpdateLLCouplePPVA with entry;trivial. 
+Qed.
+
+Lemma initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLCouplePPVA pg
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+StateLib.getMaxIndex <> Some idx ->             
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+~ In table (getPartitions multiplexer s) ->
+initPEntryTablePreconditionToPropagatePrepareProperties s pg ->
+(* isPartitionFalse ptSh1 (StateLib.getIndexOfAddr vaValue fstLevel)  s ->  *)
+initPEntryTablePreconditionToPropagatePrepareProperties s' pg.
+Proof.
+intros s' Hkey2 Hlookup (*   *)Hnotpart (Hgoal & Hnotdef).
+unfold initPEntryTablePreconditionToPropagatePrepareProperties.
+split;trivial.
+intros part Hpart.
+assert(Hpartitions: getPartitions multiplexer s' = getPartitions multiplexer s). (* *)
+symmetry. apply getPartitionsUpdateLLCouplePPVA with v0;trivial.
+rewrite Hpartitions in *.
+assert(Hconf: getConfigPages part s'= getConfigPages part s).
+apply getConfigPagesUpdateLLCouplePPVA with v0;trivial.
+contradict Hnotpart;subst;trivial.
+rewrite Hconf.
+apply Hgoal;trivial.
+Qed.
+
+Lemma writeAccessibleRecPreparePostconditionUpdateLLCouplePPVA desc  pg
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+~ In table (getAncestors desc s) ->
+table <> desc ->
+(* initPEntryTablePreconditionToPropagatePrepareProperties s pg ->  *)         
+writeAccessibleRecPreparePostcondition desc pg s ->
+writeAccessibleRecPreparePostcondition desc pg s'.
+Proof.
+intros s' Hlookup Hnotpart Hnot Hgoal .
+unfold writeAccessibleRecPreparePostcondition in *.
+intros part Hpart.
+assert(Hances: getAncestors desc s' = getAncestors desc s).
+apply getAncestorsUpdateLLCouplePPVA with v0;trivial.
+rewrite Hances in *;trivial.
+assert(Haccess: getAccessibleMappedPages part s' = getAccessibleMappedPages part s). (* *)
+ apply getAccessibleMappedPagesUpdateLLCouplePPVA with v0;trivial.
+contradict Hnotpart;subst;trivial.
+rewrite Haccess.
+apply Hgoal;trivial.
+Qed.
+
+Lemma isWellFormedMMUTablesUpdateLLCouplePPVA pg
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+isWellFormedMMUTables pg s -> isWellFormedMMUTables pg s'.
+Proof.
+intros s' Hlookup Hgoal.
+unfold isWellFormedMMUTables in *.
+intros.
+generalize (Hgoal idx0);clear Hgoal; intros (Hphy & Hpres).
+split.
+rewrite <- Hphy.
+apply readPhyEntryUpdateLLCouplePPVA with v0;trivial.
+rewrite <- Hpres.
+apply readPresentUpdateLLCouplePPVA with v0;trivial.
+Qed.
+
+Lemma isWellFormedFstShadowTablesUpdateLLCouplePPVA  (* pt idx vaValue v0  partition  *)s nbL phySh1addr x table idx v0:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+(*initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr -> 
+In partition (getPartitions multiplexer s) -> 
+In pt (getConfigPages partition s) ->   *)
+isWellFormedFstShadow nbL phySh1addr s-> isWellFormedFstShadow nbL phySh1addr s'.
+Proof.
+intros s' Hlookup (* (Hnotconfig&Hnotnull) Hpart Hconfig  *)Hgoal.
+unfold isWellFormedFstShadow in *.
+destruct Hgoal as [(Hl & Hgoal) |(Hl & Hgoal)];[left|right];split;trivial;intros idx0;
+generalize (Hgoal idx0);clear Hgoal; intros (Hphy & Hpres);
+rewrite <- Hpres;rewrite<-  Hphy;split.
+apply readPhyEntryUpdateLLCouplePPVA with v0;trivial.
+apply readPresentUpdateLLCouplePPVA with v0;trivial.
+apply readVirEntryUpdateLLCouplePPVA with v0;trivial.
+apply readPDflagUpdateLLCouplePPVA with v0;trivial.
+Qed.
+
+Lemma isWellFormedSndShadowTablesUpdateLLCouplePPVA s pg idx  v0 l table  x:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+isWellFormedSndShadow l pg s -> isWellFormedSndShadow l pg s'.
+Proof.
+intros s' Hlookup Hgoal.
+unfold isWellFormedSndShadow in *.
+intros.
+destruct Hgoal as [(Hl & Hgoal) |(Hl & Hgoal)];[left|right];split;trivial;intros idx0;
+generalize (Hgoal idx0);clear Hgoal;[ intros (Hphy & Hpres)| intros Hphy];
+rewrite <- Hphy;[rewrite<-  Hpres;split|].
+apply readPhyEntryUpdateLLCouplePPVA with v0;trivial.
+apply readPresentUpdateLLCouplePPVA with v0;trivial.
+apply readVirtualUpdateLLCouplePPVA with v0;trivial.
+Qed.
+
+
 
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred newLastLLable nextFFI (LLDescChild:page):
+      zeroI lpred newLastLLable nextFFI (LLDescChild:page) entry:
+lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry) ->
+StateLib.getMaxIndex <> Some nextFFI ->  
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
@@ -2264,9 +2709,10 @@ insertEntryIntoLLPC {|
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
       zeroI lpred.
 Proof.
+intros Hlookup Hkey2.
 intros.
-assert(exists entry, 
-      lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)) as (entry & Hlookup) by admit.
+set(s':=  {|
+     currentPartition := _|}). 
 assert (HtableinLL: In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1))) by admit. 
 assert(HLL: getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild) by admit.
 assert(Hchildpart:In descChildphy (getPartitions multiplexer s)) by (unfold insertEntryIntoLLPC, 
@@ -2277,13 +2723,82 @@ assert(Htableinconfig: In newLastLLable (getConfigPages descChildphy s)).
 assert(Htablenotpart : ~ In newLastLLable (getPartitions multiplexer s)).
 {  apply LLtableNotPartition with descChildphy LLDescChild;trivial;
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *;intuition. }
-unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst.
+assert(Hpartitions : getPartitions multiplexer s = getPartitions multiplexer s') by (
+    apply getPartitionsUpdateLLCouplePPVA with entry; trivial).
+assert(Hnotanc: ~ In newLastLLable (getAncestors (currentPartition s) s)). 
+{ contradict Htablenotpart.
+  apply ancestorInPartitionTree with (currentPartition s);trivial;unfold insertEntryIntoLLPC, 
+  propagatedPropertiesPrepare, consistency in *;intuition. }
+assert(Hcurpart: In (currentPartition s) (getPartitions multiplexer s)) by
+(unfold insertEntryIntoLLPC, 
+  propagatedPropertiesPrepare, consistency in *;intuition).
+assert(Hnotcurpart: newLastLLable <> currentPartition s) by 
+ (contradict Htablenotpart;subst;trivial).
+assert(Hnotpartchild: newLastLLable <> descChildphy) by
+ (contradict Htablenotpart;subst;trivial).
+unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;simpl.
 + apply kernelDataIsolationUpdateLLCouplePPVA with entry ;trivial.
 + apply partitionsIsolationUpdateLLCouplePPVA with entry;trivial; unfold consistency in *;intuition.
 + apply verticalSharingUpdateLLCouplePPVA with entry ;trivial; unfold consistency in *;intuition.
-+
++ apply consistencyUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isPEUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryVAExistsUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isVEUpdateLLCouplePPVA   with entry;trivial.
++ apply isEntryPageUpdateLLCouplePPVA with entry;trivial.
++ apply entryPresentFlagUpdateLLCouplePPVA with entry;trivial.
++ apply entryUserFlagUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isPEUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryVAExistsUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isVEUpdateLLCouplePPVA   with entry;trivial.
++ apply isEntryVAExistsUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isVEUpdateLLCouplePPVA   with entry;trivial.
++ apply isEntryPageUpdateLLCouplePPVA with entry;trivial.
++ apply entryPresentFlagUpdateLLCouplePPVA with entry;trivial.
++ apply entryUserFlagUpdateLLCouplePPVA with entry;trivial.
++ apply getTableAddrRootUpdateLLCouplePPVA with entry;trivial.
++ apply isPEUpdateLLCouplePPVA with entry;trivial.
++ apply entryUserFlagUpdateLLCouplePPVA with entry;trivial.
++ apply entryPresentFlagUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryPageUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryPageUpdateLLCouplePPVA with entry;trivial.
++ unfold s'. rewrite <- nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
++ unfold s'. rewrite <- nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
++ unfold s'. rewrite <- nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
++ rewrite <- Hpartitions ;trivial.
++ unfold indirectionDescriptionAll in *;intuition;
+  apply indirectionDescriptionUpdateLLCouplePPVA with entry;trivial.
++ unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
+  intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLCouplePPVA
+  with entry;trivial.
++ unfold writeAccessibleRecPreparePostconditionAll in *;intuition;
+  apply writeAccessibleRecPreparePostconditionUpdateLLCouplePPVA with entry;trivial.
++ unfold isWellFormedTables in *; intuition.
+  apply isWellFormedMMUTablesUpdateLLCouplePPVA with entry;trivial.
+  apply isWellFormedFstShadowTablesUpdateLLCouplePPVA with entry;trivial.
+  apply isWellFormedSndShadowTablesUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
++ apply isEntryVAUpdateLLCouplePPVA with entry;trivial.  
 Admitted.
 
+Lemma isPP'SameValueUpdateLLCouplePPVA  newLastLLable nextFFI phyMMUaddr s:
+isPP' newLastLLable nextFFI phyMMUaddr
+  {|
+  currentPartition := currentPartition s;
+  memory := add newLastLLable nextFFI (PP phyMMUaddr) (memory s) beqPage beqIndex |}.
+Proof.
+unfold isPP'.
+simpl.
+assert(Hbeqtrue:beqPairs (newLastLLable, nextFFI) (newLastLLable, nextFFI) beqPage beqIndex=true)by 
+ (apply beqPairsTrue;split;trivial).
+rewrite Hbeqtrue;trivial.
+Qed.
+ 
 Lemma writePhysicalUpdateLLCouplePPVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
@@ -2303,11 +2818,18 @@ Lemma writePhysicalUpdateLLCouplePPVA ptMMUTrdVA phySh2addr phySh1addr indMMUToP
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
         idxFstVA idxSndVA idxTrdVA zeroI lpred /\ zeroI' = CIndex 0) /\
      isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s }}.
+    StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s /\ isPP' newLastLLable nextFFI phyMMUaddr s }}.
 Proof.
 eapply weaken.
 eapply WP.writePhysical.
 simpl;intros.
+assert(exists entry, 
+      lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)) as (entry & Hlookup) by admit.
+assert(Hidx: StateLib.getMaxIndex <> Some nextFFI ) by admit.
 intuition.
+apply insertEntryIntoLLPCUpdateLLCouplePPVA with entry;trivial.
+apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
+apply isVA'UpdateLLCouplePPVA with entry;trivial.
+apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
+apply isPP'SameValueUpdateLLCouplePPVA;trivial.
 Admitted.
-
