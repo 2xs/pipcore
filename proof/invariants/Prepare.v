@@ -1485,7 +1485,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
     (userMMUSndVA:=true) (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)  .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) .
     simpl.
     intros.
     simpl.

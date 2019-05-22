@@ -102,8 +102,10 @@ destruct v ;try now contradict H1.
 subst;trivial.
 Qed.
 
-Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
-{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s  }}.
+
+
+Lemma checkEnoughEntriesLinkedListeqstate LLtable  (si:state) :
+{{ fun s => s=si }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s =>s=si }}.
 Proof.
 unfold checkEnoughEntriesLinkedList.
 revert LLtable.
@@ -115,6 +117,7 @@ eapply weaken.
 eapply WP.ret.
 simpl.
 intros;trivial.
+intuition.
 eapply bindRev.
 (** Index.const3 **)
 unfold Index.const3.
@@ -178,10 +181,148 @@ intros.
 case_eq a;intros;subst.
 eapply WP.weaken.  eapply WP.ret . simpl. intros. intuition.
 eapply weaken.
-eapply IHn.
+eapply strengthen.
+eapply IHn. omega.
 intros.
-omega.
+simpl in *.
+intuition.
 intros.
 simpl.
 intuition.
+Admitted.
+Lemma eqstate n nextLLtable s s0 p:
+checkEnoughEntriesLLAux n nextLLtable s = val (p, s0) -> s=s0.
+Proof.
+intros.
+pose proof checkEnoughEntriesLinkedListeqstate.
+unfold hoareTriple in *.
+assert(s=s) by trivial.
+generalize(H0 nextLLtable s s H1);intros.
+
+rewrite H in H2. 
+
+destruct H0.
+
+Qed.
+
+Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
+{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ ( lasttable <> defaultPage -> In lasttable (getTrdShadows LLtable s (nbPage + 1))) }}.
+Proof.
+unfold checkEnoughEntriesLinkedList.
+revert LLtable.
+assert(Htrue: nbPage <= nbPage) by omega.
+revert Htrue.
+generalize nbPage  at 1 3 4 .
+induction n;simpl;intros.
+eapply weaken.
+eapply WP.ret.
+simpl.
+intros;trivial.
+intuition.
+eapply bindRev.
+(** Index.const3 **)
+unfold Index.const3.
+eapply weaken.
+eapply Invariants.ret.
+simpl;intros.
+apply H.
+simpl.
+intros threeI.
+(** getnbFreeEntriesLL *)
+eapply bindRev.
+eapply weaken.
+eapply getnbFreeEntriesLLInv.
+intros.
+simpl.
+split. 
+eapply H.
+admit. (** Consistency not found : LLconfiguration1 *) 
+intros nbfree;simpl.
+eapply bindRev.
+eapply weaken.
+eapply Invariants.Index.geb;simpl.
+intros.
+simpl.
+eapply H.
+intros gebnbfree.
+simpl.
+case_eq(gebnbfree);intros;subst.
+eapply weaken.
+eapply WP.ret.
+simpl.
+intros;trivial.
+intuition.
+assert(Hmaxidx: exists maxindex, StateLib.getMaxIndex = Some maxindex).
+{
+unfold StateLib.getMaxIndex.
+case_eq(gt_dec tableSize 0);intros;simpl.
+eexists.
+f_equal.
+pose proof tableSizeBigEnough.
+omega. }
+destruct Hmaxidx as (maxidx & Hmaxidx).
+destruct nbPage;simpl;
+rewrite Hmaxidx;
+destruct ( StateLib.readPhysical LLtable maxidx (memory s));simpl;trivial;try left;trivial;
+destruct (p =? defaultPage);simpl;left;trivial.
+(** getMaxIndex *)
+eapply WP.bindRev.
+eapply WP.weaken.
+eapply Invariants.getMaxIndex.
+intros; simpl.
+pattern s in H;eassumption. 
+intros maxidx; simpl.
+eapply bindRev.
+(** readPhysical *)
+eapply weaken.
+eapply Invariants.readPhysical.
+intros.
+simpl.
+split;trivial.
+eapply H.
+admit. (** Consistency not found : LLconfiguration2 *) 
+simpl.
+intros nextLLtable.
+eapply bindRev.
+(** comparePageToNull **)
+eapply weaken.
+eapply Invariants.comparePageToNull.
+intros.
+simpl.
+eapply H.
+simpl.
+intros.
+case_eq a;intros;subst.
+eapply WP.weaken.  eapply WP.ret . simpl. intros. intuition.
+unfold hoareTriple in *;intros.
+assert(match checkEnoughEntriesLLAux n nextLLtable s with
+      | val (a, s') =>
+          P s' /\ (a <> defaultPage -> In a (getTrdShadows nextLLtable s' (n + 1)))
+      | undef _ _ => False
+      end).
+      apply IHn;trivial. omega. intuition.
+      case_eq( checkEnoughEntriesLLAux n nextLLtable s);intros;simpl;rewrite H1 in *;trivial.
+      destruct p.
+      intuition.
+
+assert(Hmaxidx: exists maxindex, StateLib.getMaxIndex = Some maxindex).
+{
+unfold StateLib.getMaxIndex.
+case_eq(gt_dec tableSize 0);intros;simpl.
+eexists.
+f_equal.
+pose proof tableSizeBigEnough.
+omega. }
+destruct Hmaxidx as (maxidx1 & Hmaxidx).
+rewrite Hmaxidx.
+assert(maxidx=maxidx1) by admit.
+subst.
+assert(StateLib.readPhysical LLtable (CIndex (tableSize - 1)) (memory s0)  = Some nextLLtable).
+unfold isPP' in *.
+unfold StateLib.readPhysical.
+rewrite H4.
+rewrite Nat.eqb_sym.
+rewrite H3.
+simpl.
+right;trivial.
 Admitted.
