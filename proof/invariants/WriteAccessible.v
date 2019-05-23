@@ -1101,7 +1101,7 @@ intros. f_equal.
 
 Lemma getConfigTablesLinkedListsUpdateUserFlag s sh3 flag table idx entry :
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
-getTrdShadows sh3
+getLLPages sh3
   {|
   currentPartition := currentPartition s;
   memory := add table idx
@@ -1113,7 +1113,7 @@ getTrdShadows sh3
                  present := present entry;
                  user := flag;
                  pa := pa entry |}) (memory s) beqPage beqIndex |} (nbPage+1) =
-getTrdShadows sh3 s (nbPage+1).
+getLLPages sh3 s (nbPage+1).
 Proof.
 revert sh3.
 induction (nbPage+1);trivial.

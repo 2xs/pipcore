@@ -368,14 +368,14 @@ end.
 (** The [geTrdShadows] returns physical pages used to keep informations about 
     configuration pages 
 *)
-Fixpoint getTrdShadows (sh3 : page) s bound :=
+Fixpoint getLLPages (sh3 : page) s bound :=
 match bound with 
 |0 => []
 |S bound1 => match getMaxIndex with 
             |None => []
             |Some maxindex =>  match readPhysical sh3 maxindex s.(memory) with 
                                 |None => [sh3]
-                                |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getTrdShadows addr s bound1
+                                |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getLLPages addr s bound1
                                end
            end
 end.
@@ -493,7 +493,7 @@ match getPd partition s.(memory),
 | Some pd , Some sh1, Some sh2 , Some sh3  => (getIndirections pd s)++
                          (getIndirections sh1 s)++
                          (getIndirections sh2 s )++
-                         (getTrdShadows sh3 s (nbPage+1))
+                         (getLLPages sh3 s (nbPage+1))
 |_,_,_,_ => []
 end.
 

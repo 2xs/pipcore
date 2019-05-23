@@ -463,8 +463,8 @@ indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaTo
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
 initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr /\
 getConfigTablesLinkedList descChildphy (memory s) = Some LLroot /\
-In LLChildphy (getTrdShadows LLroot s (nbPage + 1)) /\
-In newLastLLable (getTrdShadows LLroot s (nbPage + 1)).
+In LLChildphy (getLLPages LLroot s (nbPage + 1)) /\
+In newLastLLable (getLLPages LLroot s (nbPage + 1)).
 (* 
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\

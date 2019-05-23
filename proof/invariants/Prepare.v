@@ -54,7 +54,7 @@ indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l /\
 indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\
 indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
 getConfigTablesLinkedList descChildphy (memory s) = Some fstLL /\
-In LLChildphy (getTrdShadows fstLL s (nbPage + 1))
+In LLChildphy (getLLPages fstLL s (nbPage + 1))
      }} 
 prepareRec (nbLevel+1) descChild descChildphy phyPDChild phySh1Child phySh2Child LLChildphy vaToPrepare fstVA l
 {{fun _ s  => partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.

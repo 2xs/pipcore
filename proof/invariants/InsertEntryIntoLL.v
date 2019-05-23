@@ -45,14 +45,14 @@ Definition LLconfiguration3 s:=
 forall part fstLL LLtable,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s (nbPage+1)) -> 
+In LLtable (getLLPages part s (nbPage+1)) -> 
 isI LLtable (CIndex 0) s.
 
 Definition LLconfiguration4 s:=
 forall part fstLL LLtable,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s (nbPage+1)) -> 
+In LLtable (getLLPages part s (nbPage+1)) -> 
 exists FFI nextFFI,
 StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI 
 /\ isVA LLtable FFI s /\ FFI < tableSize - 1 
@@ -85,7 +85,7 @@ getConfigTablesLinkedList partition (memory s) = Some LL ->
 consistency s ->
 In partition (getPartitions multiplexer s) ->
 In tbl (getIndirections sh2 s) ->
-In newLastLLable (getTrdShadows LL s (nbPage + 1)) -> 
+In newLastLLable (getLLPages LL s (nbPage + 1)) -> 
 NoDup (getConfigPagesAux partition s) -> tbl <> newLastLLable.
 Proof.
 intros Hsh2 HLL Hcons Hpart Hi1 Hi2 Hnodup. 
@@ -117,7 +117,7 @@ Qed.
 Lemma getVirtualAddressSh2UpdateLLContent newLastLLable FFI x sh2 va entry LL partition s:
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList partition (memory s) = Some LL -> 
-In newLastLLable (getTrdShadows LL s (nbPage + 1)) ->
+In newLastLLable (getLLPages LL s (nbPage + 1)) ->
 consistency s ->
 In partition (getPartitions multiplexer s) ->
 getSndShadow partition (memory s) = Some sh2 ->
@@ -167,7 +167,7 @@ Qed.
 Lemma isAccessibleMappedPageInParentUpdateLLContentSamePart partition accessiblePage newLastLLable FFI x va entry  LL (* l *) s:
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList partition (memory s) = Some LL -> 
-In newLastLLable (getTrdShadows LL s (nbPage + 1)) ->
+In newLastLLable (getLLPages LL s (nbPage + 1)) ->
 consistency s ->
 (* Some l = StateLib.getNbLevel -> *)
 In partition (getPartitions multiplexer s) ->
@@ -217,7 +217,7 @@ lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList phyDescChild (memory s) = Some LLDescChild ->
 getSndShadow partition (memory s) = Some sh2 ->
 consistency s ->
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 In phyDescChild (getPartitions multiplexer s) ->
 In partition (getPartitions multiplexer s) ->
 partition <> phyDescChild ->
@@ -298,7 +298,7 @@ Lemma isAccessibleMappedPageInParentUpdateLLContentNotSamePart partition va
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList phyDescChild (memory s) = Some LLDescChild ->
 consistency s ->
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 In phyDescChild (getPartitions multiplexer s) ->
 In partition (getPartitions multiplexer s) ->
 partition <> phyDescChild ->
@@ -355,7 +355,7 @@ lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList phyDescChild (memory s) = Some LLDescChild ->
 (* nextEntryIsPP phyDescChild PDidx pdChildphy s -> *)
 consistency s ->
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 In phyDescChild (getPartitions multiplexer s) ->
 accessibleChildPageIsAccessibleIntoParent
   {|
@@ -407,7 +407,7 @@ lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 getConfigTablesLinkedList phyDescChild (memory s) = Some LLDescChild ->
 (* nextEntryIsPP phyDescChild PDidx pdChildphy s -> *)
 consistency s ->
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 In phyDescChild (getPartitions multiplexer s) ->
 wellFormedSndShadow
   {|
@@ -465,7 +465,7 @@ lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 consistency s -> 
 getConfigTablesLinkedList phyDescChild (memory s) = Some LLDescChild ->
 (* nextEntryIsPP phyDescChild PDidx pdChildphy s -> *)
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 In phyDescChild (getPartitions multiplexer s) -> 
 consistency  {| currentPartition := currentPartition s; memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |}.
 Proof.
@@ -593,7 +593,7 @@ Qed.
 Lemma isWellFormedTablesUpdateLLContent (phyMMUaddr phySh1addr phySh2addr : page) (lpred : level) (s : state)
  newLastLLable FFI x entry LLDescChild descChildphy:
 initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr->
-In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) ->
+In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) ->
 getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild ->
 In descChildphy (getPartitions multiplexer s) ->
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
@@ -669,7 +669,7 @@ intuition;subst.
 + apply verticalSharingUpdateSh2 with entry; trivial.
 + apply consistencyUpdateLLContent with descChildphy LLroot entry;trivial.
   (** getConfigTablesLinkedList descChildphy (memory s) = Some LLDescChild **)
-  (** In newLastLLable (getTrdShadows LLDescChild s (nbPage + 1)) *)
+  (** In newLastLLable (getLLPages LLDescChild s (nbPage + 1)) *)
 + apply getTableAddrRootUpdateSh2 with entry;trivial.
 + apply isPEUpdateSh2 with entry;trivial.
 + assert(Hva: exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) 
@@ -750,7 +750,7 @@ intuition.
   trivial.
   eassumption.
   trivial.
-  (** In newLastLLable (getTrdShadows ?LLDescChild s (nbPage + 1)) **)
+  (** In newLastLLable (getLLPages ?LLDescChild s (nbPage + 1)) **)
   (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.

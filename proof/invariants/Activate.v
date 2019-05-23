@@ -199,10 +199,10 @@ destruct( StateLib.getPd partition (memory s)); intros; trivial.
 apply getAccessibleMappedPagesAuxUpdateCurrentPartition.
 Qed.
 
-Lemma getTrdShadowsUpdateCurrentPartition  s:
+Lemma getLLPagesUpdateCurrentPartition  s:
 forall phyVA p2 : page,
-getTrdShadows p2 s (nbPage+1) = 
-getTrdShadows p2 {| currentPartition := phyVA; memory := memory s |} (nbPage+1).
+getLLPages p2 s (nbPage+1) = 
+getLLPages p2 {| currentPartition := phyVA; memory := memory s |} (nbPage+1).
 Proof.
 induction nbPage; simpl; trivial.
 intros.
@@ -230,7 +230,7 @@ rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
 do 3 f_equal. 
 clear p partition p0 p1.
 revert phyVA p2.
-apply getTrdShadowsUpdateCurrentPartition. 
+apply getLLPagesUpdateCurrentPartition. 
 Qed.
 
 Lemma getUsedPagesUpdateCurrentDescriptor s phyVA child1:
@@ -650,7 +650,7 @@ split.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
-    rewrite <- getTrdShadowsUpdateCurrentPartition.
+    rewrite <- getLLPagesUpdateCurrentPartition.
     simpl in *. 
     apply H1; trivial.
   - split.
@@ -711,7 +711,7 @@ split.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
-          rewrite <- getTrdShadowsUpdateCurrentPartition;trivial. }
+          rewrite <- getLLPagesUpdateCurrentPartition;trivial. }
           rewrite <- Heq.
           apply Hnodup;trivial.
           rewrite getPartitionsUpdateCurrentDescriptor with s phyVA multiplexer; trivial.
@@ -890,7 +890,7 @@ split.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
-    rewrite <- getTrdShadowsUpdateCurrentPartition.
+    rewrite <- getLLPagesUpdateCurrentPartition.
     apply H1; trivial.
   - split.  unfold verticalSharing in *. intros.
     rewrite <- getUsedPagesUpdateCurrentDescriptor with s parent child.
@@ -944,7 +944,7 @@ split.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
-          rewrite <- getTrdShadowsUpdateCurrentPartition;trivial. }
+          rewrite <- getLLPagesUpdateCurrentPartition;trivial. }
           rewrite <- Heq.
           apply Hnodup;trivial.
           rewrite getPartitionsUpdateCurrentDescriptor with s parent multiplexer; trivial.
@@ -1098,10 +1098,10 @@ intros.
 apply getMappedPagesAuxUpdateCurrentPartition.
 Qed.
 
-Lemma getTrdShadowsActivate (newCurrentPartition : page) (s : state) :
+Lemma getLLPagesActivate (newCurrentPartition : page) (s : state) :
 let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
 forall (somePage : page),
-getTrdShadows somePage s (nbPage + 1) = getTrdShadows somePage s' (nbPage + 1).
+getLLPages somePage s (nbPage + 1) = getLLPages somePage s' (nbPage + 1).
 Proof.
 intro.
 induction (nbPage + 1).
@@ -1168,7 +1168,7 @@ unfold s'.
 rewrite <- (getIndirectionsActivate newCurrentPartition s).
 rewrite <- (getIndirectionsActivate newCurrentPartition s).
 rewrite <- (getIndirectionsActivate newCurrentPartition s).
-rewrite <- (getTrdShadowsActivate newCurrentPartition s).
+rewrite <- (getLLPagesActivate newCurrentPartition s).
 reflexivity.
 Qed.
 

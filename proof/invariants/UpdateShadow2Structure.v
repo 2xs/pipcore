@@ -258,12 +258,12 @@ Qed.
 Lemma getConfigTablesLinkedListsUpdateSh2 sh3  (descChild : vaddr) table idx entry
  (s : state) vaInCurrentPartition:
 lookup table idx (memory s) beqPage beqIndex = Some (VA entry) -> 
-getTrdShadows sh3
+getLLPages sh3
  {|
 currentPartition := currentPartition s;
 memory := add table idx (VA vaInCurrentPartition)
             (memory s) beqPage beqIndex |} (nbPage+1) =
-getTrdShadows sh3 s (nbPage+1).
+getLLPages sh3 s (nbPage+1).
 Proof.
 revert sh3.
 induction (nbPage+1);trivial.

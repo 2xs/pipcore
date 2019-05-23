@@ -1006,14 +1006,14 @@ rewrite IHl.
   split; trivial.
 Qed.
 
-Lemma getTrdShadowsUpdateMappedPageData sh3 table idx x s :
-~ In table (getTrdShadows sh3 s (nbPage+1)) -> 
-getTrdShadows sh3
+Lemma getLLPagesUpdateMappedPageData sh3 table idx x s :
+~ In table (getLLPages sh3 s (nbPage+1)) -> 
+getLLPages sh3
   {|
   currentPartition := currentPartition s;
   memory := add table idx
               x (memory s) beqPage beqIndex |} (nbPage+1) = 
-getTrdShadows sh3 s (nbPage+1).
+getLLPages sh3 s (nbPage+1).
 Proof. 
 revert sh3.
 induction (nbPage+1);trivial.
@@ -1097,7 +1097,7 @@ destruct H1.
  unfold getIndirections in *. 
 try repeat rewrite getIndirectionsAuxUpdateMappedPageData; f_equal; trivial.
 do 2 f_equal.
-apply getTrdShadowsUpdateMappedPageData; trivial.
+apply getLLPagesUpdateMappedPageData; trivial.
 Qed.
 Lemma getConfigPagesAuxUpdateMappedPageData partition table idx x s : 
 ~ In table (getConfigPages partition s) -> 
@@ -3811,7 +3811,7 @@ unfold getIndirections.
 rewrite  getIndirectionsAuxUpdateMappedPageData.     
 rewrite  getIndirectionsAuxUpdateMappedPageData.
 rewrite  getIndirectionsAuxUpdateMappedPageData. 
-rewrite getTrdShadowsUpdateMappedPageData;trivial.
+rewrite getLLPagesUpdateMappedPageData;trivial.
 { apply notConfigTableNotListconfigTable with partition;trivial.
   generalize (Hconfig partition Hpart); clear Hconfig; intros Hconfig.
 unfold not.

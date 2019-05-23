@@ -37,24 +37,40 @@ Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal
 Isolation Consistency Model.Lib StateLib  WeakestPreconditions
 DependentTypeLemmas List Bool Invariants.
 Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
-
+(**********************************TO MOVE*********************************)
 (** Consistency : Linked list properties **)
 Definition LLconfiguration1 s:=
 forall part fstLL LLtable,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s nbPage) -> 
+In LLtable (getLLPages part s nbPage) -> 
 isI LLtable (CIndex 1) s.
 
 Definition LLconfiguration2 s:=
 forall part fstLL LLtable maxidx,
 In part (getPartitions multiplexer s) -> 
 nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getTrdShadows part s nbPage) -> 
+In LLtable (getLLPages part s nbPage) -> 
 StateLib.getMaxIndex = Some maxidx -> 
 isPP LLtable maxidx s.
 
+(*%%%%%%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
+Lemma readPhysicalIsPP' LLtable idx nextLLtable s:
+isPP' LLtable idx nextLLtable s <->
+StateLib.readPhysical LLtable idx (memory s) = Some nextLLtable.
+Proof.
+intros;
+unfold isPP' in *;
+unfold StateLib.readPhysical;
+case_eq(lookup LLtable idx (memory s) beqPage beqIndex);[intros v Hv|intros Hv].
+destruct v;split;intros Hx;try now contradict Hx.
+ f_equal; trivial.
+inversion Hx;subst;trivial.
+split;intros;trivial;try now contradict H.
+Qed.
+
+(**************************************************************************)
 Lemma getnbFreeEntriesLLInv LLtable P : 
 {{ fun s : state => P s /\ isI LLtable (CIndex 1) s}} getnbFreeEntriesLL LLtable 
 {{ fun nbfree s =>P s /\ StateLib.readIndex LLtable (CIndex 1) (memory s) = Some nbfree   }}.
@@ -104,14 +120,10 @@ Qed.
 
 
 
-Lemma checkEnoughEntriesLinkedListeqstate LLtable  (si:state) :
-{{ fun s => s=si }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s =>s=si }}.
+Lemma checkEnoughEntriesLinkedListeqstate LLtable  (si:state) n:
+{{ fun s => s=si }} checkEnoughEntriesLLAux n LLtable {{ fun lasttable s =>s=si }}.
 Proof.
-unfold checkEnoughEntriesLinkedList.
 revert LLtable.
-assert(Htrue: nbPage <= nbPage) by omega.
-revert Htrue.
-generalize nbPage  at 1 3.
 induction n;simpl;intros.
 eapply weaken.
 eapply WP.ret.
@@ -182,7 +194,7 @@ case_eq a;intros;subst.
 eapply WP.weaken.  eapply WP.ret . simpl. intros. intuition.
 eapply weaken.
 eapply strengthen.
-eapply IHn. omega.
+eapply IHn.
 intros.
 simpl in *.
 intuition.
@@ -190,23 +202,21 @@ intros.
 simpl.
 intuition.
 Admitted.
-Lemma eqstate n nextLLtable s s0 p:
+Lemma checkEnoughEntriesLLAuxStateEq n nextLLtable s s0 p:
 checkEnoughEntriesLLAux n nextLLtable s = val (p, s0) -> s=s0.
 Proof.
 intros.
 pose proof checkEnoughEntriesLinkedListeqstate.
 unfold hoareTriple in *.
 assert(s=s) by trivial.
-generalize(H0 nextLLtable s s H1);intros.
-
-rewrite H in H2. 
-
-destruct H0.
-
+generalize(H0 nextLLtable s n s H1);intros.
+rewrite H in H2.
+subst;trivial.
 Qed.
 
+
 Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
-{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ ( lasttable <> defaultPage -> In lasttable (getTrdShadows LLtable s (nbPage + 1))) }}.
+{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ ((defaultPage =? lasttable) = false -> In lasttable (getLLPages LLtable s (nbPage + 1))) }}.
 Proof.
 unfold checkEnoughEntriesLinkedList.
 revert LLtable.
@@ -218,6 +228,9 @@ eapply weaken.
 eapply WP.ret.
 simpl.
 intros;trivial.
+split;trivial.
+intros  Hfalse.
+rewrite Nat.eqb_refl in Hfalse.
 intuition.
 eapply bindRev.
 (** Index.const3 **)
@@ -293,36 +306,41 @@ eapply H.
 simpl.
 intros.
 case_eq a;intros;subst.
-eapply WP.weaken.  eapply WP.ret . simpl. intros. intuition.
+eapply WP.weaken.
+eapply WP.ret ;simpl; intuition.
+intuition.
+rewrite <-beq_nat_refl in *.
+intuition.
 unfold hoareTriple in *;intros.
-assert(match checkEnoughEntriesLLAux n nextLLtable s with
-      | val (a, s') =>
-          P s' /\ (a <> defaultPage -> In a (getTrdShadows nextLLtable s' (n + 1)))
-      | undef _ _ => False
-      end).
-      apply IHn;trivial. omega. intuition.
-      case_eq( checkEnoughEntriesLLAux n nextLLtable s);intros;simpl;rewrite H1 in *;trivial.
-      destruct p.
-      intuition.
-
-assert(Hmaxidx: exists maxindex, StateLib.getMaxIndex = Some maxindex).
+intuition.
+assert(Hi:  n <= nbPage) by omega.
+generalize(IHn Hi nextLLtable s H);clear IHn; intros IHn.
+case_eq(checkEnoughEntriesLLAux n nextLLtable s); [intros x Hx|intros x Hn Hx] ;
+rewrite Hx in *;trivial.
+destruct x;simpl;intuition.
+assert(Hmaxidx: StateLib.getMaxIndex = Some maxidx).
 {
 unfold StateLib.getMaxIndex.
-case_eq(gt_dec tableSize 0);intros;simpl.
-eexists.
-f_equal.
 pose proof tableSizeBigEnough.
-omega. }
-destruct Hmaxidx as (maxidx1 & Hmaxidx).
-rewrite Hmaxidx.
-assert(maxidx=maxidx1) by admit.
+case_eq(gt_dec tableSize 0);intros;simpl.
+f_equal.
 subst.
-assert(StateLib.readPhysical LLtable (CIndex (tableSize - 1)) (memory s0)  = Some nextLLtable).
-unfold isPP' in *.
-unfold StateLib.readPhysical.
-rewrite H4.
+unfold CIndex.
+case_eq(lt_dec (tableSize - 1) tableSize);intros;simpl;f_equal.
+apply proof_irrelevance.
+omega.
+omega. }
+rewrite Hmaxidx.
+subst.
+assert(Hread:StateLib.readPhysical LLtable (CIndex (tableSize - 1)) (memory s0)  = Some nextLLtable).
+apply readPhysicalIsPP';trivial.
+assert(s=s0).
+apply checkEnoughEntriesLLAuxStateEq with n nextLLtable p;trivial.
+subst;trivial.
+rewrite Hread.
 rewrite Nat.eqb_sym.
-rewrite H3.
+assert(Hnotdef:(defaultPage =? nextLLtable) = false) by trivial.
+rewrite Hnotdef.
 simpl.
 right;trivial.
 Admitted.

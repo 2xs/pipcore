@@ -2575,6 +2575,61 @@ induction (nbPage+1); simpl.
       omega.
 Qed.
 
+Lemma inGetLLPages   s:
+forall fstLL LLChildphy lastLLTable,
+NoDup(getLLPages fstLL s (nbPage + 1)) ->
+In LLChildphy (getLLPages fstLL s (nbPage + 1)) ->
+In lastLLTable (getLLPages LLChildphy s (nbPage + 1)) ->
+In lastLLTable (getLLPages fstLL s (nbPage + 1)).
+Proof.
+intro.
+assert(length (getLLPages fstLL s (nbPage + 1)) <(nbPage + 1))by admit.
+revert dependent fstLL. 
+induction (nbPage+1); simpl.
++ intros. now contradict H.
++ intros.
+  simpl in *.
+  destruct(StateLib.getMaxIndex);simpl in *;trivial.
+  case_eq(StateLib.readPhysical fstLL i (memory s));[intros sndLL HLL|intros HLL];rewrite HLL in *.
+  - case_eq (StateLib.readPhysical LLChildphy i (memory s));
+  [intros nextLLChildphy HLLChildphy|intros HLLChildphy];rewrite HLLChildphy in *.
+  * destruct(nextLLChildphy =? defaultPage);trivial;simpl in *; destruct H2;subst;trivial;try 
+    now contradict H2.
+   destruct(sndLL =? defaultPage);trivial;simpl in *.
+   -- destruct H1;subst.
+   rewrite  HLLChildphy in HLL.
+   inversion HLL;subst.
+   admit.
+   now contradict H1. 
+   -- destruct H1;subst. 
+   rewrite  HLLChildphy in HLL.
+   inversion HLL;subst. 
+   right. trivial.
+   right.
+   apply IHn with sndLL;trivial.
+   admit.
+   admit.
+   
+   apply IHn with .
+   admit.
+   * simpl in *.
+    intuition;subst.
+    destruct(sndLL =? defaultPage);trivial;simpl in *.
+  -
+  case_eq (StateLib.readPhysical LLChildphy i (memory s));
+  [intros nextLLChildphy HLLChildphy|intros HLLChildphy];rewrite HLLChildphy in *.
+  *
+  destruct(nextLLChildphy =? defaultPage);trivial;simpl in *; destruct H0;subst;trivial;try 
+  now contradict H0.
+   destruct H1;[left;trivial|].
+   rewrite  HLLChildphy in HLL.
+   now contradict HLL.
+  *
+  simpl in *.
+  intuition;subst;trivial.
+  left;trivial. 
+
+Qed.
 Lemma verticalSharingRec n s :
 NoDup (getPartitions multiplexer s) -> 
 noCycleInPartitionTree s -> 
@@ -3781,7 +3836,7 @@ partitionDescriptorEntry s ->
 In partition (getPartitions multiplexer s) -> 
 ~ In table (getConfigPagesAux partition s) -> 
 StateLib.getConfigTablesLinkedList partition (memory s) = Some sh3 -> 
-~ In table (getTrdShadows sh3 s (nbPage + 1)).
+~ In table (getLLPages sh3 s (nbPage + 1)).
 Proof.
 intros Hpde Hgetparts Hconfig Hpd .
 unfold getConfigPagesAux in *.
@@ -5069,7 +5124,7 @@ case_eq v;intros * Hv; rewrite Hv in *;trivial.
 now contradict H2.
 Qed.
 
-Lemma getTrdShadowsOnlyRoot root s:
+Lemma getLLPagesOnlyRoot root s:
 initConfigPagesListPostCondition root s -> (* 
 StateLib.readPhysical root (CIndex (tableSize - 1)) (memory s) = Some defaultPage -> 
 (forall idx : index,
@@ -5082,7 +5137,7 @@ Nat.Even idx ->
 exists idxValue : index,
 StateLib.readIndex root idx (memory s) = Some idxValue) ->  
  *)
- getTrdShadows root s (nbPage+1) = 
+ getLLPages root s (nbPage+1) = 
 [root].
 Proof.
 unfold initConfigPagesListPostCondition.

@@ -3585,11 +3585,11 @@ getIndirections root s = getIndirections root {|
   right;trivial.
   Qed.
   
-Lemma getTrdShadowsRemoveMMUPage s  ptVaChildpd idxvaChild entry: 
+Lemma getLLPagesRemoveMMUPage s  ptVaChildpd idxvaChild entry: 
 forall root : page,
-~ In ptVaChildpd (getTrdShadows root s (nbPage + 1) ) ->
+~ In ptVaChildpd (getLLPages root s (nbPage + 1) ) ->
 lookup ptVaChildpd idxvaChild (memory s) beqPage beqIndex = Some (PE entry) ->
-getTrdShadows root s (nbPage + 1)  = getTrdShadows root  {|
+getLLPages root s (nbPage + 1)  = getLLPages root  {|
       currentPartition := currentPartition s;
       memory := add ptVaChildpd idxvaChild
                   (PE
@@ -3757,7 +3757,7 @@ do 3 f_equal.
 revert H3 Hlookup.
 clear.
 intros. 
-apply getTrdShadowsRemoveMMUPage with entry;trivial.
+apply getLLPagesRemoveMMUPage with entry;trivial.
 do 2 right;trivial.
 right;left;trivial.
 left;trivial. 
@@ -4183,7 +4183,7 @@ apply getNbLevelLe in Hlevel;trivial.
 apply pdPartNotNull with phyDescChild s;trivial.
 unfold consistency in *.
 intuition.
-apply getTrdShadowsRemoveMMUPage with entry;trivial.
+apply getLLPagesRemoveMMUPage with entry;trivial.
 assert(Hconfigpt : In ptVaChildpd (getConfigPages phyDescChild s)). 
 { apply isConfigTable  with vaChild;trivial.
 unfold consistency in *.
@@ -4191,7 +4191,7 @@ intuition.
 intros. subst. split;trivial. }
 assert (Hnodup2: noDupConfigPagesList s) by (unfold consistency in *;intuition).
  unfold noDupConfigPagesList in *. 
-assert(Hdisjoint: disjoint (getIndirections pdChildphy s) (getTrdShadows ll s (nbPage + 1))). 
+assert(Hdisjoint: disjoint (getIndirections pdChildphy s) (getLLPages ll s (nbPage + 1))). 
 { (*   apply Hnodup2 in Hpart. *)
 unfold getConfigPages in *.
 (* apply NoDup_cons_iff in Hpart as(_ & Hpart). *)

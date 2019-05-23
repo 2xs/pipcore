@@ -45,7 +45,7 @@ Definition LLconfiguration5 s:=
 forall partition LL LLtable FFI nextFFI, 
 In partition (getPartitions multiplexer s) ->
 getConfigTablesLinkedList partition (memory s) = Some LL ->
-In LLtable (getTrdShadows LL s (nbPage + 1)) ->
+In LLtable (getLLPages LL s (nbPage + 1)) ->
 isIndexValue LLtable (CIndex 0) FFI s ->
 StateLib.Index.succ FFI = Some nextFFI ->
 StateLib.getMaxIndex <> Some nextFFI. 
@@ -54,7 +54,7 @@ StateLib.getMaxIndex <> Some nextFFI.
 Lemma inGetTrdShadowInConfigPagesAux partition LL table s:
 partitionDescriptorEntry s ->
 In partition (getPartitions multiplexer s) ->
-In table (getTrdShadows LL s (nbPage + 1)) ->
+In table (getLLPages LL s (nbPage + 1)) ->
 getConfigTablesLinkedList partition (memory s) = Some LL  ->
 In table (getConfigPagesAux  partition s).
 Proof.
@@ -73,7 +73,7 @@ Qed.
 Lemma inGetTrdShadowInConfigPages partition LL table s:
 partitionDescriptorEntry s ->
 In partition (getPartitions multiplexer s) ->
-In table (getTrdShadows LL s (nbPage + 1)) ->
+In table (getLLPages LL s (nbPage + 1)) ->
 getConfigTablesLinkedList partition (memory s) = Some LL  ->
 In table (getConfigPages  partition s).
 Proof.
@@ -83,7 +83,7 @@ simpl;right.
 apply inGetTrdShadowInConfigPagesAux with LL;trivial.
 Qed.
 Lemma LLtableNotPartition s LLtable partition LLroot :
-In LLtable (getTrdShadows LLroot s (nbPage + 1))->
+In LLtable (getLLPages LLroot s (nbPage + 1))->
 getConfigTablesLinkedList partition (memory s) = Some LLroot ->
 In partition (getPartitions multiplexer s) ->
 In LLtable (getConfigPages partition s) ->
@@ -350,13 +350,13 @@ rewrite Hmemory; reflexivity.
 Qed.
 
 
-Lemma getTrdShadowsUpdateLLCouplePPVA table idx p2 s x :
+Lemma getLLPagesUpdateLLCouplePPVA table idx p2 s x :
 let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
 StateLib.getMaxIndex <> Some idx ->            
-getTrdShadows p2 s' (nbPage + 1) = getTrdShadows p2 s (nbPage + 1).
+getLLPages p2 s' (nbPage + 1) = getLLPages p2 s (nbPage + 1).
 Proof.
 intros.
 revert p2.
@@ -412,7 +412,7 @@ assert(Hind : forall root, getIndirections root s' = getIndirections root s).
   apply getIndirectionsUpdateLLCouplePPVA with entry;trivial. }
 do 3 rewrite Hind.
 do 3 f_equal.
-apply getTrdShadowsUpdateLLCouplePPVA ;trivial.
+apply getLLPagesUpdateLLCouplePPVA ;trivial.
 Qed.
 
 Lemma getIndirectionUpdateLLCouplePPVA sh1 table idx s entry va nbL stop x:
@@ -2701,7 +2701,7 @@ intros Hlookup Hkey2.
 intros.
 set(s':=  {|
      currentPartition := _|}).
-assert (HtableinLL: In newLastLLable (getTrdShadows fstLL s (nbPage + 1))).
+assert (HtableinLL: In newLastLLable (getLLPages fstLL s (nbPage + 1))).
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.
 assert(HLL: getConfigTablesLinkedList descChildphy (memory s) = Some fstLL).
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.

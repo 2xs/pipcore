@@ -3488,7 +3488,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       rewrite getIndirectionsOnlyPD;trivial.
       rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
       rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-      rewrite getTrdShadowsOnlyRoot;trivial.
+      rewrite getLLPagesOnlyRoot;trivial.
       unfold s'.
       unfold getUsedPages.
      (** the new partition is phyDescChild and
@@ -3592,7 +3592,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       rewrite getIndirectionsOnlyPD;trivial.
       rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
       rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-      rewrite getTrdShadowsOnlyRoot;trivial.
+      rewrite getLLPagesOnlyRoot;trivial.
       unfold getUsedPages.
      (** the new partition is phyDescChild and
          it is different from child2 so child2 was into getPartitions of
@@ -4340,7 +4340,7 @@ destruct Hparteq as [Hparteq | Hparteq].
       rewrite getIndirectionsOnlyPD;trivial.
       rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
       rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-      rewrite getTrdShadowsOnlyRoot;trivial.
+      rewrite getLLPagesOnlyRoot;trivial.
       unfold incl.
       simpl.
       intros.
@@ -4892,7 +4892,7 @@ unfold s'.
   rewrite getIndirectionsOnlyPD;trivial.
   rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
   rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-  rewrite getTrdShadowsOnlyRoot;trivial.
+  rewrite getLLPagesOnlyRoot;trivial.
   unfold incl.
   assert (Hances : In partition1 (getAncestors currentPart s) \/
   ~ In partition1 (getAncestors currentPart s)).
@@ -7756,8 +7756,8 @@ destruct Hparteq as [Hparteq |Hparteq ].
   rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
   assert(Hmykey :  StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1))
         (memory s) = Some defaultPage) by (unfold initConfigPagesListPostCondition in *; intuition).
-  assert(Hsh3null : getTrdShadows phyConfigPagesList s (nbPage + 1) = [phyConfigPagesList]).
-  { apply getTrdShadowsOnlyRoot;trivial. }
+  assert(Hsh3null : getLLPages phyConfigPagesList s (nbPage + 1) = [phyConfigPagesList]).
+  { apply getLLPagesOnlyRoot;trivial. }
   rewrite Hsh3null.
 (*   assert(In descChild getAllVAddr /\ In pdChild getAllVAddr /\ In shadow1 getAllVAddr /\
   In shadow2 getAllVAddr /\ In list getAllVAddr) as (Hk1 & Hk2 & Hk3 & Hk4 & Hk5). 
@@ -9138,7 +9138,7 @@ destruct Heqparts as [Heqparts | [Heqparts | (Hnoteqpart1 & Hnoteqpart2)]].
   rewrite getIndirectionsOnlyPD;trivial.
   rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
   rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-  rewrite getTrdShadowsOnlyRoot;trivial.
+  rewrite getLLPagesOnlyRoot;trivial.
   assert (In partition2 (getPartitions multiplexer s)).
   {
   assert(Hcurparteq :  partition2 = (currentPartition s) \/ 
@@ -9212,7 +9212,7 @@ destruct Heqparts as [Heqparts | [Heqparts | (Hnoteqpart1 & Hnoteqpart2)]].
   rewrite getIndirectionsOnlyPD;trivial.
   rewrite getIndirectionsOnlySh1 with phySh1Child level s;trivial.
   rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
-  rewrite getTrdShadowsOnlyRoot;trivial.
+  rewrite getLLPagesOnlyRoot;trivial.
   assert (In partition1 (getPartitions multiplexer s)).
   {
   assert(Hcurparteq :  partition1 = (currentPartition s) \/ 
