@@ -35,7 +35,7 @@
     In this file we formalize and prove all invariants about the linked list configuration *)
 Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal 
 Isolation Consistency Model.Lib StateLib  WeakestPreconditions
-DependentTypeLemmas List Bool Invariants.
+DependentTypeLemmas List Bool Invariants InternalLemmas.
 Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
 (**********************************TO MOVE*********************************)
 (** Consistency : Linked list properties **)
@@ -55,20 +55,6 @@ StateLib.getMaxIndex = Some maxidx ->
 isPP LLtable maxidx s.
 
 (*%%%%%%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%%%%%%%%%%%%%%%*)
-
-Lemma readPhysicalIsPP' LLtable idx nextLLtable s:
-isPP' LLtable idx nextLLtable s <->
-StateLib.readPhysical LLtable idx (memory s) = Some nextLLtable.
-Proof.
-intros;
-unfold isPP' in *;
-unfold StateLib.readPhysical;
-case_eq(lookup LLtable idx (memory s) beqPage beqIndex);[intros v Hv|intros Hv].
-destruct v;split;intros Hx;try now contradict Hx.
- f_equal; trivial.
-inversion Hx;subst;trivial.
-split;intros;trivial;try now contradict H.
-Qed.
 
 (**************************************************************************)
 Lemma getnbFreeEntriesLLInv LLtable P : 
@@ -318,8 +304,10 @@ generalize(IHn Hi nextLLtable s H);clear IHn; intros IHn.
 case_eq(checkEnoughEntriesLLAux n nextLLtable s); [intros x Hx|intros x Hn Hx] ;
 rewrite Hx in *;trivial.
 destruct x;simpl;intuition.
+
+
 assert(Hmaxidx: StateLib.getMaxIndex = Some maxidx).
-{
+{ 
 unfold StateLib.getMaxIndex.
 pose proof tableSizeBigEnough.
 case_eq(gt_dec tableSize 0);intros;simpl.

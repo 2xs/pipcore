@@ -42,7 +42,14 @@ WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable UpdateMappedPageC
 InitFstShadow InitSndShadow UpdateShadow1StructurePrepare InsertEntryIntoLL.
 
 Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
-
+(************************** TO MOVE ******************************)
+(*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
+Definition LLconfiguration5 s:=
+forall part fstLL ,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+NoDup (getLLPages fstLL s (nbPage + 1)).
+(*******************************************************************)
 
 
 (* We need  descChild as a virtual address to set up a correct sharing configuration into the parent partition*)
@@ -1492,6 +1499,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     intuition;subst;trivial.
     unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
     intuition;subst;trivial.
+    apply inGetLLPages with LLChildphy;trivial.
+    admit. (** Consistency not found : LLconfiguration5 *)
     intros [].
     (** writeAccessibleRec **)
     eapply bindRev.
@@ -1526,7 +1535,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable).
     simpl.
     intros.
     simpl.
@@ -1586,7 +1595,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) .
     simpl.
     intros.
     simpl.
@@ -1618,10 +1627,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     simpl;intros.
     split.
     intuition;try eassumption.
-    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+    apply writeAccessibleRecPreconditionProofTrdVA  with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
+        fstLL LLChildphy lastLLTable;
     intuition.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phyMMUaddr). 
@@ -1630,7 +1640,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
+        fstLL LLChildphy lastLLTable;
     intuition;try eassumption.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phySh1addr). 
@@ -1639,7 +1650,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
+        fstLL LLChildphy lastLLTable;
     intuition;try eassumption.
     eapply weaken.
     eapply WriteAccessibleRecPrepareNewProperty with (descParent:= currentPart) 
@@ -1648,7 +1660,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI;
+        phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
+        fstLL LLChildphy lastLLTable;
     intuition;try eassumption.
     intros[].
    (**  Level.pred *)
@@ -1729,8 +1742,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply writeVirEntryTrdVA.
     intros [].
 (** insertEntryIntoLL**)
-    eapply bindRev.
-    
+    eapply bindRev.    
     unfold insertEntryIntoLL.
 
 
@@ -2193,7 +2205,7 @@ intros LLChildphy.
 simpl.
 unfold prepareAux.
 eapply weaken.
-apply prepareRec.
+apply prepareRec with (fstLL := LLChildphy);trivial.
 simpl. intros.
 intuition.
 apply childrenPartitionInPartitionList with (currentPartition s);trivial.
@@ -2243,6 +2255,19 @@ unfold consistency in *.
 intuition.
 left.
 split;trivial.
+apply nextEntryIsPPgetConfigList;trivial.
+destruct nbPage;simpl.
+case_eq(StateLib.getMaxIndex );[intros x Hx|intros Hx].
+destruct(StateLib.readPhysical LLChildphy x (memory s));simpl;[|left;trivial].
+destruct(p =? defaultPage);simpl;left;trivial.
+contradict Hx.
+apply getMaxIndexNotNone.
+
+case_eq(StateLib.getMaxIndex );[intros x Hx|intros Hx].
+destruct(StateLib.readPhysical LLChildphy x (memory s));simpl;[|left;trivial].
+destruct(p =? defaultPage);simpl;left;trivial.
+contradict Hx.
+apply getMaxIndexNotNone.
 Qed.
 
 

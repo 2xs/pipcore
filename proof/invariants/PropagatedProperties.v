@@ -597,7 +597,23 @@ StateLib.Level.pred l = Some lpred /\
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\
 isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
 
+Definition initSndShadowPreconditionToProveNewProperty nbL s table  curidx:=
+(nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
+(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+ StateLib.readPresent table idx (memory s) = Some false )) \/ 
+ 
+ (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
+(StateLib.readVirtual table idx (memory s) = Some defaultVAddr))) .
 
+Definition initFstShadowPreconditionToProveNewProperty nbL s table  curidx:=
+ (nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
+(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+ StateLib.readPresent table idx (memory s) = Some false )) \/ 
+ (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
+(StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+ StateLib.readPDflag table idx (memory s) = Some false)). 
+ 
+ 
 Definition postConditionYieldBlock1   (s : state)
                                       (userTargetInterrupt userCallerContextSaveIndex : userValue)
                                       (targetInterrupt callerContextSaveIndex idxVidtInLastMMUPage : index)

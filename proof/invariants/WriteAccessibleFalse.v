@@ -1332,9 +1332,17 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ admit.
-+ admit.
-+ admit.  
++ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hconf.
+  apply getConfigTablesLinkedListUpdateUserFlag;trivial.
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial.
@@ -1350,7 +1358,7 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *. 
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition. 
-Admitted.
+Qed.
 
 Lemma writeAccessiblePropagatePropertiesPrepareSndVA ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
@@ -1458,9 +1466,17 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ admit.
-+ admit.
-+ admit.  
++ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hconf.
+  apply getConfigTablesLinkedListUpdateUserFlag;trivial. 
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial. 
@@ -1476,7 +1492,7 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *.
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition.
-Admitted. 
+Qed. 
  
 Lemma writeAccessiblePropagatePropertiesPrepareTrdVA ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
@@ -1584,9 +1600,17 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ admit.
-+ admit.
-+ admit.  
++ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hconf.
+  apply getConfigTablesLinkedListUpdateUserFlag;trivial.
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
++ assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial. 
@@ -1602,7 +1626,7 @@ intuition;subst;trivial.
   rewrite <- Hisaccessible.
   unfold consistency in *.
   apply isAccessibleMappedPageInParentUpdateUserFlagFalseEq with nbLgen;intuition.
-Admitted. 
+Qed. 
   
 Lemma writeAccessiblePropagateWriteAccessibleRecProperty pg currentPart idxToUpdate ptToUpdate (vaToUpdate: vaddr):
 {{ fun s => preconditionToPropagateWriteAccessibleRecProperty s ptToUpdate vaToUpdate idxToUpdate
@@ -1962,7 +1986,15 @@ apply childAncestorConfigTablesAreDifferent with s
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ admit.
-+ admit.
-+ admit.  
-Admitted.
++ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hconf.
+  apply getConfigTablesLinkedListUpdateUserFlag;trivial.
++ fold s'. assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
++ fold s'. assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
+  rewrite <- Hconf;trivial.
+Qed.

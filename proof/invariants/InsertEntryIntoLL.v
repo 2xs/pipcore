@@ -62,54 +62,6 @@ StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
 (*%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%*)
- Lemma pdPartNotNone phyDescChild s:
-In phyDescChild (getPartitions multiplexer s) -> 
-partitionDescriptorEntry s -> 
-StateLib.getPd phyDescChild (memory s) = None -> False.
-Proof.
-intros. 
-unfold partitionDescriptorEntry in *. 
-  assert(Hexist : (exists entry : page,
-          nextEntryIsPP phyDescChild PDidx entry s /\ entry <> defaultPage)).
-        apply H0;trivial.
-        left;trivial.
-        destruct Hexist as (entryPd & Hpp & Hnotnull).
-apply nextEntryIsPPgetPd in Hpp.
-rewrite Hpp in *.
-now contradict H1.
-Qed.
-
-Lemma disjointSh2LLstruct tbl newLastLLable sh2 LL partition s: 
-getSndShadow partition (memory s) = Some sh2 ->
-getConfigTablesLinkedList partition (memory s) = Some LL -> 
-consistency s ->
-In partition (getPartitions multiplexer s) ->
-In tbl (getIndirections sh2 s) ->
-In newLastLLable (getLLPages LL s (nbPage + 1)) -> 
-NoDup (getConfigPagesAux partition s) -> tbl <> newLastLLable.
-Proof.
-intros Hsh2 HLL Hcons Hpart Hi1 Hi2 Hnodup. 
-unfold getConfigPagesAux in Hnodup.
-case_eq(StateLib.getPd partition (memory s));intros pd Hpd.
-2:{ assert False. apply pdPartNotNone with partition s;trivial. 
-    unfold consistency in *;intuition. auto. }
-rewrite Hpd in Hnodup.    
-case_eq(getFstShadow  partition (memory s));intros sh1 Hsh1.
-2:{ assert False. apply sh1PartNotNone with partition s;trivial. 
-    unfold consistency in *;intuition. auto. }
-rewrite Hsh1 in Hnodup.
-rewrite Hsh2 in Hnodup.
-rewrite HLL in Hnodup.
-apply Lib.NoDupSplit in Hnodup.
-destruct Hnodup as (_ & Hnodup).
-apply Lib.NoDupSplit in Hnodup.
-destruct Hnodup as (_ & Hnodup).
-apply Lib.NoDupSplitInclIff in Hnodup.
-destruct Hnodup as (_ &  Hdisjoint).
-unfold Lib.disjoint in *.
-contradict Hi2.
-apply Hdisjoint;subst;trivial.
-Qed.
 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
@@ -720,7 +672,21 @@ intuition;subst.
   intuition; apply indirectionDescriptionUpdateLLContent  with entry;trivial.
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
   intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLContent with entry;trivial.
-Admitted.
++ assert(Hconf:  getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hconf.
+  unfold s'.
+  apply getConfigTablesLinkedListUpdateSh2 with entry;trivial.
++ assert(Heq: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  unfold s';simpl.
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateSh2 with entry;trivial.
+  rewrite <- Heq;trivial.
++ assert(Heq: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
+  unfold s';simpl.
+  symmetry.
+  apply getConfigTablesLinkedListsUpdateSh2 with entry;trivial.
+  rewrite <- Heq;trivial.
+Qed.
 
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
@@ -755,7 +721,8 @@ intuition.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
-Admitted.
+Qed.
+
 Lemma isIndexValueVAUpdateLLContent idx  table  entry s   x newLastLLable zeroI' FFI:
 lookup table idx (memory s) beqPage beqIndex = Some (VA entry) ->
 isIndexValue newLastLLable zeroI' FFI s -> 

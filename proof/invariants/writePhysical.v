@@ -2765,9 +2765,18 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
   intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLCouplePPVA
   with entry;trivial.
-+ admit.   
-+ admit. 
-+ admit.
++  assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some fstLL) by trivial.
+  rewrite <- Hconf.
+   apply getConfigTablesLinkedListUpdateLLCouplePPVA with entry;trivial.
+  intuition.   
++ assert(Hconf: getLLPages fstLL s (nbPage + 1) = getLLPages fstLL s' (nbPage + 1)).
+  symmetry.
+  apply getLLPagesUpdateLLCouplePPVA;trivial.
+  rewrite <- Hconf;trivial.
++ assert(Hconf: getLLPages fstLL s (nbPage + 1) = getLLPages fstLL s' (nbPage + 1)).
+  symmetry.
+  apply getLLPagesUpdateLLCouplePPVA;trivial.
+  rewrite <- Hconf;trivial.
 + unfold writeAccessibleRecPreparePostconditionAll in *;intuition;
   apply writeAccessibleRecPreparePostconditionUpdateLLCouplePPVA with entry;trivial.
 + unfold isWellFormedTables in *; intuition.
@@ -2777,7 +2786,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.  
-Admitted.
+Qed.
 
 Lemma isPP'SameValueUpdateLLCouplePPVA  newLastLLable nextFFI phyMMUaddr s:
 isPP' newLastLLable nextFFI phyMMUaddr
@@ -2792,38 +2801,3 @@ assert(Hbeqtrue:beqPairs (newLastLLable, nextFFI) (newLastLLable, nextFFI) beqPa
 rewrite Hbeqtrue;trivial.
 Qed.
  
-(* Lemma writePhysicalUpdateLLCouplePPVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
-        phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
-        currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred zeroI' FFI newLastLLable nextFFI newFFI:
-{{ fun s : state =>
-   (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
-        phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
-        currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred /\ zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s }} 
-
-  writePhysical newLastLLable nextFFI phyMMUaddr 
-
-{{ fun _ s =>  (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
-        phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
-        currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred /\ zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s /\ isPP' newLastLLable nextFFI phyMMUaddr s }}.
-Proof.
-eapply weaken.
-eapply WP.writePhysical.
-simpl;intros.
-assert(exists entry, 
-      lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)) as (entry & Hlookup) by admit.
-assert(Hidx: StateLib.getMaxIndex <> Some nextFFI ) by admit.
-intuition.
-apply insertEntryIntoLLPCUpdateLLCouplePPVA with entry;trivial.
-apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
-apply isVA'UpdateLLCouplePPVA with entry;trivial.
-apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
-apply isPP'SameValueUpdateLLCouplePPVA;trivial.
-Admitted.
- *)

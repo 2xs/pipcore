@@ -2575,6 +2575,19 @@ induction (nbPage+1); simpl.
       omega.
 Qed.
 
+Lemma nbPageLL fstLL s:
+NoDup(getLLPages fstLL s (nbPage + 1))  -> 
+length (getLLPages fstLL s (nbPage + 1)) <(nbPage + 1).
+Proof.
+intros.
+rewrite NPeano.Nat.add_1_r.
+apply le_lt_n_Sm.
+apply lengthNoDupPartitions.
+replace (S nbPage) with (nbPage + 1) by omega.
+trivial.
+Qed. 
+
+
 Lemma inGetLLPages   s:
 forall fstLL LLChildphy lastLLTable,
 NoDup(getLLPages fstLL s (nbPage + 1)) ->
@@ -2582,54 +2595,159 @@ In LLChildphy (getLLPages fstLL s (nbPage + 1)) ->
 In lastLLTable (getLLPages LLChildphy s (nbPage + 1)) ->
 In lastLLTable (getLLPages fstLL s (nbPage + 1)).
 Proof.
-intro.
-assert(length (getLLPages fstLL s (nbPage + 1)) <(nbPage + 1))by admit.
-revert dependent fstLL. 
+intros fstLL LLChildphy lastLLTable Hi0 Hi1 Hi2 .
+assert(Hi: length (getLLPages fstLL s (nbPage + 1)) <(nbPage + 1)) by (
+apply nbPageLL;trivial).
+revert dependent LLChildphy.
+revert dependent lastLLTable . 
+revert dependent fstLL.
 induction (nbPage+1); simpl.
-+ intros. now contradict H.
++ intros. now contradict Hi.
 + intros.
   simpl in *.
-  destruct(StateLib.getMaxIndex);simpl in *;trivial.
+  case_eq(StateLib.getMaxIndex);[intros i Hmaxidx|intros Hmaxidx];rewrite Hmaxidx in *; simpl in *;trivial.
   case_eq(StateLib.readPhysical fstLL i (memory s));[intros sndLL HLL|intros HLL];rewrite HLL in *.
   - case_eq (StateLib.readPhysical LLChildphy i (memory s));
   [intros nextLLChildphy HLLChildphy|intros HLLChildphy];rewrite HLLChildphy in *.
-  * destruct(nextLLChildphy =? defaultPage);trivial;simpl in *; destruct H2;subst;trivial;try 
-    now contradict H2.
-   destruct(sndLL =? defaultPage);trivial;simpl in *.
-   -- destruct H1;subst.
+  * case_eq(nextLLChildphy =? defaultPage);intros Hnotdef;rewrite Hnotdef in *;  trivial;simpl in *; destruct Hi2 as [Hi2 | Hi2];subst;trivial;try 
+    now contradict Hi2.
+   case_eq(sndLL =? defaultPage);intros Hnotdef1; rewrite Hnotdef1 in *;trivial;simpl in *.
+   -- destruct Hi1 as [Hi1 | Hi1];subst.
+   ++
    rewrite  HLLChildphy in HLL.
    inversion HLL;subst.
-   admit.
-   now contradict H1. 
-   -- destruct H1;subst. 
+   contradict Hnotdef.
+   rewrite Bool.not_false_iff_true;trivial.
+   ++
+   now contradict Hi1. 
+   -- destruct Hi1 as [Hi1 |Hi1];subst.
+   ** 
    rewrite  HLLChildphy in HLL.
    inversion HLL;subst. 
    right. trivial.
+   **
    right.
-   apply IHn with sndLL;trivial.
-   admit.
-   admit.
+   apply IHn with nextLLChildphy;trivial.
+   apply NoDup_cons_iff in Hi0.
+   intuition.
+   omega.
+   apply IHn with LLChildphy;trivial.
+   apply NoDup_cons_iff in Hi0.
+   intuition.
+
+      omega.
+   destruct n;simpl in *.
+   now contradict Hi2.
    
-   apply IHn with .
-   admit.
+    rewrite Hmaxidx in *.
+   rewrite HLLChildphy in *.
+   rewrite Hnotdef.
+   simpl.
+   clear IHn.
+   case_eq(StateLib.readPhysical nextLLChildphy i (memory s) );[intros x Hi3 |intros Hi3];
+   rewrite Hi3 in *.
+   ***
+   simpl in *.
+   case_eq(StateLib.readPhysical sndLL i (memory s));[intros p Htrd | intros Htrd];rewrite Htrd in *.
+   +++
+   case_eq(p =? defaultPage);intros Hi4;rewrite Hi4 in *.
+   ---
+   simpl in *.   
+   destruct Hi1;subst;try now contradict H.   
+   rewrite Htrd in HLLChildphy.
+   inversion HLLChildphy.
+   subst.
+   contradict Hnotdef.
+   rewrite Bool.not_false_iff_true;trivial.
+   ---
+   simpl in *.
+   destruct Hi1;subst;try now contradict Hi1.
+   ++++
+     rewrite Htrd in HLLChildphy.
+   inversion HLLChildphy.
+   subst.
+   right.
+   destruct n;simpl in *.
+   omega.
+   rewrite Hmaxidx in *.
+    rewrite Hi3.
+    simpl.
+    case_eq(x =? defaultPage);intros Hx;rewrite Hx in *;
+    simpl;left;trivial.
+    ++++
+    right.
+   destruct n;simpl in *.
+   omega.
+   rewrite Hmaxidx in *.
+    rewrite Hi3.
+    simpl.
+     case_eq(x =? defaultPage);intros Hx;rewrite Hx in *;
+    simpl;left;trivial.
+    +++
+    simpl in *.
+   destruct Hi1;subst;try now contradict H.
+   rewrite Htrd in HLLChildphy.
+   now contradict HLLChildphy.
+   *** 
+   simpl in *.
+   destruct Hi2 as [Hi2 | Hi2];subst;trivial;try now contradict Hi2.
+   case_eq(StateLib.readPhysical sndLL i (memory s));[intros p Htrd | intros Htrd];rewrite Htrd in *.
+   +++
+   case_eq(p =? defaultPage);intros Hi4;rewrite Hi4 in *.
+   ---
+   simpl in *.   
+   destruct Hi1;subst;try now contradict H.   
+   rewrite Htrd in HLLChildphy.
+   inversion HLLChildphy.
+   subst.
+   contradict Hnotdef.
+   rewrite Bool.not_false_iff_true;trivial.
+   ---
+   simpl in *.
+   destruct Hi1;subst;try now contradict Hi1.
+   ++++
+     rewrite Htrd in HLLChildphy.
+   inversion HLLChildphy.
+   subst.
+   right.
+   destruct n;simpl in *.
+   omega.
+   rewrite Hmaxidx in *.
+    rewrite Hi3.
+    simpl.
+    left;trivial.
+    ++++
+    right.
+   destruct n;simpl in *.
+   omega.
+   rewrite Hmaxidx in *.
+    rewrite Hi3.
+    simpl.
+    left;trivial.
+    +++
+    simpl in *.
+   destruct Hi1;subst;try now contradict H.
+   rewrite Htrd in HLLChildphy.
+   now contradict HLLChildphy.
+   
    * simpl in *.
     intuition;subst.
     destruct(sndLL =? defaultPage);trivial;simpl in *.
   -
   case_eq (StateLib.readPhysical LLChildphy i (memory s));
   [intros nextLLChildphy HLLChildphy|intros HLLChildphy];rewrite HLLChildphy in *.
-  *
-  destruct(nextLLChildphy =? defaultPage);trivial;simpl in *; destruct H0;subst;trivial;try 
-  now contradict H0.
-   destruct H1;[left;trivial|].
+  * 
+  destruct(nextLLChildphy =? defaultPage);trivial;simpl in *; destruct Hi1;subst;trivial;try 
+  now contradict Hi0.
+   destruct Hi2;[left;trivial|].
    rewrite  HLLChildphy in HLL.
    now contradict HLL.
   *
   simpl in *.
   intuition;subst;trivial.
-  left;trivial. 
-
+  left;trivial.
 Qed.
+
 Lemma verticalSharingRec n s :
 NoDup (getPartitions multiplexer s) -> 
 noCycleInPartitionTree s -> 
@@ -9053,4 +9171,91 @@ apply isAccessibleMappedPage2 with (currentPartition s) ptRefChild;intuition;sub
 apply getPDFlagReadPDflag with currentShadow1 descChild currentPart;trivial.
 intuition;subst;trivial.
 Qed.  
+Lemma getMaxIndexNotNone :
+StateLib.getMaxIndex <> None.
+Proof.
+unfold StateLib.getMaxIndex.
+pose proof tableSizeBigEnough.
+case_eq(gt_dec tableSize 0);intros;simpl.
+unfold not;intros.
+now contradict H1.
+omega.
+Qed. 
 
+Lemma readPhysicalIsPP' LLtable idx nextLLtable s:
+isPP' LLtable idx nextLLtable s <->
+StateLib.readPhysical LLtable idx (memory s) = Some nextLLtable.
+Proof.
+intros;
+unfold isPP' in *;
+unfold StateLib.readPhysical;
+case_eq(lookup LLtable idx (memory s) beqPage beqIndex);[intros v Hv|intros Hv].
+destruct v;split;intros Hx;try now contradict Hx.
+ f_equal; trivial.
+inversion Hx;subst;trivial.
+split;intros;trivial;try now contradict H.
+Qed.
+ Lemma pdPartNotNone phyDescChild s:
+In phyDescChild (getPartitions multiplexer s) -> 
+partitionDescriptorEntry s -> 
+StateLib.getPd phyDescChild (memory s) = None -> False.
+Proof.
+intros. 
+unfold partitionDescriptorEntry in *. 
+  assert(Hexist : (exists entry : page,
+          nextEntryIsPP phyDescChild PDidx entry s /\ entry <> defaultPage)).
+        apply H0;trivial.
+        left;trivial.
+        destruct Hexist as (entryPd & Hpp & Hnotnull).
+apply nextEntryIsPPgetPd in Hpp.
+rewrite Hpp in *.
+now contradict H1.
+Qed.
+
+Lemma disjointSh2LLstruct tbl newLastLLable sh2 LL partition s: 
+StateLib.getSndShadow partition (memory s) = Some sh2 ->
+StateLib.getConfigTablesLinkedList partition (memory s) = Some LL -> 
+consistency s ->
+In partition (getPartitions multiplexer s) ->
+In tbl (getIndirections sh2 s) ->
+In newLastLLable (getLLPages LL s (nbPage + 1)) -> 
+NoDup (getConfigPagesAux partition s) -> tbl <> newLastLLable.
+Proof.
+intros Hsh2 HLL Hcons Hpart Hi1 Hi2 Hnodup. 
+unfold getConfigPagesAux in Hnodup.
+case_eq(StateLib.getPd partition (memory s));intros pd Hpd.
+2:{ assert False. apply pdPartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+rewrite Hpd in Hnodup.    
+case_eq(StateLib.getFstShadow  partition (memory s));intros sh1 Hsh1.
+2:{ assert False. apply sh1PartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+rewrite Hsh1 in Hnodup.
+rewrite Hsh2 in Hnodup.
+rewrite HLL in Hnodup.
+apply Lib.NoDupSplit in Hnodup.
+destruct Hnodup as (_ & Hnodup).
+apply Lib.NoDupSplit in Hnodup.
+destruct Hnodup as (_ & Hnodup).
+apply Lib.NoDupSplitInclIff in Hnodup.
+destruct Hnodup as (_ &  Hdisjoint).
+unfold Lib.disjoint in *.
+contradict Hi2.
+apply Hdisjoint;subst;trivial.
+Qed.
+Lemma index0Ltfalse (idx:index):
+idx < CIndex 0 -> False.
+Proof.
+intros.
+unfold CIndex in H.
+case_eq (lt_dec 0 tableSize).
+intros.
+rewrite H0 in H.
+simpl in *. omega.
+intros.
+contradict H0.
+assert (tableSize > tableSizeLowerBound).
+apply tableSizeBigEnough.
+unfold tableSizeLowerBound in *.
+omega.
+Qed.

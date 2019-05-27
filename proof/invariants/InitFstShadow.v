@@ -40,30 +40,8 @@ InitPEntryTable InitVEntryTable .
 Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
 
 (******************************TO BE MOVED ***********************)
-Definition initFstShadowPreconditionToProveNewProperty nbL s table  curidx:=
- (nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
-(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
- StateLib.readPresent table idx (memory s) = Some false )) \/ 
- (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
-(StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
- StateLib.readPDflag table idx (memory s) = Some false)). 
- 
-Lemma index0Ltfalse (idx:index):
-idx < CIndex 0 -> False.
-Proof.
-intros.
-unfold CIndex in H.
-case_eq (lt_dec 0 tableSize).
-intros.
-rewrite H0 in H.
-simpl in *. omega.
-intros.
-contradict H0.
-assert (tableSize > tableSizeLowerBound).
-apply tableSizeBigEnough.
-unfold tableSizeLowerBound in *.
-omega.
-Qed.
+
+
 (********************************************)
 Lemma initFstShadowNewProperty table (nbL : level)(curidx : index):
 {{ fun s => initFstShadowPreconditionToProveNewProperty nbL s table  curidx }} 

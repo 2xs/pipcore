@@ -2863,3 +2863,20 @@ assumption.
 contradict H.
 apply pageEqNatEqEquiv; assumption.
 Qed.
+
+Lemma index0Ltfalse (idx:index):
+idx < CIndex 0 -> False.
+Proof.
+intros.
+unfold CIndex in H.
+case_eq (lt_dec 0 tableSize).
+intros.
+rewrite H0 in H.
+simpl in *. omega.
+intros.
+contradict H0.
+assert (tableSize > tableSizeLowerBound).
+apply tableSizeBigEnough.
+unfold tableSizeLowerBound in *.
+omega.
+Qed.
