@@ -719,6 +719,7 @@ f_equal.
 apply proof_irrelevance.
 Qed.
 
+
 Lemma indexLtZero : 
 forall idx : index, idx < CIndex 0 -> False.
 Proof.
@@ -755,6 +756,28 @@ simpl. trivial.
 assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
 omega.
 now contradict H0.
+Qed.
+
+Lemma indexSuccNot0:
+forall FFI nextFFI,
+StateLib.Index.succ FFI = Some nextFFI -> 
+(CIndex 0) <> nextFFI .
+Proof.
+intros. 
+unfold Index.succ in *.
+case_eq(lt_dec (FFI + 1) tableSize);intros; rewrite H0 in *.
+inversion H.
+simpl in *.
+unfold CIndex.
+case_eq( lt_dec 0 tableSize);intros.
+contradict H2.
+inversion H2.
+unfold not;intros.
+subst.
+omega.
+pose proof tableSizeBigEnough.
+omega.
+now contradict H.
 Qed.
 
 Lemma indexZeroNotOdd : 

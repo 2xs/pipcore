@@ -139,7 +139,7 @@ Qed.
 (**************************************************)
 
 Lemma getConfigTablesLinkedListUpdateLLCouplePPVA partition x table idx (s : state) entry :
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 partition<>table ->
 StateLib.getConfigTablesLinkedList partition
   (add table idx (PP x) (memory s) beqPage beqIndex) =
@@ -166,7 +166,7 @@ Qed.
 Lemma getFstShadowUpdateLLCouplePPVA partition x
 table idx (s : state) entry :
 partition<>table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 StateLib.getFstShadow partition
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.getFstShadow partition (memory s).
@@ -191,7 +191,7 @@ Qed.
 Lemma getSndShadowUpdateLLCouplePPVA partition x
 table idx (s : state) entry :
 partition<>table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 StateLib.getSndShadow partition
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.getSndShadow partition (memory s).
@@ -216,7 +216,7 @@ Qed.
 Lemma getPdUpdateLLCouplePPVA partition x
 table idx (s : state) entry :
 partition<>table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 StateLib.getPd partition
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.getPd partition (memory s).
@@ -241,7 +241,7 @@ Qed.
 Lemma getParentUpdateLLCouplePPVA partition x
 table idx (s : state) entry :
 partition<>table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 StateLib.getParent partition
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.getParent partition (memory s).
@@ -266,7 +266,7 @@ Qed.
 
 
 Lemma getTablePagesUpdateLLCouplePPVA    table idx entry size p (s : state)  x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 getTablePages p size
  {|
 currentPartition := currentPartition s;
@@ -302,7 +302,7 @@ case_eq(beqPairs (table, idx) (p, CIndex size) beqPage beqIndex);intros Hpairs.
 Qed.
 
 Lemma getIndirectionsUpdateLLCouplePPVA  table idx entry pd (s : state) x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->  
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->  
 getIndirections pd
   {|
 currentPartition := currentPartition s;
@@ -375,7 +375,7 @@ Qed.
 Lemma getConfigPagesUpdateLLCouplePPVA s x table idx entry part: 
 part <> table ->
 StateLib.getMaxIndex <> Some idx ->  
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
  getConfigPages part {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -416,7 +416,7 @@ apply getLLPagesUpdateLLCouplePPVA ;trivial.
 Qed.
 
 Lemma getIndirectionUpdateLLCouplePPVA sh1 table idx s entry va nbL stop x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getIndirection sh1 va nbL stop
   {|
 currentPartition := currentPartition s;
@@ -458,7 +458,7 @@ Qed.
 
 Lemma readPresentUpdateLLCouplePPVA  idx1
 table idx (s : state)  p   entry x: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 StateLib.readPresent p idx1
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.readPresent p idx1 (memory s).
@@ -479,7 +479,7 @@ Qed.
 
 Lemma readAccessibleUpdateLLCouplePPVA 
 table idx (s : state)  p  idx1 entry x: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 StateLib.readAccessible p idx1
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.readAccessible p idx1 (memory s).
@@ -500,7 +500,7 @@ Qed.
 
 Lemma readPhyEntryUpdateLLCouplePPVA 
 table idx (s : state)  p  idx1 entry x: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 StateLib.readPhyEntry p idx1
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.readPhyEntry p idx1 (memory s).
@@ -521,7 +521,7 @@ Qed.
 
 Lemma readVirEntryUpdateLLCouplePPVA 
 table idx (s : state)  p  idx1 entry x: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 StateLib.readVirEntry p idx1
   (add table idx (PP x) (memory s) beqPage beqIndex) =
 StateLib.readVirEntry p idx1 (memory s).
@@ -542,7 +542,7 @@ Qed.
 
 Lemma readPDflagUpdateLLCouplePPVA idx1
 table idx (s : state)  p   entry x: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 StateLib.readPDflag p idx1
     (add table idx (PP x) (memory s) beqPage beqIndex) =
    StateLib.readPDflag p idx1 (memory s).
@@ -562,7 +562,7 @@ rewrite Hmemory; reflexivity.
 Qed.
 
 Lemma getMappedPageUpdateLLCouplePPVA root s x table idx va entry:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getMappedPage root {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -598,7 +598,7 @@ rewrite Heq;trivial.
 Qed.
 
 Lemma getAccessibleMappedPageUpdateLLCouplePPVA root s x table idx va entry:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getAccessibleMappedPage root {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -643,7 +643,7 @@ rewrite Heq;trivial.
 Qed.
 
 Lemma getMappedPagesAuxUpdateLLCouplePPVA root s x table idx entry l:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getMappedPagesAux root l {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -668,7 +668,7 @@ Qed.
 
 
 Lemma getAccessibleMappedPagesAuxUpdateLLCouplePPVA root s x table idx entry l:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getAccessibleMappedPagesAux root l {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -693,7 +693,7 @@ Qed.
 
 Lemma getMappedPagesUpdateLLCouplePPVA s x table idx entry part: 
 part <> table -> 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
  getMappedPages part {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -714,7 +714,7 @@ Qed.
 
 Lemma getAccessibleMappedPagesUpdateLLCouplePPVA s x table idx entry part: 
 part <> table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getAccessibleMappedPages part {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -735,7 +735,7 @@ Qed.
 
 Lemma checkChildUpdateLLCouplePPVA s x table idx entry l va part: 
 part <> table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 checkChild part l {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -771,7 +771,7 @@ Qed.
 
 Lemma getPdsVAddrUpdateLLCouplePPVA s x table idx entry l part: 
 part <> table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
  getPdsVAddr part l getAllVAddrWithOffset0 {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
@@ -794,7 +794,7 @@ Qed.
 
 Lemma getChildrenUpdateLLCouplePPVA s x table idx entry part: 
 part <> table ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 getChildren part s = 
 getChildren part{|
 currentPartition := currentPartition s;
@@ -827,7 +827,7 @@ apply getMappedPagesAuxUpdateLLCouplePPVA with entry;trivial.
 Qed.
 
 Lemma getPartitionsUpdateLLCouplePPVA s x table idx entry: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 ~In table (getPartitions multiplexer s) ->
 getPartitions multiplexer s = getPartitions multiplexer{|
 currentPartition := currentPartition s;
@@ -860,7 +860,7 @@ trivial.
 Qed.
 
 Lemma nextEntryIsPPUpdateLLCouplePPVA table idx0 partition idx v x entry s :
-lookup table idx0 (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx0 (memory s) beqPage beqIndex = Some (I entry) ->
 table <> partition ->
 nextEntryIsPP partition idx v s <-> 
 nextEntryIsPP partition idx v
@@ -882,7 +882,7 @@ rewrite Hbeqfalse in *;
 Qed.
 
 Lemma isVAUpdateLLCouplePPVA idx partition table entry idxroot s x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isVA partition idxroot s -> 
 isVA partition idxroot
   {|
@@ -906,7 +906,7 @@ Qed.
 
 
 Lemma isPEUpdateLLCouplePPVA idx partition table  entry idxroot s x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isPE partition idxroot s -> 
 isPE partition idxroot
   {|
@@ -930,7 +930,7 @@ case_eq (beqPairs (table, idx) (partition, idxroot) beqPage beqIndex);trivial;in
 Qed.
 
 Lemma isVEUpdateLLCouplePPVA idx partition table  entry idxroot s x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isVE partition idxroot s -> 
 isVE partition idxroot
   {|
@@ -956,7 +956,7 @@ Qed.
 
 Lemma entryUserFlagUpdateLLCouplePPVA idx ptVaInCurPartpd idxvaInCurPart table 
  entry s x accessiblesrc:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 entryUserFlag ptVaInCurPartpd idxvaInCurPart accessiblesrc s -> 
 entryUserFlag ptVaInCurPartpd idxvaInCurPart accessiblesrc
   {|
@@ -981,7 +981,7 @@ Qed.
 
 Lemma entryPresentFlagUpdateLLCouplePPVA idx ptVaInCurPartpd idxvaInCurPart table 
  entry s x accessiblesrc:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 entryPresentFlag ptVaInCurPartpd idxvaInCurPart accessiblesrc s -> 
 entryPresentFlag ptVaInCurPartpd idxvaInCurPart accessiblesrc
   {|
@@ -1005,7 +1005,7 @@ case_eq (beqPairs (table, idx) (ptVaInCurPartpd, idxvaInCurPart) beqPage beqInde
 Qed.
 
 Lemma entryPDFlagUpdateLLCouplePPVA idx ptDescChild table idxDescChild entry s x flag:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 entryPDFlag ptDescChild idxDescChild flag s -> 
 entryPDFlag ptDescChild idxDescChild flag
   {|
@@ -1029,7 +1029,7 @@ case_eq (beqPairs (table, idx) (ptDescChild, idxDescChild) beqPage beqIndex);tri
 Qed.
 
 Lemma isEntryVAUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isEntryVA ptVaInCurPart idxvaInCurPart vainve s -> 
 isEntryVA ptVaInCurPart idxvaInCurPart vainve
   {|
@@ -1052,8 +1052,8 @@ case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex)
      rewrite Hmemory. trivial.
 Qed.
 
-Lemma isIndexValueUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+Lemma isIndexValueUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart  s  vainve x:
+ptVaInCurPart <> table \/ idxvaInCurPart <> idx ->
 isIndexValue ptVaInCurPart idxvaInCurPart vainve s -> 
 isIndexValue ptVaInCurPart idxvaInCurPart vainve
   {|
@@ -1067,17 +1067,16 @@ cbn.
 case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex);trivial;intros Hpairs.
  + apply beqPairsTrue in Hpairs.
    destruct Hpairs as (Htable & Hidx).  subst.
-   rewrite Hentry.
-   trivial.
+   intuition.
  + apply beqPairsFalse in Hpairs.
    assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) beqPage beqIndex)
            beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
    { apply removeDupIdentity. intuition. }
      rewrite Hmemory. trivial.
-Qed.
+Qed. 
 
 Lemma isVA'UpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isVA' ptVaInCurPart idxvaInCurPart vainve s -> 
 isVA' ptVaInCurPart idxvaInCurPart vainve
   {|
@@ -1102,7 +1101,7 @@ Qed.
 
 
 Lemma isEntryPageUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s  vainve x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isEntryPage ptVaInCurPart idxvaInCurPart vainve s -> 
 isEntryPage ptVaInCurPart idxvaInCurPart vainve
   {|
@@ -1126,7 +1125,7 @@ case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex)
 Qed.
 
 Lemma partitionsIsolationUpdateLLCouplePPVA s x table idx entry: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 partitionsIsolation s ->
 ~ In table (getPartitions multiplexer s)  ->
 StateLib.getMaxIndex <> Some idx -> 
@@ -1180,7 +1179,7 @@ Qed.
 Lemma kernelDataIsolationUpdateLLCouplePPVA s x table idx entry: 
 StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 kernelDataIsolation s ->
 kernelDataIsolation {|
 currentPartition := currentPartition s;
@@ -1215,7 +1214,7 @@ Lemma verticalSharingUpdateLLCouplePPVA s x table idx entry:
 StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
 noDupPartitionTree s ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 verticalSharing s ->
 verticalSharing {|
 currentPartition := currentPartition s;
@@ -1262,7 +1261,7 @@ Qed.
 
 
 Lemma isPPUpdateLLCouplePPVA table p idx idx0 x entry s:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isPP p idx0 s -> 
 isPP p idx0 {|
       currentPartition := currentPartition s;
@@ -1281,7 +1280,7 @@ Qed.
 
 
 Lemma dataStructurePdSh1Sh2asRootUpdateLLCouplePPVA s x table idx entry idxroot: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 ~ In table (getPartitions multiplexer s) ->
 dataStructurePdSh1Sh2asRoot idxroot s ->
 dataStructurePdSh1Sh2asRoot idxroot {|
@@ -1337,7 +1336,7 @@ destruct Hds as [(Hlt & Hpe) | Hds].
 Qed.
 
 Lemma partitionDescriptorEntryUpdateLLCouplePPVA s x table idx entry: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 ~ In table (getPartitions multiplexer s) ->
 partitionDescriptorEntry s ->
 partitionDescriptorEntry {|
@@ -1408,7 +1407,7 @@ Qed.
 
 Lemma currentPartitionInPartitionsListUpdateLLCouplePPVA s x table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 currentPartitionInPartitionsList s ->
 currentPartitionInPartitionsList {|
 currentPartition := currentPartition s;
@@ -1432,7 +1431,7 @@ Qed.
 
 Lemma noDupMappedPagesListUpdateLLCouplePPVA s x table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 noDupMappedPagesList s ->
 noDupMappedPagesList {|
 currentPartition := currentPartition s;
@@ -1468,7 +1467,7 @@ Qed.
 Lemma noDupConfigPagesListUpdateLLCouplePPVA s x table idx entry : 
 StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 noDupConfigPagesList s ->
 noDupConfigPagesList
   {|
@@ -1504,7 +1503,7 @@ Qed.
 
 Lemma parentInPartitionListUpdateLLCouplePPVA s x table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 parentInPartitionList s ->
 parentInPartitionList
   {|
@@ -1534,7 +1533,7 @@ Qed.
 
 
 Lemma getPDFlagUpdateLLCouplePPVA s x table idx entry sh1 va: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getPDFlag sh1 va
   {|
   currentPartition := currentPartition s;
@@ -1565,7 +1564,7 @@ Qed.
 
 Lemma accessibleVAIsNotPartitionDescriptorUpdateLLCouplePPVA s x table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 accessibleVAIsNotPartitionDescriptor s ->
 accessibleVAIsNotPartitionDescriptor
   {|
@@ -1612,7 +1611,7 @@ Qed.
 
 Lemma readVirtualUpdateLLCouplePPVA table1 table2 idx1 idx2  x entry s :
 (* table1 <> table2 \/ idx1 <> idx2 ->  *)
-lookup table2 idx2 (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table2 idx2 (memory s) beqPage beqIndex = Some (I entry) ->
  StateLib.readVirtual table1 idx1
          (add table2 idx2 (PP x) (memory s) beqPage
      beqIndex)  = 
@@ -1635,7 +1634,7 @@ Qed.
 
 Lemma wellFormedShadowsUpdateLLCouplePPVA s vaInCurrentPartition table idx entry idxroot: 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I  entry) ->
 wellFormedShadows idxroot s -> 
 wellFormedShadows idxroot
   {|
@@ -1690,7 +1689,7 @@ Qed.
 Lemma getTableAddrRootUpdateLLCouplePPVA s vaInCurrentPartition table idx entry  idxroot 
 ptDescChild descChild currentPart: 
 table <> currentPart ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getTableAddrRoot ptDescChild idxroot currentPart descChild  s-> 
 getTableAddrRoot ptDescChild idxroot currentPart descChild
   {|
@@ -1720,7 +1719,7 @@ apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
 Qed.
 
 Lemma getAncestorsUpdateLLCouplePPVA s x table idx entry partition: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 table <> partition ->
 ~ In table  (getAncestors partition s) ->
 getAncestors partition
@@ -1751,7 +1750,7 @@ Qed.
 
 Lemma noCycleInPartitionTreeUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 parentInPartitionList s ->
 isChild s ->
 noCycleInPartitionTree s -> 
@@ -1792,7 +1791,7 @@ Qed.
 Lemma configTablesAreDifferentUpdateLLCouplePPVA s vaInCurrentPartition table idx entry :
 StateLib.getMaxIndex <> Some idx -> 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP  entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 configTablesAreDifferent s -> 
 configTablesAreDifferent
   {|
@@ -1832,7 +1831,7 @@ Qed.
 
 Lemma isChildUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 parentInPartitionList s ->
 isChild s -> 
 isChild
@@ -1885,7 +1884,7 @@ rewrite <- Hparent;trivial.
 Qed.
 
 Lemma isPresentNotDefaultIffUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isPresentNotDefaultIff s -> 
 isPresentNotDefaultIff
   {|
@@ -1913,7 +1912,7 @@ apply H.
 Qed.
 
 Lemma getVirtualAddressSh1UpdateLLCouplePPVA  s vaInCurrentPartition table idx entry p va: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getVirtualAddressSh1 p s va  =
 getVirtualAddressSh1 p {|
     currentPartition := currentPartition s;
@@ -1941,7 +1940,7 @@ apply readVirEntryUpdateLLCouplePPVA with entry;trivial.
 Qed.
 
 Lemma getVirtualAddressSh2UpdateLLCouplePPVA  s vaInCurrentPartition table idx entry p va: 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 getVirtualAddressSh2 p s va  =
 getVirtualAddressSh2 p {|
     currentPartition := currentPartition s;
@@ -1971,7 +1970,7 @@ Qed.
 Lemma isDerivedUpdateLLCouplePPVA  s vaInCurrentPartition table idx entry parent va: 
 ~ In table (getPartitions multiplexer s) ->
 In parent (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 isDerived parent va s ->  isDerived parent va  {|
        currentPartition := currentPartition s;
        memory := add table idx (PP vaInCurrentPartition) (memory s) beqPage
@@ -2000,7 +1999,7 @@ Qed.
  
 Lemma physicalPageNotDerivedUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 noDupPartitionTree s ->
 physicalPageNotDerived s -> 
 physicalPageNotDerived
@@ -2063,7 +2062,7 @@ contradict Hkey;subst;trivial.
 Qed.
 
 Lemma multiplexerWithoutParentUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 ~ In table (getPartitions multiplexer s) ->
 multiplexerWithoutParent s -> 
 multiplexerWithoutParent
@@ -2090,7 +2089,7 @@ Qed.
 
 Lemma isParentUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 noDupPartitionTree s ->
 isParent s -> 
 isParent
@@ -2137,7 +2136,7 @@ Qed.
 
 Lemma noDupPartitionTreeUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 noDupPartitionTree s -> 
 noDupPartitionTree
   {|
@@ -2162,7 +2161,7 @@ Qed.
  
 Lemma wellFormedFstShadowUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 wellFormedFstShadow s -> 
 wellFormedFstShadow
   {|
@@ -2215,7 +2214,7 @@ Qed.
 
 Lemma wellFormedSndShadowUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 wellFormedSndShadow s -> 
 wellFormedSndShadow
   {|
@@ -2269,7 +2268,7 @@ Qed.
 
 Lemma wellFormedFstShadowIfNoneUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 wellFormedFstShadowIfNone s -> 
 wellFormedFstShadowIfNone
   {|
@@ -2330,7 +2329,7 @@ Qed.
 
 Lemma wellFormedFstShadowIfDefaultValuesUpdateLLCouplePPVA s vaInCurrentPartition table idx entry : 
 ~ In table (getPartitions multiplexer s) ->
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 wellFormedFstShadowIfDefaultValues s -> 
 wellFormedFstShadowIfDefaultValues
   {|
@@ -2391,7 +2390,7 @@ contradict Hkey;subst;trivial.
 Qed.
 
 Lemma isAccessibleMappedPageInParentUpdateSh2 s entry v table idx parent va pg:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) -> 
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) -> 
 ~In table (getAncestors parent s) ->
 parent <> table ->
 isAccessibleMappedPageInParent parent va pg  s =
@@ -2438,7 +2437,7 @@ rewrite <- Haccess;trivial.
 Qed.
 
 Lemma accessibleChildPageIsAccessibleIntoParentUpdateSh2 s entry v table nextFFI:
-lookup table nextFFI  (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table nextFFI  (memory s) beqPage beqIndex = Some (I entry) ->
 ~ In table (getPartitions multiplexer s) ->
 parentInPartitionList s ->
 isChild s ->
@@ -2480,7 +2479,7 @@ Qed.
 
 Lemma consistencyUpdateLLCouplePPVA newLastLLable nextFFI v entry s:
 StateLib.getMaxIndex <> Some nextFFI -> 
-lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry)->
+lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (I entry)->
 ~ In newLastLLable (getPartitions multiplexer s) ->
 consistency s -> consistency {|
   currentPartition := currentPartition s;
@@ -2515,7 +2514,7 @@ unfold consistency;intuition.
 Qed.
 
 Lemma isEntryVAExistsUpdateLLCouplePPVA idx ptVaInCurPart table idxvaInCurPart entry s   x:
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 (exists va : vaddr,
        isEntryVA ptVaInCurPart idxvaInCurPart va s/\
         beqVAddr defaultVAddr va = false)
@@ -2540,7 +2539,7 @@ let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
-lookup table idx (memory s) beqPage beqIndex = Some (PP entry) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I entry) ->
 table <> descChildphy ->
 indirectionDescription s descChildphy phyPDChild idxroot vaToPrepare l -> 
 indirectionDescription s' descChildphy phyPDChild idxroot vaToPrepare l.
@@ -2571,7 +2570,7 @@ currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
 StateLib.getMaxIndex <> Some idx ->             
-lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
 ~ In table (getPartitions multiplexer s) ->
 initPEntryTablePreconditionToPropagatePrepareProperties s pg ->
 (* isPartitionFalse ptSh1 (StateLib.getIndexOfAddr vaValue fstLevel)  s ->  *)
@@ -2597,7 +2596,7 @@ let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
-lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
 ~ In table (getAncestors desc s) ->
 table <> desc ->
 (* initPEntryTablePreconditionToPropagatePrepareProperties s pg ->  *)         
@@ -2623,7 +2622,7 @@ let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
-lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
 isWellFormedMMUTables pg s -> isWellFormedMMUTables pg s'.
 Proof.
 intros s' Hlookup Hgoal.
@@ -2642,7 +2641,7 @@ let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
-lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
 (*initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr -> 
 In partition (getPartitions multiplexer s) -> 
 In pt (getConfigPages partition s) ->   *)
@@ -2664,7 +2663,7 @@ let s':= {|
 currentPartition := currentPartition s;
 memory := add table idx (PP x)
             (memory s) beqPage beqIndex |} in 
-lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
 isWellFormedSndShadow l pg s -> isWellFormedSndShadow l pg s'.
 Proof.
 intros s' Hlookup Hgoal.
