@@ -44,11 +44,7 @@ InitFstShadow InitSndShadow UpdateShadow1StructurePrepare InsertEntryIntoLL.
 Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
 (************************** TO MOVE ******************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
-Definition LLconfiguration5 s:=
-forall part fstLL ,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
-NoDup (getLLPages fstLL s (nbPage + 1)).
+
 (*******************************************************************)
 
 

@@ -37,27 +37,11 @@
 Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware  Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateShadow2Structure
-IWritePhysical .
+IWritePhysical WriteIndex.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool.
 (************************** TO MOVE ******************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
-Definition LLconfiguration3 s:=
-forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getLLPages part s (nbPage+1)) -> 
-isI LLtable (CIndex 0) s.
 
-Definition LLconfiguration4 s:=
-forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getLLPages part s (nbPage+1)) -> 
-exists FFI nextFFI,
-StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI 
-/\ isVA LLtable FFI s /\ FFI < tableSize - 1 
-/\ StateLib.Index.succ FFI = Some nextFFI
-/\ isI LLtable nextFFI s.
 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
@@ -822,7 +806,7 @@ assert(Hlookup :exists entry,
  exists newFFI;trivial.
 destruct Hlookup as (entry & Hlookup). 
 intuition.
-+ eapply insertEntryIntoLLPCUpdateLLCouplePPVA with entry;trivial.
++ eapply IWritePhysical.insertEntryIntoLLPCUpdateLLCouplePPVA with entry;trivial.
 assert(exists maxidx, StateLib.getMaxIndex = Some maxidx) as (maxidx & Hmaxidx).
 apply getMaxIndexSome.
 rewrite Hmaxidx.
@@ -841,6 +825,49 @@ trivial.
   rewrite Htrue;trivial.
 Admitted.
 
+Lemma writeIndexUpdateLLContent  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
+ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
+ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
+currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI: 
+{{ fun s : state =>
+  (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+        lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
+        ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\
+      zeroI' = CIndex 0) /\
+     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
+    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s }} writeIndex newLastLLable zeroI' newFFI
+ {{  fun _ s =>
+   (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+        lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
+        ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\
+      zeroI' = CIndex 0) /\
+     isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI fstVA s) /\
+    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s }}.
+Proof.
+eapply weaken.
+eapply WP.writeIndex.
+simpl;intros.
+assert(exists entry, 
+ lookup newLastLLable zeroI' (memory s) beqPage beqIndex = Some (I entry)) as (entry & Hlookup).
+{ intuition.
+subst.
+ assert(Hi :  isIndexValue newLastLLable (CIndex 0) FFI s) ;trivial.
+ unfold isIndexValue in Hi.
+ case_eq(lookup newLastLLable  (CIndex 0) (memory s) beqPage beqIndex);
+  [intros v Hv |intros Hv];rewrite Hv in *;try now contradict Hi.
+  destruct v;try now contradict Hv.
+  subst.
+ exists FFI;trivial. }
+intuition.
+apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
+apply isIndexValueSameUpdateLLIndex ;trivial.
+apply isVA'UpdateLLIndex with entry;trivial.
+apply isPP'UpdateLLIndex with entry;trivial.
+Qed.
+ 
 Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -914,12 +941,39 @@ intros newFFI;simpl.
 (** writePhysical **)
 eapply bindRev.
 eapply weaken.
-apply writePhysicalUpdateLLContent.
-intuition;try eassumption.
+apply writePhysicalUpdateLLContent with (zeroI':=zeroI').
+intuition; subst;try eassumption.
 subst;trivial.
 intros [].
 (** writeIndex **)
 eapply bindRev.
+eapply weaken.
+eapply writeIndexUpdateLLContent.
+intros.
+simpl.
+intuition;eassumption.
+intros [].
+(** Index.succ *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.Index.succ.
+simpl;intros.
+split.
+eapply H.
+intuition;subst.
+apply CIndex0lt.
+intros oneI.
+simpl.
+(** readIndex **)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.readIndex.
+intros;simpl.
+split.
+eapply H;simpl.
+admit. (** Consistency not found : LLconfiguration1 (isI newLastLLable oneI s) **) 
+intros NbFI.
+simpl.
 
 eassumption.
 

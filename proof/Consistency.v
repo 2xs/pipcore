@@ -285,6 +285,58 @@ getPDFlag sh1 va s = false /\
 getVirtualAddressSh1 sh1 s va = None.
 
 
+(** Consistency : Linked list properties **)
+Definition LLconfiguration1 s:=
+forall part fstLL LLtable,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+In LLtable (getLLPages part s nbPage) -> 
+isI LLtable (CIndex 1) s.
+
+Definition LLconfiguration2 s:=
+forall part fstLL LLtable maxidx,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+In LLtable (getLLPages part s nbPage) -> 
+StateLib.getMaxIndex = Some maxidx -> 
+isPP LLtable maxidx s.
+
+Definition LLconfiguration3 s:=
+forall part fstLL LLtable,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+In LLtable (getLLPages part s (nbPage+1)) -> 
+isI LLtable (CIndex 0) s.
+
+Definition LLconfiguration4 s:=
+forall part fstLL LLtable,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+In LLtable (getLLPages part s (nbPage+1)) -> 
+exists FFI nextFFI,
+StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI 
+/\ isVA LLtable FFI s /\ FFI < tableSize - 1 
+/\ StateLib.Index.succ FFI = Some nextFFI
+/\ isI LLtable nextFFI s.
+
+Definition LLconfiguration5 s:=
+forall part fstLL ,
+In part (getPartitions multiplexer s) -> 
+nextEntryIsPP part sh3idx fstLL s ->  
+NoDup (getLLPages fstLL s (nbPage + 1)).
+
+Definition LLconfiguration5 s:=
+forall partition LL LLtable FFI nextFFI, 
+In partition (getPartitions multiplexer s) ->
+getConfigTablesLinkedList partition (memory s) = Some LL ->
+In LLtable (getLLPages LL s (nbPage + 1)) ->
+isIndexValue LLtable (CIndex 0) FFI s ->
+StateLib.Index.succ FFI = Some nextFFI ->
+StateLib.getMaxIndex <> Some nextFFI. 
+
+
+
+(*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 (** ** Conjunction of all consistency properties *)
 Definition consistency s := 
  partitionDescriptorEntry s /\  

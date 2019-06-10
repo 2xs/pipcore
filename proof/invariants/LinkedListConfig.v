@@ -38,21 +38,6 @@ Isolation Consistency Model.Lib StateLib  WeakestPreconditions
 DependentTypeLemmas List Bool Invariants InternalLemmas.
 Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
 (**********************************TO MOVE*********************************)
-(** Consistency : Linked list properties **)
-Definition LLconfiguration1 s:=
-forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getLLPages part s nbPage) -> 
-isI LLtable (CIndex 1) s.
-
-Definition LLconfiguration2 s:=
-forall part fstLL LLtable maxidx,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
-In LLtable (getLLPages part s nbPage) -> 
-StateLib.getMaxIndex = Some maxidx -> 
-isPP LLtable maxidx s.
 
 (*%%%%%%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%%%%%%%%%%%%%%%*)
 

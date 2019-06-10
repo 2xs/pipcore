@@ -41,14 +41,7 @@ Require Import Coq.Logic.ProofIrrelevance Omega List Bool Logic.Classical_Prop.
 
 (***************** To move ************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
-Definition LLconfiguration5 s:=
-forall partition LL LLtable FFI nextFFI, 
-In partition (getPartitions multiplexer s) ->
-getConfigTablesLinkedList partition (memory s) = Some LL ->
-In LLtable (getLLPages LL s (nbPage + 1)) ->
-isIndexValue LLtable (CIndex 0) FFI s ->
-StateLib.Index.succ FFI = Some nextFFI ->
-StateLib.getMaxIndex <> Some nextFFI. 
+
 (*%%%%%%%%%%%%%%%% PropagatedProperties %%%%%%%%%%%%%%%%%%*)
 (*%%%%%%%%%%%%%%%% InternalLemmas %%%%%%%%%%%%%%%%%%*)
 Lemma inGetTrdShadowInConfigPagesAux partition LL table s:
@@ -151,7 +144,7 @@ unfold StateLib.getConfigTablesLinkedList.
 case_eq ( StateLib.Index.succ sh3idx ); intros; trivial.
 cbn.
 unfold StateLib.readPhysical. 
-cbn.
+cbn. 
 assert(Hfalse : beqPairs (table, idx) (partition, i) beqPage beqIndex = false).
 apply beqPairsFalse; intuition.
 rewrite Hfalse.
