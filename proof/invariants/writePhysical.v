@@ -2677,7 +2677,7 @@ Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr i
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
       zeroI lpred newLastLLable nextFFI (* (LLDescChild:page) *) entry fstLL LLChildphy:
-lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (I entry) ->
+lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry) ->
 StateLib.getMaxIndex <> Some nextFFI ->  
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
@@ -2707,7 +2707,7 @@ assert(Htablenotpart : ~ In newLastLLable (getPartitions multiplexer s)).
 {  apply LLtableNotPartition with descChildphy fstLL;trivial;
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *;intuition. }
 assert(Hpartitions : getPartitions multiplexer s = getPartitions multiplexer s') by (
-    apply getPartitionsUpdateLLCouplePPVA with entry; trivial).
+    eapply getPartitionsUpdateLLCouplePPVA with entry; trivial).
 assert(Hnotanc: ~ In newLastLLable (getAncestors (currentPartition s) s)). 
 { contradict Htablenotpart.
   apply ancestorInPartitionTree with (currentPartition s);trivial;unfold insertEntryIntoLLPC, 

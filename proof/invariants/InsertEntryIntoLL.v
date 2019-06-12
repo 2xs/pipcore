@@ -825,7 +825,7 @@ trivial.
   rewrite Htrue;trivial.
 Admitted.
 
-Lemma writeIndexUpdateLLContent  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
+Lemma writeIndexUpdateLLContentZero  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
@@ -867,7 +867,52 @@ apply isIndexValueSameUpdateLLIndex ;trivial.
 apply isVA'UpdateLLIndex with entry;trivial.
 apply isPP'UpdateLLIndex with entry;trivial.
 Qed.
- 
+
+Lemma  writeIndexUpdateLLContentOne  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
+ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
+ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
+currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI newNbFI: 
+{{ fun s : state =>
+   ((((((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
+           phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
+           ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
+           currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA
+           idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\ 
+         zeroI' = CIndex 0) /\
+        isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI fstVA s) /\
+       StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s) /\
+     StateLib.Index.succ zeroI' = Some oneI) /\ isIndexValue newLastLLable oneI NbFI s) /\
+   StateLib.Index.pred NbFI = Some newNbFI }} 
+  writeIndex newLastLLable oneI newNbFI {{ fun (_ : unit) (s : state) =>
+                                           insertEntryIntoLLPC s ptMMUTrdVA phySh2addr
+                                             phySh1addr indMMUToPrepare ptMMUFstVA
+                                             phyMMUaddr lastLLTable phyPDChild
+                                             currentShadow2 phySh2Child currentPD ptSh1TrdVA
+                                             ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
+                                             descChildphy phySh1Child currentPart trdVA
+                                             nextVA vaToPrepare sndVA fstVA nbLgen l
+                                             idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot
+                                             LLChildphy newLastLLable }}.
+Proof.
+eapply weaken.
+eapply WP.writeIndex.
+simpl;intros.
+assert(exists entry, 
+ lookup newLastLLable oneI (memory s) beqPage beqIndex = Some (I entry)) as (entry & Hlookup).
+{ intuition.
+  subst.
+ assert(Hi :  isIndexValue newLastLLable oneI NbFI s) ;trivial.
+ unfold isIndexValue in Hi.
+ case_eq(lookup newLastLLable  oneI (memory s) beqPage beqIndex);
+  [intros v Hv |intros Hv];rewrite Hv in *;try now contradict Hi.
+  destruct v;try now contradict Hv.
+  subst.
+ exists NbFI;trivial. }
+intuition.
+apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
+Qed.                                             
+
 Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -948,7 +993,7 @@ intros [].
 (** writeIndex **)
 eapply bindRev.
 eapply weaken.
-eapply writeIndexUpdateLLContent.
+eapply writeIndexUpdateLLContentZero.
 intros.
 simpl.
 intuition;eassumption.
@@ -974,8 +1019,24 @@ eapply H;simpl.
 admit. (** Consistency not found : LLconfiguration1 (isI newLastLLable oneI s) **) 
 intros NbFI.
 simpl.
-
+(** Index.pred NbFI *)
+eapply bindRev.
+eapply weaken.
+eapply Invariants.Index.pred.
+simpl.
+intros.
+split.
+eapply H.
+admit. (** Internal property not found : (NbFI > 0) **)
+intros newNbFI.
+simpl.
+(** writeIndex **)
+eapply weaken.
+eapply strengthen.
+eapply writeIndexUpdateLLContentOne with (zeroI':=zeroI');trivial.
+intros.
+simpl in *.
 eassumption.
-
-
+intros;simpl.
+intuition ; try eassumption.
 Admitted.

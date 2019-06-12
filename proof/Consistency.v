@@ -293,6 +293,7 @@ nextEntryIsPP part sh3idx fstLL s ->
 In LLtable (getLLPages part s nbPage) -> 
 isI LLtable (CIndex 1) s.
 
+
 Definition LLconfiguration2 s:=
 forall part fstLL LLtable maxidx,
 In part (getPartitions multiplexer s) -> 
@@ -325,7 +326,7 @@ In part (getPartitions multiplexer s) ->
 nextEntryIsPP part sh3idx fstLL s ->  
 NoDup (getLLPages fstLL s (nbPage + 1)).
 
-Definition LLconfiguration5 s:=
+Definition LLconfiguration5' s:=
 forall partition LL LLtable FFI nextFFI, 
 In partition (getPartitions multiplexer s) ->
 getConfigTablesLinkedList partition (memory s) = Some LL ->
@@ -333,7 +334,6 @@ In LLtable (getLLPages LL s (nbPage + 1)) ->
 isIndexValue LLtable (CIndex 0) FFI s ->
 StateLib.Index.succ FFI = Some nextFFI ->
 StateLib.getMaxIndex <> Some nextFFI. 
-
 
 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
