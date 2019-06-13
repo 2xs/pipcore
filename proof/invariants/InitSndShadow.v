@@ -410,12 +410,12 @@ Qed.
 Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  
-      idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+      idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI:
    {{ fun s : state =>
    (propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false
-      false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+      false true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
     /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
     /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s 
     /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s
@@ -427,7 +427,7 @@ Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
 {{ fun _ s => (propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
-      false false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+      false false true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
     /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
     /\ writeAccessibleRecPreparePostcondition currentPart phyMMUaddr s
     /\ writeAccessibleRecPreparePostcondition currentPart phySh1addr s

@@ -589,22 +589,45 @@ intuition.
   apply Hnotconfig;trivial.
 Qed.
 
+Lemma isIndexValueUpdateLLVA idx table idx2 table2  entry s m x:
+lookup table idx (memory s) beqPage beqIndex = Some (VA entry) ->
+isIndexValue table2 idx2 m s ->
+isIndexValue table2 idx2 m 
+  {|
+currentPartition := currentPartition s;
+memory := add table idx (VA x)
+            (memory s) beqPage beqIndex |}.
+Proof.
+intros Hentry.
+unfold isIndexValue.
+cbn.
+case_eq (beqPairs (table, idx) (table2, idx2) beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   rewrite Hentry.
+   trivial.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup  table2 idx2 (removeDup table idx (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup table2 idx2 (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed.
 
 Lemma propagatedPropertiesPrepareUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry LLroot LLChildphy :
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry LLroot LLChildphy minFI:
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
  s ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-  vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI ->
+  vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI minFI ->
 propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
   {| currentPartition := currentPartition s; memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |} ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-  vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI.
+  vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI minFI.
 Proof.
 unfold propagatedPropertiesPrepare;intros.
 set (s':= {| currentPartition := _ |}).
@@ -679,17 +702,24 @@ intuition;subst.
   symmetry.
   apply getConfigTablesLinkedListsUpdateSh2 with entry;trivial.
   rewrite <- Heq;trivial.
+ 
++ assert(exists NbFI : index,
+        isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (m & Hx & Hx1) by trivial.
+  exists m;split;trivial.
+  apply isIndexValueUpdateLLVA with entry;trivial.
 Qed.
+
+
 
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry LLroot LLChildphy:
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry LLroot LLChildphy minFI:
       lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable ->
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI ->
 insertEntryIntoLLPC
   {|
   currentPartition := currentPartition s;
@@ -697,7 +727,7 @@ insertEntryIntoLLPC
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
   currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA
-  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable.
+  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI.
 Proof.
 unfold insertEntryIntoLLPC;intros.
 intuition.
@@ -744,17 +774,17 @@ Lemma writeVirtualUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepa
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot:
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot vavalue minFI:
 {{ fun s : state =>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred  LLroot LLChildphy newLastLLable/\
-    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s }} writeVirtual newLastLLable FFI fstVA
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred  LLroot LLChildphy newLastLLable minFI/\
+    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s }} writeVirtual newLastLLable FFI vavalue
  {{ fun _ s=>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable/\
-    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s}}.
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\
+    zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s}}.
 Proof.
 eapply weaken.
 eapply WP.writeVirtual.
@@ -776,20 +806,20 @@ Lemma writePhysicalUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI: 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI: 
 {{ fun s : state =>
    (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\ zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
+        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\ zeroI' = CIndex 0) /\
+     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
     StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s }} 
-  writePhysical newLastLLable nextFFI phyMMUaddr {{ fun _ s => (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
+  writePhysical newLastLLable nextFFI pgvalue {{ fun _ s => (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\ zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s }}.
+        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\ zeroI' = CIndex 0) /\
+     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
+    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }}.
 Proof.
 eapply weaken.
 eapply WP.writePhysical.
@@ -806,7 +836,7 @@ assert(Hlookup :exists entry,
  exists newFFI;trivial.
 destruct Hlookup as (entry & Hlookup). 
 intuition.
-+ eapply IWritePhysical.insertEntryIntoLLPCUpdateLLCouplePPVA with entry;trivial.
++ subst. eapply IWritePhysical.insertEntryIntoLLPCUpdateLLCouplePPVA  with entry FFI ;trivial.
 assert(exists maxidx, StateLib.getMaxIndex = Some maxidx) as (maxidx & Hmaxidx).
 apply getMaxIndexSome.
 rewrite Hmaxidx.
@@ -829,23 +859,23 @@ Lemma writeIndexUpdateLLContentZero  ptMMUTrdVA phySh2addr phySh1addr indMMUToPr
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI: 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI:  
 {{ fun s : state =>
   (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
         ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
-        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\
       zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s }} writeIndex newLastLLable zeroI' newFFI
+     isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
+    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }} writeIndex newLastLLable zeroI' newFFI
  {{  fun _ s =>
    (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
         ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
-        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\
       zeroI' = CIndex 0) /\
-     isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI fstVA s) /\
-    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s }}.
+     isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI vavalue s) /\
+    StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }}.
 Proof.
 eapply weaken.
 eapply WP.writeIndex.
@@ -862,6 +892,7 @@ subst.
   subst.
  exists FFI;trivial. }
 intuition.
+subst.
 apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
 apply isIndexValueSameUpdateLLIndex ;trivial.
 apply isVA'UpdateLLIndex with entry;trivial.
@@ -872,16 +903,16 @@ Lemma  writeIndexUpdateLLContentOne  ptMMUTrdVA phySh2addr phySh1addr indMMUToPr
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI newNbFI: 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI newNbFI vavalue pgvalue minFI: 
 {{ fun s : state =>
    ((((((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
            phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
            ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA
-           idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable /\ 
+           idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\ 
          zeroI' = CIndex 0) /\
-        isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI fstVA s) /\
-       StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI phyMMUaddr s) /\
+        isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI vavalue s) /\
+       StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s) /\
      StateLib.Index.succ zeroI' = Some oneI) /\ isIndexValue newLastLLable oneI NbFI s) /\
    StateLib.Index.pred NbFI = Some newNbFI }} 
   writeIndex newLastLLable oneI newNbFI {{ fun (_ : unit) (s : state) =>
@@ -893,7 +924,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI 
                                              descChildphy phySh1Child currentPart trdVA
                                              nextVA vaToPrepare sndVA fstVA nbLgen l
                                              idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot
-                                             LLChildphy newLastLLable }}.
+                                             LLChildphy newLastLLable minFI}}.
 Proof.
 eapply weaken.
 eapply WP.writeIndex.
@@ -910,6 +941,7 @@ assert(exists entry,
   subst.
  exists NbFI;trivial. }
 intuition.
+subst.
 apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
 Qed.                                             
 
@@ -917,19 +949,19 @@ Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable:
+zeroI lpred LLroot LLChildphy newLastLLable vavalue pgvalue minFI:
 {{ fun s : state =>
    insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable}} 
-insertEntryIntoLL newLastLLable fstVA phyMMUaddr  
+zeroI lpred LLroot LLChildphy newLastLLable minFI}} 
+insertEntryIntoLL newLastLLable vavalue pgvalue  
 {{ fun _ s  => insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable}}.
+zeroI lpred LLroot LLChildphy newLastLLable minFI}}.
 Proof.
 unfold insertEntryIntoLL. 
 eapply bindRev.

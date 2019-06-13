@@ -34,11 +34,154 @@
 (** * Summary 
     This file contains the invariant of [initConfigPagesList] some associated lemmas *)
 Require Import Core.Internal Isolation Consistency WeakestPreconditions Invariants.
-Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas
-PropagatedProperties  UpdateMappedPageContent  InternalLemmas.
+Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas Model.Lib
+PropagatedProperties  UpdateMappedPageContent  InternalLemmas WriteIndex InsertEntryIntoLL.
 Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
+Definition writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s:=
 
-                  
+   ((((Nat.Even curidx /\
+       (forall idx : index,
+        idx > CIndex 1 ->
+        idx < CIndex (tableSize - 2) ->
+        Nat.Odd idx ->
+        idx < curidx ->
+        exists idxValue : index,
+          StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+       (forall idx : index,
+        idx > CIndex 1 ->
+        idx < CIndex (tableSize - 2) ->
+        Nat.Even idx ->
+        idx < curidx ->
+        StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
+       zero = CIndex 0 /\
+       maxidx = CIndex (tableSize - 1) /\
+       StateLib.Index.pred maxidx = Some maxidxminus1 /\
+       true = StateLib.Index.geb curidx maxidxminus1 /\
+       eqbZero = StateLib.Index.eqb curidx zero /\
+       nullP = defaultPage /\
+       nullV = defaultVAddr /\
+       StateLib.readVirtual phyConfigPagesList maxidxminus1 (memory s) = Some nullV) /\
+      StateLib.readPhysical phyConfigPagesList maxidx (memory s) = Some nullP) /\
+     maxentries = {| i := Init.Nat.div2 tableSize - 2; Hi := MAL.maxFreeLL_obligation_1 |}) /\
+    StateLib.Index.succ zero = Some oneI) /\ StateLib.Index.succ oneI = Some twoI . 
+Lemma writeIndexFFI  phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI:
+{{ fun s : state =>writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }} 
+  writeIndex phyConfigPagesList zero twoI {{ fun _ s => 
+  writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }}.
+  Proof.
+  Admitted.
+
+Lemma readIndexUpdateLLIndex idx ptVaInCurPart table idxvaInCurPart  s x:
+ptVaInCurPart <> table \/ idxvaInCurPart <> idx ->
+StateLib.readIndex ptVaInCurPart idxvaInCurPart (memory s) = 
+StateLib.readIndex ptVaInCurPart idxvaInCurPart
+(memory  {|
+currentPartition := currentPartition s;
+memory := add table idx (I x)
+            (memory s) beqPage beqIndex |}).
+Proof.
+intros Hentry.
+unfold StateLib.readIndex.
+cbn.
+case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   intuition.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed. 
+
+Lemma writeIndexNbFI phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI :
+{{fun s: state => writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }} 
+writeIndex phyConfigPagesList oneI maxentries {{ fun (_ : unit) (s : state) =>
+                                                 initConfigPagesListPostCondition
+                                                     phyConfigPagesList s }}.
+Proof.
+eapply weaken.
+eapply WP.writeIndex.
+simpl.
+intros.
+unfold initConfigPagesListPostCondition.
+simpl.
+assert(Hcons : isI phyConfigPagesList (CIndex 1) s) by admit.
+assert(exists entry, 
+ lookup phyConfigPagesList (CIndex 1) (memory s) beqPage beqIndex = Some (I entry)) as (entry & Hlookup).
+{ intuition.
+subst.
+ assert(Hi :  isI phyConfigPagesList (CIndex 1) s) ;trivial.
+ unfold isI in Hi.
+ case_eq(lookup phyConfigPagesList  (CIndex 1) (memory s) beqPage beqIndex);
+  [intros v Hv |intros Hv];rewrite Hv in *;try now contradict Hi.
+  destruct v;try now contradict Hv.
+  subst.
+ exists i;trivial. }
+
+unfold writeIndexInitLLPC in *.
+  assert(oneI = CIndex 1).
+  apply Succ0is1;trivial.
+  subst;intuition.
+  subst;
+  trivial.
+  subst.
+intuition;subst.
++  assert(StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) =
+     Some defaultPage) as Hi by trivial.
+  rewrite <- Hi.
+  apply readPhysicalUpdateLLIndex with entry;trivial.
++ assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hi by trivial.
+apply predMaxIndex in Hi.
+subst.
+assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (memory s) =
+      Some defaultVAddr) by trivial.
+      rewrite <- Hi.
+      apply readVirtualUpdateLLIndex with entry; trivial.
++ assert(Hi: forall idx : index,
+    idx > CIndex 1 ->
+    idx < CIndex (tableSize - 2) ->
+    Nat.Odd idx ->
+    idx < curidx ->
+    exists idxValue : index,
+      StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) by trivial.
+ assert(Hix: exists idxValue : index,
+      StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue).
+      apply Hi;trivial.
+ assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hx by trivial.
+apply predMaxIndex in Hx.
+subst.
+assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
+unfold StateLib.Index.geb in Hii.
+apply leb_complete in Hii.
+omega.
+destruct Hix as (idxvalue & Hidxv).
+exists idxvalue.
+rewrite <- Hidxv.
+symmetry.
+apply readIndexUpdateLLIndex.
+right.
+unfold not;intros;subst.
+omega.
++ assert(forall idx : index,
+     idx > CIndex 1 ->
+     idx < CIndex (tableSize - 2) ->
+     Nat.Even idx ->
+     idx < curidx ->
+     StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) as Hi by trivial.
+   rewrite <- Hi with idx;trivial.
+   apply readVirtualUpdateLLIndex with entry;trivial.
+ assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hx by trivial.
+apply predMaxIndex in Hx.
+subst.
+   
+assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
+unfold StateLib.Index.geb in Hii.
+apply leb_complete in Hii.
+omega.
+Admitted.
+
+
 Lemma initConfigPagesListNewProperty phyConfigPagesList (curidx : index):
 {{ fun s : state => ((* curidx = (CIndex 0) \/ *) (* curidx = (CIndex 1) \/ *) Nat.Even curidx) /\ 
                   (forall idx : index, idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> Nat.Odd idx -> idx < curidx ->
@@ -321,7 +464,10 @@ induction n.  simpl.
   intros twoI.
   simpl.
   (** writeIndex : First free index **)
+  eapply bindRev.
+  admit.
   (** writeIndex : Nb free indexes **)
+
   admit. 
   case_eq eqbZero;intros;subst.
   (** succ *)

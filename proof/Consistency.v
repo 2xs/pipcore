@@ -333,7 +333,8 @@ getConfigTablesLinkedList partition (memory s) = Some LL ->
 In LLtable (getLLPages LL s (nbPage + 1)) ->
 isIndexValue LLtable (CIndex 0) FFI s ->
 StateLib.Index.succ FFI = Some nextFFI ->
-StateLib.getMaxIndex <> Some nextFFI. 
+StateLib.getMaxIndex <> Some nextFFI /\ 
+nextFFI <> CIndex 1. 
 
 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)

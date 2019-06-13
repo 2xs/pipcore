@@ -185,11 +185,12 @@ rewrite H in H2.
 subst;trivial.
 Qed.
 
-
+Definition checkEnoughEntriesLinkedListPC s (lasttable LLtable: page):=
+((defaultPage =? lasttable) = false -> (In lasttable (getLLPages LLtable s (nbPage + 1)) /\ (exists NbFI, isIndexValue lasttable (CIndex 1) NbFI s /\ NbFI >= (CIndex 3)))).
 Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
-{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ ((defaultPage =? lasttable) = false -> In lasttable (getLLPages LLtable s (nbPage + 1))) }}.
+{{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ checkEnoughEntriesLinkedListPC s lasttable LLtable  }}.
 Proof.
-unfold checkEnoughEntriesLinkedList.
+unfold checkEnoughEntriesLinkedList, checkEnoughEntriesLinkedListPC.
 revert LLtable.
 assert(Htrue: nbPage <= nbPage) by omega.
 revert Htrue.
@@ -249,6 +250,27 @@ destruct nbPage;simpl;
 rewrite Hmaxidx;
 destruct ( StateLib.readPhysical LLtable maxidx (memory s));simpl;trivial;try left;trivial;
 destruct (p =? defaultPage);simpl;left;trivial.
+subst.
+assert(Hcons: isI LLtable (CIndex 1) s) by admit. (** Consistency not found : LLconfiguration1 *) 
+unfold isI, isIndexValue in *.
+case_eq(lookup LLtable (CIndex 1) (memory s) beqPage beqIndex );[intros v Hv| intros Hv];rewrite Hv in *;try now contradict Hcons.
+destruct v;try now contradict Hcons.
+exists i.
+split;trivial.
+assert(Hidx: StateLib.readIndex LLtable (CIndex 1) (memory s) = Some nbfree) by trivial.
+unfold StateLib.readIndex in Hidx.
+rewrite Hv in *.
+inversion Hidx.
+subst.
+unfold StateLib.Index.geb in *.
+apply  Coq.Logic.Classical_Prop.NNPP.
+unfold not at 1.
+intros.
+contradict H1.
+symmetrynot.
+apply not_true_iff_false.
+apply NPeano.Nat.leb_nle.
+omega.
 (** getMaxIndex *)
 eapply WP.bindRev.
 eapply WP.weaken.
@@ -279,6 +301,8 @@ intros.
 case_eq a;intros;subst.
 eapply WP.weaken.
 eapply WP.ret ;simpl; intuition.
+intuition.
+rewrite <-beq_nat_refl in *.
 intuition.
 rewrite <-beq_nat_refl in *.
 intuition.

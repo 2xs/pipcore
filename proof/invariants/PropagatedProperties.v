@@ -399,7 +399,7 @@ indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA: vaddr) (nbLgen  l:level)
 (userMMUFstVA userMMUSndVA userMMUTrdVA fstVAIsShared sndVAIsShared trdVAIsShared:bool)
-(idxFstVA idxSndVA idxTrdVA zeroI: index) :=
+(idxFstVA idxSndVA idxTrdVA zeroI: index) n :=
 
 kernelDataIsolation s /\ 
 partitionsIsolation s /\ 
@@ -464,7 +464,8 @@ indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaTo
 initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr /\
 getConfigTablesLinkedList descChildphy (memory s) = Some LLroot /\
 In LLChildphy (getLLPages LLroot s (nbPage + 1)) /\
-In newLastLLable (getLLPages LLroot s (nbPage + 1)).
+In newLastLLable (getLLPages LLroot s (nbPage + 1))/\
+(exists NbFI, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= (CIndex n)).
 (* 
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\
@@ -588,10 +589,10 @@ Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepar
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred fstLL LLChildphy newLastLLable:=
+zeroI lpred fstLL LLChildphy newLastLLable n:=
 propagatedPropertiesPrepare fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-     currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI /\
+     currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI n /\
 writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
 StateLib.Level.pred l = Some lpred /\
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\

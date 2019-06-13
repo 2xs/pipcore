@@ -2676,19 +2676,19 @@ Qed.
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred newLastLLable nextFFI (* (LLDescChild:page) *) entry fstLL LLChildphy:
+      zeroI lpred newLastLLable nextFFI (* (LLDescChild:page) *) entry fstLL LLChildphy minFI:
 lookup newLastLLable nextFFI (memory s) beqPage beqIndex = Some (PP entry) ->
 StateLib.getMaxIndex <> Some nextFFI ->  
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred fstLL LLChildphy newLastLLable ->
+      zeroI lpred fstLL LLChildphy newLastLLable minFI ->
 insertEntryIntoLLPC {|
   currentPartition := currentPartition s;
   memory := add newLastLLable nextFFI (PP phyMMUaddr) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred fstLL LLChildphy newLastLLable.
+      zeroI lpred fstLL LLChildphy newLastLLable minFI.
 Proof.
 intros Hlookup Hkey2.
 intros.
@@ -2770,6 +2770,9 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   symmetry.
   apply getLLPagesUpdateLLCouplePPVA;trivial.
   rewrite <- Hconf;trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
+  exists x;split;trivial.
+  apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
 + unfold writeAccessibleRecPreparePostconditionAll in *;intuition;
   apply writeAccessibleRecPreparePostconditionUpdateLLCouplePPVA with entry;trivial.
 + unfold isWellFormedTables in *; intuition.

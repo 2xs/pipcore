@@ -46,11 +46,11 @@ Import List.ListNotations.
 Lemma writeAccessibleRecPreconditionProofFstVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable: 
+  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI: 
  propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false true true  true true true
-  idxFstVA idxSndVA idxTrdVA zeroI/\
+  idxFstVA idxSndVA idxTrdVA zeroI minFI/\
   isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart fstVA phyMMUaddr s = true -> 
   writeAccessibleRecRecurtionInvariantConj fstVA currentPart phyMMUaddr ptMMUFstVA currentPart s.
@@ -88,11 +88,11 @@ Qed.
 Lemma writeAccessibleRecPreconditionProofSndVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable :  
+  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable  minFI:  
  propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false true true true true
-  idxFstVA idxSndVA idxTrdVA zeroI  /\
+  idxFstVA idxSndVA idxTrdVA zeroI minFI  /\
   isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart sndVA phySh1addr s = true -> 
   writeAccessibleRecRecurtionInvariantConj sndVA currentPart phySh1addr ptMMUSndVA currentPart s.
@@ -130,11 +130,11 @@ Qed.
 Lemma writeAccessibleRecPreconditionProofTrdVA s currentPart ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child trdVA nextVA vaToPrepare sndVA fstVA nbLgen l 
-  idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable : 
+  idxFstVA idxSndVA idxTrdVA zeroI minFI LLroot LLChildphy newLastLLable : 
  propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA 
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true
-  idxFstVA idxSndVA idxTrdVA zeroI /\
+  idxFstVA idxSndVA idxTrdVA zeroI minFI /\
   isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA /\
     isAccessibleMappedPageInParent currentPart trdVA phySh2addr s = true -> 
   writeAccessibleRecRecurtionInvariantConj trdVA currentPart phySh2addr ptMMUTrdVA currentPart s.
@@ -1165,6 +1165,39 @@ assert(Hpde : partitionDescriptorEntry s ).
 rewrite Haccessible;trivial.
 Qed.
 
+Lemma isIndexValueUpdateUserFlag s entry table1 table2 idx1 idx2 flag vx:
+lookup table2 idx2 
+            (memory s) beqPage beqIndex = Some (PE entry) ->
+isIndexValue table1 idx1 vx s ->
+isIndexValue table1 idx1 vx {|
+      currentPartition := currentPartition s;
+      memory := add table2
+                  idx2
+                  (PE
+                     {|
+                     read := read entry;
+                     write := write entry;
+                     exec := exec entry;
+                     present := present entry;
+                     user := flag;
+                     pa := pa entry |}) (memory s) beqPage
+                  beqIndex |}.
+Proof.
+intros.
+unfold isIndexValue in *. 
+cbn. 
+case_eq (beqPairs (table2, idx2) (table1, idx1) beqPage beqIndex);trivial;intros Hpairs.
+ + apply beqPairsTrue in Hpairs.
+   destruct Hpairs as (Htable & Hidx).  subst.
+   rewrite H in H0. trivial.
+ + apply beqPairsFalse in Hpairs.
+   assert (lookup  table1 idx1 (removeDup table2 idx2 (memory s) beqPage beqIndex)
+           beqPage beqIndex = lookup  table1 idx1   (memory s) beqPage beqIndex) as Hmemory.
+   { apply removeDupIdentity. intuition. }
+     rewrite Hmemory. trivial.
+Qed. 
+                
+                  
 Lemma getAccessibleMappedPageNoneUpdateUserFlagFalse pd va1 entry idxva ptvaInAncestor s:
 getAccessibleMappedPage pd s va1 = NonePage -> 
 lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry) -> 
@@ -1227,12 +1260,12 @@ Lemma writeAccessiblePropagatePropertiesPrepareFstVA ( ptMMUTrdVA phySh2addr phy
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) (userMMUSndVA userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable :
+(nbLgen  l:level) (userMMUSndVA userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI :
 {{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l true userMMUSndVA userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA zeroI 
+idxFstVA idxSndVA idxTrdVA zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUFstVA idxFstVA false 
@@ -1240,7 +1273,7 @@ idxFstVA idxSndVA idxTrdVA zeroI
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false userMMUSndVA userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA zeroI 
+idxFstVA idxSndVA idxTrdVA zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 /\ isAccessibleMappedPageInParent currentPart fstVA phyMMUaddr s = true }}.
 Proof.
@@ -1343,6 +1376,10 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
+  exists x.
+  split;trivial.
+  apply isIndexValueUpdateUserFlag;trivial.
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial.
@@ -1364,12 +1401,12 @@ Lemma writeAccessiblePropagatePropertiesPrepareSndVA ( ptMMUTrdVA phySh2addr phy
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) ( userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+(nbLgen  l:level) ( userMMUTrdVA :bool) idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI:
 {{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false true userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA  zeroI 
+idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUSndVA idxSndVA false 
@@ -1377,7 +1414,7 @@ idxFstVA idxSndVA idxTrdVA  zeroI
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false userMMUTrdVA true true true
-idxFstVA idxSndVA idxTrdVA  zeroI
+idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 /\ isAccessibleMappedPageInParent currentPart sndVA phySh1addr s = true }}.
 Proof.
@@ -1477,9 +1514,14 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
+  exists x.
+  split;trivial.
+  apply isIndexValueUpdateUserFlag;trivial.
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
-  repeat rewrite readPDflagUpdateUserFlag;trivial. 
+  repeat rewrite readPDflagUpdateUserFlag;trivial.
+   
 + assert(Hisaccessible : isAccessibleMappedPageInParent (currentPartition s) sndVA phySh1addr s = true).
   assert(Hcons : consistency s) by (unfold propagatedProperties in *; intuition).
   unfold consistency in Hcons.
@@ -1498,12 +1540,12 @@ Lemma writeAccessiblePropagatePropertiesPrepareTrdVA ( ptMMUTrdVA phySh2addr phy
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA : vaddr) 
-(nbLgen  l:level) (* ( userMMUTrdVA :bool)  *)idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+(nbLgen  l:level) (* ( userMMUTrdVA :bool)  *)idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI:
 {{ fun s => propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false true true true true
-idxFstVA idxSndVA idxTrdVA  zeroI
+idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
  writeAccessible ptMMUTrdVA idxTrdVA false 
@@ -1511,7 +1553,7 @@ idxFstVA idxSndVA idxTrdVA  zeroI
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLgen  l false false false true true true
-idxFstVA idxSndVA idxTrdVA  zeroI
+idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 /\ isAccessibleMappedPageInParent currentPart trdVA phySh2addr s = true }}.
 Proof.
@@ -1611,6 +1653,10 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
+  exists x.
+  split;trivial.
+  apply isIndexValueUpdateUserFlag;trivial.  
 + unfold isPartitionFalseAll in *;
   unfold isPartitionFalse; unfold s'; cbn.
   repeat rewrite readPDflagUpdateUserFlag;trivial. 
@@ -1862,7 +1908,7 @@ Qed.
 Lemma propagatedPropertiesPrepareUpdateUserFlag s descParent pt sh2 lastIndex ancestor pdAncestor ptsh2 defaultV va ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 idxFstVA idxSndVA
-           idxTrdVA entry idxva ptvaInAncestor vaInAncestor zeroI LLroot LLChildphy newLastLLable:
+           idxTrdVA entry idxva ptvaInAncestor vaInAncestor zeroI LLroot LLChildphy newLastLLable minFI :
 let s' := 
   {|
   currentPartition := currentPartition s;
@@ -1878,7 +1924,7 @@ let s' :=
 propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 true true true idxFstVA idxSndVA
-           idxTrdVA zeroI ->
+           idxTrdVA zeroI minFI ->
 lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry) -> 
 isAccessibleMappedPageInParent ancestor vaInAncestor (pa entry) s = true -> 
 In ancestor (getPartitions MALInternal.multiplexer s) -> 
@@ -1914,7 +1960,7 @@ accessibleVAIsNotPartitionDescriptor s' ->
 propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s' ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
            descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA L l b1 b2 b3 true true true idxFstVA idxSndVA
-           idxTrdVA zeroI.
+           idxTrdVA zeroI minFI .
 Proof.
 intros.
 intuition;subst.
@@ -1997,4 +2043,7 @@ apply childAncestorConfigTablesAreDifferent with s
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx1 & Hx2) by trivial.
+  exists x;split;trivial.
+  apply isIndexValueUpdateUserFlag;trivial.
 Qed.

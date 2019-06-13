@@ -49,7 +49,7 @@ Lemma propagatedPropertiesPrepareUpdateShadow1Structure b1 b2 b3 b4 b5 b6  (vaVa
        ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable:
+       currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI:
 PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure b1 b2 b3 b4 b5 b6  
 vaValue fstVA sndVA trdVA ptMMU ptSh1 pg ptSh1FstVA ptSh1SndVA ptSh1TrdVA phyMMUaddr phySh1addr phySh2addr
  ptMMUFstVA ptMMUSndVA ptMMUTrdVA idxFstVA idxSndVA idxTrdVA idx-> 
@@ -58,14 +58,14 @@ propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2a
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
        currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false b1 b2 b3
-        idxFstVA idxSndVA idxTrdVA zeroI -> 
+        idxFstVA idxSndVA idxTrdVA zeroI minFI -> 
 propagatedPropertiesPrepare LLroot LLChildphy newLastLLable {|  currentPartition := currentPartition s;
                                  memory := add ptSh1 idx (VE {| pd := false; va := vaValue |}) (memory s) beqPage beqIndex |}
        ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
        currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false b4 b5 b6
-       idxFstVA idxSndVA idxTrdVA zeroI.
+       idxFstVA idxSndVA idxTrdVA zeroI minFI.
 Proof.
 set (s':= {|currentPartition:= _ |}) in *.
 intros Hor Hispart Hprops.
@@ -243,17 +243,21 @@ intuition;subst;trivial;simpl.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
++ assert(Hi: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
+  rewrite <- Hi.
+  apply getConfigTablesLinkedListAddDerivation with v0;trivial.
++
 Admitted.
 
 
 
 Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable:
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI:
 {{ fun s : state =>
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI 
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
    /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
@@ -264,7 +268,7 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
   {{fun _ s  => 
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA idxSndVA idxTrdVA zeroI 
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA idxSndVA idxTrdVA zeroI minFI
    /\ isPartitionFalse ptSh1SndVA idxSndVA s 
    /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
@@ -318,13 +322,13 @@ Qed.
 
 Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable:
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI:
 {{ fun s : state =>
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false true true idxFstVA
-     idxSndVA idxTrdVA zeroI 
+     idxSndVA idxTrdVA zeroI minFI
  /\ isPartitionFalse ptSh1SndVA idxSndVA s 
  /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
  /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
@@ -335,7 +339,7 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
   {{fun _ s  => 
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA idxSndVA idxTrdVA zeroI 
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA idxSndVA idxTrdVA zeroI minFI
    /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
@@ -398,13 +402,13 @@ Qed.
  
 Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable:
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI:
 {{ fun s : state =>
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false true idxFstVA
-     idxSndVA idxTrdVA zeroI 
+     idxSndVA idxTrdVA zeroI minFI
    /\ isPartitionFalse ptSh1TrdVA idxTrdVA s  
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
@@ -416,7 +420,7 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
   {{fun _ s  => 
    propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI 
+      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI minFI
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
