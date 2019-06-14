@@ -1376,7 +1376,7 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >=  minFI) as (x & Hx & Hx1) by trivial.
   exists x.
   split;trivial.
   apply isIndexValueUpdateUserFlag;trivial.
@@ -1514,7 +1514,7 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >=  minFI) as (x & Hx & Hx1) by trivial.
   exists x.
   split;trivial.
   apply isIndexValueUpdateUserFlag;trivial.
@@ -1653,7 +1653,7 @@ intuition;subst;trivial.
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >=  minFI) as (x & Hx & Hx1) by trivial.
   exists x.
   split;trivial.
   apply isIndexValueUpdateUserFlag;trivial.  
@@ -2043,7 +2043,7 @@ apply childAncestorConfigTablesAreDifferent with s
   symmetry.
   apply getConfigTablesLinkedListsUpdateUserFlag;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx1 & Hx2) by trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (x & Hx1 & Hx2) by trivial.
   exists x;split;trivial.
   apply isIndexValueUpdateUserFlag;trivial.
 Qed.

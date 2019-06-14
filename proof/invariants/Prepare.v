@@ -1488,12 +1488,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
     (userMMUSndVA:=true) (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:=3).
     simpl.
     intros.
     simpl.
     intuition;subst;trivial.
-    unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  
+    unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll, checkEnoughEntriesLinkedListPC in *.  
     intuition;subst;trivial.
     apply inGetLLPages with LLChildphy;trivial.
     admit. (** Consistency not found : LLconfiguration5 *)
@@ -1531,7 +1531,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable).
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:=3).
     simpl.
     intros.
     simpl.
@@ -1591,7 +1591,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable)(minFI:=3) .
     simpl.
     intros.
     simpl.
@@ -1623,41 +1623,43 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     simpl;intros.
     split.
     intuition;try eassumption.
-    apply writeAccessibleRecPreconditionProofTrdVA  with phySh1addr indMMUToPrepare
+    eapply writeAccessibleRecPreconditionProofTrdVA.
+    intuition;try eassumption. (*   with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
         phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
         fstLL LLChildphy lastLLTable;
-    intuition.
+    intuition. *)
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phyMMUaddr). 
     intros;simpl. 
     split;intuition;try eassumption.
-    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+    eapply writeAccessibleRecPreconditionProofTrdVA;
+    (* with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
         phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
-        fstLL LLChildphy lastLLTable;
+        fstLL LLChildphy lastLLTable;*)
     intuition;try eassumption.
     eapply weaken.  
     eapply WriteAccessibleRecPreparePropagateNewProperty with (pg:= phySh1addr). 
     intros;simpl.
     split;intuition;try eassumption.
-    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+    eapply writeAccessibleRecPreconditionProofTrdVA; (* with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
         phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
-        fstLL LLChildphy lastLLTable;
+        fstLL LLChildphy lastLLTable;*)
     intuition;try eassumption.
     eapply weaken.
     eapply WriteAccessibleRecPrepareNewProperty with (descParent:= currentPart) 
     (phypage:= phySh2addr) (pt:= ptMMUTrdVA). 
     simpl;intros.
-    apply writeAccessibleRecPreconditionProofTrdVA with phySh1addr indMMUToPrepare
+    eapply writeAccessibleRecPreconditionProofTrdVA; (* with phySh1addr indMMUToPrepare
         ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
         ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
         phySh1Child  nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA zeroI
-        fstLL LLChildphy lastLLTable;
+        fstLL LLChildphy lastLLTable;*)
     intuition;try eassumption.
     intros[].
    (**  Level.pred *)

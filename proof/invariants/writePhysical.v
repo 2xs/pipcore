@@ -2770,7 +2770,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   symmetry.
   apply getLLPagesUpdateLLCouplePPVA;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (x & Hx & Hx1) by trivial.
++ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (x & Hx & Hx1) by trivial.
   exists x;split;trivial.
   apply isIndexValueUpdateLLCouplePPVA with entry;trivial.
 + unfold writeAccessibleRecPreparePostconditionAll in *;intuition;

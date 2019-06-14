@@ -2659,19 +2659,22 @@ Qed.
 Lemma insertEntryIntoLLPCUpdateLLIndex s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred newLastLLable  (* (LLDescChild:page) *) entry fstLL LLChildphy  newFFI minFI idx:
+      zeroI lpred newLastLLable  (* (LLDescChild:page) *) entry fstLL LLChildphy  newFFI (minFI minFI' idx:index):
 lookup newLastLLable idx (memory s) beqPage beqIndex = Some (I entry) ->
 (* StateLib.getMaxIndex <> Some nextFFI ->   *)
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
       zeroI lpred fstLL LLChildphy newLastLLable minFI->
+(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI {|
+  currentPartition := currentPartition s;
+  memory := add newLastLLable idx (I newFFI) (memory s) beqPage beqIndex |} /\ NbFI >= minFI') ->
 insertEntryIntoLLPC {|
   currentPartition := currentPartition s;
   memory := add newLastLLable idx (I newFFI) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred fstLL LLChildphy newLastLLable minFI.
+      zeroI lpred fstLL LLChildphy newLastLLable minFI'.
 Proof.
 intros Hlookup (* Hkey2 *).
 intros.
@@ -2752,19 +2755,20 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   symmetry.
   apply getLLPagesUpdateLLIndex with entry;trivial.
   rewrite <- Hconf;trivial.
-+ assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (nbFI & Hnbfi & Hnbfi1) by trivial.
+(* + assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (nbFI & Hnbfi & Hnbfi1) by trivial.
 assert(idx=(CIndex 1) \/ idx<>(CIndex 1)) as [Hor|Hor] by admit.
-subst. 
-  exists newFFI.
+subst.
+* 
+  exists nbFI.
   
   split;trivial.
   apply isIndexValueSameUpdateLLIndex.
-  admit. (** newFFI >= CIndex minFI **)
+  admit. (** newFFI >= minFI **)
   exists nbFI.
   split;trivial.
   apply isIndexValueUpdateLLIndex;trivial.
   right.
-  intuition.
+  intuition. *)
 + unfold writeAccessibleRecPreparePostconditionAll in *;intuition;
   apply writeAccessibleRecPreparePostconditionUpdateLLIndex with entry;trivial.
 + unfold isWellFormedTables in *; intuition.
@@ -2774,7 +2778,7 @@ subst.
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.  
-Admitted.
+Qed.
 
 Lemma isPP'SameValueUpdateLLIndex  newLastLLable nextFFI phyMMUaddr s:
 isPP' newLastLLable nextFFI phyMMUaddr

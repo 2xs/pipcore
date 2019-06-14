@@ -57,6 +57,12 @@ f_equal.
 omega.
 Qed. 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
+(* %%%%%%%%%%%%%%%%%%%%%%DependentTypeLemmas %%%%%%%%%%%%%%%%%%%*)
+Lemma indexPredMinus1 a b:
+StateLib.Index.pred a = Some b -> 
+a = (CIndex (b -1)).
+Admitted.
+(*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 
 (********************************************************************)
 Lemma getVirtualAddressSh2UpdateLLContent newLastLLable FFI x sh2 va entry LL partition s:
@@ -704,7 +710,7 @@ intuition;subst.
   rewrite <- Heq;trivial.
  
 + assert(exists NbFI : index,
-        isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= CIndex minFI) as (m & Hx & Hx1) by trivial.
+        isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (m & Hx & Hx1) by trivial.
   exists m;split;trivial.
   apply isIndexValueUpdateLLVA with entry;trivial.
 Qed.
@@ -893,7 +899,17 @@ subst.
  exists FFI;trivial. }
 intuition.
 subst.
-apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
+apply insertEntryIntoLLPCUpdateLLIndex with entry minFI;trivial.
+{ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *.
+  assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ 
+                NbFI >= minFI) as (nbFI & Hnbfi & Hnbfi1) by intuition.
+  exists nbFI.
+  split;trivial.
+  apply isIndexValueUpdateLLIndex;trivial.
+  right.
+  pose proof tableSizeBigEnough.
+  unfold tableSizeLowerBound in *.
+  apply indexEqFalse;try omega. }
 apply isIndexValueSameUpdateLLIndex ;trivial.
 apply isVA'UpdateLLIndex with entry;trivial.
 apply isPP'UpdateLLIndex with entry;trivial.
@@ -924,7 +940,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI 
                                              descChildphy phySh1Child currentPart trdVA
                                              nextVA vaToPrepare sndVA fstVA nbLgen l
                                              idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot
-                                             LLChildphy newLastLLable minFI}}.
+                                             LLChildphy newLastLLable (CIndex (minFI-1))}}.
 Proof.
 eapply weaken.
 eapply WP.writeIndex.
@@ -942,7 +958,40 @@ assert(exists entry,
  exists NbFI;trivial. }
 intuition.
 subst.
-apply insertEntryIntoLLPCUpdateLLIndex with entry;trivial.
+apply insertEntryIntoLLPCUpdateLLIndex with entry (minFI);trivial.
+unfold insertEntryIntoLLPC,  propagatedPropertiesPrepare in *.
+intuition.
+assert(exists NbFI : index,
+        isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (nbFI & Hnbfi & Hnbfi1) by trivial.
+exists newNbFI.
+assert(Hsucc: StateLib.Index.succ (CIndex 0) = Some oneI) by trivial.
+apply Succ0is1 in Hsucc.
+subst.
+split;trivial.
+apply isIndexValueSameUpdateLLIndex.
+subst.
+assert(nbFI=NbFI).
+{ unfold isIndexValue in *.
+case_eq(lookup newLastLLable (CIndex 1) (memory s) beqPage beqIndex);[intros vi Hvi |intros Hvi];
+rewrite Hvi in *;try now contradict Hnbfi.
+destruct vi;try now contradict Hnbfi.
+subst;trivial. }
+subst.
+assert(Hkey: StateLib.Index.pred NbFI = Some newNbFI) by trivial.
+apply indexPredMinus1 in Hkey.
+subst.
+(* assert (Htodefine: minFi <=3). *)
+revert Hnbfi1.
+clear.
+intros.
+unfold CIndex.
+case_eq(lt_dec (minFI - 1) tableSize);intros;simpl.
+unfold CIndex in *.
+case_eq(lt_dec (newNbFI - 1) tableSize);intros;rewrite H0 in *.
+simpl in *.
+omega.
+destruct minFI;simpl in *;omega.
+destruct minFI;simpl in *;omega.
 Qed.                                             
 
 Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
@@ -961,7 +1010,7 @@ insertEntryIntoLL newLastLLable vavalue pgvalue
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable minFI}}.
+zeroI lpred LLroot LLChildphy newLastLLable (CIndex(minFI -1))}}.
 Proof.
 unfold insertEntryIntoLL. 
 eapply bindRev.
