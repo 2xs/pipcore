@@ -410,9 +410,9 @@ Qed.
 Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  
-      idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI:
+      idxFstVA idxSndVA idxTrdVA zeroI LLroot LLChildphy newLastLLable minFI indMMUToPreparebool:
    {{ fun s : state =>
-   (propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+   (propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false
       false true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
@@ -424,7 +424,7 @@ Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
     /\ isWellFormedMMUTables phyMMUaddr s 
     /\ isWellFormedFstShadow lpred phySh1addr s }} 
   initSndShadow phySh2addr lpred zeroI 
-{{ fun _ s => (propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+{{ fun _ s => (propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false
       false false true true true idxFstVA idxSndVA idxTrdVA zeroI minFI

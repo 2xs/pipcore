@@ -394,7 +394,7 @@ isPartitionFalse  ptSh1FstVA  idxFstVA s /\
 isPartitionFalse  ptSh1SndVA  idxSndVA s /\
 isPartitionFalse  ptSh1TrdVA  idxTrdVA s. 
 
-Definition propagatedPropertiesPrepare LLroot LLChildphy newLastLLable (s:state) ( ptMMUTrdVA phySh2addr phySh1addr
+Definition propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable (s:state) ( ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
 descChildphy phySh1Child currentPart: page) (trdVA  nextVA  vaToPrepare sndVA fstVA: vaddr) (nbLgen  l:level)
@@ -449,7 +449,7 @@ entryPresentFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) true s /\
 isEntryPage ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) phyMMUaddr s /\ 
 (defaultPage =? ptMMUFstVA) = false /\ 
 Some nbLgen = StateLib.getNbLevel /\ 
-(defaultPage =? indMMUToPrepare) = true /\ 
+(defaultPage =? indMMUToPrepare) = indMMUToPreparebool /\ 
 isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s /\ 
 
 nextEntryIsPP (currentPartition s) sh2idx currentShadow2 s /\ 
@@ -589,8 +589,8 @@ Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepar
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred fstLL LLChildphy newLastLLable (n: index):=
-propagatedPropertiesPrepare fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
+zeroI lpred fstLL LLChildphy newLastLLable (n: index) indMMUToPreparebool:=
+propagatedPropertiesPrepare indMMUToPreparebool fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
      currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI n /\
 writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\

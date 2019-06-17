@@ -5883,7 +5883,7 @@ apply Hcond;trivial.
 Qed.
 Lemma  propagatePropertiesPrepareUpdateMappedPageContent  s table curidx ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
             currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
-            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA x zeroI fstLL LLChildphy newLastLLable n:
+            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA x zeroI fstLL LLChildphy newLastLLable n indMMUToPreparebool:
 match x with 
 | PE a => isPresentNotDefaultIff {|
                     currentPartition := currentPartition s;
@@ -5891,11 +5891,11 @@ match x with
                               x (memory s) beqPage beqIndex |} 
 | _ => True
 end ->             
- propagatedPropertiesPrepare fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
+ propagatedPropertiesPrepare indMMUToPreparebool fstLL LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
             currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
             currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false true true true idxFstVA idxSndVA idxTrdVA zeroI n -> 
  initPEntryTablePreconditionToPropagatePrepareProperties s table -> 
- propagatedPropertiesPrepare fstLL LLChildphy newLastLLable
+ propagatedPropertiesPrepare indMMUToPreparebool fstLL LLChildphy newLastLLable
    {|      currentPartition := currentPartition s;
             memory := add table curidx
                               x (memory s) beqPage beqIndex |}ptMMUTrdVA

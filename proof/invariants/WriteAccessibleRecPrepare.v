@@ -411,9 +411,9 @@ Qed.
 
 Lemma WriteAccessibleRecPropagatePrepareProperties currentPart pt phypage descParent va  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child trdVA
-     nextVA vaToPrepare sndVA fstVA (l nbLgen : level)idxFstVA idxSndVA idxTrdVA b1 b2 b3 zeroI LLroot LLChildphy newLastLLable minFI:
+     nextVA vaToPrepare sndVA fstVA (l nbLgen : level)idxFstVA idxSndVA idxTrdVA b1 b2 b3 zeroI LLroot LLChildphy newLastLLable minFI indMMUToPreparebool:
 {{ fun s : state => 
-(propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
+(propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart  trdVA
      nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
      /\  isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA )
@@ -421,7 +421,7 @@ Lemma WriteAccessibleRecPropagatePrepareProperties currentPart pt phypage descPa
 }} 
 Internal.writeAccessibleRecAux (nbPage +1) va descParent false
 {{ fun _ s =>
-   propagatedPropertiesPrepare LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
+   propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
      currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA
      nextVA vaToPrepare sndVA fstVA nbLgen l  b1 b2 b3 true true true idxFstVA idxSndVA idxTrdVA zeroI minFI
      /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA}}.

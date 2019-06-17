@@ -1488,7 +1488,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
     (userMMUSndVA:=true) (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:=3).
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:= CIndex 3).
     simpl.
     intros.
     simpl.
@@ -1531,7 +1531,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:=3).
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:= CIndex 3).
     simpl.
     intros.
     simpl.
@@ -1591,7 +1591,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable)(minFI:=3) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable)(minFI:= CIndex 3) .
     simpl.
     intros.
     simpl.
@@ -1751,7 +1751,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply bindRev.
     eapply insertEntryIntoLLHT.
     intros [].        
-
+(** writePhyEntry **)
 
 
 (** TODO : To be proved *)

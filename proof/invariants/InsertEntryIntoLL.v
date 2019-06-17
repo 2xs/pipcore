@@ -622,14 +622,14 @@ Qed.
 Lemma propagatedPropertiesPrepareUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry LLroot LLChildphy minFI:
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI  newLastLLable FFI x entry LLroot LLChildphy minFI indMMUToPreparebool:
 lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
-propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
+propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable
  s ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l false false false false false false idxFstVA idxSndVA idxTrdVA zeroI minFI ->
-propagatedPropertiesPrepare LLroot LLChildphy newLastLLable
+propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable
   {| currentPartition := currentPartition s; memory := add newLastLLable FFI (VA x) (memory s) beqPage beqIndex |} ptMMUTrdVA
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child
   currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
@@ -720,7 +720,7 @@ Qed.
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry LLroot LLChildphy minFI:
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred newLastLLable FFI x entry LLroot LLChildphy minFI indMMUToPreparebool:
       lookup newLastLLable FFI (memory s) beqPage beqIndex = Some (VA entry) ->
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
@@ -780,7 +780,7 @@ Lemma writeVirtualUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepa
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot vavalue minFI:
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot vavalue minFI indMMUToPreparebool:
 {{ fun s : state =>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
@@ -812,7 +812,7 @@ Lemma writePhysicalUpdateLLContent ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI: 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI indMMUToPreparebool: 
 {{ fun s : state =>
    (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
@@ -865,7 +865,7 @@ Lemma writeIndexUpdateLLContentZero  ptMMUTrdVA phySh2addr phySh1addr indMMUToPr
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI:  
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pgvalue minFI indMMUToPreparebool:  
 {{ fun s : state =>
   (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
@@ -919,7 +919,7 @@ Lemma  writeIndexUpdateLLContentOne  ptMMUTrdVA phySh2addr phySh1addr indMMUToPr
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI newNbFI vavalue pgvalue minFI: 
+zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI newNbFI vavalue pgvalue minFI indMMUToPreparebool: 
 {{ fun s : state =>
    ((((((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
            phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
@@ -998,7 +998,7 @@ Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable vavalue pgvalue minFI:
+zeroI lpred LLroot LLChildphy newLastLLable vavalue pgvalue minFI indMMUToPreparebool:
 {{ fun s : state =>
    insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
