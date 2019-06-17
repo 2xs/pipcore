@@ -37,9 +37,10 @@ Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible MapMMUPage.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
-Lemma getMappedPageAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen vavalue pd:
+Lemma getMappedPageAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen vavalue pd partition:
 lookup indirection idxToPrepare (memory s) beqPage beqIndex = Some (PE entry) -> 
 Some nbLgen = StateLib.getNbLevel ->
+nextEntryIsPP partition PDidx pd s -> 
 getMappedPage pd s vavalue = getMappedPage pd  {|
   currentPartition := currentPartition s;
   memory := add indirection idxToPrepare
@@ -53,16 +54,21 @@ getMappedPage pd s vavalue = getMappedPage pd  {|
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |} vavalue.
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
-intros Hlookup Hl.
+intros Hlookup Hl Hpd.
 unfold getMappedPage.
 rewrite  <-Hl.
-
+case_eq(getIndirection pd vavalue nbLgen (nbLevel - 1) s );[intros tbl Htbl |intros Htbl]. 
+- case_eq( getIndirection pd vavalue nbLgen (nbLevel - 1) s'); [intros tbl' Htbl' |intros Htbl'].
+  +  admit.
+  + admit. (* contradiction *)
+- assert(Hnone: getIndirection pd vavalue nbLgen (nbLevel - 1) s' = None) by admit.
+  rewrite Hnone;trivial.
 Admitted.
 
-Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen valist pd:
+Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen valist pd pg:
 lookup indirection idxToPrepare (memory s) beqPage beqIndex = Some (PE entry) -> 
 Some nbLgen = StateLib.getNbLevel ->
-getMappedPagesAux pd valist s = getMappedPagesAux pd valist {|
+In pg (getMappedPagesAux pd valist s)  -> In pg  (getMappedPagesAux pd valist {|
   currentPartition := currentPartition s;
   memory := add indirection idxToPrepare
               (PE
@@ -72,16 +78,46 @@ getMappedPagesAux pd valist s = getMappedPagesAux pd valist {|
                  exec := true;
                  present := true;
                  user := true;
-                 pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
+                 pa := nextIndirection |}) (memory s) beqPage beqIndex |}).
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
 intros Hlookup Hl.
 unfold getMappedPagesAux.
 f_equal.
 revert pd.
-induction valist;simpl;intros;trivial.
-rewrite IHvalist;f_equal.
-apply getMappedPageAddIndirection with entry nbLgen;trivial.
+induction valist;simpl;intros pd Hmap;trivial.
+case_eq( getMappedPage pd s a); [intros x Hx | intros Hx | intros Hx] ;rewrite Hx in *.
++ case_eq (getMappedPage pd s' a );intros.
+  - 
+simpl in *.
+  destruct Hmap;subst.
+  *
+  assert(Hor: p = pg \/ p <> pg ) by apply pageDecOrNot.
+  destruct Hor as [Hor | Hor];[left;trivial|].
+  right. 
+
+admit. (*contradiction *)
+* right.
+  apply IHvalist;trivial.
+  - simpl in *.
+  destruct Hmap;subst.
+  admit.  (**contradiction**)
+  apply IHvalist;trivial.
+  - simpl in *.
+  destruct Hmap;subst.
+  admit.  (**contradiction**)
+  apply IHvalist;trivial.
+ 
++ case_eq( getMappedPage pd s' a );intros.
+simpl. right.
+apply IHvalist;trivial.
+apply IHvalist;trivial.
+apply IHvalist;trivial.
++ case_eq(getMappedPage pd s' a );intros.
+ simpl. right.
+ apply IHvalist;trivial.
+  apply IHvalist;trivial.
+   apply IHvalist;trivial.
 Qed.
 
 
@@ -177,7 +213,7 @@ assert(Hparts: getPartitions multiplexer s = getPartitions multiplexer s').
 Admitted.
  
  
-Lemma insertEntryIntoLLPC  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+Lemma insertEntryIntoLLPCAddIndirection  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
  phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
   ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy
@@ -210,9 +246,7 @@ intros.
 unfold insertEntryIntoLLPC in *;intuition.
 unfold propagatedPropertiesPrepare in *.
 intuition;subst;trivial.
-+ .
-
-
++ 
 
 Admitted.    
 Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
@@ -225,7 +259,7 @@ Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepa
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred
-     fstLL LLChildphy lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) true}} 
+     fstLL LLChildphy lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1))  true}} 
   writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true
  {{ fun _ s =>  insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr phyMMUaddr ptMMUFstVA
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
@@ -236,7 +270,7 @@ Proof.
 eapply weaken.
 eapply WP.writePhyEntry.
 simpl.
-unfold insertEntryIntoLLPC in *.
+unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *.
 intuition.
 
 Admitted.
