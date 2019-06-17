@@ -2682,13 +2682,13 @@ StateLib.getMaxIndex <> Some nextFFI ->
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred fstLL LLChildphy newLastLLable minFI ->
+      zeroI lpred fstLL LLChildphy newLastLLable minFI indMMUToPreparebool->
 insertEntryIntoLLPC {|
   currentPartition := currentPartition s;
   memory := add newLastLLable nextFFI (PP phyMMUaddr) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
-      zeroI lpred fstLL LLChildphy newLastLLable minFI.
+      zeroI lpred fstLL LLChildphy newLastLLable minFI indMMUToPreparebool.
 Proof.
 intros Hlookup Hkey2.
 intros.

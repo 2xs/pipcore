@@ -725,7 +725,7 @@ Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indM
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
-      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI ->
+      vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool ->
 insertEntryIntoLLPC
   {|
   currentPartition := currentPartition s;
@@ -733,7 +733,7 @@ insertEntryIntoLLPC
   phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
   currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
   currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA
-  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI.
+  nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool.
 Proof.
 unfold insertEntryIntoLLPC;intros.
 intuition.
@@ -784,12 +784,12 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot vavalue minFI indMMUToPre
 {{ fun s : state =>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred  LLroot LLChildphy newLastLLable minFI/\
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred  LLroot LLChildphy newLastLLable minFI indMMUToPreparebool/\
     zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s }} writeVirtual newLastLLable FFI vavalue
  {{ fun _ s=>
    (insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy
-      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\
+      phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool/\
     zeroI' = CIndex 0) /\ isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s}}.
 Proof.
 eapply weaken.
@@ -817,13 +817,13 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pg
    (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\ zeroI' = CIndex 0) /\
+        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool /\ zeroI' = CIndex 0) /\
      isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
     StateLib.Index.succ FFI = Some nextFFI) /\ isIndexValue newLastLLable nextFFI newFFI s }} 
   writePhysical newLastLLable nextFFI pgvalue {{ fun _ s => (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
         phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
         currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
-        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\ zeroI' = CIndex 0) /\
+        idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool/\ zeroI' = CIndex 0) /\
      isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
     StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }}.
 Proof.
@@ -870,7 +870,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pg
   (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
         ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
-        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI/\
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool/\
       zeroI' = CIndex 0) /\
      isIndexValue newLastLLable zeroI' FFI s /\ isVA' newLastLLable FFI vavalue s) /\
     StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }} writeIndex newLastLLable zeroI' newFFI
@@ -878,7 +878,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI vavalue pg
    (((insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
         lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA
         ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare
-        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\
+        sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool /\
       zeroI' = CIndex 0) /\
      isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI vavalue s) /\
     StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s }}.
@@ -925,7 +925,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI 
            phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
            ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
            currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA
-           idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI /\ 
+           idxTrdVA zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool/\ 
          zeroI' = CIndex 0) /\
         isIndexValue newLastLLable zeroI' newFFI s /\ isVA' newLastLLable FFI vavalue s) /\
        StateLib.Index.succ FFI = Some nextFFI) /\ isPP' newLastLLable nextFFI pgvalue s) /\
@@ -940,7 +940,7 @@ zeroI lpred zeroI' newLastLLable FFI LLChildphy LLroot nextFFI newFFI oneI NbFI 
                                              descChildphy phySh1Child currentPart trdVA
                                              nextVA vaToPrepare sndVA fstVA nbLgen l
                                              idxFstVA idxSndVA idxTrdVA zeroI lpred LLroot
-                                             LLChildphy newLastLLable (CIndex (minFI-1))}}.
+                                             LLChildphy newLastLLable (CIndex (minFI-1)) indMMUToPreparebool}}.
 Proof.
 eapply weaken.
 eapply WP.writeIndex.
@@ -1004,13 +1004,13 @@ zeroI lpred LLroot LLChildphy newLastLLable vavalue pgvalue minFI indMMUToPrepar
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable minFI}} 
+zeroI lpred LLroot LLChildphy newLastLLable minFI indMMUToPreparebool}} 
 insertEntryIntoLL newLastLLable vavalue pgvalue  
 {{ fun _ s  => insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
 currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  idxFstVA idxSndVA idxTrdVA 
-zeroI lpred LLroot LLChildphy newLastLLable (CIndex(minFI -1))}}.
+zeroI lpred LLroot LLChildphy newLastLLable (CIndex(minFI -1)) indMMUToPreparebool}}.
 Proof.
 unfold insertEntryIntoLL. 
 eapply bindRev.

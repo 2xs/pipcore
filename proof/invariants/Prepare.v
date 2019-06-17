@@ -1488,7 +1488,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
     (userMMUSndVA:=true) (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:= CIndex 3).
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart)(zeroI:= zeroI)(LLroot:= fstLL)(LLChildphy:=LLChildphy)  
+    (newLastLLable:=lastLLTable) (minFI:= CIndex 3) (indMMUToPreparebool:=true).
     simpl.
     intros.
     simpl.
@@ -1503,9 +1504,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply weaken.
     eapply postAnd.
     eapply WriteAccessibleRecPropagatePrepareProperties
-      with(va:=fstVA) (descParent:= currentPart) (phypage:= phyMMUaddr) (pt:= ptMMUFstVA). 
+      with(va:=fstVA) (descParent:= currentPart) (phypage:= phyMMUaddr) (pt:= ptMMUFstVA)
+      (indMMUToPreparebool:=true). 
     eapply weaken.
-    eapply WriteAccessibleRecPrepareNewProperty with (phypage:= phyMMUaddr).
+    eapply WriteAccessibleRecPrepareNewProperty with (phypage:= phyMMUaddr) 
+    .
     intros;simpl.
     destruct H as (_ & Hi).
     eapply Hi.
@@ -1531,7 +1534,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (userMMUTrdVA:=true) (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:= CIndex 3).
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)
+    (LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable) (minFI:= CIndex 3) (indMMUToPreparebool:=true)
+    .
     simpl.
     intros.
     simpl.
@@ -1551,7 +1556,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     4:{  intros; eapply H. }
     eapply weaken.
     eapply WriteAccessibleRecPropagatePrepareProperties
-      with(va:=sndVA) (descParent:= currentPart) (phypage:= phySh1addr) (pt:= ptMMUSndVA). 
+      with(va:=sndVA) (descParent:= currentPart) (phypage:= phySh1addr) (pt:= ptMMUSndVA)
+      (indMMUToPreparebool:=true). 
     simpl;intros.
     split.
     intuition; try eassumption.
@@ -1591,7 +1597,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     (phySh1Child:=phySh1Child) (trdVA:=trdVA) (nextVA:=nextVA) (vaToPrepare:=vaToPrepare) 
     (sndVA:=sndVA) (fstVA:=fstVA) (nbLgen:=nbLgen) (l:=l)  
      (idxFstVA:= idxFstVA) (idxSndVA:= idxSndVA) 
-    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)(LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable)(minFI:= CIndex 3) .
+    (idxTrdVA:=idxTrdVA) (currentPart:= currentPart) (zeroI:= zeroI) (LLroot:= fstLL)
+    (LLChildphy:=LLChildphy)  (newLastLLable:=lastLLTable)(minFI:= CIndex 3) (indMMUToPreparebool:=true).
     simpl.
     intros.
     simpl.
