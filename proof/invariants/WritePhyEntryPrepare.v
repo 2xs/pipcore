@@ -65,9 +65,14 @@ case_eq(getIndirection pd vavalue nbLgen (nbLevel - 1) s );[intros tbl Htbl |int
   rewrite Hnone;trivial.
 Admitted.
 
-Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen valist pd pg:
+Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen valist pd pg indMMUToPrepare vaToPrepare partition l:
 lookup indirection idxToPrepare (memory s) beqPage beqIndex = Some (PE entry) -> 
 Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection PDidx vaToPrepare l ->
+isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
+(defaultPage =? indMMUToPrepare) = true ->
+isWellFormedMMUTables nextIndirection s ->
+false = StateLib.Level.eqb l fstLevel ->
 In pg (getMappedPagesAux pd valist s)  -> In pg  (getMappedPagesAux pd valist {|
   currentPartition := currentPartition s;
   memory := add indirection idxToPrepare
@@ -81,10 +86,54 @@ In pg (getMappedPagesAux pd valist s)  -> In pg  (getMappedPagesAux pd valist {|
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}).
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
-intros Hlookup Hl.
+intros Hlookup Hl Hroot Hdef Hdef' Hinit Hlevel. 
 unfold getMappedPagesAux.
-f_equal.
-revert pd.
+intros Hgoal.
+rewrite filterOptionInIff in *.
+unfold getMappedPagesOption in *.
+rewrite in_map_iff in *.
+destruct Hgoal as (vapg & Hvapg & Hinvalist).
+exists vapg;split;trivial.
+unfold indirectionDescription,  initPEntryTablePreconditionToPropagatePrepareProperties in *.
+destruct Hroot as (tableroot & Hpp & Hrootnotdef & Hor).
+destruct Hor as [(Heq & HnbL) | Hor].
+- subst.
+  assert(Hnone: getMappedPage indirection s vaToPrepare = NonePage).
+  { unfold getMappedPage.
+    rewrite <- HnbL.
+    assert(Hnoneind:getIndirection indirection vaToPrepare l (nbLevel - 1) s = Some defaultPage).
+    {
+     apply getIndirectionNbLevelEq with 1;try omega.
+     rewrite  getNbLevelEq with l;trivial.
+     apply nbLevelEq.
+     symmetry in Hlevel.
+     apply levelEqBEqNatFalse0 in Hlevel.
+     omega.
+     simpl.
+     rewrite <- Hlevel.
+     assert(Hread: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some indMMUToPrepare).
+     apply isEntryPageReadPhyEntry1;trivial.
+     rewrite Hread.
+     rewrite Hdef';trivial. }
+     rewrite Hnoneind.
+     assert(Heq: true=(defaultPage =? defaultPage)).
+     apply beq_nat_refl.
+     rewrite <- Heq.
+     trivial. }
+     SearchAbout fstLevel.
+     
+      {
+     SearchPattern (getIndirection _ _ _ _ _  = Some defaultPage)
+    
+    
+    
+    
+    .     assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaChild va level = true \/ 
+         checkVAddrsEqualityWOOffset nbLevel vaChild va level = false).
+  { destruct (checkVAddrsEqualityWOOffset nbLevel vaChild va level);intuition. }
+  destruct Hor as [Hor | Hor].
+
+
 induction valist;simpl;intros pd Hmap;trivial.
 case_eq( getMappedPage pd s a); [intros x Hx | intros Hx | intros Hx] ;rewrite Hx in *.
 + case_eq (getMappedPage pd s' a );intros.
@@ -119,6 +168,7 @@ apply IHvalist;trivial.
   apply IHvalist;trivial.
    apply IHvalist;trivial.
 Qed.
+
 
 
 Lemma getChildrenAddIndirection s indirection nextIndirection idxToPrepare partition entry nbLgen:
