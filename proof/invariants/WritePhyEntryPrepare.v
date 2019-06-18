@@ -65,8 +65,8 @@ case_eq(getIndirection pd vavalue nbLgen (nbLevel - 1) s );[intros tbl Htbl |int
   rewrite Hnone;trivial.
 Admitted.
 
-Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection idxToPrepare entry nbLgen valist pd pg indMMUToPrepare vaToPrepare partition l:
-lookup indirection idxToPrepare (memory s) beqPage beqIndex = Some (PE entry) -> 
+Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection  entry nbLgen valist pd pg indMMUToPrepare vaToPrepare partition l:
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) -> 
 Some nbLgen = StateLib.getNbLevel ->
 indirectionDescription s partition indirection PDidx vaToPrepare l ->
 isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
@@ -75,7 +75,7 @@ isWellFormedMMUTables nextIndirection s ->
 false = StateLib.Level.eqb l fstLevel ->
 In pg (getMappedPagesAux pd valist s)  -> In pg  (getMappedPagesAux pd valist {|
   currentPartition := currentPartition s;
-  memory := add indirection idxToPrepare
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
                  read := true;
@@ -96,43 +96,159 @@ destruct Hgoal as (vapg & Hvapg & Hinvalist).
 exists vapg;split;trivial.
 unfold indirectionDescription,  initPEntryTablePreconditionToPropagatePrepareProperties in *.
 destruct Hroot as (tableroot & Hpp & Hrootnotdef & Hor).
+assert(Hpdor: tableroot = pd \/ tableroot <> pd) by apply pageDecOrNot.
+destruct Hpdor as [Hpdor| Hpdor];subst.
++ (** same partition **)
 destruct Hor as [(Heq & HnbL) | Hor].
-- subst.
+- (** root **) subst.
+  assert(Hnoneind:getIndirection indirection vaToPrepare l (nbLevel - 1) s = Some defaultPage).
+  { apply getIndirectionNbLevelEq with 1;try omega.
+    rewrite  getNbLevelEq with l;trivial.
+    apply nbLevelEq.
+    symmetry in Hlevel.
+    apply levelEqBEqNatFalse0 in Hlevel.
+    omega.
+    simpl.
+    rewrite <- Hlevel.
+    assert(Hread: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some indMMUToPrepare).
+    apply isEntryPageReadPhyEntry1;trivial.
+    rewrite Hread.
+    rewrite Hdef';trivial. }
   assert(Hnone: getMappedPage indirection s vaToPrepare = NonePage).
   { unfold getMappedPage.
     rewrite <- HnbL.
-    assert(Hnoneind:getIndirection indirection vaToPrepare l (nbLevel - 1) s = Some defaultPage).
-    {
-     apply getIndirectionNbLevelEq with 1;try omega.
-     rewrite  getNbLevelEq with l;trivial.
-     apply nbLevelEq.
-     symmetry in Hlevel.
-     apply levelEqBEqNatFalse0 in Hlevel.
-     omega.
-     simpl.
-     rewrite <- Hlevel.
-     assert(Hread: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some indMMUToPrepare).
-     apply isEntryPageReadPhyEntry1;trivial.
-     rewrite Hread.
-     rewrite Hdef';trivial. }
-     rewrite Hnoneind.
-     assert(Heq: true=(defaultPage =? defaultPage)).
-     apply beq_nat_refl.
-     rewrite <- Heq.
-     trivial. }
-     SearchAbout fstLevel.
-     
-      {
-     SearchPattern (getIndirection _ _ _ _ _  = Some defaultPage)
-    
-    
-    
-    
-    .     assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaChild va level = true \/ 
-         checkVAddrsEqualityWOOffset nbLevel vaChild va level = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaChild va level);intuition. }
+    rewrite Hnoneind.
+    assert(Heq: true=(defaultPage =? defaultPage)).
+    apply beq_nat_refl.
+    rewrite <- Heq.
+    trivial. }
+    (* assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel vaInCurrentPartition va1 ( CLevel (nbLevel -1) ) = true )
+by apply AllVAddrWithOffset0.
+destruct Heqvars as (va1 & Hva1 & Hva11).  
+exists va1.
+split;trivial.
+rewrite <- H.*)
+  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/ 
+         checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
+  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
   destruct Hor as [Hor | Hor].
+  * (** Same virtual address : contradiction **)
+    assert(Hfalse: getMappedPage indirection s vapg = NonePage).
+    rewrite <- Hnone.
+    symmetry.
+    apply getMappedPageEq with l;trivial.
+    symmetry;trivial.
+    rewrite Hfalse in Hvapg.
+    now contradict Hvapg. 
+  * (* rewrite <- Hvapg.
+    symmetry. *)
+    unfold getMappedPage.
+    unfold getMappedPage in Hvapg.
+rewrite <- HnbL in *.
+    case_eq(getIndirection indirection vapg l (nbLevel - 1) s)
+    ;[intros ind Hind | intros Hind];rewrite Hind in *;try now contradict Hvapg.
+    case_eq(defaultPage =? ind) ;intros Hi;rewrite Hi in *;try now contradict Hvapg.
+    case_eq(getIndirection indirection vapg l (nbLevel - 1) s');[intros ind' Hind'|intros Hind'].
+    SearchAbout getIndirection checkVAddrsEqualityWOOffset.
+SearchAbout getMappedPage checkVAddrsEqualityWOOffset.
+  
+  Lemma twoMappedPagesAreDifferent phy1 phy2 v1 v2 p nbL s: 
+getMappedPage p s v1 = SomePage phy1 ->
+getMappedPage p s v2 = SomePage phy2-> 
+NoDup (filterOption (map (getMappedPage p s) getAllVAddrWithOffset0)) -> 
+StateLib.getNbLevel = Some nbL -> 
+StateLib.checkVAddrsEqualityWOOffset nbLevel v1 v2 nbL = false -> 
+phy1 <> phy2.
+Proof.
+intros.
+assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel v1 va1 ( CLevel (nbLevel -1) ) = true )
+by apply AllVAddrWithOffset0.
+destruct Heqvars as (va1 & Hva1 & Hva11).
+assert(Hmap1: getMappedPage p s va1 = SomePage phy1). 
+rewrite <- H.
+symmetry.
+apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+apply getNbLevelEqOption.
+clear H.
 
+assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel v2 va1 ( CLevel (nbLevel -1) ) = true )
+by apply AllVAddrWithOffset0.
+destruct Heqvars as (va2 & Hva2 & Hva22).
+assert(Hmap2: getMappedPage p s va2 = SomePage phy2). 
+rewrite <- H0.
+symmetry.
+apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+apply getNbLevelEqOption.
+clear H0.
+assert(Hx :StateLib.checkVAddrsEqualityWOOffset nbLevel  va2 v1 nbL = false).
+apply checkVAddrsEqualityWOOffsetTrans with v2;trivial.
+rewrite <- Hva22.
+assert(StateLib.getNbLevel = Some (CLevel (nbLevel - 1))). 
+apply getNbLevelEqOption.
+rewrite  H in *.
+inversion H2;trivial.
+apply checkVAddrsEqualityWOOffsetPermut.
+assert(Hvax :StateLib.checkVAddrsEqualityWOOffset nbLevel va1 va2 nbL = false). 
+apply checkVAddrsEqualityWOOffsetTrans with v1;trivial.
+rewrite <- Hva11.
+assert(StateLib.getNbLevel = Some (CLevel (nbLevel - 1))). 
+apply getNbLevelEqOption.
+rewrite  H in *.
+inversion H2;trivial.
+apply checkVAddrsEqualityWOOffsetPermut.
+clear H3 Hva11 Hva22 Hx.
+revert dependent va1.
+revert dependent va2.
+revert H1 H2.
+revert phy1 phy2 p nbL.
+clear v1 v2.
+
+induction getAllVAddrWithOffset0.
+intuition.
+intros.
+destruct Hva2; destruct Hva1.
+subst.
+(* rewrite H2 in H4. *)
+contradict Hvax. 
+rewrite  Bool.not_false_iff_true.
+apply checkVAddrsEqualityWOOffsetEqTrue.
+subst.
+simpl in *. 
+rewrite Hmap2 in H1.
+apply NoDup_cons_iff in H1.
+destruct H1.
+assert(In phy1 (filterOption (map (getMappedPage p s) l))).
+apply filterOptionInIff.
+apply in_map_iff.
+exists va1; split; trivial.
+unfold not; intros.
+subst.
+now contradict H3.
+subst.
+simpl in *.
+rewrite Hmap1 in H1.
+apply NoDup_cons_iff in H1.
+destruct H1.
+assert(In phy2 (filterOption (map (getMappedPage p s) l))).
+apply filterOptionInIff.
+apply in_map_iff.
+exists va2; split; trivial.
+unfold not; intros.
+subst.
+now contradict H0.
+subst.
+apply IHl with  p nbL va2 va1; trivial.
+simpl in H1.
+destruct(getMappedPage p s a ).
+apply NoDup_cons_iff in H1.
+intuition.
+assumption.
+trivial.
+Qed.
+  
 
 induction valist;simpl;intros pd Hmap;trivial.
 case_eq( getMappedPage pd s a); [intros x Hx | intros Hx | intros Hx] ;rewrite Hx in *.
