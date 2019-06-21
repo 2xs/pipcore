@@ -150,10 +150,9 @@ rewrite <- HnbL in *.
     ;[intros ind Hind | intros Hind];rewrite Hind in *;try now contradict Hvapg.
     case_eq(defaultPage =? ind) ;intros Hi;rewrite Hi in *;try now contradict Hvapg.
     case_eq(getIndirection indirection vapg l (nbLevel - 1) s');[intros ind' Hind'|intros Hind'].
-    SearchAbout getIndirection checkVAddrsEqualityWOOffset.
-SearchAbout getMappedPage checkVAddrsEqualityWOOffset.
+
   
-  Lemma twoMappedPagesAreDifferent phy1 phy2 v1 v2 p nbL s: 
+(*   Lemma twoMappedPagesAreDifferent phy1 phy2 v1 v2 p nbL s: 
 getMappedPage p s v1 = SomePage phy1 ->
 getMappedPage p s v2 = SomePage phy2-> 
 NoDup (filterOption (map (getMappedPage p s) getAllVAddrWithOffset0)) -> 
@@ -247,10 +246,14 @@ apply NoDup_cons_iff in H1.
 intuition.
 assumption.
 trivial.
-Qed.
+Qed. *)
+  admit.
+  admit.
+  - admit.
+  + admit.
   
 
-induction valist;simpl;intros pd Hmap;trivial.
+(* (* induction valist;simpl;intros pd Hmap;trivial.
 case_eq( getMappedPage pd s a); [intros x Hx | intros Hx | intros Hx] ;rewrite Hx in *.
 + case_eq (getMappedPage pd s' a );intros.
   - 
@@ -271,10 +274,10 @@ admit. (*contradiction *)
   - simpl in *.
   destruct Hmap;subst.
   admit.  (**contradiction**)
-  apply IHvalist;trivial.
+  apply IHvalist;trivial. *)
  
-+ case_eq( getMappedPage pd s' a );intros.
-simpl. right.
++ case_eq( getMappedPage pd s' vapg );intros.
+simpl. trivial. right.
 apply IHvalist;trivial.
 apply IHvalist;trivial.
 apply IHvalist;trivial.
@@ -282,8 +285,8 @@ apply IHvalist;trivial.
  simpl. right.
  apply IHvalist;trivial.
   apply IHvalist;trivial.
-   apply IHvalist;trivial.
-Qed.
+   apply IHvalist;trivial. *)
+Admitted.
 
 
 
