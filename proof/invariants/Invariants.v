@@ -337,10 +337,7 @@ destruct H as (H & Hpage).
 unfold isPE, isEntryPage in *.
 destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
 destruct v; try now contradict Hpage.
-exists p;repeat split;trivial.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|i]; [ exists p;repeat split;trivial | now contradict Hpage | 
-       now contradict Hpage| now contradict Hpage| now contradict Hpage ] | now contradict Hpage].
+eexists;repeat split;trivial.
 Qed.
 
 Lemma readIndex (table : page) (idx : index) (P : state -> Prop):
@@ -352,9 +349,9 @@ eapply WP.readIndex .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isI, isIndexValue in *.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|i]; [ now contradict Hpage | 
-       now contradict Hpage| now contradict Hpage| now contradict Hpage |exists i;repeat split;trivial  ] | now contradict Hpage].
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct v; try now contradict Hpage.
+eexists;repeat split;trivial.
 Qed.
 
 
@@ -426,10 +423,10 @@ Lemma isPPLookupEq table idx res s:
 isPP' table idx res s -> lookup table idx (memory s) beqPage beqIndex = Some (PP res).
 Proof.
 intros.
-unfold isPP' in *. 
-destruct (lookup table idx (memory s) beqPage beqIndex)
-as [v |];  [ destruct v as [ p |v|p|v|i] ; [ now contradict H | now contradict H | 
-subst;trivial| now contradict H| now contradict H] | now contradict H].
+unfold isPP' in *.
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct v; try now contradict H.
+subst ;trivial.
 Qed.
 
 Lemma getNbLevel P :
@@ -488,9 +485,9 @@ isPE table idx s -> exists entry : Pentry,
 Proof.
 intros.  
 unfold isPE in H.
-     destruct (lookup table idx (memory s) beqPage beqIndex)
-     as [v |]; [ destruct v as [ p |v|p|v|i]; [exists p;trivial | now contradict H | 
-     now contradict H| now contradict H| now contradict H ] | now contradict H].
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct v; try now contradict H.
+eexists;repeat split;trivial.
 Qed.
 
 
@@ -555,9 +552,9 @@ Lemma isVELookupEq table idx s :
 Proof.
 intros.
 unfold isVE in H.
-     destruct (lookup table idx (memory s) beqPage beqIndex)
-     as [v |]; [ destruct v as [ p |v|p|v|i]; [now contradict H  | exists v;trivial| 
-     now contradict H| now contradict H| now contradict H ] | now contradict H].
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct v; try now contradict H.
+eexists;repeat split;trivial.
 Qed.
  
 Lemma readVirEntry (table : page) (idx : index) (P : state -> Prop):
@@ -569,9 +566,9 @@ eapply WP.readVirEntry .
 simpl. intros.
 destruct H as (H & Hva).
 unfold isVE, isEntryVA in *.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|i] |];  [ | exists v;repeat split;trivial | | | | ] ;
-       now contradict Hva.
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hva.
+destruct v; try now contradict Hva.
+eexists;repeat split;trivial.
 Qed.
 
 Lemma compareVAddrToNull (va : vaddr) (P : state -> Prop): 
@@ -665,10 +662,10 @@ Lemma entryPresentFlagIsPE table idx s :
 forall flag, entryPresentFlag table idx flag s -> isPE table idx s .
 Proof.
 intros.
-unfold entryPresentFlag, isPE in *. 
-destruct (lookup table idx (memory s) beqPage beqIndex)
-as [v |]; [ destruct v as [ p |v|p|v|i]; [trivial | now contradict H | 
-now contradict H| now contradict H| now contradict H ] | now contradict H ].
+unfold entryPresentFlag, isPE in *.
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct v; try now contradict H.
+eexists;repeat split;trivial.
 Qed.
 
 Lemma getPd (PR : page) (P : state -> Prop) :
@@ -739,9 +736,9 @@ eapply WeakestPreconditions.readPhysical .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isPP', isPP in *.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|i] ; [ now contradict Hpage | now contradict Hpage | 
-       eexists; repeat split;trivial| now contradict Hpage| now contradict Hpage ] | now contradict Hpage].
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct v; try now contradict Hpage.
+eexists;repeat split;trivial.
 Qed.
 
 Lemma readVirtual (table : page) (idx : index) (P : state -> Prop):
@@ -753,9 +750,9 @@ eapply WeakestPreconditions.readVirtual .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isVA, isVA' in *.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|i] ; [ now contradict Hpage | now contradict Hpage | 
-        now contradict Hpage| eexists; repeat split;trivial| now contradict Hpage ] | now contradict Hpage].
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct v; try now contradict Hpage.
+eexists;repeat split;trivial.
 Qed.
 
 Lemma readVirtualUser (table : page) (idx : index) (P : state -> Prop):
@@ -766,8 +763,8 @@ eapply WP.weaken.
 eapply WeakestPreconditions.readVirtualUser .
 simpl. intros.
 unfold isVAUser.
-destruct (lookup table idx (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|i]|];split;trivial.
+destruct (lookup table idx (memory s) beqPage beqIndex);
+[destruct v|]; split;trivial.
 Qed.
 
 Lemma getSndShadow (PR : page) (P : state -> Prop) :
