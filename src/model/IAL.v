@@ -16,14 +16,14 @@ Definition checkVidtIndex (saveIndex : index) : LLI bool :=
   (* perform maxVint := getMaxVint in *)
   ret (saveIndex <=? maxVint).
 
-Program Definition getIndexFromUserValue (userIndex : userValue) : LLI index :=
-  (* ret (CIndex userIndex). *)
+
+Program Definition userValueToIndex (userIndex : userValue) : LLI index :=
   if lt_dec userIndex tableSize
   then
     ret (Build_index userIndex _ )
   else undefined 85.
 
-Definition readUserlandVAddr (paddr : page) ( idx : index)  : LLI vaddr :=
+Definition readUserlandVAddr (paddr : page) (idx : index)  : LLI vaddr :=
   perform s := get in
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
   match entry with

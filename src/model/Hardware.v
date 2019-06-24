@@ -54,7 +54,7 @@
        We define some lemmas like "weaken" and "bindWP" to facilitate Hoare logic 
        and monad manipulation.
 *)
-Require Import FunctionalExtensionality Model.ADT.
+Require Import FunctionalExtensionality Model.ADT Arith.
 
 Record Pentry : Type:=
 {read :bool;
@@ -71,12 +71,32 @@ Record Ventry : Type:=
  va : vaddr
 }.
 
-Inductive value : Type:= 
+
+(* Inductive unsafeValue : Type :=
+| UI  : index -> unsafeValue
+| UVa : vaddr -> unsafeValue.
+
+Inductive kernelValue : Type:= 
+|PE : Pentry -> kernelValue
+|VE : Ventry -> kernelValue
+|PP : page -> kernelValue
+|VA : vaddr -> kernelValue
+|I  : index -> kernelValue.
+
+Inductive value : Type :=
+|KV : kernelValue -> value
+|UV : unsafeValue -> value.
+ *)
+
+Definition unsafe := nat.
+
+Inductive value : Type := 
 |PE : Pentry -> value
 |VE : Ventry -> value
 |PP : page -> value
 |VA : vaddr -> value
-|I  : index -> value.
+|I  : index -> value
+|U  : userValue -> value.
 
 Record state : Type := {
  currentPartition : page;
@@ -98,7 +118,7 @@ Inductive yield_checks : Type :=
 Inductive result (A : Type) : Type :=
 | val : A -> result A
 (* | hlt : result A *)
-| undef : nat -> state-> result A.
+| undef : nat -> state -> result A.
 
 (* Implicit *) Arguments val [ A ].
 (* Implicit Arguments hlt [ A ]. *)
@@ -322,4 +342,3 @@ apply H0 in H2.
 destruct (m s); trivial.
 destruct p; intuition.
 Qed.
-

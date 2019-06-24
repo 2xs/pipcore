@@ -335,6 +335,9 @@ eapply WeakestPreconditions.readPhyEntry .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isPE, isEntryPage in *.
+destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct v; try now contradict Hpage.
+exists p;repeat split;trivial.
 destruct (lookup table idx (memory s) beqPage beqIndex)
        as [v |];  [ destruct v as [ p |v|p|v|i]; [ exists p;repeat split;trivial | now contradict Hpage | 
        now contradict Hpage| now contradict Hpage| now contradict Hpage ] | now contradict Hpage].
@@ -1230,11 +1233,11 @@ simpl.
 intros. split;trivial.
 Qed.
 
-Lemma getIndexFromUserValue (userIndex : userValue) (P : state -> Prop) :
-{{ fun s => P s /\ userIndex < tableSize}} getIndexFromUserValue userIndex {{ fun b s => P s /\ b = (CIndex userIndex)}}.
+Lemma userValueToIndex (userIndex : userValue) (P : state -> Prop) :
+{{ fun s => P s /\ userIndex < tableSize}} userValueToIndex userIndex {{ fun b s => P s /\ b = (CIndex userIndex)}}.
 Proof.
 eapply WP.weaken.
-apply WP.getIndexFromUserValue.
+apply WP.userValueToIndex.
 simpl.
 intros.
 destruct H.

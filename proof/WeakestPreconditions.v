@@ -414,6 +414,8 @@ eapply bind .
 
       try eapply ret ;simpl.
       intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
     + intros. eapply weaken.
       try eapply ret ;simpl.
       intros s0 H0; destruct H0 as (H0& H1);subst;rewrite H in H1;trivial.
@@ -605,35 +607,24 @@ intros s.
 simpl.
 case_eq (lookup table idx s.(memory) beqPage beqIndex).
 - intros v Hentry.
-
-  case_eq v; [| intros;
- simpl;
- eapply weaken;
-try eapply modify ;
-intros; simpl;
-destruct H0 as  (Hs &ve & Htrue & Hp);
-inversion Htrue;subst;
-assumption | | |];
-  
-    intros;
-    eapply weaken;
-    try eapply undefined ;simpl;
-    intros;simpl in *;
-    intuition;
-    subst;
-    destruct H2 as (v &Hv & Hp);
-    inversion Hv;
-    intros.
- - intros;
-    eapply weaken;
-    try eapply undefined ;simpl;
-    intros;simpl in *;
-    intuition;
-    subst;
-    destruct H2 as (v &Hv & Hp);
-    inversion Hv;
-    intros.
-    Qed.
+  simpl in *.
+  case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
+  subst;
+  cbn; intros;   
+  try destruct H as (Hs & x & H1 & Hp); subst;
+  try rewrite H1 in Hentry; inversion Hentry; subst; try now contradict H1.
+  try eapply modify.
+  simpl. inversion H1. subst. assumption.
+- intros;
+  eapply weaken;
+  try eapply undefined ;simpl;
+  intros;simpl in *;
+  intuition;
+  subst;
+  destruct H2 as (v &Hv & Hp);
+  inversion Hv;
+  intros.
+Qed.
     
 Lemma readAccessible  table idx (P : bool -> state -> Prop) : 
 {{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
@@ -778,16 +769,16 @@ eapply ret.
 trivial.
 Qed.
 
-Lemma getIndexFromUserValue (userIndex : userValue) (P : index -> state -> Prop) :
+Lemma userValueToIndex (userIndex : userValue) (P : index -> state -> Prop) :
 {{fun s => userIndex < tableSize /\ P (CIndex userIndex) s}}
-  getIndexFromUserValue userIndex
+  userValueToIndex userIndex
 {{P}}.
 Proof.
-unfold getIndexFromUserValue.
+unfold userValueToIndex.
 case_eq (lt_dec userIndex tableSize).
 - intro HUI_lt_TS.
   intro.
-  unfold IAL.getIndexFromUserValue_obligation_1.
+  unfold IAL.userValueToIndex_obligation_1.
   eapply weaken.
   eapply ret.
   intros.

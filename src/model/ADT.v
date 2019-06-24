@@ -119,7 +119,7 @@ Program Definition CPage (p : nat) : page :=
 if (lt_dec p nbPage) then Build_page p _ else  page_d.
 
 Program Definition CVaddr (l: list index) : vaddr := 
-if ( Nat.eq_dec (length l)  (nbLevel+1))  
+if ( Nat.eq_dec (length l)  (nbLevel+1))
   then Build_vaddr l _
   else Build_vaddr (repeat (CIndex 0) (nbLevel+1)) _.
 

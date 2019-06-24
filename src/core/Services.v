@@ -1396,7 +1396,7 @@ Definition yield (calleePartDescVAddr : vaddr)
     ret FAIL_VINT
   else
 
-  perform targetInterrupt := getIndexFromUserValue userTargetInterrupt in
+  perform targetInterrupt := userValueToIndex userTargetInterrupt in
   (*--------------------------*)
 
   perform callerPartDesc := getCurPartition in
@@ -1411,7 +1411,7 @@ Definition yield (calleePartDescVAddr : vaddr)
     ret FAIL_CTX_SAVE_INDEX
   else
 
-  perform callerContextSaveIndex := getIndexFromUserValue userCallerContextSaveIndex in
+  perform callerContextSaveIndex := userValueToIndex userCallerContextSaveIndex in
 
   (*--------------------------*)
 
