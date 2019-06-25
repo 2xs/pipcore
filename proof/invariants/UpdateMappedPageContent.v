@@ -3210,15 +3210,13 @@ apply isDerivedUpdateMappedPageData;trivial.
 apply H2 with  parent va pdParent child pdChild vaInChild;trivial.
 Qed.
 
+
 Lemma isPresentNotDefaultIffUpdateMappedPageData table curidx x s:
 match x with
 | PE _ => isPresentNotDefaultIff {|
   currentPartition := currentPartition s;
   memory := add table curidx x (memory s) beqPage beqIndex |}
-| VE _ => True
-| PP _ => True
-| VA _ => True
-| I _ => True
+| _ => True
 end -> 
 isPresentNotDefaultIff s -> 
 isPresentNotDefaultIff {|
@@ -3226,91 +3224,34 @@ isPresentNotDefaultIff {|
   memory := add table curidx x (memory s) beqPage beqIndex |}.
 Proof.
 intros.
-case_eq x; intros * Hii; rewrite Hii in *;trivial.
-+
 unfold isPresentNotDefaultIff in *.
-simpl.
-intros table0 idx0.
+simpl in *.
 unfold StateLib.readPresent.
 unfold StateLib.readPhyEntry.
-simpl. 
-case_eq(beqPairs (table, curidx) (table0, idx0) beqPage beqIndex); 
-intros * Haa.
-split;
-intros * Hi;
-now contradict Hi.
-assert(lookup table0 idx0 (removeDup table curidx (memory s) beqPage beqIndex) beqPage beqIndex
-= lookup table0 idx0  (memory s) beqPage beqIndex).
-apply removeDupIdentity.
-apply beqPairsFalse in Haa.
-intuition.
-rewrite H1.
-unfold StateLib.readPresent in *.
-unfold StateLib.readPhyEntry in *.
-trivial.
-+
-    unfold isPresentNotDefaultIff in *.
-simpl.
-intros table0 idx0.
-unfold StateLib.readPresent.
-unfold StateLib.readPhyEntry.
-simpl. 
-case_eq(beqPairs (table, curidx) (table0, idx0) beqPage beqIndex); 
-intros * Haa.
-split;
-intros * Hi;
-now contradict Hi.
-assert(lookup table0 idx0 (removeDup table curidx (memory s) beqPage beqIndex) beqPage beqIndex
-= lookup table0 idx0  (memory s) beqPage beqIndex).
-apply removeDupIdentity.
-apply beqPairsFalse in Haa.
-intuition.
-rewrite H1.
-unfold StateLib.readPresent in *.
-unfold StateLib.readPhyEntry in *.
-trivial.
-+
-    unfold isPresentNotDefaultIff in *.
-simpl.
-intros table0 idx0.
-unfold StateLib.readPresent.
-unfold StateLib.readPhyEntry.
-simpl. 
-case_eq(beqPairs (table, curidx) (table0, idx0) beqPage beqIndex); 
-intros * Haa.
-split;
-intros * Hi;
-now contradict Hi.
-assert(lookup table0 idx0 (removeDup table curidx (memory s) beqPage beqIndex) beqPage beqIndex
-= lookup table0 idx0  (memory s) beqPage beqIndex).
-apply removeDupIdentity.
-apply beqPairsFalse in Haa.
-intuition.
-rewrite H1.
-unfold StateLib.readPresent in *.
-unfold StateLib.readPhyEntry in *.
-trivial.
-+
-    unfold isPresentNotDefaultIff in *.
-simpl.
-intros table0 idx0.
-unfold StateLib.readPresent.
-unfold StateLib.readPhyEntry.
-simpl. 
-case_eq(beqPairs (table, curidx) (table0, idx0) beqPage beqIndex); 
-intros * Haa.
-split;
-intros * Hi;
-now contradict Hi.
-assert(lookup table0 idx0 (removeDup table curidx (memory s) beqPage beqIndex) beqPage beqIndex
-= lookup table0 idx0  (memory s) beqPage beqIndex).
-apply removeDupIdentity.
-apply beqPairsFalse in Haa.
-intuition.
-rewrite H1.
-unfold StateLib.readPresent in *.
-unfold StateLib.readPhyEntry in *.
-trivial.
+simpl in *.
+case_eq x; intros * Hii; rewrite Hii in *; try assumption ;
+intros table0 idx0 ;
+case_eq(beqPairs (table, curidx) (table0, idx0) beqPage beqIndex) ;
+
+try (
+  intros * Haa ;
+  split; 
+  intros * Hi;
+  now contradict Hi
+);
+  intros * Haa ;
+  assert(lookup table0 idx0 (removeDup table curidx (memory s) beqPage beqIndex) beqPage beqIndex
+= lookup table0 idx0  (memory s) beqPage beqIndex);
+
+try (
+  apply removeDupIdentity;
+  apply beqPairsFalse in Haa;
+  intuition
+);
+  rewrite H1;
+  unfold StateLib.readPresent in *;
+  unfold StateLib.readPhyEntry in *;
+  trivial.
 Qed.
 
 Lemma isPresentNotDefaultIffRightValue table curidx s :

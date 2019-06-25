@@ -1244,11 +1244,7 @@ intuition.
 rewrite H.
 case_eq( match lookup p (StateLib.getIndexOfAddr va1 fstLevel) (memory s) beqPage beqIndex with
 | Some (PE a) => Some (user a)
-| Some (VE _) => None
-| Some (PP _) => None
-| Some (VA _) => None
-| Some (I _) => None
-| None => None
+| _ => None
 end);intros; trivial.
 rewrite H0 in *.
 destruct b;trivial.

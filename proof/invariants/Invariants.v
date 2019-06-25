@@ -716,15 +716,12 @@ clear Hpdtmp.
 unfold partitionDescriptorEntry in Hpd.
 destruct Hpd as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
-subst. exists page1.
-unfold nextEntryIsPP in Hpp.
-split; [
-unfold nextEntryIsPP in Hpp; destruct (StateLib.Index.succ PDidx);
- [ inversion Hidxsucc;subst |now contradict Hpp];
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hpp | now contradict Hpp | 
-       subst;trivial| now contradict Hpp| now contradict Hpp ] | now contradict Hpp] |
-split ;[assumption | trivial]].
+exists page1.
+repeat split; try assumption.
+unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
+destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct v; try now contradict Hpp.
+rewrite Hpp; trivial.
 Qed.
 
 Lemma readPhysical (table : page) (idx : index) (P : state -> Prop):
@@ -813,13 +810,11 @@ destruct Hpd as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
 unfold nextEntryIsPP in Hpp.
-split; [
-unfold nextEntryIsPP in Hpp; destruct (StateLib.Index.succ sh2idx);
- [ inversion Hidxsucc;subst |now contradict Hpp];
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hpp | now contradict Hpp | 
-       subst;trivial| now contradict Hpp| now contradict Hpp ] | now contradict Hpp] |
-split ;[assumption | trivial]].
+repeat split; try assumption.
+unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
+destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct v; try now contradict Hpp.
+rewrite Hpp; trivial.
 Qed.
 
 Lemma getFstShadow (PR : page) (P : state -> Prop) :
@@ -869,14 +864,11 @@ unfold partitionDescriptorEntry in Hpd.
 destruct Hpd as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
-unfold nextEntryIsPP in Hpp.
-split; [
-unfold nextEntryIsPP in Hpp; destruct (StateLib.Index.succ sh1idx);
- [ inversion Hidxsucc;subst |now contradict Hpp];
-destruct (lookup (currentPartition s) idxsucc (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hpp | now contradict Hpp | 
-       subst;trivial| now contradict Hpp| now contradict Hpp ] | now contradict Hpp] |
-split ;[assumption | trivial]].
+repeat split; try assumption.
+unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
+destruct (lookup (currentPartition s) idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct v; try now contradict Hpp.
+rewrite Hpp; trivial.
 Qed.
 
 Lemma getFstShadow1 (partition : page) (P : state -> Prop) :
@@ -1197,14 +1189,11 @@ unfold partitionDescriptorEntry in Hpd.
 destruct Hpd as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
-unfold nextEntryIsPP in Hpp.
-split; [
-unfold nextEntryIsPP in Hpp; destruct (StateLib.Index.succ PPRidx);
- [ inversion Hidxsucc;subst |now contradict Hpp];
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex)
-       as [v |];  [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hpp | now contradict Hpp | 
-       subst;trivial| now contradict Hpp| now contradict Hpp ] | now contradict Hpp] |
-split ;[assumption | trivial]].
+repeat split; try assumption.
+unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
+destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct v; try now contradict Hpp.
+rewrite Hpp; trivial.
 Qed.
 
 Lemma checkRights r w e P : 

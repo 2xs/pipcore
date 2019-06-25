@@ -370,8 +370,7 @@ case_eq (StateLib.Index.succ PDidx);intros;
 rewrite H in HnextEntryIsPP;  [ | now contradict HnextEntryIsPP].
 case_eq (lookup partition i (memory s) beqPage beqIndex); intros; 
 rewrite H0 in HnextEntryIsPP; [ | now contradict HnextEntryIsPP].
-destruct v as [ p |v|p|v|ii] ; [ now contradict HnextEntryIsPP | now contradict HnextEntryIsPP | 
-subst | now contradict HnextEntryIsPP | now contradict HnextEntryIsPP ].
+destruct v ; try now contradict HnextEntryIsPP.
 assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
 StateLib.checkVAddrsEqualityWOOffset nbLevel descChild va1 ( CLevel (nbLevel -1) ) = true )
 by apply AllVAddrWithOffset0.
@@ -419,14 +418,15 @@ unfold isEntryPage in *.
 unfold StateLib.readPresent. 
 case_eq (lookup ptpd (StateLib.getIndexOfAddr descChild fstLevel) 
              (memory s) beqPage beqIndex); intros; rewrite H2 in *; [| now contradict HphyVA].
-destruct v as [ p0 |v|p0|v|ii] ; [ subst |now contradict HphyVA | now contradict HphyVA | 
- now contradict HphyVA | now contradict HphyVA ].
+destruct v ; try now contradict HphyVA.
 unfold entryPresentFlag in *.
 rewrite H2 in Hpresent.
 rewrite <- Hpresent.
 unfold StateLib.readPhyEntry.
 rewrite Hnotnull.
-rewrite H2;trivial. }
+rewrite H2;trivial.
+subst; trivial.
+}
 rewrite <- H2.
 symmetry.
 apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.

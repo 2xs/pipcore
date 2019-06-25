@@ -1048,12 +1048,12 @@ case_eq(beqPairs (table, idx) (p, CIndex size) beqPage beqIndex);intros Hpairs.
            beqPage beqIndex = lookup  p (CIndex size) (memory s) beqPage beqIndex) as Hmemory.
    { apply removeDupIdentity. subst.  intuition. }
   rewrite  Hmemory. 
-  destruct (lookup p (CIndex size) (memory s) beqPage beqIndex); [ 
-  destruct v;  [
-  destruct (pa p0 =? defaultPage ); trivial | | | | ];
-  generalize (IHsize p table idx H);clear IHsize; intros IHsize;
-  rewrite IHsize;trivial | generalize (IHsize p table idx );clear IHsize; intros IHsize;
+  destruct (lookup p (CIndex size) (memory s) beqPage beqIndex); [
+  | generalize (IHsize p table idx );clear IHsize; intros IHsize;
   apply IHsize;trivial ].
+  destruct v; try (destruct (pa p0 =? defaultPage ); assumption);
+  generalize (IHsize p table idx H);clear IHsize; intros IHsize;
+  rewrite IHsize;trivial .
 Qed.
 
 Lemma getIndirectionsUpdateUserFlag l table idx entry flag s  level: 
@@ -3516,6 +3516,7 @@ rewrite getFstShadowUpdateUserFlag;trivial.
 destruct (StateLib.getFstShadow parent (memory s) ); try now contradict H0.
 rewrite <- getVirtualAddressSh1UpdateUserFlag with p table idx va entry s flag;trivial.
 Qed.
+
 Lemma physicalPageNotDerivedUpdateUserFlag entry table idx s flag :
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
 physicalPageNotDerived s -> 

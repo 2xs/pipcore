@@ -145,13 +145,12 @@ subst.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  split.
+  unfold nextEntryIsPP in *. 
+  destruct (Index.succ sh1idx); [ | now contradict H0].
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+  destruct v ; try now contradict H0.
+  subst. assumption.
   subst. left. split;intuition.
   intro ptDescChild. simpl.
   (** simplify the new precondition **)     
@@ -285,13 +284,12 @@ generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
- [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+unfold nextEntryIsPP in *. 
+destruct (Index.succ PDidx); [ | now contradict H0].
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro ptDescChildFromPD. simpl.
 (** simplify the new precondition **)     
@@ -511,13 +509,13 @@ generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
- [destruct (lookup phyDescChild i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+
+unfold nextEntryIsPP in *. 
+destruct (Index.succ PDidx); [ | now contradict H0].
+destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst ; assumption.
 subst. left. split;intuition.
 intro ptVaChildpd. simpl.
 (** simplify the new precondition **)     
@@ -664,13 +662,13 @@ generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
- [destruct (lookup phyDescChild i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+
+unfold nextEntryIsPP in *. 
+destruct (Index.succ sh1idx); [ | now contradict H0].
+destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro ptVaChildFromSh1. simpl.
 (** simplify the new precondition **)     
@@ -815,13 +813,13 @@ generalize (Hpd sh2idx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
- [destruct (lookup phyDescChild i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+
+unfold nextEntryIsPP in *. 
+destruct (Index.succ sh2idx); [ | now contradict H0].
+destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro ptVaChildsh2. simpl.
 (** simplify the new precondition **)     
@@ -937,13 +935,13 @@ generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
- [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+
+unfold nextEntryIsPP in *. 
+destruct (Index.succ sh1idx); [ | now contradict H0].
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro ptVaInCurPart. simpl.
 (** simplify the new precondition **)     

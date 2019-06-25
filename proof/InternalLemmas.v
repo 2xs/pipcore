@@ -2147,9 +2147,8 @@ unfold nextEntryIsPP in Hroot.
 unfold StateLib.getPd. 
 destruct (StateLib.Index.succ PDidx); [| now contradict Hroot].
 unfold StateLib.readPhysical.
-destruct (lookup currentPart i (memory s) beqPage beqIndex) ; [| now contradict Hroot].
-destruct v ; [now contradict Hroot |now contradict Hroot |
-subst; trivial | now contradict Hroot |now contradict Hroot ]. }
+destruct (lookup currentPart i (memory s) beqPage beqIndex) ; try now contradict Hroot.
+destruct v ; try now contradict Hroot. subst; trivial. }
 rewrite Hcurpd.
 unfold getAccessibleMappedPagesAux.
 apply filterOptionInIff.
@@ -2304,9 +2303,9 @@ induction n.
       simpl.
       case_eq (lookup root (CIndex n) (memory s) beqPage beqIndex);
       [intros v Hlookup | intros Hlookup]; [ | apply IHn; trivial].
-      destruct v; [ 
-                  case_eq (pa p0 =? defaultPage); intros Hnull;
-                   [  | apply in_app_iff; left ] | |  | | ]; apply IHn ; trivial.
+      destruct v; try apply IHn ; trivial.
+      case_eq (pa p0 =? defaultPage); intros Hnull;
+      [  | apply in_app_iff; left ] ; apply IHn ; trivial.
 Qed.
 
 Lemma getIndirectionInGetIndirections1 (stop : nat) s:
@@ -5627,18 +5626,12 @@ induction n.
     [ |
     apply IHn; trivial;try omega;
     apply Nat.eqb_neq; trivial ].
-    destruct v; [ | apply IHn;  trivial;try omega;
-    apply Nat.eqb_neq; trivial |
-    apply IHn;  trivial;try omega;
-    apply Nat.eqb_neq; trivial | apply IHn;  trivial;try omega;
-    apply Nat.eqb_neq; trivial | apply IHn;  trivial;try omega;
-    apply Nat.eqb_neq; trivial].
-    case_eq(pa p1 =? defaultPage); intros Hnull; rewrite Hnull in *.
-    { apply IHn; trivial; try omega. apply Nat.eqb_neq; trivial. }
-    {
-    apply NoDupSplitInclIff in H2.
-    destruct H2 as ( (H2 & _) &  _).
-    apply IHn; trivial; try omega. apply Nat.eqb_neq; trivial. }
+    destruct v; apply IHn;
+                try assumption;
+                try apply Nat.eqb_neq; try assumption;
+                try omega.
+    case_eq(pa p1 =? defaultPage); intros Hnull; rewrite Hnull in *; trivial.
+    apply NoDupSplitInclIff in H2; intuition.
 Qed.
 
 Lemma getTablePagesNoDupFlatMap s n k root: 
@@ -6215,105 +6208,96 @@ Proof.
   rewrite Hstop1 in Hind1.
   clear Hstop1 Hnbl2 Hnbl1 .
    apply  pageTablesOrIndicesAreDifferent with root root  
-  level1 stop2 s; trivial. 
-  unfold consistency in *.
-  destruct Hcons.
-  unfold partitionDescriptorEntry in *.
-  assert (currentPartitionInPartitionsList s ) as Hpr by intuition.
-  unfold currentPartitionInPartitionsList in *.
-  subst.
-  generalize (H  (currentPartition s)  Hpr); clear H; intros H.
-  assert (idxroot = PDidx \/
-    idxroot = sh1idx \/ idxroot = sh2idx \/ idxroot = sh3idx \/ idxroot = PPRidx 
-    \/ idxroot = PRidx) as Hpd .
+  level1 stop2 s; trivial.
+  - unfold consistency in *.
+    destruct Hcons.
+    unfold partitionDescriptorEntry in *.
+    assert (currentPartitionInPartitionsList s ) as Hpr by intuition.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    generalize (H  (currentPartition s)  Hpr); clear H; intros H.
+    assert (idxroot = PDidx \/
+      idxroot = sh1idx \/ idxroot = sh2idx \/ idxroot = sh3idx \/ idxroot = PPRidx 
+      \/ idxroot = PRidx) as Hpd .
     intuition.
-
-  apply H in Hpd.
-  destruct Hpd as (_ & _ & Hpd).
-  destruct Hpd as (pd & Hrootpd & Hnotnul).
-  move Hroot at bottom.
-  move Hrootpd  at bottom.
-  move Hnotnul at bottom.
-  unfold nextEntryIsPP in Hroot , Hrootpd.
-  destruct (StateLib.Index.succ idxroot).
-  subst. 
-  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [
-  | now contradict Hroot].
-  destruct v; [  
-  now contradict Hroot| now contradict Hroot | | now contradict Hroot | now contradict Hroot].
-  subst. assumption. now contradict Hroot.
-  unfold consistency in *.
-  destruct Hcons.
-  unfold partitionDescriptorEntry in *.
-  assert (currentPartitionInPartitionsList s ) as Hpr by intuition.
-  unfold currentPartitionInPartitionsList in *.
-  subst.
-  generalize (H  (currentPartition s)  Hpr); clear H; intros H.
-  assert (idxroot = PDidx \/
-    idxroot = sh1idx \/ idxroot = sh2idx \/ idxroot = sh3idx \/ idxroot = PPRidx \/ idxroot = PRidx)  as Hpd 
-  by intuition.
-  apply H in Hpd.
-  destruct Hpd as (_ & _ & Hpd).
-  destruct Hpd as (pd & Hrootpd & Hnotnul).
-  move Hroot at bottom.
-  move Hrootpd  at bottom.
-  move Hnotnul at bottom.
-  unfold nextEntryIsPP in Hroot , Hrootpd.
-  destruct (StateLib.Index.succ idxroot).
-  subst.
-  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [
-  | now contradict Hroot].
-  destruct v; [  
-   now contradict Hroot| now contradict Hroot | | now contradict Hroot |
-    now contradict Hroot].
-  subst. assumption.
-  now contradict Hroot.
-  unfold consistency in Hcons.
-  assert(Hpde : partitionDescriptorEntry s) by intuition.
-  assert(Hdup :   noDupConfigPagesList s) by intuition.
-  assert(Hcurprt : currentPartitionInPartitionsList s ) by intuition.
-  apply noDupConfigPagesListNoDupGetIndirections with (currentPartition s) idxroot;trivial.
-  apply Hdup;trivial.
-  subst. trivial.
-  
-  unfold consistency in Hcons.
-  assert(Hpde : partitionDescriptorEntry s) by intuition.
-  assert(Hdup :   noDupConfigPagesList s) by intuition.
-  assert(Hcurprt : currentPartitionInPartitionsList s ) by intuition.
-  apply noDupConfigPagesListNoDupGetIndirections with (currentPartition s) idxroot;trivial.
-  apply Hdup;trivial.
-  subst. trivial.
-  move Hlevel at bottom.
-  unfold StateLib.getNbLevel in Hlevel.
-   case_eq (gt_dec nbLevel 0 ); intros;
-  rewrite H in Hlevel.
-  rewrite Hstop2.
-  inversion Hlevel.
-  rewrite H1 in *. simpl.
-  symmetry. assert( (nbLevel - 1 + 1)  = nbLevel).
-  omega. rewrite H0.
-  assumption.
-  now contradict H. 
-  left. split.
-  unfold StateLib.getNbLevel in *.
-  move Hlevel at bottom.
-  unfold CLevel.
-  case_eq (gt_dec nbLevel 0); intros.
-  rewrite H in Hlevel.
-  inversion Hlevel.
-  case_eq(lt_dec (nbLevel - 1) nbLevel ); intros.
-  subst.
-  assert(MAL.getNbLevel_obligation_1 g  =  ADT.CLevel_obligation_1 (nbLevel - 1) l)
-  by apply proof_irrelevance.
-  rewrite H1. reflexivity. omega.
-  assert (0 < nbLevel) by apply nbLevelNotZero. omega.
-  trivial. 
-  apply beq_nat_false in Hnotnull1.
-  unfold not. intros.
-  contradict Hnotnull1. subst. trivial.
-  apply beq_nat_false in Hnotnull2.
-  unfold not. intros.
-  contradict Hnotnull2. subst. trivial.
+    apply H in Hpd.
+    destruct Hpd as (_ & _ & Hpd).
+    destruct Hpd as (pd & Hrootpd & Hnotnul).
+    move Hroot at bottom.
+    move Hrootpd  at bottom.
+    move Hnotnul at bottom.
+    unfold nextEntryIsPP in Hroot , Hrootpd.
+    destruct (StateLib.Index.succ idxroot); try now contradict Hrootpd.
+    destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); try now contradict Hroot.
+    destruct v; try now contradict Hrootpd.
+    subst. assumption.
+  - unfold consistency in *.
+    destruct Hcons.
+    unfold partitionDescriptorEntry in *.
+    assert (currentPartitionInPartitionsList s ) as Hpr by intuition.
+    unfold currentPartitionInPartitionsList in *.
+    subst.
+    generalize (H  (currentPartition s)  Hpr); clear H; intros H.
+    assert (idxroot = PDidx \/
+      idxroot = sh1idx \/ idxroot = sh2idx \/ idxroot = sh3idx \/ idxroot = PPRidx 
+      \/ idxroot = PRidx) as Hpd .
+    intuition.
+    apply H in Hpd.
+    destruct Hpd as (_ & _ & Hpd).
+    destruct Hpd as (pd & Hrootpd & Hnotnul).
+    move Hroot at bottom.
+    move Hrootpd  at bottom.
+    move Hnotnul at bottom.
+    unfold nextEntryIsPP in Hroot , Hrootpd.
+    destruct (StateLib.Index.succ idxroot); try now contradict Hrootpd.
+    destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); try now contradict Hroot.
+    destruct v; try now contradict Hrootpd.
+    subst. assumption.
+  - unfold consistency in Hcons.
+    assert(Hpde : partitionDescriptorEntry s) by intuition.
+    assert(Hdup :   noDupConfigPagesList s) by intuition.
+    assert(Hcurprt : currentPartitionInPartitionsList s ) by intuition.
+    apply noDupConfigPagesListNoDupGetIndirections with (currentPartition s) idxroot;trivial.
+    apply Hdup;trivial.
+    subst. trivial.
+  - unfold consistency in Hcons.
+    assert(Hpde : partitionDescriptorEntry s) by intuition.
+    assert(Hdup :   noDupConfigPagesList s) by intuition.
+    assert(Hcurprt : currentPartitionInPartitionsList s ) by intuition.
+    apply noDupConfigPagesListNoDupGetIndirections with (currentPartition s) idxroot;trivial.
+    apply Hdup;trivial.
+    subst. trivial.
+  - move Hlevel at bottom.
+    unfold StateLib.getNbLevel in Hlevel.
+     case_eq (gt_dec nbLevel 0 ); intros;
+    rewrite H in Hlevel.
+    rewrite Hstop2.
+    inversion Hlevel.
+    rewrite H1 in *. simpl.
+    symmetry. assert( (nbLevel - 1 + 1)  = nbLevel).
+    omega. rewrite H0.
+    assumption.
+    now contradict H.
+  - left. split.
+    unfold StateLib.getNbLevel in *.
+    move Hlevel at bottom.
+    unfold CLevel.
+    case_eq (gt_dec nbLevel 0); intros.
+    rewrite H in Hlevel.
+    inversion Hlevel.
+    case_eq(lt_dec (nbLevel - 1) nbLevel ); intros.
+    subst.
+    assert(MAL.getNbLevel_obligation_1 g  =  ADT.CLevel_obligation_1 (nbLevel - 1) l)
+    by apply proof_irrelevance.
+    rewrite H1. reflexivity. omega.
+    assert (0 < nbLevel) by apply nbLevelNotZero. omega.
+    trivial.
+  - apply beq_nat_false in Hnotnull1.
+    unfold not. intros.
+    contradict Hnotnull1. subst. trivial.
+  - apply beq_nat_false in Hnotnull2.
+    unfold not. intros.
+    contradict Hnotnull2. subst. trivial.
 Qed.
 
 Lemma getMappedPagesAuxConsSome :
@@ -6671,12 +6655,11 @@ pd<> defaultPage ->
   now contradict Hx.
   case_eq(lookup pd (CIndex n) (memory s) beqPage beqIndex );intros;
   rewrite H1 in *;[|try apply IHn ;trivial].
-  destruct v.
-  case_eq(pa p =? defaultPage);intros;rewrite H2 in *.
+  destruct v; try (apply IHn; assumption).
+  case_eq(pa p =? defaultPage) ;intros;rewrite H2 in *.
   apply IHn;trivial.
   apply in_app_iff in Hx.
-  destruct Hx.
-  apply IHn;trivial.
+  destruct Hx. apply IHn; trivial.
   simpl in *.
   destruct H3.
   subst.
@@ -6687,11 +6670,8 @@ pd<> defaultPage ->
   subst.
   now contradict H2.
   now contradict H3.
-   apply IHn;trivial.
-    apply IHn;trivial.
-     apply IHn;trivial.
-      apply IHn;trivial.
-      Qed.
+Qed.
+
 Lemma getIndirectionInGetIndirections2 (stop : nat) s prevtable
 (va : vaddr) (level1 : level) (table root : page) :
 (stop+1) <= nbLevel ->
@@ -7167,12 +7147,12 @@ assert(disjoint (getIndirectionsAux page1 s (S(stop + 1) -1))
   intuition.
   simpl;intros.
   case_eq(lookup root (CIndex n) (memory s) beqPage beqIndex);intros;
-  rewrite H in *.
-  destruct v.
-  case_eq(pa p =? defaultPage);intros;rewrite H0 in *. 
+  rewrite H in *; try (apply IHn ; assumption).
+  destruct v; try (apply IHn ; assumption).
+  case_eq(pa p =? defaultPage);intros;rewrite H0 in *.
   apply IHn;trivial.
   apply in_app_iff in Hx.
-  destruct Hx.
+  destruct Hx; trivial.
   apply IHn;trivial.
   simpl in *. 
   destruct H1;subst.
@@ -7180,11 +7160,7 @@ assert(disjoint (getIndirectionsAux page1 s (S(stop + 1) -1))
   unfold StateLib.readPhyEntry. 
   rewrite H;trivial.
   intuition.
-  apply IHn;trivial.
-    apply IHn;trivial.
-      apply IHn;trivial.
-        apply IHn;trivial.  apply IHn;trivial.
-        }
+}
 
 destruct H9 as (idx & Hidx).
 {
@@ -7233,6 +7209,7 @@ clear Htrue.
 apply H9;trivial. }
 apply inGetIndirectionsAuxLt with (stop + 1);trivial.
 omega.
+
 Qed.
 
 Lemma indirectionNotInPreviousMMULevel s ptVaChildpd idxvaChild phyVaChild  
@@ -9244,6 +9221,7 @@ unfold Lib.disjoint in *.
 contradict Hi2.
 apply Hdisjoint;subst;trivial.
 Qed.
+
 Lemma index0Ltfalse (idx:index):
 idx < CIndex 0 -> False.
 Proof.

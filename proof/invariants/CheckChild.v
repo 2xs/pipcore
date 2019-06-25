@@ -108,9 +108,9 @@ destruct Hroot as (pg & Hroot & Hnotnull).
 clear Hdesc.
 unfold nextEntryIsPP in *. 
 destruct (Index.succ sh1idx); [ | now contradict Hroot].
-destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hroot | now contradict Hroot | 
-subst ; assumption| now contradict Hroot | now contradict Hroot ]  |now contradict Hroot] .
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hroot.
+destruct v ; try now contradict Hroot.
+subst; assumption.
 left.
 split;trivial.
 intuition.
@@ -436,12 +436,10 @@ Proof.
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
   split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx); try now contradict H0.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); try now contradict H0.
+  destruct v ; try now contradict H0.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptRefChild. simpl.
 (** simplify the new precondition **)     
