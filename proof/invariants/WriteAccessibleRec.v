@@ -184,14 +184,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -384,12 +381,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -2289,14 +2285,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -2489,12 +2482,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -4385,14 +4377,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -4585,12 +4574,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -6477,14 +6465,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -6677,12 +6662,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -8569,14 +8553,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -8769,12 +8750,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -10649,14 +10629,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -10849,12 +10826,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -12414,11 +12390,7 @@ case_eq isMultiplexer.
           rewrite H.
           case_eq( match lookup p (StateLib.getIndexOfAddr va1 fstLevel) (memory s) beqPage beqIndex with
           | Some (PE a) => Some (user a)
-          | Some (VE _) => None
-          | Some (PP _) => None
-          | Some (VA _) => None
-          | Some (I _) => None
-          | None => None
+          | _ => None
           end);intros; trivial.
           rewrite H0 in *.
           destruct b;trivial.
@@ -12774,14 +12746,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -12974,12 +12943,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     
@@ -17617,14 +17585,11 @@ case_eq isMultiplexer.
   destruct Hprdesc as (Hidxsh2 & _& Hentry).
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh2idx);
-   [destruct (lookup descParent i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hsh2root | 
-   now contradict Hsh2root | 
-   subst ; assumption| 
-   now contradict Hsh2root| 
-   now contradict Hsh2root ]  
-   |now contradict Hsh2root] | now contradict Hsh2root].
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh2idx); try now contradict Hsh2root.
+  destruct (lookup descParent i (memory s) beqPage beqIndex) ; try now contradict Hsh2root.
+  destruct v ; try now contradict Hsh2root.
+  subst; assumption.
   left; split; trivial.
   intros ptsh2. simpl.  
    (** simplify the new precondition **)     
@@ -17822,12 +17787,11 @@ case_eq isMultiplexer.
       destruct Hentry as (page1 & Hpd & Hancesnotnull).
       subst.
       assert (Hrootances : nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup ancestor i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootances |
-        now contradict Hrootances | 
-       subst ; assumption| now contradict Hrootances| now contradict Hrootances ]  
-       |now contradict Hrootances] | now contradict Hrootances].
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ PDidx); try now contradict Hrootances.
+      destruct (lookup ancestor i (memory s) beqPage beqIndex) ; try now contradict Hrootances.
+      destruct v ; try now contradict Hrootances.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptvaInAncestor. simpl.
        (** simplify the new precondition **)     

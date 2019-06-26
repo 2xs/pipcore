@@ -302,10 +302,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       assert(Hentrypage : isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s) by trivial.
       unfold isEntryPage in Hentrypage.
       case_eq (lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare l)  (memory s) beqPage beqIndex);
-      [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage;
-      [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                      now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage ] | now contradict Hentrypage] .
-      subst.   
+      [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage; try now contradict Hentrypage.
+      destruct v ; try now contradict Hentrypage.
+      subst.
       apply getIndirectionStop1   with (StateLib.getIndexOfAddr vaToPrepare l) ; try assumption.
       symmetry; assumption.
       trivial.
@@ -337,10 +336,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       subst.
       assert(Hentrypage : isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indMMUToPrepare s) by trivial.
       unfold isEntryPage in Hentrypage.
-      case_eq (lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop)))  
-      (memory s) beqPage beqIndex); [intros v Hcase | intros Hcase]; rewrite Hcase in Hentrypage; 
-      [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage] | now contradict Hentrypage] .
+      case_eq (lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop)))
+      (memory s) beqPage beqIndex);
+      [intros v Hcase | intros Hcase];
+      rewrite Hcase in Hentrypage; [|now contradict Hentrypage];
+      destruct v ; try now contradict Hentrypage.
       subst.
       apply getIndirectionProp with (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) phyPDChild;trivial.
       assert(Hnotfstlevel : false = StateLib.Level.eqb (CLevel (nbL - stop)) fstLevel) by trivial.
@@ -410,9 +410,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hentrypage : isEntryPage phySh1Child (StateLib.getIndexOfAddr vaToPrepare l) indSh1ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
         case_eq (lookup phySh1Child (StateLib.getIndexOfAddr vaToPrepare l)  (memory s) beqPage beqIndex);
-        [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage;
-        [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                        now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage ] | now contradict Hentrypage] .
+        [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage; [|now contradict Hentrypage];
+        destruct v ; try now contradict Hentrypage.
         subst.   
         apply getIndirectionStop1   with (StateLib.getIndexOfAddr vaToPrepare l) ; try assumption.
         symmetry; assumption.
@@ -448,9 +447,10 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hentrypage : isEntryPage phySh1Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indSh1ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
         case_eq (lookup phySh1Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop)))  
-        (memory s) beqPage beqIndex); [intros v Hcase | intros Hcase]; rewrite Hcase in Hentrypage; 
-        [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                  now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage] | now contradict Hentrypage] .
+        (memory s) beqPage beqIndex);
+        [intros v Hcase | intros Hcase];
+        rewrite Hcase in Hentrypage; [|now contradict Hentrypage];
+        destruct v ; try now contradict Hentrypage.
         subst.
         apply getIndirectionProp with (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) phySh1Child;trivial.
         assert(Hnotfstlevel : false = StateLib.Level.eqb (CLevel (nbL - stop)) fstLevel) by trivial.
@@ -524,9 +524,8 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hentrypage : isEntryPage phySh2Child (StateLib.getIndexOfAddr vaToPrepare l) indSh2ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
         case_eq (lookup phySh2Child (StateLib.getIndexOfAddr vaToPrepare l)  (memory s) beqPage beqIndex);
-        [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage;
-        [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                        now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage ] | now contradict Hentrypage] .
+        [intros v Hcase | intros Hcase];rewrite Hcase in Hentrypage; [|now contradict Hentrypage];
+        destruct v ; try now contradict Hentrypage.
         subst.   
         apply getIndirectionStop1   with (StateLib.getIndexOfAddr vaToPrepare l) ; try assumption.
         symmetry; assumption.
@@ -563,9 +562,10 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hentrypage : isEntryPage phySh2Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indSh2ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
         case_eq (lookup phySh2Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop)))  
-        (memory s) beqPage beqIndex); [intros v Hcase | intros Hcase]; rewrite Hcase in Hentrypage; 
-        [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict Hentrypage | 
-                  now contradict Hentrypage| now contradict Hentrypage| now contradict Hentrypage] | now contradict Hentrypage] .
+        (memory s) beqPage beqIndex);
+        [intros v Hcase | intros Hcase];
+        rewrite Hcase in Hentrypage; [|now contradict Hentrypage];
+        destruct v ; try now contradict Hentrypage.
         subst.
         apply getIndirectionProp with (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) phySh2Child;trivial.
         assert(Hnotfstlevel : false = StateLib.Level.eqb (CLevel (nbL - stop)) fstLevel) by trivial.
@@ -684,13 +684,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  split.
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict H0];
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict H0];
+  destruct v ; try now contradict H0.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptMMUFstVA. simpl.
   (** simplify the new precondition **)
@@ -846,13 +844,11 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  split.
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict H0];
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; [|now contradict H0];
+  destruct v ; try now contradict H0.
+  subst ; assumption.
   subst. left. split;intuition.
   intro ptMMUSndVA. simpl.
   (** simplify the new precondition **)
@@ -1022,13 +1018,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split.     
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-   now contradict Hrootpd | 
-   subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-   |now contradict Hrootpd] | now contradict Hrootpd].
+  split.
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+  destruct v ; try now contradict Hrootpd.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptSh1FstVA.
   simpl.
@@ -1119,13 +1114,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split.     
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-   now contradict Hrootpd | 
-   subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-   |now contradict Hrootpd] | now contradict Hrootpd].
+  split.
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+  destruct v ; try now contradict Hrootpd.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptSh1SndVA.
   simpl.
@@ -1224,13 +1218,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  split.
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ PDidx); try now contradict H0.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+  destruct v ; try now contradict H0.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptMMUTrdVA. simpl.
   (** simplify the new precondition **)
@@ -1359,13 +1352,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split.     
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-   now contradict Hrootpd | 
-   subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-   |now contradict Hrootpd] | now contradict Hrootpd].
+  split.
+  unfold nextEntryIsPP in *. 
+  destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+  destruct v ; try now contradict Hrootpd.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptSh1TrdVA.
   simpl.
@@ -1873,13 +1865,13 @@ simpl.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
-  split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  split.
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
+  [|now contradict H0];
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex);
+  [|now contradict H0];
+  destruct v ; try now contradict H0.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptDescChild. simpl.
   (** simplify the new precondition **)     
@@ -1991,13 +1983,12 @@ generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
 destruct Hpd as (Hidxpd & _& Hentry). 
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
-split. 
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
- [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+split.
+unfold nextEntryIsPP in *. 
+destruct (StateLib.Index.succ PDidx); try now contradict H0.
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro ptDescChildpd. simpl.
 (** simplify the new precondition **)     

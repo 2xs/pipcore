@@ -122,11 +122,10 @@ intro currentPD. simpl.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
-
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
      intro ptvaChildFromPD. simpl.
 

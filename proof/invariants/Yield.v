@@ -1230,12 +1230,11 @@ destruct Hpd as (Hidxpd & _& Hentry).
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
 split.
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
- [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+unfold nextEntryIsPP in *.
+destruct (StateLib.Index.succ PDidx); try now contradict H0.
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro childLastMMUPage. simpl.
 (** simplify the new precondition **)
@@ -1539,7 +1538,7 @@ rewrite Bool.negb_false_iff. intro HuserTargetInterruptIsValid. subst.
 eapply bindRev.
 (** getIndexFromUserValue *)
 eapply WP.weaken.
-eapply Invariants.getIndexFromUserValue.
+eapply Invariants.userValueToIndex.
 simpl.
 intros.
 split.
@@ -1597,7 +1596,7 @@ rewrite Bool.negb_false_iff in HcallerContextSaveIndexIsValid. subst.
 (** getIndexFromUserValue - callerContextSaveIndex **)
 eapply bindRev.
 eapply weaken.
-eapply Invariants.getIndexFromUserValue.
+eapply Invariants.userValueToIndex.
 simpl.
 intros.
 rewrite Nat.ltb_lt in H.
@@ -1656,12 +1655,11 @@ destruct Hpd as (Hidxpd & _& Hentry).
 destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
 split.
- unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
- [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
- as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
- now contradict H0 | 
- subst;assumption | now contradict H0| now contradict H0 ]  
- |now contradict H0] | now contradict H0].
+unfold nextEntryIsPP in *. 
+destruct (StateLib.Index.succ PDidx); try now contradict H0.
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
+destruct v ; try now contradict H0.
+subst; assumption.
 subst. left. split;intuition.
 intro callerVidtLastMMUPage. simpl.
 (** simplify the new precondition **)

@@ -107,7 +107,7 @@ destruct Htmp as (_ & _ & Hroot).
 destruct Hroot as (pg & Hroot & Hnotnull).
 clear Hdesc.
 unfold nextEntryIsPP in *. 
-destruct (Index.succ sh1idx); [ | now contradict Hroot].
+destruct (StateLib.Index.succ sh1idx); try now contradict Hroot.
 destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hroot.
 destruct v ; try now contradict Hroot.
 subst; assumption.
