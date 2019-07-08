@@ -42,50 +42,6 @@
 #include <stdint.h>
 
 /**
- * \struct idt_entry_struct
- * \brief Interrupt Descriptor Table entry
- */
-struct idt_entry_struct
-{
-    uint16_t base_lo; //!< Lower bytes of handler address
-    uint16_t sel; //!< Selector
-    uint8_t  always0; //!< ?
-    uint8_t  flags; //!< Interrupt handler flags (Required Privilege Level etc)
-    uint16_t base_hi; //!< Higher bytes of handler address
-} __attribute__((packed));
-
-typedef struct idt_entry_struct idt_entry_t;
-
-/**
- * \struct idt_ptr_struct
- * \brief IDT pointer structure
- */
-struct idt_ptr_struct
-{
-    uint16_t limit; //!< Address limit
-    uint32_t base; //!< IDT pointer base
-} __attribute__((packed));
-
-typedef struct idt_ptr_struct idt_ptr_t;
-
-extern void irq0(); //!< IRQ 0
-extern void irq1(); //!< IRQ 1
-extern void irq2(); //!< IRQ 2
-extern void irq3(); //!< IRQ 3
-extern void irq4(); //!< IRQ 4
-extern void irq5(); //!< IRQ 5
-extern void irq6(); //!< IRQ 6
-extern void irq7(); //!< IRQ 7
-extern void irq8(); //!< IRQ 8
-extern void irq9(); //!< IRQ 9
-extern void irq10(); //!< IRQ 10
-extern void irq11(); //!< IRQ 11
-extern void irq12(); //!< IRQ 12
-extern void irq13(); //!< IRQ 13
-extern void irq14(); //!< IRQ 14
-extern void irq15(); //!< IRQ 15
-
-/**
  * \struct registers
  * \brief Registers structure for x86
  */
@@ -158,7 +114,7 @@ enum cpuid_features {
 	CPUID_FEAT_ECX_CX16         = 1 << 13,
 	CPUID_FEAT_ECX_ETPRD        = 1 << 14,
 	CPUID_FEAT_ECX_PDCM         = 1 << 15,
-	CPUID_FEAT_ECX_PCID			= 1 << 17,
+	CPUID_FEAT_ECX_PCID	    = 1 << 17,
 	CPUID_FEAT_ECX_DCA          = 1 << 18,
 	CPUID_FEAT_ECX_SSE4_1       = 1 << 19,
 	CPUID_FEAT_ECX_SSE4_2       = 1 << 20,

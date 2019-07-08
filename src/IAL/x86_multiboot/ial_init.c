@@ -47,8 +47,6 @@
 
 uint32_t timer_ticks = 0;
 
-static idt_entry_t idt_entries[256];	//!< Interrupt Descriptor Table
-static idt_ptr_t idt_ptr;		//!< Pointer to the IDT
 
 uint32_t pcid_enabled = 0;
 
@@ -60,25 +58,6 @@ uint32_t pcid_enabled = 0;
  */
 extern void idtFlush (void* idt_ptr);
 
-/**
- * \fn idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
- * \brief Installs a handler into the IDT
- * \param num Interrupt number
- * \param base Base address for the handler
- * \param sel Selector
- * \param flags Flags
- */
-void
-idtSetGate (uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
-{
-	idt_entries[num].base_lo = base & 0xFFFF;
-	idt_entries[num].base_hi = (base >> 16) & 0xFFFF;
-	
-	idt_entries[num].sel = sel;
-	idt_entries[num].always0 = 0;
-	
-	idt_entries[num].flags = flags;
-}
 
 /**
  * \fn remapIrq
