@@ -103,10 +103,16 @@ CFLAGS+=-I$(SRC_DIR)/IAL/$(TARGET)
 CFLAGS+=-I$(SRC_DIR)/boot/$(TARGET)/include
 CFLAGS+=-I$(TARGET_DIR)/
 
-all: kernel proofs doc 
+all: $(TARGET_DIR)/$(KERNEL_ELF) proofs doc
 
-kernel: gitinfo $(TARGET_DIR) linker makefile.dep extract $(COBJ) $(AOBJ)
-	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $(TARGET_DIR)/meso.bin
+kernel: $(TARGET_DIR)/$(KERNEL_ELF)
+
+$(TARGET_DIR)/$(KERNEL_ELF): gitinfo $(TARGET_DIR) linker makefile.dep extract \
+			     $(COBJ) $(AOBJ) $(TARGET_DIR)/$(DUMMY_ELF) $(TARGET_DIR)/int_addrs.h
+	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
+
+$(TARGET_DIR)/$(DUMMY_ELF): dummy_int_addrs.h gitinfo $(TARGET_DIR) linker makefile.dep extract $(COBJ) $(AOBJ)
+	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
 
 gitinfo:
 	printf "#ifndef __GIT__\n#define __GIT__\n#define GIT_REVISION \"`git rev-parse HEAD`\"\n#endif" > $(SRC_DIR)/boot/$(TARGET)/include/git.h
@@ -220,6 +226,13 @@ $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
 	printf "section .multiplexer\n\tINCBIN \"$<\"\n" > $(TARGET_DIR)/multiplexer.s
 	$(AS) $(ASFLAGS) -o $@ $(TARGET_DIR)/multiplexer.s
 
+$(TARGET_DIR)/int_addrs.h: $(TARGET_DIR)/$(DUMMY_ELF)
+	objdump -t $< | egrep "(irq|isr)[0-9]" | awk '{printf("#define %s 0x%s\n", $$5, $$1)}' | sort -n > $@
+
+# The following recipe builds a dummy version of int_addrs.h for the first stage of compilation
+dummy_int_addrs_h:
+	for symbol in `grep -E '^ *IDT_ENTRY' src/boot/x86_multiboot/idt.c | sed 's/^ *IDT_ENTRY(\([^,]*\),.*/\1/' | sort -u`;do printf "#define $$symbol 0\n"; done > $(TARGET_DIR)/int_addrs.h
+
 $(TARGET_DIR)/$(PARTITION).bin:
 	cp $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)/$(PARTITION).bin $@
 
@@ -265,11 +278,8 @@ partition:
 	make -C $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)
 
 grub:
-	cp $(TARGET_DIR)/meso.bin tools/grub/boot/meso.bin
-	grub-mkrescue -o $(TARGET_DIR)/meso.iso tools/grub
-	@echo "Done, you can run "
-	@echo "$(QEMU) -boot d -cdrom $(TARGET_DIR)/meso.iso -m 8192 -serial stdio -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0"
-	@echo "to run the generated ISO."
+	cp $(TARGET_DIR)/$(KERNEL_ELF) tools/grub/boot/$(KERNEL_ELF)
+	grub-mkrescue -o $(TARGET_DIR)/$(KERNEL_ISO) tools/grub
 
 update-headers:
 	find -\( -name \*.[cvhsS] -o -name \*.hs -o -name \*.ld -o -name \*.ld.template -o -name Makefile -o -name \*.mk -o -name doxygen.conf -\) -print0 | xargs -0 headache -c tools/headache.conf -h tools/copyright_header
@@ -302,4 +312,7 @@ bochs: grub
 	cat bochscom &
 	bochs -q
 
-.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper clean-c clean-coq kernel gettingstarted clean-mddoc bochs
+.PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation
+.PHONY: coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper
+.PHONY: clean-c clean-coq kernel gettingstarted clean-mddoc bochs
+.PHONY: dummy_int_addrs_h
