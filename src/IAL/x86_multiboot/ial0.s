@@ -170,6 +170,10 @@ resumeAsm:
 	; switch to context
 	iret
 
+[GLOBAL irq_unsupported]
+irq_unsupported:
+	halt
+
 ; Definition of each interrupt handler for x86 (0-31 : faults, 32-47 : IRQ)
 ISR_NOERRCODE 0
 ISR_NOERRCODE 1

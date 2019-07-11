@@ -32,6 +32,7 @@
 /*******************************************************************************/
 
 #include "idt.h"
+#include "int_addrs.h"
 
 /**
  * \brief IDT entry initializer
@@ -60,8 +61,6 @@
 #define IDT_USER_FLAGS (IDT_FLAGS(3))
 
 #define IRQ_CODE_SEGMENT (0x08)
-
-extern void irq_unsupported();
 
 /**
  * Interrupt Descriptor Table
