@@ -38,6 +38,8 @@ STACK_ADDR=0x300000
 TARGET=x86_multiboot
 PARTITION=minimal
 
+LOGLEVEL=5
+
 # Include architecture-and-platform-dependent cross-compilation toolchain
 include conf/$(TARGET).mk
 include conf/toolchain.mk
@@ -106,6 +108,7 @@ CFLAGS+=-I$(SRC_DIR)/IAL
 CFLAGS+=-I$(SRC_DIR)/IAL/$(TARGET)
 CFLAGS+=-I$(SRC_DIR)/boot/$(TARGET)/include
 CFLAGS+=-I$(TARGET_DIR)/
+CFLAGS+=-DLOGLEVEL=$(LOGLEVEL)
 
 all: $(TARGET_DIR)/$(KERNEL_ELF) proofs doc
 

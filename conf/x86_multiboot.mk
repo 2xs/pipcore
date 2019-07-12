@@ -41,7 +41,7 @@ AS=nasm
 CC=gcc
 LD=ld
 AR=ar
-QEMU=qemu-system-i386
+QEMU=qemu-system-x86_64
 GDB=gdb
 endif
 ifeq ($(UNAME_S),Darwin)
