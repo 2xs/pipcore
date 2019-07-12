@@ -95,12 +95,6 @@ extern genericHandler
 DEFINE_HANDLER irq
 DEFINE_HANDLER isr
 
-[GLOBAL idtFlush]
-idtFlush:
-    mov eax, [esp+4] ; Get the IDT from the stack (given as function parameter)
-    lidt [eax] ; Load the IDT !
-    ret
-
 [GLOBAL readCR2]
 readCR2:
 	mov eax, cr2
@@ -170,9 +164,39 @@ resumeAsm:
 	; switch to context
 	iret
 
+;extern unsupportedHandler
+;
+;[GLOBAL irq_unsupported]
+;irq_unsupported:
+;	ISR_NOERRCODE 42
+;	jmp irq_unsupported
+;	cli
+;	push 0x2A
+;	; save & go kernel land
+;	pusha
+;	push esp
+;	mov si, ds
+;	mov ax, 0x10
+;	mov ds, ax
+;	mov es, ax
+;	mov fs, ax
+;	mov gs, ax
+;; call c handler (&ctx)
+;	call unsupportedHandler
+;	add esp, 4
+;; restore - assuming a common data segment for ds es fs gs
+;	mov ds, si
+;	mov es, si
+;	mov fs, si
+;	mov gs, si
+;	popa
+;; skip err_code & int_no
+;	add esp, 8
+;	iret
+
 [GLOBAL irq_unsupported]
 irq_unsupported:
-	halt
+	jmp irq_unsupported
 
 ; Definition of each interrupt handler for x86 (0-31 : faults, 32-47 : IRQ)
 ISR_NOERRCODE 0

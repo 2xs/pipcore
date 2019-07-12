@@ -58,26 +58,9 @@ typedef struct idt_entry_struct idt_entry_t;
 struct idt_ptr_struct
 {
     uint16_t limit;     //!< Address limit
-    uint32_t base;      //!< IDT pointer base
+    idt_entry_t *base;  //!< IDT pointer base
 } __attribute__((packed));
 
 typedef struct idt_ptr_struct idt_ptr_t;
-
-extern void irq0();     //!< IDT entrypoint - index 0 - assembly implementation
-extern void irq1();     //!< IDT entrypoint - index 1 - assembly implementation 
-extern void irq2();     //!< IDT entrypoint - index 2 - assembly implementation
-extern void irq3();     //!< IDT entrypoint - index 3 - assembly implementation
-extern void irq4();     //!< IDT entrypoint - index 4 - assembly implementation
-extern void irq5();     //!< IDT entrypoint - index 5 - assembly implementation
-extern void irq6();     //!< IDT entrypoint - index 6 - assembly implementation
-extern void irq7();     //!< IDT entrypoint - index 7 - assembly implementation
-extern void irq8();     //!< IDT entrypoint - index 8 - assembly implementation
-extern void irq9();     //!< IDT entrypoint - index 9 - assembly implementation
-extern void irq10();    //!< IDT entrypoint - index 10 - assembly implementation
-extern void irq11();    //!< IDT entrypoint - index 11 - assembly implementation
-extern void irq12();    //!< IDT entrypoint - index 12 - assembly implementation
-extern void irq13();    //!< IDT entrypoint - index 13 - assembly implementation
-extern void irq14();    //!< IDT entrypoint - index 14 - assembly implementation
-extern void irq15();    //!< IDT entrypoint - index 15 - assembly implementation
 
 #endif

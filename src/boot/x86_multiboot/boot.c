@@ -149,7 +149,7 @@ int c_main(struct multiboot *mbootPtr)
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
 	
 	// Install GDT & IDT
-	DEBUG(INFO, "-> Initializing ISR.\n");
+	DEBUG(INFO, "-> Initializing interrupts.\n");
 	initInterrupts();
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();

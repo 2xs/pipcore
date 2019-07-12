@@ -71,51 +71,6 @@ extern uint32_t readCR2(void); //!< Reads CR2 register (faulting address)
 extern int checkChild(const uintptr_t partition, const uint32_t l1, const uintptr_t va);
 
 /**
- * \fn isKernel(uint32_t cs)
- * \brief Determines if we're in kernel mode or not.
- * \param cs Code segment
- * \return 1 if we're in kernel mode, 0 else
- */
-int
-isKernel (uint32_t cs)
-{
-	return cs == 8;
-}
-
-/**
- * \fn dumpRegs(int_ctx_t* is, uint32_t outputLevel)
- * \brief Dumps the registers of a saved interrupt context onto the serial output.
- * \param is Interrupted state
- * \param outputLevel Serial log debugging output level
- */
-void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
-{
-	DEBUG(TRACE, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
-		  GENERAL_REG(is, eax),
-		  GENERAL_REG(is, ebx),
-		  GENERAL_REG(is, ecx),
-		  GENERAL_REG(is, edx));
-	DEBUG(TRACE, "               edi=%x, esi=%x, ebp=%x, esp=%x\n",
-		  GENERAL_REG(is, edi),
-		  GENERAL_REG(is, esi),
-		  GENERAL_REG(is, ebp),
-		  OPTIONAL_REG(is, useresp));
-	if(isKernel(OPTIONAL_REG(is, cs)))
-	{
-		DEBUG(TRACE, "               cs=%x, eip=%x, int=%x\n",
-			  OPTIONAL_REG(is, cs),
-			  OPTIONAL_REG(is, eip),
-			  OPTIONAL_REG(is, int_no));
-	} else {
-		DEBUG(TRACE, "               cs=%x, ss=%x, eip=%x, int=%x\n",
-			  OPTIONAL_REG(is, cs),
-			  OPTIONAL_REG(is, ss),
-			  OPTIONAL_REG(is, eip),
-			  OPTIONAL_REG(is, int_no));
-	}
-}
-
-/**
  * \fn uint32_t saveCaller(int_ctx_t *is)
  * \brief Saves the caller partition's state
  * \param is Interrupted state location
@@ -195,21 +150,6 @@ void saveCallgateCaller(gate_ctx_t* ctx)
 	
 	/* Remaining stuff might be crap; whatever, save caller using this structure */
 	saveCaller(&is);
-}
-
-/**
- * \fn void panic (int_ctx_t *is)
- * \brief Just a loop acting like a kernel panic
- */
-void panic (int_ctx_t *is)
-{
-	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
-	if(is) {
-		dumpRegs(is, CRITICAL);
-	}
-	DEBUG(CRITICAL, "\tSystem halted. ~\n");
-	__asm volatile("cli; hlt;");
-	for(;;);
 }
 
 /**

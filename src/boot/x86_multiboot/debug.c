@@ -59,6 +59,55 @@ void krn_puts(char *c)
 }
 
 /**
+ * \fn void panic (int_ctx_t *is)
+ * \brief Just a loop acting like a kernel panic
+ */
+void panic (int_ctx_t *is)
+{
+	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
+	if(is) {
+		dumpRegs(is, CRITICAL);
+	}
+	DEBUG(CRITICAL, "\tSystem halted. ~\n");
+	__asm volatile("cli; hlt;");
+	for(;;);
+}
+
+/**
+ * \fn dumpRegs(int_ctx_t* is, uint32_t outputLevel)
+ * \brief Dumps the registers of a saved interrupt context onto the serial output.
+ * \param is Interrupted state
+ * \param outputLevel Serial log debugging output level
+ */
+void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
+{
+	DEBUG(outputLevel, "Register dump: eax=%x, ebx=%x, ecx=%x, edx=%x\n",
+		  GENERAL_REG(is, eax),
+		  GENERAL_REG(is, ebx),
+		  GENERAL_REG(is, ecx),
+		  GENERAL_REG(is, edx));
+	DEBUG(outputLevel, "               edi=%x, esi=%x, ebp=%x, esp=%x\n",
+		  GENERAL_REG(is, edi),
+		  GENERAL_REG(is, esi),
+		  GENERAL_REG(is, ebp),
+		  OPTIONAL_REG(is, useresp));
+	if(isKernel(OPTIONAL_REG(is, cs)))
+	{
+		DEBUG(outputLevel, "               cs=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	} else {
+		DEBUG(outputLevel, "               cs=%x, ss=%x, eip=%x, int=%x\n",
+			  OPTIONAL_REG(is, cs),
+			  OPTIONAL_REG(is, ss),
+			  OPTIONAL_REG(is, eip),
+			  OPTIONAL_REG(is, int_no));
+	}
+}
+
+
+/**
  * \fn void puthex(int n)
  * \brief Writes an hexadecimal number to the serial output
  * \param n The number to write

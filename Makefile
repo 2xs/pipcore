@@ -48,7 +48,6 @@ KERNEL_BASENAME=pip
 KERNEL_ISO=$(KERNEL_BASENAME).iso
 KERNEL_ELF=$(KERNEL_BASENAME).elf
 KERNEL_BIN=$(KERNEL_BASENAME).bin
-DUMMY_ELF=$(KERNEL_BASENAME).dummy.elf
 SRC_DIR=src
 PROOF_DIR=proof
 
@@ -113,10 +112,7 @@ all: $(TARGET_DIR)/$(KERNEL_ELF) proofs doc
 kernel: $(TARGET_DIR)/$(KERNEL_ELF)
 
 $(TARGET_DIR)/$(KERNEL_ELF): gitinfo $(TARGET_DIR) linker makefile.dep extract \
-			     $(COBJ) $(AOBJ) $(TARGET_DIR)/$(DUMMY_ELF) $(TARGET_DIR)/int_addrs.h
-	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
-
-$(TARGET_DIR)/$(DUMMY_ELF): dummy_int_addrs_h gitinfo $(TARGET_DIR) linker makefile.dep extract $(COBJ) $(AOBJ)
+			     $(COBJ) $(AOBJ)
 	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
 
 gitinfo:
@@ -231,13 +227,6 @@ $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
 	printf "section .multiplexer\n\tINCBIN \"$<\"\n" > $(TARGET_DIR)/multiplexer.s
 	$(AS) $(ASFLAGS) -o $@ $(TARGET_DIR)/multiplexer.s
 
-$(TARGET_DIR)/int_addrs.h: $(TARGET_DIR)/$(DUMMY_ELF)
-	for symbol in `grep -E '^ *IDT_ENTRY' src/boot/x86_multiboot/idt.c | sed 's/^ *IDT_ENTRY(\([^,]*\),.*/\1/' | sort -u`;do SYMBOL_ADDR=`objdump -t $< | grep $$symbol | cut -d" " -f1`; [ -z "$$SYMBOL_ADDR" ] && echo "Missing symbol $$symbol for IDT_ENTRY" 1>&2 && exit 1; printf "#define $$symbol 0x$$SYMBOL_ADDR"; done > $@
-
-# The following recipe builds a dummy version of int_addrs.h for the first stage of compilation
-dummy_int_addrs_h:
-	for symbol in `grep -E '^ *IDT_ENTRY' src/boot/x86_multiboot/idt.c | sed 's/^ *IDT_ENTRY(\([^,]*\),.*/\1/' | sort -u`;do printf "#define $$symbol 0\n"; done > $(TARGET_DIR)/int_addrs.h
-
 $(TARGET_DIR)/$(PARTITION).bin:
 	cp $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)/$(PARTITION).bin $@
 
@@ -320,4 +309,3 @@ bochs: grub
 .PHONY: all gitinfo linker extract proofs qemu test coq-enable-simulation
 .PHONY: coq-disable-simulation doc-c doc-coq doc partition grub clean mrproper
 .PHONY: clean-c clean-coq kernel gettingstarted clean-mddoc bochs
-.PHONY: dummy_int_addrs_h

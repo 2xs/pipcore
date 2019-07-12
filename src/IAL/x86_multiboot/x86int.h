@@ -187,4 +187,19 @@ static inline int cpuid_string(int code, uint32_t where[4]) {
 	return (int)where[0];
 }
 
+
+/**
+ * \fn isKernel(uint32_t cs)
+ * \brief Determines if we're in kernel mode or not.
+ * \param cs Code segment
+ * \return 1 if we're in kernel mode, 0 else
+ */
+#define KERNEL_SEGMENT 8 //TODO
+static inline int isKernel (uint32_t cs)
+{
+	return cs == KERNEL_SEGMENT;
+}
+
+
+
 #endif

@@ -53,9 +53,9 @@ QEMU=qemu-system-i386
 GDB=i386-elf-gdb
 endif
 
-GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/meso.bin" 
+GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/$(KERNEL_ELF)" 
 
-QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -cpu Westmere
+QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/$(KERNEL_ELF) -serial stdio -m 1024 -vga std -cpu Westmere
 #QEMUARGS=-kernel $(BUILD_DIR)/$(TARGET)/meso.bin -serial stdio -m 1024 -vga std -netdev user,id=mynet0 -device rtl8139,netdev=mynet0,mac=FF:CA:FE:CA:FE:FF
 
 ASFLAGS=-felf
