@@ -186,5 +186,6 @@ initInterrupts (void)
 	initCpu();
 	IAL_DEBUG (INFO, "Init CPU done.\n");
 	asm("int $0x1");
+	IAL_DEBUG(INFO, "Returned from interrupt 0x1\n");
 }
 

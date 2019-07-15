@@ -164,39 +164,63 @@ resumeAsm:
 	; switch to context
 	iret
 
-;extern unsupportedHandler
-;
-;[GLOBAL irq_unsupported]
-;irq_unsupported:
-;	ISR_NOERRCODE 42
-;	jmp irq_unsupported
-;	cli
-;	push 0x2A
-;	; save & go kernel land
-;	pusha
-;	push esp
-;	mov si, ds
-;	mov ax, 0x10
-;	mov ds, ax
-;	mov es, ax
-;	mov fs, ax
-;	mov gs, ax
-;; call c handler (&ctx)
-;	call unsupportedHandler
-;	add esp, 4
-;; restore - assuming a common data segment for ds es fs gs
-;	mov ds, si
-;	mov es, si
-;	mov fs, si
-;	mov gs, si
-;	popa
-;; skip err_code & int_no
-;	add esp, 8
-;	iret
+extern unsupportedHandler
 
 [GLOBAL irq_unsupported]
 irq_unsupported:
-	jmp irq_unsupported
+	cli
+	push 0x2A
+	; save & go kernel land
+	pusha
+	push esp
+	mov si, ds
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+; call c handler (&ctx)
+	call unsupportedHandler
+	add esp, 4
+; restore - assuming a common data segment for ds es fs gs
+	mov ds, si
+	mov es, si
+	mov fs, si
+	mov gs, si
+	popa
+; skip err_code & int_no
+	add esp, 8
+	iret
+
+extern testHandler
+
+[GLOBAL irq_test]
+irq_test:
+	cli
+	push 0
+	push 0x2B
+	; save & go kernel land
+	pusha
+	push esp
+	mov si, ds
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+; call c handler (&ctx)
+	call testHandler
+	add esp, 4
+; restore - assuming a common data segment for ds es fs gs
+	mov ds, si
+	mov es, si
+	mov fs, si
+	mov gs, si
+	popa
+; skip err_code & int_no
+	add esp, 8
+	iret
+
 
 ; Definition of each interrupt handler for x86 (0-31 : faults, 32-47 : IRQ)
 ISR_NOERRCODE 0
