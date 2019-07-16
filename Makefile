@@ -38,7 +38,7 @@ STACK_ADDR=0x300000
 TARGET=x86_multiboot
 PARTITION=minimal
 
-LOGLEVEL=5
+LOGLEVEL=TRACE
 
 # Include architecture-and-platform-dependent cross-compilation toolchain
 include conf/$(TARGET).mk

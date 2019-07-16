@@ -35,6 +35,8 @@
 #include "port.h"
 #include "pic8259.h"
 #include "debug.h"
+#include "libc.h"
+
 
 /**
  * \brief IDT entry initializer
@@ -67,7 +69,7 @@
 extern void irq_unsupported(void);
 
 void unsupportedHandler(void *ctx) {
-	IAL_DEBUG(TRACE, "Unsupported IRQ !\n");
+	DEBUG(TRACE, "Unsupported IRQ !\n");
 	while(1);
 }
 
@@ -76,7 +78,7 @@ extern void irq_test(void);
 void testHandler(void *ctx) {
 	outb (PIC2_COMMAND, PIC_EOI);
 	outb (PIC1_COMMAND, PIC_EOI);
-	IAL_DEBUG(TRACE, "Testtest !\n");
+	DEBUG(TRACE, "Testtest !\n");
 }
 
 /**
@@ -343,6 +345,19 @@ static idt_entry_t idt_entries[256] = {
        IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS)
 };
 
+/**
+ * \brief IDT entry initializer
+ * \seealso idt_entry_t
+ */
+#define IDT_ENTRY(entrypoint, segment_selector, flags) {         \
+	(uint16_t) 0,                                            \
+	((uint16_t) (segment_selector)),                         \
+	0,                                                       \
+	(flags),                                                 \
+	(uint16_t) 0                                             \
+}
+
+
 typedef void (*callback)(void);
 static callback idt_callbacks[256] = {
 	[0] = irq_unsupported, 
@@ -604,6 +619,7 @@ static callback idt_callbacks[256] = {
 };
 
 void initIDT(void) {
+	DEBUG(TRACE, "Initializing the IDT...\n");
 	int i = 0;
 	idt_ptr_t idt_ptr;		//!< Pointer to the IDT
 	idt_ptr.base = idt_entries;
@@ -612,7 +628,143 @@ void initIDT(void) {
 		idt_entries[i].base_lo = ((uint32_t) idt_callbacks[i]) & 0xFFFF;
 		idt_entries[i].base_hi = (((uint32_t) idt_callbacks[i]) >> 16) & 0xFFFF;
 	}
+	BOOT_DEBUG(TRACE, "Done initializing, now loading the IDT\n");
 	asm("lidt (%0)"::"r"(&idt_ptr));
 	ASSERT(irq_unsupported != 0);
+	BOOT_DEBUG(TRACE, "Done loading IDT\n")
 }
 
+/**
+ * \fn remapIrq
+ * \brief Remaps IRQ from int. 0-15 to int. 33-48
+ */
+void
+remapIRQ (void)
+{
+#define PIC1_OFFSET	0x20
+#define PIC2_OFFSET	0x28
+	
+#ifdef KEEP_PIC_MASK
+	uint8_t a1, a2;
+	/* save masks */
+	a1 = inb (PIC1_DATA);
+	a2 = inb (PIC2_DATA);
+#endif
+	
+	/* starts the initialization sequence (in cascade mode) */
+	outb (PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+	outb (PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+	outb (PIC1_DATA, PIC1_OFFSET);
+	outb (PIC2_DATA, PIC2_OFFSET);
+	outb (PIC1_DATA, 0x04);	/* there is a slave PIC at IRQ2 */
+	outb (PIC2_DATA, 0x02);	/* Slave PIC its cascade identity */
+	outb (PIC1_DATA, ICW4_8086);
+	outb (PIC2_DATA, ICW4_8086);
+	
+	/* masks */
+#ifdef KEEP_PIC_MASK
+	outb (PIC1_DATA, a1);
+	outb (PIC2_DATA, a2);
+#else
+	outb (PIC1_DATA, 0);
+	outb (PIC2_DATA, 0);
+#endif
+}
+
+
+/**
+ * \fn timerPhase
+ * \brief Set timer frequency
+ * \param Frequency to set
+ *
+ */
+void
+timerPhase (uint32_t hz)
+{
+	uint32_t divisor = 2600000 / hz;
+	if (divisor > 0xffff) divisor = 0xffff;
+	if (divisor < 1) divisor = 1;
+	
+	outb (0x43, 0x36);              /* Set our command byte 0x36 */
+	outb (0x40, divisor & 0xFF);    /* Set low byte of divisor */
+	outb (0x40, divisor >> 8);      /* Set high byte of divisor */
+	
+	BOOT_DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
+}
+
+uint32_t pcid_enabled = 0;
+
+/**
+ * \fn void initCpu()
+ * \brief Initializes CPU-specific features
+ */
+void initCPU()
+{
+	BOOT_DEBUG(CRITICAL, "Identifying CPU model and features...\n");
+	
+	/* Display CPU vendor string */
+	uint32_t cpu_string[4];
+	cpuid_string(CPUID_GETVENDORSTRING, cpu_string); /* Vendor string will be 12 characters in EBX, EDX, ECX */
+	char cpuident[17];
+	char cpubrand[49];
+	
+	/* Build string */
+	memcpy(cpuident, &(cpu_string[1]), 4 * sizeof(char));
+	memcpy(&(cpuident[4]), &(cpu_string[3]), 4 * sizeof(char));
+	memcpy(&(cpuident[8]), &(cpu_string[2]), 4 * sizeof(char));
+	cpuident[12] = '\0';
+	
+	BOOT_DEBUG(CRITICAL, "CPU identification: %s\n", cpuident);
+	
+	/* Processor brand */
+	cpuid_string(CPUID_INTELBRANDSTRING, (uint32_t*)cpubrand);
+	cpuid_string(CPUID_INTELBRANDSTRINGMORE, (uint32_t*)&cpubrand[16]);
+	cpuid_string(CPUID_INTELBRANDSTRINGEND, (uint32_t*)&cpubrand[32]);
+	cpubrand[48] = '\n';
+	BOOT_DEBUG(CRITICAL, "CPU brand: %s\n", cpubrand);
+	
+	/* Check whether PCID is supported as well as PGE */
+	uint32_t ecx, edx;
+	cpuid(CPUID_GETFEATURES, &ecx, &edx);
+	uint32_t cr4;
+	
+	/* PGE check */
+	if(edx & CPUID_FEAT_EDX_PGE)
+	{
+		BOOT_DEBUG(CRITICAL, "PGE supported, enabling CR4.PGE\n");
+		__asm volatile("MOV %%CR4, %0" : "=r"(cr4));
+		cr4 |= (1 << 7); /* Enable Page Global as well */
+		__asm volatile("MOV %0, %%CR4" :: "r"(cr4));
+	} else {
+		BOOT_DEBUG(CRITICAL, "PGE unsupported, Global Page feature will be unavailable\n");
+	}
+	
+	/* PCID check */
+	if(ecx & CPUID_FEAT_ECX_PCID)
+	{
+		BOOT_DEBUG(CRITICAL, "PCID supported, enabling CR4.PCIDE\n");
+		pcid_enabled = 1;
+		
+		/* Enable PCID */
+		__asm volatile("MOV %%CR4, %0" : "=r"(cr4));
+		cr4 |= (1 << 17);
+		__asm volatile("MOV %0, %%CR4" :: "r"(cr4));
+	} else {
+		BOOT_DEBUG(CRITICAL, "PCID unsupported, Process Context Identifiers feature will be unavailable\n");
+	}
+}
+
+uint32_t timer_ticks = 0;
+
+void initInterrupts(void) {
+	BOOT_DEBUG(INFO, "Initializing interrupts\n");
+	initIDT();
+	remapIRQ();
+	timerPhase(100);
+	timer_ticks = 0;
+	initCPU();
+	BOOT_DEBUG(INFO, "Done initializing interrupts\n");
+	BOOT_DEBUG(TRACE, "Calling int 1\n");
+	asm("int $0x1");
+	BOOT_DEBUG(TRACE, "Returned from int 1\n");
+}
