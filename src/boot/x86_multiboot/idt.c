@@ -73,11 +73,19 @@ void unsupportedHandler(void *ctx) {
 	while(1);
 }
 
+extern void irq_timer(void);
+
+void timerHandler(void *ctx) {
+	outb (PIC1_COMMAND, PIC_EOI);
+	outb (PIC2_COMMAND, PIC_EOI);
+	DEBUG(TRACE, "Interrupted by alarm !\n");
+}
+
 extern void irq_test(void);
 
 void testHandler(void *ctx) {
-	outb (PIC2_COMMAND, PIC_EOI);
 	outb (PIC1_COMMAND, PIC_EOI);
+	outb (PIC2_COMMAND, PIC_EOI);
 	DEBUG(TRACE, "Testtest !\n");
 }
 
@@ -392,7 +400,7 @@ static callback idt_callbacks[256] = {
 	[29] = irq_unsupported,
 	[30] = irq_unsupported,
 	[31] = irq_unsupported,
-	[32] = irq_test,
+	[32] = irq_timer,
 	[33] = irq_unsupported,
 	[34] = irq_unsupported,
 	[35] = irq_unsupported,
