@@ -553,7 +553,32 @@ inversion H.
 subst.
 now contradict Heq.
 Qed.
-
+Lemma checkVAddrsEqualityWOOffsetTrueLe  :
+forall stop stopi vaToPrepare vavalue nbL,
+stopi <= stop ->
+checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true -> 
+checkVAddrsEqualityWOOffset stopi vaToPrepare vavalue nbL = true.
+Proof.
+induction stop;simpl.
+* intros. 
+  assert(stopi =0) by omega.
+  subst.
+  simpl;trivial.
+* intros.
+ case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *.
+  destruct stopi;simpl;trivial.
+  rewrite Hfst;trivial.
+  case_eq(StateLib.Level.pred nbL);intros * Hpred;rewrite Hpred in *.
+  + destruct stopi;simpl;trivial.
+    rewrite Hfst.
+    rewrite Hpred.
+    case_eq(StateLib.getIndexOfAddr vaToPrepare nbL =? StateLib.getIndexOfAddr vavalue nbL);
+      intros * Hva;rewrite Hva in *;try now contradict H0.
+  apply IHstop;trivial.
+  omega.
+ + apply levelPredNone  in Hfst.
+  now contradict Hfst.
+Qed.
 
 (*  Lemma getIndirectionNoDup :
 forall  stop2 stop1  pd x1 x2  (l:level) vavalue s,
@@ -1277,7 +1302,7 @@ Qed.
 Lemma pageTablesOrIndicesAreDifferentMiddle stop0 s:
 
 True ->
-forall (n : nat) (root1 root2 table1 table2 : page) (level1 : level) (va1 va2 : vaddr) (stop : nat) ,
+forall (n : nat) (root1 root2 table1 table2 : page) (level1 : level) (va1 va2 : vaddr) (* (stop : nat) *) ,
 NoDup (getIndirectionsAux root1 s n) ->
 NoDup (getIndirectionsAux root2 s n) ->
 checkVAddrsEqualityWOOffset (S stop0) va1 va2 level1 = false ->
@@ -1288,13 +1313,24 @@ table1 <> defaultPage ->
 table2 <> defaultPage ->
 getIndirection root1 va1 level1 stop0 s = Some table1 ->
 getIndirection root2 va2 level1 stop0 s = Some table2 ->
-S stop0 <= stop ->
+(* S stop0 <= stop -> *)
 root1 <> defaultPage -> root2 <> defaultPage -> S stop0 <= level1 -> n <= nbLevel -> 
 table1 <> table2 \/ 
 StateLib.getIndexOfAddr va1 (CLevel (level1 -stop0)) <> StateLib.getIndexOfAddr va2 (CLevel (level1 -stop0)) .
-Proof. intro H0.   induction stop0;
-  intros  * HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
-  Htableroot1 (* Hstop *) Htableroot2 (* H0 *) Hs Hroot1 Hroot2 (* Hroot12 *) Hzero Hnbl. 
+Proof. intro H0. 
+intros * HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
+  Htableroot1 (* Hstop *) Htableroot2 (* H0 *)  (* Hs *) Hroot1 Hroot2 (* Hroot12 *) Hzero Hnbl.  
+
+assert(Hs: exists stop , S stop0 <= stop). 
+exists (S (S stop0)).
+omega.
+destruct Hs as (stop & Hs).
+revert  HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
+  Htableroot1 (* Hstop *) Htableroot2 (* H0 *)   Hs Hroot1 Hroot2 (* Hroot12 *) Hzero Hnbl. 
+revert n  root1 root2 table1 table2 level1 va1 va2 stop.
+ induction stop0;
+  intros *  HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
+  Htableroot1 (* Hstop *) Htableroot2 (* H0 *)  Hs  Hroot1 Hroot2 (* Hroot12 *) Hzero Hnbl. 
   simpl in *.
   +
   case_eq( StateLib.getIndexOfAddr va1 level1 =? StateLib.getIndexOfAddr va2 level1);intros Hv;
@@ -1332,7 +1368,7 @@ Proof. intro H0.   induction stop0;
     case_eq (StateLib.getIndexOfAddr va1 level1 =? StateLib.getIndexOfAddr va2 level1);
             intros Hidx;
             rewrite Hidx in Hvas; trivial. 
-    * generalize (IHstop0 (n-1) p p0 table1 table2 pred va1 va2 stop); clear IHstop0; intros IHn.
+    * generalize (IHstop0  (n-1) p p0 table1 table2 pred va1 va2  stop); clear IHstop0; intros IHn.
       assert (StateLib.Level.eqb level1 fstLevel = true \/ StateLib.Level.eqb level1 fstLevel = false).
       { unfold StateLib.Level.eqb.
         rewrite NPeano.Nat.eqb_eq.  rewrite NPeano.Nat.eqb_neq.
@@ -1700,6 +1736,7 @@ Proof. intro H0.   induction stop0;
          apply Htbl1p. subst.
          assumption. }
 Qed.
+
 Lemma getIndirectionInGetIndirections2' (stop : nat) s 
 (va : vaddr) (level1 : level) (table root : page) :
 (stop+1) <= nbLevel ->
@@ -1741,6 +1778,216 @@ Proof.
   rewrite  NPeano.Nat.eqb_sym.
   case_eq (StateLib.getIndexOfAddr va2 level1 =? StateLib.getIndexOfAddr va1 level1); intros; trivial.
 Qed.
+
+Lemma getIndirectionInGetIndirections2n:
+  forall stopn (stop : nat) (s : state) (va : vaddr) (level1 : level) (table root : page),
+  stop + 1 <= nbLevel ->
+  getIndirection root va level1 stop s = Some table ->
+  NoDup (getIndirectionsAux root s (stop+1)) ->
+  stopn <= stop ->
+  table <> defaultPage -> root <> defaultPage -> stop <= level1 -> stop > 0 -> ~ In table (getIndirectionsAux root s stopn).
+Proof.
+
+intros.
+apply indirectionNotInPreviousMMULevelAux in H0;trivial.
+destruct H0 as ( prevtab & Hi1 & Hi2 & Hi3 ).
+assert( Hnitin: ~ In table (getIndirectionsAux root s stop)).
+apply getIndirectionInGetIndirections2  with prevtab va level1;trivial.
+contradict Hnitin.
+pose proof inclGetIndirectionsAuxLe as Hii.
+unfold incl in *.
+apply Hii with stopn;trivial. 
+omega.
+rewrite  Nat.eqb_neq.
+destruct defaultPage;simpl in *;destruct table;simpl in *;intuition.
+subst.
+apply H3.
+f_equal.
+apply proof_irrelevance.
+Qed.  
+
+Lemma getIndirectionStopLevelGe s va p (l: nat) (level : level)  (l0 : nat) p0: 
+ level <=l0 -> l = level ->  
+getIndirection p va level l0 s = Some p0 ->  
+getIndirection p va level l s = Some p0.
+Proof.
+intros.
+revert p0 p level l H H0 H1.
+induction l0; 
+intros.
+subst.
+
+
+apply NPeano.Nat.le_0_r in H.
+rewrite H in *;trivial.
+simpl. 
+destruct l; simpl in *.
+assert (  StateLib.Level.eqb level fstLevel = true).
+unfold MALInternal.Level.eqb. 
+apply NPeano.Nat.eqb_eq. 
+rewrite <- H0. unfold fstLevel. unfold CLevel.
+assert ( 0 < nbLevel) by apply nbLevelNotZero.
+case_eq (lt_dec 0 nbLevel ); intros.
+simpl. trivial.
+now contradict H2.
+rewrite H2 in H1. assumption.
+simpl in *.
+case_eq (StateLib.Level.eqb level fstLevel); intros.
+rewrite H2 in H1. destruct l0. simpl. assumption. assumption.   
++ simpl. rewrite H2 in H1.
+  case_eq(StateLib.readPhyEntry p (StateLib.getIndexOfAddr va level) (memory s) ). intros.
+  rewrite H3 in H1. 
+  case_eq (defaultPage =? p1); intros;
+  rewrite H4 in H1. assumption.
+  case_eq (StateLib.Level.pred level);
+  intros; rewrite H5 in H1.
+  apply levelPredMinus1 in H5; trivial.
+  unfold CLevel in H5.  
+  case_eq(lt_dec (level - 1) nbLevel ); intros; rewrite H6 in H5.
+  destruct level. simpl in *. subst.
+  simpl in *.
+   
+  apply IHl0 ; trivial. simpl. omega. simpl. omega.
+  destruct level. simpl in *. omega. assumption.
+  intros. rewrite H3 in H1. assumption.
+Qed.
+
+    Lemma CLevelIdentity' : forall l : level, CLevel (l -  0) = l.
+Proof.
+intros l.
+
+simpl.
+rewrite NPeano.Nat.sub_0_r.
+apply CLevelIdentity1.
+Qed.
+ Lemma getIndirectionMapMMUPage11' s a (phyVaChild ptVaChildpd pd:page) e r w   entry nbL stop1 a1 (li : level):  
+  (forall (stop : nat) (tbl : page) ,
+        getIndirection pd a nbL stop s = Some tbl -> (defaultPage =? tbl) = false -> 
+        tbl <> ptVaChildpd \/  ( tbl = ptVaChildpd  /\ (StateLib.getIndexOfAddr a (CLevel (nbL-stop)) <>  StateLib.getIndexOfAddr a1 li))) ->
+       lookup ptVaChildpd (StateLib.getIndexOfAddr a1 li) (memory s) beqPage beqIndex = Some (PE entry) ->
+       pd <> defaultPage ->
+       getIndirection pd a nbL stop1 s =
+       getIndirection pd a nbL stop1
+         {|
+         currentPartition := currentPartition s;
+         memory := add ptVaChildpd  (StateLib.getIndexOfAddr a1 li)
+                     (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyVaChild |})
+                     (memory s) beqPage beqIndex |}.
+                     Proof. 
+
+                     
+   revert pd nbL li ptVaChildpd entry.
+   induction stop1.
+   simpl;trivial.
+   intros *  Hmykey  Hlookup Hpdnotnull.
+   set(s':= {|
+  currentPartition := _|}).
+   simpl in *.
+
+    case_eq( StateLib.Level.eqb nbL fstLevel);intros;trivial.
+    assert(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL)
+    (add ptVaChildpd  (StateLib.getIndexOfAddr a1 li)
+       (PE
+          {|
+          read := r;
+          write := w;
+          exec := e;
+          present := true;
+          user := true;
+          pa := phyVaChild |}) (memory s) beqPage beqIndex) = 
+          StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL)
+    (memory s)). symmetry.
+    apply readPhyEntryMapMMUPage with entry;trivial.
+    generalize (Hmykey 0 pd );clear Hmykey;intros Hmykey. 
+    simpl in *. 
+    assert(Hx: pd <> ptVaChildpd \/
+         pd = ptVaChildpd /\ StateLib.getIndexOfAddr a  (CLevel (nbL - 0)) <> StateLib.getIndexOfAddr a1 li).
+         
+         apply Hmykey;trivial.
+    apply NPeano.Nat.eqb_neq.
+    unfold not;intros.
+    subst.
+    destruct defaultPage;destruct pd;simpl in *;subst.
+    contradict Hpdnotnull.
+    f_equal. apply  proof_irrelevance.
+    destruct Hx.
+    left;trivial.
+    right.
+
+rewrite CLevelIdentity'  in H0.
+intuition. 
+    rewrite H0.
+    case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL) (memory s));intros;trivial.
+    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(StateLib.Level.pred nbL );intros;trivial.
+    apply IHstop1 with entry;trivial.
+    intros.
+    assert(tbl <> ptVaChildpd \/
+         tbl = ptVaChildpd /\
+         StateLib.getIndexOfAddr a (CLevel (nbL - (S stop))) <>
+         StateLib.getIndexOfAddr a1 li) as Hgen.
+         
+    apply Hmykey .
+    simpl.    
+      
+     rewrite H3 in *.
+     rewrite H.
+     rewrite H1.
+     rewrite H2;trivial.
+     trivial.
+ replace (nbL - S stop) with (l - stop) in *.
+ destruct Hgen. 
+ left;trivial.
+ right. 
+ intuition.
+ assert(l = CLevel (nbL - 1)). 
+ apply levelPredMinus1;trivial.
+ rewrite H6.
+unfold CLevel .
+case_eq( lt_dec (nbL - 1) nbLevel);intros * Hl;simpl.
+omega.
+destruct nbL. simpl in *. omega.  apply beq_nat_false in H2.
+     unfold not;intros.
+     subst.
+ now contradict H2.
+Qed.
+
+Lemma checkVAddrsEqualityWOOffsetFalseS: 
+forall stop vaToPrepare vavalue , forall (nbL:level),
+StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop)) = 
+StateLib.getIndexOfAddr vavalue (CLevel (nbL - stop)) ->
+checkVAddrsEqualityWOOffset (stop + 1) vaToPrepare vavalue nbL = false -> 
+checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false.
+Proof.
+induction stop;simpl.
+* intros.
+  case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *.
+  + rewrite CLevelIdentity' in H.
+    rewrite H in H0.
+    rewrite <- beq_nat_refl in H0.
+    trivial.
+  + case_eq(StateLib.Level.pred nbL );intros * Hpred;rewrite Hpred in *;try now contradict H0.
+    rewrite CLevelIdentity' in H.
+    rewrite H in H0.
+    rewrite <- beq_nat_refl in H0.
+    trivial.
+* intros.
+case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *;trivial.
+case_eq(StateLib.Level.pred nbL );intros * Hpred;rewrite Hpred in *;try now contradict H0;
+trivial.
+case_eq( StateLib.getIndexOfAddr vaToPrepare nbL =? StateLib.getIndexOfAddr vavalue nbL); intros
+* Hvas;rewrite Hvas in *;trivial.
+apply IHstop;trivial.
+ replace (nbL - S stop) with (l - stop) in *.
+ trivial.
+ assert(l = CLevel (nbL - 1)). 
+ apply levelPredMinus1;trivial.
+ rewrite H1.
+unfold CLevel .
+case_eq( lt_dec (nbL - 1) nbLevel);intros * Hl;simpl.
+omega.
+destruct nbL. simpl in *. omega.
+Qed. 
 
 Lemma getMappedPageSomeAddIndirection s (indirection nextIndirection :page) vaToPrepare entry  vavalue pd pg partition l
 indMMUToPrepare:
@@ -1884,7 +2131,7 @@ destruct Hrem as [(Heq & HnbL) | (nbL & stop & HnbL & Hstop & Hindi & Hnotdef & 
   rewrite Hlpred;trivial.
   trivial. }
   destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev). 
-assert(~ In tbl (getIndirectionsAux pd s (stop + 1))).
+assert(~ In tbl (getIndirectionsAux pd s (stop + 1))). 
 { apply getIndirectionInGetIndirections2 with prevtab vavalue l;
 simpl; subst;
 trivial.
@@ -2070,8 +2317,8 @@ omega. }
   StateLib.checkVAddrsEqualityWOOffset (stop+1) vaToPrepare vavalue nbL = false)
   by (destruct (StateLib.checkVAddrsEqualityWOOffset);[left|right];trivial).
   destruct Hvaddr as [Hvaddr|Hvaddr].
-  -  
-  assert(Hinstop1: getIndirection pd vaToPrepare nbL (stop+1) s = Some indMMUToPrepare).
+  - 
+assert(Hinstop1: getIndirection pd vaToPrepare nbL (stop+1) s = Some indMMUToPrepare).
 {  
    (** ici il faut montrer que indMMUToPrepare = tbl**) 
 pose proof getIndirectionEqStop as Hindeq.
@@ -2080,7 +2327,8 @@ rewrite <- Hindi.
 symmetry.
 apply Hindeq;trivial.
 subst.
-admit. 
+apply checkVAddrsEqualityWOOffsetTrueLe with (stop+1);trivial.
+  omega.
 apply getIndirectionProp' with (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indirection entry;
 subst;trivial.
 symmetry;trivial.
@@ -2109,16 +2357,24 @@ symmetry.
 apply beq_nat_refl.
 rewrite Htru in *.
 now contradict Hmap.
- *)
+
 -
 case_eq(getIndirection pd vavalue nbL (nbLevel - 1) s);intros * Hind;rewrite Hind in *;try now contradict Hmap.
 case_eq(defaultPage =? p);intros * Hnotdef';rewrite Hnotdef' in *;try now contradict Hmap.
-case_eq( getIndirection pd vavalue nbL (nbLevel - 1) s');intros * Hind'.
-* 
+(* case_eq( getIndirection pd vavalue nbL (nbLevel - 1) s');intros * Hind'. *)
+
 assert(Heq: getIndirection pd vavalue nbL (nbLevel - 1) s =
             getIndirection pd vavalue nbL (nbLevel - 1) s'). 
-{
-          
+{ assert(Horlst: (StateLib.getIndexOfAddr vaToPrepare l) = (StateLib.getIndexOfAddr vavalue l) \/  
+(StateLib.getIndexOfAddr vaToPrepare l) <> (StateLib.getIndexOfAddr vavalue l) ) by apply indexDecOrNot.
+destruct Horlst as [Horlst| Horlst].
++ 
+
+
+ assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ). 
+{ apply checkVAddrsEqualityWOOffsetFalseS;trivial.
+
+ subst;trivial. } 
 apply getIndirectionMapMMUPage11 with entry
 ;trivial.
 intros * Hi1 Hi2. 
@@ -2128,8 +2384,9 @@ destruct Hor as [Hor | [Hor | Hor]].
 { apply getIndirectionInGetIndirections1 with vavalue nbL;trivial.
 destruct nbL;simpl in *.
 omega.
-
-admit. (** ok **) }
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2.
+ }
 assert(Hnotinind: ~ In indirection (getIndirectionsAux pd s (stop))).
 assert(Hex: stop + 1 <= nbLevel). 
 destruct nbL;simpl in *.
@@ -2151,7 +2408,258 @@ subst;trivial.
 subst. 
 assert(Hor: stop=0 \/ stop > 0) by omega.
 destruct Hor as [Hor | Hor].
-* subst. simpl in *. now contradict Hvaddr.
+* subst. simpl in *.
+case_eq( StateLib.Level.eqb nbL fstLevel);intros * Hlvl;rewrite Hlvl in *.
+rewrite CLevelIdentity' in Hfstl.
+rewrite <- Hfstl in Hlvl.
+now contradict Hlvl.
+ now contradict Hvaddr.
+* assert(Hrn: S (stop-1) = stop) by omega.
+  apply pageTablesAreDifferentMiddle with (stop-1) s nbLevel pd pd nbL  vavalue vaToPrepare 
+ stop;trivial;try rewrite Hrn;trivial.
+ rewrite checkVAddrsEqualityWOOffsetPermut';trivial.
+ left;trivial.
+ split;trivial.
+ apply getNbLevelEq;trivial.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2.
+-
+assert(Hx: nbLevel - 1 = nbL). 
+{
+apply getNbLevelEq in HnbL.
+subst.
+rewrite <- nbLevelEq;trivial. }
+
+assert(Hornbl: stop0>= nbLevel-1 \/ stop0 < nbLevel -1) by omega.
+destruct Hornbl as [Hornbl | Hornbl].
+
+*
+
+  assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
+omega.
+ }
+assert(Hex: stop + 1 <= nbLevel) by omega.
+
+assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
+{ 
+
+  
+  
+apply getIndirectionInGetIndirections2n with (nbLevel -1) vavalue nbL;trivial;try omega.
+apply getIndirectionStopLevelGe with stop0;trivial.
+omega.
+
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2. } 
+
+unfold not;intros;subst;now contradict Hnotinind.
+*   assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
+omega.
+ }
+assert(Hex: stop + 1 <= nbLevel) by omega.
+
+assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
+{ 
+
+  
+apply getIndirectionInGetIndirections2n with stop0 vavalue nbL;trivial;try omega.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2. } 
+
+unfold not;intros;subst;now contradict Hnotinind.
++ assert(checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/ 
+checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
+{ destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL). 
+  left;trivial.
+  right;trivial. } 
+destruct H. 
+**  assert(Hinstop1: getIndirection pd vaToPrepare nbL (stop+1) s = Some indMMUToPrepare).
+{  
+   (** ici il faut montrer que indMMUToPrepare = tbl**) 
+pose proof getIndirectionEqStop as Hindeq.
+assert( getIndirection pd vavalue nbL stop s = Some indirection).
+rewrite <- Hindi.
+symmetry.
+apply Hindeq;trivial.
+subst.
+apply getIndirectionProp' with (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indirection entry;
+subst;trivial.
+symmetry;trivial.
+}
+assert(HindeqStop: getIndirection pd vaToPrepare nbL stop s=
+getIndirection pd vavalue nbL stop  s).
+
+apply getIndirectionEqStop;subst;trivial.
+apply beq_nat_true in Hdefcurind.
+
+(* rewrite Hind.
+symmetry.
+
+Lemma xxxx s:
+forall stopi stopn, forall  (nbL: level), forall pd vavalue ind p  ,
+ stopi < stopn -> 
+ stopn <= nbL -> 
+ getIndirection pd vavalue nbL stopi s = Some ind ->
+(defaultPage =? ind) = false ->
+ getIndirection ind vavalue (CLevel (nbL - stopi))  (stopn - stopi) s = Some p -> 
+getIndirection pd vavalue nbL stopn s = Some p. 
+Proof.
+Admitted.
+
+
+apply xxxx with stop indirection;trivial.
+admit.
+admit.
+assert(Hor0: stop=0 \/ stop > 0) by omega.
+destruct Hor0 as [Hor0 | Hor0].
+* subst. simpl in *.
+trivial.
+*
+rewrite <- Hindi.
+symmetry.
+rewrite HindeqStop. *)
+apply getIndirectionMapMMUPage11' with entry
+;trivial.
+intros * Hi1 Hi2. 
+assert(Hor : stop0 < stop \/ stop0=stop \/ stop0 > stop) by omega.
+{ destruct Hor as [Hor | [Hor | Hor]].
+- assert(Hinind: In tbl (getIndirectionsAux pd  s (stop0+1))).
+{ apply getIndirectionInGetIndirections1 with vavalue nbL;trivial.
+destruct nbL;simpl in *.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2.
+ }
+assert(Hnotinind: ~ In indirection (getIndirectionsAux pd s (stop))).
+{ assert(Hex: stop + 1 <= nbLevel). 
+destruct nbL;simpl in *.
+omega.
+    
+
+apply getIndirectionInGetIndirections2' with vaToPrepare nbL;trivial.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+ }
+
+pose proof inclGetIndirectionsAuxLe as Hproof.
+left. 
+contradict Hnotinind.
+unfold incl in Hproof.
+apply Hproof with (stop0+1).
+omega.
+subst;trivial.
+-
+right.  
+
+subst.
+intuition.
+rewrite <- HindeqStop in Hi1. 
+rewrite Hindi in Hi1.
+inversion  Hi1;trivial.
+
+
+-
+assert(Hx: nbLevel - 1 = nbL). 
+{
+apply getNbLevelEq in HnbL.
+subst.
+rewrite <- nbLevelEq;trivial. }
+
+assert(Hornbl: stop0>= nbLevel-1 \/ stop0 < nbLevel -1) by omega.
+destruct Hornbl as [Hornbl | Hornbl].
+
+*
+
+  assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
+omega.
+ }
+assert(Hex: stop + 1 <= nbLevel) by omega.
+
+assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
+{ 
+
+  
+  
+apply getIndirectionInGetIndirections2n with (nbLevel -1) vavalue nbL;trivial;try omega.
+apply getIndirectionStopLevelGe with stop0;trivial.
+omega.
+
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2. }left. 
+
+unfold not;intros;subst;now contradict Hnotinind.
+*   assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
+omega.
+ }
+assert(Hex: stop + 1 <= nbLevel) by omega.
+
+assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
+{ 
+
+  
+apply getIndirectionInGetIndirections2n with stop0 vavalue nbL;trivial;try omega.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2. }
+left. 
+
+unfold not;intros;subst;now contradict Hnotinind.
+ } 
+** 
+apply getIndirectionMapMMUPage11 with entry
+;trivial.
+intros * Hi1 Hi2. 
+assert(Hor : stop0 < stop \/ stop0=stop \/ stop0 > stop) by omega.
+{ destruct Hor as [Hor | [Hor | Hor]].
+- assert(Hinind: In tbl (getIndirectionsAux pd  s (stop0+1))).
+{ apply getIndirectionInGetIndirections1 with vavalue nbL;trivial.
+destruct nbL;simpl in *.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2.
+ }
+assert(Hnotinind: ~ In indirection (getIndirectionsAux pd s (stop))).
+assert(Hex: stop + 1 <= nbLevel). 
+destruct nbL;simpl in *.
+omega.
+    
+
+apply getIndirectionInGetIndirections2' with vaToPrepare nbL;trivial.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+pose proof inclGetIndirectionsAuxLe as Hproof.
+contradict Hnotinind.
+unfold incl in Hproof.
+apply Hproof with (stop0+1).
+omega.
+subst;trivial.
+- 
+
+subst. 
+assert(Hor: stop=0 \/ stop > 0) by omega.
+destruct Hor as [Hor | Hor].
+* subst. simpl in *.
+inversion Hi1;subst.
+
+inversion Hindi;subst.
+now contradict H.
 * assert(Hrn: S (stop-1) = stop) by omega.
   apply pageTablesAreDifferentMiddle with (stop-1) s nbLevel pd pd nbL  vavalue vaToPrepare 
  stop;trivial;try rewrite Hrn;trivial.
@@ -2171,9 +2679,8 @@ rewrite <- nbLevelEq;trivial. }
 
 assert(Hornbl: stop0>= nbLevel-1 \/ stop0 < nbLevel -1) by omega.
 destruct Hornbl as [Hornbl | Hornbl].
-* admit. 
-* 
 
+*
 
   assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
 { apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
@@ -2183,253 +2690,90 @@ assert(Hex: stop + 1 <= nbLevel) by omega.
 
 assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
 { 
-Lemma getIndirectionInGetIndirections2n:
-  forall stopn (stop : nat) (s : state) (va : vaddr) (level1 : level) (table root : page),
-  stop + 1 <= nbLevel ->
-  getIndirection root va level1 stop s = Some table ->
-  NoDup (getIndirectionsAux root s (stop+1)) ->
-  stopn <= stop ->
-  table <> defaultPage -> root <> defaultPage -> stop <= level1 -> stop > 0 -> ~ In table (getIndirectionsAux root s stopn).
-Proof.
 
-Admitted.  
   
   
-apply getIndirectionInGetIndirections2n with stop0 vavalue nbL;trivial;try omega.
-
+apply getIndirectionInGetIndirections2n with (nbLevel -1) vavalue nbL;trivial;try omega.
+apply getIndirectionStopLevelGe with stop0;trivial.
+omega.
 
 unfold getIndirections in *.
 apply noDupPreviousMMULevels with nbLevel ;trivial.
 omega.
 apply beq_nat_false in Hi2.
-unfold not;intros;subst;now contradict Hi2. }
-unfold not;intros;subst;now contradict Hnotinind. }
+unfold not;intros;subst;now contradict Hi2. } 
 
-
-Admitted.
-
-(* assert(Hs: (nbLevel-1) > stop) by admit. 
-replace   (nbLevel - 1) with (stop + ((nbLevel-1) - stop)) in Hind by omega . *)
-apply getIndirectionStopMiddle1  with stop s nbL p pd vavalue in Hind as (indMiddl & Hindmid1 & Hindmid2); try
+unfold not;intros;subst;now contradict Hnotinind.
+*   assert(Hinind: In indirection (getIndirectionsAux pd  s (stop+1))).
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
 omega.
-apply getIndirectionStopMiddle1  with stop s' nbL p0 pd vavalue in Hind' as (indMiddl' & Hindmid1' & Hindmid2') .
-assert(Hkey: indirection <> indMiddl \/
- StateLib.getIndexOfAddr vaToPrepare ( CLevel (nbL - stop)) <> StateLib.getIndexOfAddr vavalue ( CLevel (nbL - stop))
-).
-{ replace (stop+1) with (S stop) in * by omega. 
-apply pageTablesOrIndicesAreDifferentMiddle with  s nbLevel pd pd nbL;trivial.
-left;trivial.
-split;trivial.
-apply getNbLevelEq;trivial.
-apply beq_nat_true in Hdefcurind.
-intuition.
  }
+assert(Hex: stop + 1 <= nbLevel) by omega.
 
-
-
-
-
-  
-  assert (stop =0 \/ stop >0) by admit.
-  destruct H;subst.
-  simpl in *.
-  inversion Hindmid1;subst indMiddl.
-  inversion Hindmid1';subst indMiddl'.
-  inversion Hindi; subst indirection.
-            assert( StateLib.Level.eqb nbL fstLevel = false) by admit.
-            rewrite H in *.        
-admit. 
-
-Lemma xxx  pd ind1 ind2 va1 va2 stop (nbL: level) s:
-NoDup (getIndirectionsAux pd s (stop+1)) ->
-stop > 0 ->
-stop <= nbL ->
-checkVAddrsEqualityWOOffset (stop + 1) va1 va2 nbL = false ->
-getIndirection pd va1 nbL stop s = Some ind1 ->
-getIndirection pd va2 nbL stop s = Some ind2 ->
-ind1 <> ind2.
-Proof.
-revert pd ind1 ind2 va1 va2  nbL s.
-induction stop;simpl.
-intros. omega.
-intros.
-case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *.
-admit. (** contradict fstLevel**)
-case_eq( StateLib.Level.pred nbL);intros * Hpred;rewrite Hpred in *.
-+ case_eq(StateLib.getIndexOfAddr va1 nbL =? StateLib.getIndexOfAddr va2 nbL);intros * Hvads;
-rewrite Hvads in *.
-- 
-
-Admitted.
-assert(exists ind , getIndirection pd vavalue nbL stop s = Some ind) as (indx & Hindx) by admit.
-
-SearchAbout checkVAddrsEqualityWOOffset false.
-(** j'etais en train de regarder comment generaliser ce lemme pageTablesOrIndicesAreDifferent. J'ai pas encore compris pourquoi 
-jetraite fslLevel comme etage intermédiaire **)
-
-Lemma pageTablesOrIndicesAreDifferent (root1 root2 table1 table2 : page ) 
-(va1 va2 : vaddr) (level1 : level)  (stop : nat)  s:
-root1 <> defaultPage -> root2 <> defaultPage -> 
-NoDup (getIndirections root1 s) ->
-NoDup (getIndirections root2 s) -> 
-StateLib.checkVAddrsEqualityWOOffset stop va1 va2 level1 = false -> 
-( (level1 = CLevel (nbLevel -1) /\ root1 = root2) \/ (level1 < CLevel (nbLevel -1) /\(
-(disjoint (getIndirections root1 s) (getIndirections root2 s)/\ root1 <> root2) \/ root1 = root2  )) )-> 
-table1 <> defaultPage -> 
-table2 <> defaultPage -> 
-(* stop > 0 ->  *)
-getIndirection root1 va1 level1 stop s = Some table1-> 
-getIndirection root2 va2 level1 stop s = Some table2 -> 
-table1 <> table2 \/ StateLib.getIndexOfAddr va1 fstLevel <> StateLib.getIndexOfAddr va2 fstLevel.
-Proof.
-intros Hroot1 Hroot2 HNoDup1 HNoDup2 Hvas  Hlevel 
-Hnotnull1 Hnotnull2  (* Hstop *) Htableroot1    Htableroot2.
-assert (StateLib.Level.eqb level1 fstLevel = true \/ StateLib.Level.eqb level1 fstLevel = false).
-{ unfold StateLib.Level.eqb.
-        rewrite NPeano.Nat.eqb_eq.  rewrite NPeano.Nat.eqb_neq.
-        omega. }
-assert(StateLib.getIndexOfAddr va1 fstLevel <> StateLib.getIndexOfAddr va2 fstLevel \/ 
-StateLib.getIndexOfAddr va1 fstLevel = StateLib.getIndexOfAddr va2 fstLevel).
-{ destruct (StateLib.getIndexOfAddr va1 fstLevel), (StateLib.getIndexOfAddr va2 fstLevel ) .
-  assert (i = i0 \/ i<> i0). omega.
-  destruct H0. subst.
-  assert(Hi = Hi0) by apply proof_irrelevance. subst.
-  right. reflexivity. left. trivial.
-  unfold not. intros. apply H0.
-  clear H0. inversion H1. trivial. }
-destruct H0; [right; assumption |].
-destruct H.
-+ destruct stop. simpl in *.
- now contradict Hvas.
-  simpl in Hvas. right.
-  rewrite H in Hvas.
-  apply beq_nat_false in Hvas.
-  apply levelEqBEqNatTrue in H. subst. unfold not.
-  intros. contradict Hvas. rewrite H. reflexivity.
-+ clear H H0.
-assert(H0:True) by trivial.
-left.
-  revert HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
-  Htableroot1 (* Hstop *) Htableroot2  H0  Hroot1 Hroot2 .
-  revert root1 root2 table1 table2 level1 va1 va2.
-  assert (Hs :stop <= stop). omega. revert Hs.  
-  generalize stop at 1 3 4 5 .
-  intros.
-  destruct stop0.
-  simpl in *.
-  now contradict Hvas.
-    assert(Hzero: S stop0 < level1) by admit.
-  assert (nbLevel <= nbLevel) as Hnbl by omega.
-  revert Hnbl.
-  revert HNoDup1 HNoDup2 Hvas Hlevel Hnotnull1 Hnotnull2 
-  Htableroot1 (* Hstop *) Htableroot2 (* H0 *) Hs Hroot1 Hroot2 (* Hroot12 *) Hzero.
-  revert root1 root2 table1 table2 level1 va1 va2 stop.
-  unfold getIndirections.
+assert(Hnotinind: ~ In tbl (getIndirectionsAux pd s (stop+1))).
+{ 
 
   
+apply getIndirectionInGetIndirections2n with stop0 vavalue nbL;trivial;try omega.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+omega.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2. } 
+
+unfold not;intros;subst;now contradict Hnotinind.
+ } }
+ rewrite <- Heq.
+ rewrite Hind.
+ rewrite Hnotdef'.
+ assert(Hkey: p <> indirection \/ StateLib.getIndexOfAddr vavalue fstLevel <> StateLib.getIndexOfAddr vaToPrepare l). 
+{    subst. 
+    assert(Horx: stop = nbL \/ stop <> nbL) by omega.
+    destruct Horx as [Horx | Horx].
+    subst.
+    replace (nbL - nbL) with 0 in Hfstl.
+    unfold fstLevel in Hfstl.
+    unfold StateLib.Level.eqb in Hfstl.
+    rewrite <- beq_nat_refl in Hfstl.
+    now contradict Hfstl.
+    omega.
+    assert(Hx: nbLevel - 1 = nbL). 
+{
+apply getNbLevelEq in HnbL.
+subst.
+rewrite <- nbLevelEq;trivial. }
+ assert(~In p (getIndirectionsAux pd s (stop+1))). 
+{ 
+pose proof nbLevelNotZero as HnbL0.
   
-  generalize nbLevel at 1 2 3 4 5 6 7 .
-
-Qed. 
-
-
-
-Admitted.
-(* 
-Lemma twoAreDifferent indirection ind1 ind2 v1 v2 l s:
-getIndirection indirection v1 l (nbLevel - 1) s = Some ind1 ->
-getIndirection indirection v2 l (nbLevel - 1) s = Some ind2 ->
-noDupConfigPagesList s ->
-checkVAddrsEqualityWOOffset nbLevel v1 v2 l = false ->
-ind1 <> ind2.
-Proof.
-intros.
-assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\
-StateLib.checkVAddrsEqualityWOOffset nbLevel v1 va1 ( CLevel (nbLevel -1) ) = true )
-by apply AllVAddrWithOffset0.
-destruct Heqvars as (va1 & Hva1 & Hva11).
-assert(Hmap1: getMappedPage p s va1 = SomePage phy1).
-rewrite <- H.
-symmetry.
-apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
-apply getNbLevelEqOption.
-clear H.
-
-assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\
-StateLib.checkVAddrsEqualityWOOffset nbLevel v2 va1 ( CLevel (nbLevel -1) ) = true )
-by apply AllVAddrWithOffset0.
-destruct Heqvars as (va2 & Hva2 & Hva22).
-assert(Hmap2: getMappedPage p s va2 = SomePage phy2).
-rewrite <- H0.
-symmetry.
-apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
-apply getNbLevelEqOption.
-clear H0.
-assert(Hx :StateLib.checkVAddrsEqualityWOOffset nbLevel  va2 v1 nbL = false).
-apply checkVAddrsEqualityWOOffsetTrans with v2;trivial.
-rewrite <- Hva22.
-assert(StateLib.getNbLevel = Some (CLevel (nbLevel - 1))).
-apply getNbLevelEqOption.
-rewrite  H in *.
-inversion H2;trivial.
-apply checkVAddrsEqualityWOOffsetPermut.
-assert(Hvax :StateLib.checkVAddrsEqualityWOOffset nbLevel va1 va2 nbL = false).
-apply checkVAddrsEqualityWOOffsetTrans with v1;trivial.
-rewrite <- Hva11.
-assert(StateLib.getNbLevel = Some (CLevel (nbLevel - 1))).
-apply getNbLevelEqOption.
-rewrite  H in *.
-inversion H2;trivial.
-apply checkVAddrsEqualityWOOffsetPermut.
-clear H3 Hva11 Hva22 Hx.
-revert dependent va1.
-revert dependent va2.
-revert H1 H2.
-revert phy1 phy2 p nbL.
-clear v1 v2.
-
-induction getAllVAddrWithOffset0.
-intuition.
-intros.
-destruct Hva2; destruct Hva1.
-subst.
-(* rewrite H2 in H4. *)
-contradict Hvax.
-rewrite  Bool.not_false_iff_true.
-apply checkVAddrsEqualityWOOffsetEqTrue.
-subst.
-simpl in *.
-rewrite Hmap2 in H1.
-apply NoDup_cons_iff in H1.
-destruct H1.
-assert(In phy1 (filterOption (map (getMappedPage p s) l))).
-apply filterOptionInIff.
-apply in_map_iff.
-exists va1; split; trivial.
-unfold not; intros.
-subst.
-now contradict H3.
-subst.
-simpl in *.
-rewrite Hmap1 in H1.
-apply NoDup_cons_iff in H1.
-destruct H1.
-assert(In phy2 (filterOption (map (getMappedPage p s) l))).
-apply filterOptionInIff.
-apply in_map_iff.
-exists va2; split; trivial.
-unfold not; intros.
-subst.
-now contradict H0.
-subst.
-apply IHl with  p nbL va2 va1; trivial.
-simpl in H1.
-destruct(getMappedPage p s a ).
-apply NoDup_cons_iff in H1.
-intuition.
-assumption.
+apply getIndirectionInGetIndirections2n with (nbLevel - 1) vavalue nbL;trivial;try omega.
+replace (nbLevel - 1 + 1) with nbLevel by omega.
+unfold getIndirections in *.
 trivial.
-Qed. *)
+apply beq_nat_false in Hnotdef'.
+unfold not;intros;subst;now contradict Hnotdef'. }
+assert(In indirection (getIndirectionsAux pd s (stop+1))). 
+{ apply getIndirectionInGetIndirections1 with vaToPrepare nbL;trivial.
+omega.
+ }
+ left.
+ unfold not;intros;subst;now contradict H0.
+ }
+ 
+ assert(Hpres: StateLib.readPresent p (StateLib.getIndexOfAddr vavalue fstLevel) (memory s)=
+ StateLib.readPresent p (StateLib.getIndexOfAddr vavalue fstLevel) (memory s')).
+ {  apply readPresentMapMMUPage with entry;trivial. }
+ assert(Hread: StateLib.readPhyEntry p (StateLib.getIndexOfAddr vavalue fstLevel) (memory s)=
+ StateLib.readPhyEntry p (StateLib.getIndexOfAddr vavalue fstLevel) (memory s')).
+ {  apply readPhyEntryMapMMUPage with entry;trivial. }
+  
+
+ rewrite <- Hread.
+ rewrite <- Hpres.
+ trivial.
+ Qed.
+
+
 
 
 Lemma getMappedPagesAuxAddIndirection s indirection nextIndirection  entry nbLgen valist pd pg indMMUToPrepare vaToPrepare partition l:
