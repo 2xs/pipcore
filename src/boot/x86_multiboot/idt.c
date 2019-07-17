@@ -37,437 +37,146 @@
 #include "debug.h"
 #include "libc.h"
 
-
 /**
- * \brief IDT entry initializer
- * \seealso idt_entry_t
+ * Interrupt Descriptor Table
+ * \seealso Intel Software Developer's Manual - Volume 3a Chapter 5
  */
-#define IDT_ENTRY(entrypoint, segment_selector, flags) {         \
-	(uint16_t) 0,                                            \
-	((uint16_t) (segment_selector)),                         \
-	0,                                                       \
-	(flags),                                                 \
-	(uint16_t) 0                                             \
-}
+static idt_entry_t idt_entries[256];
+
 
 /**
- * Contructs an IDT entry flag with a given ring level privilege
- * \seealso Intel Software Developer's Manual - Volume 3a Chapter 5 Figure 5-2 
- * segment present flag: 1
- * gate size: 32
- *
- * Some segment selector stuff :
- * - Faults are in kernel level, flag is then 0x8E, because we won't explicitely trigger them from userland.
- * - But pipcalls may be triggered on purpose from userland (well, they sould always be, in fact), so our flags are 0xEE.
-*/
-#define IDT_FLAGS(ring) (0x8E | (((ring) & 0x3) << 5))
-#define IDT_KERNEL_FLAGS (IDT_FLAGS(0))
-#define IDT_USER_FLAGS (IDT_FLAGS(3))
-
-#define IRQ_CODE_SEGMENT (0x08)
-
+ * IRQ C handlers and declaration of their assembly counterparts
+ * \seealso irq.s file for assembly wrappers
+ * /!\ Defining an assembly wrapper is mandatory for each handler /!\
+ */
 extern void irq_unsupported(void);
+extern void irq_timer(void);
+extern void irq_test(void);
 
 void unsupportedHandler(void *ctx) {
 	DEBUG(TRACE, "Unsupported IRQ !\n");
 	while(1);
 }
 
-extern void irq_timer(void);
-
 void timerHandler(void *ctx) {
-	outb (PIC1_COMMAND, PIC_EOI);
-	outb (PIC2_COMMAND, PIC_EOI);
+	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
+	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
 	DEBUG(TRACE, "Interrupted by alarm !\n");
 }
 
-extern void irq_test(void);
-
 void testHandler(void *ctx) {
-	outb (PIC1_COMMAND, PIC_EOI);
-	outb (PIC2_COMMAND, PIC_EOI);
-	DEBUG(TRACE, "Testtest !\n");
-}
-
-/**
- * Interrupt Descriptor Table
- * \seealso Intel Software Developer's Manual - Volume 3a Chapter 5
- * /!\ Beware BEWARE you must update the callback table correctly after updating this one
- */
-static idt_entry_t idt_entries[256] = {
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS),
-       IDT_ENTRY(irq_unsupported, IRQ_CODE_SEGMENT, IDT_USER_FLAGS)
-};
-
-/**
- * \brief IDT entry initializer
- * \seealso idt_entry_t
- */
-#define IDT_ENTRY(entrypoint, segment_selector, flags) {         \
-	(uint16_t) 0,                                            \
-	((uint16_t) (segment_selector)),                         \
-	0,                                                       \
-	(flags),                                                 \
-	(uint16_t) 0                                             \
+	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
+	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
+	DEBUG(TRACE, "Hello from testHandler !\n");
 }
 
 
+/**
+ * IRQ callbacks table
+ * This table associates IRQ numbers to handlers.
+ */
 typedef void (*callback)(void);
 static callback idt_callbacks[256] = {
-	[0] = irq_unsupported, 
-	[1] = irq_test,
-	[2] = irq_unsupported,
-	[3] = irq_unsupported,
-	[4] = irq_unsupported,
-	[5] = irq_unsupported,
-	[6] = irq_unsupported,
-	[7] = irq_unsupported,
-	[8] = irq_unsupported,
-	[9] = irq_unsupported,
-	[10] = irq_unsupported,
-	[11] = irq_unsupported,
-	[12] = irq_unsupported,
-	[13] = irq_unsupported,
-	[14] = irq_unsupported,
-	[15] = irq_unsupported,
-	[16] = irq_unsupported,
-	[17] = irq_unsupported,
-	[18] = irq_unsupported,
-	[19] = irq_unsupported,
-	[20] = irq_unsupported,
-	[21] = irq_unsupported,
-	[22] = irq_unsupported,
-	[23] = irq_unsupported,
-	[24] = irq_unsupported,
-	[25] = irq_unsupported,
-	[26] = irq_unsupported,
-	[27] = irq_unsupported,
-	[28] = irq_unsupported,
-	[29] = irq_unsupported,
-	[30] = irq_unsupported,
-	[31] = irq_unsupported,
-	[32] = irq_timer,
-	[33] = irq_unsupported,
-	[34] = irq_unsupported,
-	[35] = irq_unsupported,
-	[36] = irq_unsupported,
-	[37] = irq_unsupported,
-	[38] = irq_unsupported,
-	[39] = irq_unsupported,
-	[40] = irq_unsupported,
-	[41] = irq_unsupported,
-	[42] = irq_unsupported,
-	[43] = irq_unsupported,
-	[44] = irq_unsupported,
-	[45] = irq_unsupported,
-	[46] = irq_unsupported,
-	[47] = irq_unsupported,
-	[48] = irq_unsupported,
-	[49] = irq_unsupported,
-	[50] = irq_unsupported,
-	[51] = irq_unsupported,
-	[52] = irq_unsupported,
-	[53] = irq_unsupported,
-	[54] = irq_unsupported,
-	[55] = irq_unsupported,
-	[56] = irq_unsupported,
-	[57] = irq_unsupported,
-	[58] = irq_unsupported,
-	[59] = irq_unsupported,
-	[60] = irq_unsupported,
-	[61] = irq_unsupported,
-	[62] = irq_unsupported,
-	[63] = irq_unsupported,
-	[64] = irq_unsupported,
-	[65] = irq_unsupported,
-	[66] = irq_unsupported,
-	[67] = irq_unsupported,
-	[68] = irq_unsupported,
-	[69] = irq_unsupported,
-	[70] = irq_unsupported,
-	[71] = irq_unsupported,
-	[72] = irq_unsupported,
-	[73] = irq_unsupported,
-	[74] = irq_unsupported,
-	[75] = irq_unsupported,
-	[76] = irq_unsupported,
-	[77] = irq_unsupported,
-	[78] = irq_unsupported,
-	[79] = irq_unsupported,
-	[80] = irq_unsupported,
-	[81] = irq_unsupported,
-	[82] = irq_unsupported,
-	[83] = irq_unsupported,
-	[84] = irq_unsupported,
-	[85] = irq_unsupported,
-	[86] = irq_unsupported,
-	[87] = irq_unsupported,
-	[88] = irq_unsupported,
-	[89] = irq_unsupported,
-	[90] = irq_unsupported,
-	[91] = irq_unsupported,
-	[92] = irq_unsupported,
-	[93] = irq_unsupported,
-	[94] = irq_unsupported,
-	[95] = irq_unsupported,
-	[96] = irq_unsupported,
-	[97] = irq_unsupported,
-	[98] = irq_unsupported,
-	[99] = irq_unsupported,
+	[0]   = irq_unsupported,
+	[1]   = irq_test,
+	[2]   = irq_unsupported,
+	[3]   = irq_unsupported,
+	[4]   = irq_unsupported,
+	[5]   = irq_unsupported,
+	[6]   = irq_unsupported,
+	[7]   = irq_unsupported,
+	[8]   = irq_unsupported,
+	[9]   = irq_unsupported,
+	[10]  = irq_unsupported,
+	[11]  = irq_unsupported,
+	[12]  = irq_unsupported,
+	[13]  = irq_unsupported,
+	[14]  = irq_unsupported,
+	[15]  = irq_unsupported,
+	[16]  = irq_unsupported,
+	[17]  = irq_unsupported,
+	[18]  = irq_unsupported,
+	[19]  = irq_unsupported,
+	[20]  = irq_unsupported,
+	[21]  = irq_unsupported,
+	[22]  = irq_unsupported,
+	[23]  = irq_unsupported,
+	[24]  = irq_unsupported,
+	[25]  = irq_unsupported,
+	[26]  = irq_unsupported,
+	[27]  = irq_unsupported,
+	[28]  = irq_unsupported,
+	[29]  = irq_unsupported,
+	[30]  = irq_unsupported,
+	[31]  = irq_unsupported,
+	[32]  = irq_timer,
+	[33]  = irq_unsupported,
+	[34]  = irq_unsupported,
+	[35]  = irq_unsupported,
+	[36]  = irq_unsupported,
+	[37]  = irq_unsupported,
+	[38]  = irq_unsupported,
+	[39]  = irq_unsupported,
+	[40]  = irq_unsupported,
+	[41]  = irq_unsupported,
+	[42]  = irq_unsupported,
+	[43]  = irq_unsupported,
+	[44]  = irq_unsupported,
+	[45]  = irq_unsupported,
+	[46]  = irq_unsupported,
+	[47]  = irq_unsupported,
+	[48]  = irq_unsupported,
+	[49]  = irq_unsupported,
+	[50]  = irq_unsupported,
+	[51]  = irq_unsupported,
+	[52]  = irq_unsupported,
+	[53]  = irq_unsupported,
+	[54]  = irq_unsupported,
+	[55]  = irq_unsupported,
+	[56]  = irq_unsupported,
+	[57]  = irq_unsupported,
+	[58]  = irq_unsupported,
+	[59]  = irq_unsupported,
+	[60]  = irq_unsupported,
+	[61]  = irq_unsupported,
+	[62]  = irq_unsupported,
+	[63]  = irq_unsupported,
+	[64]  = irq_unsupported,
+	[65]  = irq_unsupported,
+	[66]  = irq_unsupported,
+	[67]  = irq_unsupported,
+	[68]  = irq_unsupported,
+	[69]  = irq_unsupported,
+	[70]  = irq_unsupported,
+	[71]  = irq_unsupported,
+	[72]  = irq_unsupported,
+	[73]  = irq_unsupported,
+	[74]  = irq_unsupported,
+	[75]  = irq_unsupported,
+	[76]  = irq_unsupported,
+	[77]  = irq_unsupported,
+	[78]  = irq_unsupported,
+	[79]  = irq_unsupported,
+	[80]  = irq_unsupported,
+	[81]  = irq_unsupported,
+	[82]  = irq_unsupported,
+	[83]  = irq_unsupported,
+	[84]  = irq_unsupported,
+	[85]  = irq_unsupported,
+	[86]  = irq_unsupported,
+	[87]  = irq_unsupported,
+	[88]  = irq_unsupported,
+	[89]  = irq_unsupported,
+	[90]  = irq_unsupported,
+	[91]  = irq_unsupported,
+	[92]  = irq_unsupported,
+	[93]  = irq_unsupported,
+	[94]  = irq_unsupported,
+	[95]  = irq_unsupported,
+	[96]  = irq_unsupported,
+	[97]  = irq_unsupported,
+	[98]  = irq_unsupported,
+	[99]  = irq_unsupported,
 	[100] = irq_unsupported,
 	[101] = irq_unsupported,
 	[102] = irq_unsupported,
@@ -626,19 +335,59 @@ static callback idt_callbacks[256] = {
 	[255] = irq_unsupported
 };
 
+
+/**
+ * \brief IDT entry initializer
+ * \seealso idt_entry_t
+ */
+#define IDT_ENTRY(callback_index, segment_selector, flags) (idt_entry_t) {         \
+	((uint16_t) (((uint32_t) idt_callbacks[callback_index]) & 0xFFFF)),        \
+	((uint16_t) (segment_selector)),                                           \
+	0,                                                                         \
+	(flags),                                                                   \
+	((uint16_t) ((((uint32_t) idt_callbacks[callback_index]) >> 16) & 0xFFFF)) \
+}
+
+/**
+ * Contructs an IDT entry flag with a given ring level privilege
+ * \seealso Intel Software Developer's Manual - Volume 3a Chapter 5 Figure 5-2
+ * segment present flag: 1
+ * gate size: 32
+ *
+ * Some segment selector stuff :
+ * - Faults are in kernel level, flag is then 0x8E, because we won't explicitely trigger them from userland.
+ * - But pipcalls may be triggered on purpose from userland (well, they sould always be, in fact), so our flags are 0xEE.
+*/
+#define IDT_FLAGS(ring) (0x8E | (((ring) & 0x3) << 5))
+#define IDT_KERNEL_FLAGS (IDT_FLAGS(0))
+#define IDT_USER_FLAGS (IDT_FLAGS(3))
+
+#define IRQ_CODE_SEGMENT (0x08)
+
+
+/**
+ * Dynamic initialization of the IDT
+ * could be done statically through some obscure relative address black magic
+ * \seealso "https://wiki.osdev.org/IDT_problems#what_does_.22shift_operator_may_only_be_applied_to_scalar_values.22_mean.3F"
+ */
 void initIDT(void) {
 	DEBUG(TRACE, "Initializing the IDT...\n");
-	int i = 0;
+
+	unsigned int idt_index;
 	idt_ptr_t idt_ptr;		//!< Pointer to the IDT
 	idt_ptr.base = idt_entries;
 	idt_ptr.limit = 256 * sizeof(idt_entry_t) - 1;
-	for (i=0;i<256;i++) {
-		idt_entries[i].base_lo = ((uint32_t) idt_callbacks[i]) & 0xFFFF;
-		idt_entries[i].base_hi = (((uint32_t) idt_callbacks[i]) >> 16) & 0xFFFF;
+
+	for (idt_index = 0  ; idt_index <  32 ; idt_index++) {
+		idt_entries[idt_index] = IDT_ENTRY(idt_index, IRQ_CODE_SEGMENT, IDT_KERNEL_FLAGS);
 	}
-	BOOT_DEBUG(TRACE, "Done initializing, now loading the IDT\n");
+	for (idt_index = 32 ; idt_index < 256 ; idt_index++) {
+		idt_entries[idt_index] = IDT_ENTRY(idt_index, IRQ_CODE_SEGMENT,  IDT_USER_FLAGS );
+	}
+
+	BOOT_DEBUG(TRACE, "Done initializing the IDT structure, now loading the IDT\n");
+
 	asm("lidt (%0)"::"r"(&idt_ptr));
-	ASSERT(irq_unsupported != 0);
 	BOOT_DEBUG(TRACE, "Done loading IDT\n")
 }
 
