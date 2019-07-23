@@ -125,6 +125,7 @@ CG_GLUE_CTX outlGlue 		, 2
 CG_GLUE_CTX inlGlue 		, 1
 CG_GLUE_CTX outaddrlGlue 	, 2
 CG_GLUE_CTX dispatchGlue	, 5
+CG_GLUE_CTX yieldGlue		, 5
 
 ; Those ones won't trigger a fault in caller
 CG_GLUE createPartition		, 5
