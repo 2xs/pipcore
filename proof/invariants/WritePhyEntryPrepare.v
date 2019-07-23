@@ -4926,12 +4926,76 @@ rewrite  getChildrenAddIndirection with (entry:=entry)   (nbLgen:= nbLgen) (indM
 (nextIndirection:=nextIndirection);trivial.
 Qed.
 
-Lemma kernelDataIsolationAddIndirection s indirection nextIndirection idxToPrepare:
+Lemma getAccessibleMappedPagesAuxAddIndirection s indirection nextIndirection  entry nbLgen valist pd pg indMMUToPrepare vaToPrepare partition l:
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection PDidx vaToPrepare l ->
+isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
+(defaultPage =? indMMUToPrepare) = true ->
+isWellFormedMMUTables nextIndirection s ->
+false = StateLib.Level.eqb l fstLevel ->
+noDupConfigPagesList s ->
+
+
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+isPresentNotDefaultIff s -> 
+configTablesAreDifferent s -> 
+(defaultPage =? nextIndirection) = false -> 
+nextEntryIsPP partition PDidx pd s ->
+nextIndirection <> indirection ->
+
+forall part pdpart, 
+In part (getPartitions multiplexer s) ->
+nextEntryIsPP part PDidx pdpart s ->
+In pg (getAccessibleMappedPagesAux pdpart valist s) <-> 
+ In pg  (getAccessibleMappedPagesAux pdpart valist {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE
+                 {|
+                 read := true;
+                 write := true;
+                 exec := true;
+                 present := true;
+                 user := true;
+                 pa := nextIndirection |}) (memory s) beqPage beqIndex |}).
+Proof.
+set(s':=  {|
+     currentPartition := _ |}).
+intros. 
+assert(Hmaps: In pg (getMappedPagesAux pdpart valist s) <->
+In pg  (getMappedPagesAux pdpart valist s')).
+{  apply getMappedPagesAuxAddIndirection with entry nbLgen pd indMMUToPrepare partition part;trivial. }
+
+
+Admitted.
+
+
+Lemma kernelDataIsolationAddIndirection
+s indirection nextIndirection  entry nbLgen  pd  indMMUToPrepare vaToPrepare partition l  :
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection PDidx vaToPrepare l ->
+isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
+(defaultPage =? indMMUToPrepare) = true ->
+isWellFormedMMUTables nextIndirection s ->
+false = StateLib.Level.eqb l fstLevel ->
+nextEntryIsPP partition PDidx pd s -> 
+
+noDupPartitionTree s ->
+nextIndirection <> indirection ->
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+noDupConfigPagesList s ->
+isPresentNotDefaultIff s -> 
+configTablesAreDifferent s -> 
+(defaultPage =? nextIndirection) = false -> 
 kernelDataIsolation s ->
 kernelDataIsolation
   {|
   currentPartition := currentPartition s;
-  memory := add indirection idxToPrepare
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
                  read := true;
@@ -4941,11 +5005,19 @@ kernelDataIsolation
                  user := true;
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
 Proof.
-intros HKDI.
+intros. 
 set(s':={|currentPartition:= _ |}) in *.
 unfold kernelDataIsolation in *.
 simpl in *;intros partition1 partition2 Hpart1 Hpart2.
-assert(Hparts: getPartitions multiplexer s = getPartitions multiplexer s').
+assert(Hpart : forall part, In part (getPartitions multiplexer s) <-> In part (getPartitions multiplexer s')).
+intros.
+unfold s'. 
+apply  getPartitionsAddIndirection with entry nbLgen pd indMMUToPrepare partition;trivial.
+rewrite <- Hpart in Hpart1.
+rewrite <- Hpart in Hpart2.
+clear Hpart.
+unfold disjoint in *.
+intros. 
 
 Admitted.
  
