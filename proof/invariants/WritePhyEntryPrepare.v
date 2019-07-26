@@ -35,33 +35,122 @@
     We prove that this instruction preserves the isolation property  *)
     Require Import Arith Lia Classical_Prop.
 
-(* Fixpoint icheck (n : nat) P Q :=
- ((P n =? Q n) &&
- (match n with O => true | S n1 => icheck n1 P Q end))%bool.
-
-Lemma icheck_correct m P Q :
-  icheck m P Q = true ->
-  forall n, n < S m -> P n = Q n.
-Proof.
-induction m as [|m IH]; simpl.
-- intros HP [|n] H. admit.   try lia.
-  now destruct (Nat.eqb_spec (P 0) (Q 0)).
-- intros H1 n H.
-  destruct (Nat.eqb_spec (P (S m)) (Q (S m))); try discriminate.
-  assert (H2 : n = S m \/ n < S m) by lia.
-  destruct H2; subst.
-  + now destruct (Nat.eqb_spec (P (S m)) (Q (S m))).
-  + now apply IH.
-Qed.
- *)
-
-
 
 Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible MapMMUPage.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
  (* %%%%%%%%%%%%%%%%%%%%%%%%%%%%% InternalLemmas %%%%%%%%%%%%%%%%%%%%%%%% *)
+Lemma isEntryPageReadPhyEntry2 table idx phy s:
+isEntryPage table idx phy s -> 
+StateLib.readPhyEntry table idx (memory s) = Some phy.
+Proof.
+intros Hentrypage.
+unfold isEntryPage in *.
+unfold StateLib.readPhyEntry.
+destruct(lookup table idx (memory s) beqPage beqIndex );
+try now contradict Hentrypage.
+destruct v; try now contradict Hentrypage.
+f_equal;trivial.
+Qed. 
+    Lemma notInGetAccessibleMappedPage ptvaInAncestor ancestor phypage pdAncestor vaInAncestor s  : 
+    noDupMappedPagesList s -> 
+    In ancestor (getPartitions multiplexer s) -> 
+  (forall idx : index,
+   StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
+   isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) ->
+  (defaultPage =? ptvaInAncestor) = false ->
+  isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s ->
+  entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s ->
+  entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s ->
+  nextEntryIsPP ancestor PDidx pdAncestor s ->
+    ~In phypage (getAccessibleMappedPages ancestor s).
+    Proof. 
+  intros Hnodupmap Hpart Hget Hnotnull Hep Hpresent Huser Hpdparent.
+destruct Hget with (StateLib.getIndexOfAddr vaInAncestor fstLevel)
+as (Hpe2 & Hroot2);trivial.
+clear Hget.
+unfold getTableAddrRoot in Hroot2.
+destruct Hroot2 as (_ & Htableroot).
+unfold getMappedPages.
+assert(Hpd : StateLib.getPd ancestor (memory s) = Some pdAncestor).
+apply nextEntryIsPPgetPd;trivial.
+apply Htableroot in Hpdparent.
+ clear Htableroot.
+destruct Hpdparent as (nbL & HnbL & stop & Hstop & Hind ).
+unfold getAccessibleMappedPages.
+rewrite Hpd.
+unfold getAccessibleMappedPagesAux.
+rewrite filterOptionInIff.
+unfold getAccessibleMappedPagesOption.
+rewrite in_map_iff.
+unfold not;intros Hfalse.
+destruct Hfalse as (x & Hx1 & Hx2).
+assert( getMappedPage pdAncestor s vaInAncestor = SomePage phypage).
+apply getMappedPageGetIndirection with ancestor ptvaInAncestor nbL;trivial.
+apply entryPresentFlagReadPresent;trivial.
+apply nextEntryIsPPgetPd;trivial.
+subst.
+assert(Hnewind :getIndirection pdAncestor vaInAncestor nbL  (nbLevel - 1) s
+ = Some ptvaInAncestor).
+apply getIndirectionStopLevelGT2 with (nbL +1);trivial.
+omega.
+apply getNbLevelEq in HnbL.
+subst.
+apply nbLevelEq.
+rewrite Hnewind.
+trivial.
+
+apply isEntryPageReadPhyEntry2;trivial.
+assert(getMappedPage pdAncestor s x = SomePage phypage).
+apply accessiblePAgeIsMapped;trivial.
+
+assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel vaInAncestor va1 ( CLevel (nbLevel -1) ) = true )
+by apply AllVAddrWithOffset0.
+destruct Heqvars as (va1 & Hva1 & Hva11).
+
+
+assert(x = va1).
+{ apply eqMappedPagesEqVaddrs with phypage pdAncestor s;trivial.
+  rewrite <- H.
+  symmetry.
+  apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+      apply getNbLevelEqOption.
+  unfold noDupMappedPagesList in *.
+  unfold getMappedPages in *.
+  apply Hnodupmap in Hpart.
+  rewrite Hpd in *.  
+  unfold getMappedPagesAux in *.
+  trivial. }
+subst x.
+ 
+assert (  getAccessibleMappedPage pdAncestor s vaInAncestor = NonePage).
+unfold getAccessibleMappedPage.
+rewrite <- HnbL.
+subst. 
+assert(Hnewind :getIndirection pdAncestor vaInAncestor nbL  (nbLevel - 1) s
+ = Some ptvaInAncestor).
+apply getIndirectionStopLevelGT2 with (nbL +1);trivial.
+omega.
+apply getNbLevelEq in HnbL.
+subst.
+apply nbLevelEq.
+rewrite Hnewind.
+rewrite Hnotnull.
+apply entryPresentFlagReadPresent in Hpresent.
+rewrite Hpresent.
+apply entryUserFlagReadAccessible in Huser.
+rewrite Huser;trivial.
+assert(getAccessibleMappedPage pdAncestor s va1 = getAccessibleMappedPage pdAncestor s vaInAncestor).
+symmetry.
+apply getAccessibleMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+apply getNbLevelEqOption.
+rewrite  H2 in *.
+rewrite H1 in Hx1.
+now contradict Hx1.  
+Qed.
+ 
  Lemma getIndirectionStop1' s indirection x idxind va l entry :
 StateLib.Level.eqb l fstLevel = false ->  indirection <> defaultPage ->
 lookup indirection idxind (memory s) beqPage beqIndex = Some (PE x) ->
@@ -130,6 +219,7 @@ unfold StateLib.getIndirection.
      assumption.  
 
 Qed.
+
  Lemma getIndirectionStopS' :
 forall  stop (s : state) (nbL : level)  nextind pd va indirection,
 stop + 1 <= nbL -> indirection <> defaultPage ->
@@ -282,6 +372,26 @@ apply getIndirectionStopS' with indirection;trivial.
 apply getIndirectionStop1'  with entry idxind ;trivial.
 Qed.
 
+  Lemma InDecOrNot (A:Type) (l:list A ) (elt: A) (P: forall p1 p2 : A, p1 = p2 \/ p1 <> p2):  
+  In elt l \/ ~In elt l.
+  Proof.
+  revert elt.
+  induction l;simpl.
+    right;intuition.
+    simpl.
+    intros.
+    subst.
+    assert( a = elt \/ a <> elt )  by apply P.
+    destruct H.
+    do 2 left;trivial.
+    generalize (IHl elt);clear IHl;intros IHl.
+    destruct IHl.
+    left.
+    right;trivial.     
+    right.
+    intuition.
+ Qed. 
+ 
 Lemma beq_nat_falseNot (tbl:page) :
 (defaultPage =? tbl) = false -> tbl <> defaultPage.
 Proof.
@@ -315,7 +425,6 @@ destruct (StateLib.readPhyEntry pd {| i := i0; Hi := Hi0 |} (memory s));trivial.
 destruct( defaultPage =? p );trivial.
 apply IHstop;trivial.
 apply levelPredMinus1 in Hlpred;trivial.
-SearchAbout CLevel.
 symmetry in Hlpred.
 unfold CLevel in *.
 case_eq(lt_dec (nbL - 1) nbLevel );intros * Hcl;rewrite Hcl in *.
@@ -2409,7 +2518,6 @@ false = StateLib.Level.eqb l fstLevel ->
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
 intros Hpde Hpart Hnodupcons Hprescons Hconfigdiff Hlookup Hpd Hcurind Hdefcurind Hdefnextind Hindfromroot Hmap Hfstl.
-SearchAbout getIndirection.
 unfold getMappedPage, indirectionDescription in *.
 destruct Hindfromroot as (root & Hpdroot & Hrootdef & Hrem).
 assert(Hnodup : NoDup (getIndirections root s)).
@@ -3194,7 +3302,6 @@ false = StateLib.Level.eqb l fstLevel ->
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
 intros Hpde Hpart Hnodupcons Hprescons Hconfigdiff Hlookup Hpd Hcurind Hdefcurind Hdefnextind Hindfromroot Hmap Hfstl.
-SearchAbout getIndirection.
 unfold getAccessibleMappedPage, indirectionDescription in *.
 destruct Hindfromroot as (root & Hpdroot & Hrootdef & Hrem).
 assert(Hnodup : NoDup (getIndirections root s)).
@@ -6826,7 +6933,117 @@ split; intros Hgoal;
   apply nextEntryIsPPgetPd;trivial.
 Qed.
 
+Lemma nextIndirectionNotAccessibleInAnyPartition s nextIndirection 
+(currentPart currentPD: page) ptMMUvaNextInd (vaNextInd : vaddr) ptSh1VaNextInd:
+writeAccessibleRecPreparePostcondition currentPart nextIndirection s ->
+verticalSharing s -> 
+consistency s -> 
+noCycleInPartitionTree s ->
+noDupMappedPagesList s -> 
+In currentPart (getPartitions multiplexer s) -> 
+getTableAddrRoot ptMMUvaNextInd PDidx currentPart vaNextInd s ->
+isPE ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s  ->
+entryUserFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) false s ->
+entryPresentFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) true s ->
+nextEntryIsPP currentPart PDidx currentPD s ->
+(defaultPage =? ptMMUvaNextInd) = false -> 
+isEntryPage ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) nextIndirection s -> 
+(exists va : vaddr,
+   isEntryVA ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) va s /\
+   beqVAddr defaultVAddr va = true) ->
+(defaultPage =? ptSh1VaNextInd) = false ->
+getTableAddrRoot ptSh1VaNextInd sh1idx currentPart vaNextInd s ->
+isVE ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s ->
 
+
+forall partition1, In partition1 (getPartitions multiplexer s) ->
+   ~ In nextIndirection (getAccessibleMappedPages partition1 s).
+Proof.
+intros * Hancesnotaccecc Hvs Hcons Hcycle Hnodupmap Hcurpart Htbl Hpe Huser Hpres Hcurpd Hnotdef Hispage
+Hshare Hshdef Htblsh1 Hve * Hpart.
+(* check if partition1 is an ancestor of currentPart **)    
+assert (Hances : In partition1 (getAncestors currentPart s) \/
+  ~ In partition1 (getAncestors currentPart s)).
+{ apply InDecOrNot.
+  apply pageDecOrNot. }
+destruct  Hances as [ Hances | Hances].
++ (** partition1 is ancestor of currentPart *)
+  assert(Hor : partition1 <> currentPart).
+  { unfold consistency in *. 
+    unfold noCycleInPartitionTree in *.
+    apply Hcycle;trivial. }
+  unfold writeAccessibleRecPreparePostcondition in *.
+  apply Hancesnotaccecc;trivial.
++ (** partition1 is not ancestor of currentPart *)
+  (* check if partition1 is the current part or not *)  
+  assert(Hor : currentPart = partition1 \/ currentPart <> partition1) by apply pageDecOrNot. 
+  destruct Hor as [Hor | Hor].
+  - (** partition1 is the currentPart *)
+    subst partition1.
+    apply notInGetAccessibleMappedPage with  ptMMUvaNextInd currentPD vaNextInd;trivial.
+    intros;subst;split;trivial.
+  - (** partition1 is not the currentPart, is not an ancestor **)
+    (** partition1 could be a descendent *)
+    assert(Hin : In partition1 (getPartitionAux currentPart s (nbPage+1)) \/ 
+            ~ In partition1 (getPartitionAux currentPart s (nbPage+1))).
+    { apply InDecOrNot.
+      apply pageDecOrNot. }
+    destruct Hin as [Hin | Hin].
+    * (** partition1 is a descendent *)
+       destruct nbPage. simpl in *.
+        revert Hin Hor. clear.
+        intros.
+        intuition. contradict H.
+        induction (getChildren currentPart s);simpl; intuition.
+        simpl in *.
+        destruct Hin as [Hin | Hin]. intuition.
+        rewrite in_flat_map in Hin.
+        destruct Hin as (x & Hx1 & Hx2).
+        assert (Hincl : incl (getAccessibleMappedPages partition1 s) 
+        (getMappedPages partition1 s)) by apply accessibleMappedPagesInMappedPages.
+        unfold incl in *.
+        assert(Hderivlist : ~ isDerived currentPart vaNextInd s ).
+        { unfold not;intros Hgoal.
+          intuition. subst.
+          contradict Hgoal.
+          eapply vaNotDerived with ptSh1VaNextInd ;trivial.
+          intros;split;subst;trivial. }
+        assert(Hlist : forall child, In child (getChildren currentPart s) ->
+             ~ In nextIndirection (getMappedPages child s)).
+        { intros.
+          unfold not;intros Hgoal.
+          intuition. subst.
+          contradict Hgoal.
+          apply phyNotDerived  with currentPart currentPD vaNextInd ptMMUvaNextInd ; trivial.
+          intros;split;subst;trivial.  }
+        unfold incl in *.
+        unfold not;intros Hpg.
+        apply Hincl in Hpg;clear Hincl.
+        simpl .
+        assert(Horx : x=partition1 \/ x<> partition1) by apply pageDecOrNot.
+        destruct Horx as [Horx | Horx].
+        ++ subst.
+           apply Hlist in Hx1.
+           now contradict Hx1.
+        ++ unfold consistency in *.
+           unfold noDupPartitionTree in *.
+           assert( Hincl2 : incl (getMappedPages partition1 s) (getMappedPages x s)).
+           apply verticalSharingRec with n;intuition.
+           apply childrenPartitionInPartitionList with currentPart;trivial.
+           unfold incl in Hincl2.
+           apply Hincl2 in Hpg.
+           apply Hlist in Hx1.
+           now contradict Hx1.
+      * (** partition1 is not a descendent, not the currentPart and not an ancestor *)
+          (** continuer sur le fichier createPartition : ligne 5030 *) 
+        admit.
+    
+  
+Admitted.  
+      
+  
+  
+  
 Lemma kernelDataIsolationAddIndirection
 s indirection nextIndirection  entry nbLgen  pd  indMMUToPrepare vaToPrepare partition l  :
 lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
@@ -6886,7 +7103,7 @@ rewrite  getAccessibleMappedPagesAddIndirection with (vaToPrepare:= vaToPrepare)
 (indMMUToPrepare:=indMMUToPrepare) (indirection:=indirection) (part:=partition1)(pd:=pd) ;trivial.
 assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
    ~ In nextIndirection (getAccessibleMappedPages parts s)) by admit.
-assert(Hinconfigs': In nextIndirection (getConfigPages partition s)) by admit.
+(* assert(Hinconfigs': In nextIndirection (getConfigPages partition s')) by admit. *)
 assert(Horpage: x=nextIndirection \/ x <> nextIndirection) by apply pageDecOrNot.
 destruct Horpage as [Horpage|Horpage].
 - (** same page : nextIndirection *)
@@ -6952,8 +7169,16 @@ Proof.
 intros.
 unfold insertEntryIntoLLPC in *;intuition.
 unfold propagatedPropertiesPrepare in *.
+assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
+   ~ In phyMMUaddr (getAccessibleMappedPages parts s)).
+{ intros * Hpart. 
+   unfold not; intros Hgoal. 
+   intuition;subst;trivial.
+   contradict Hgoal. admit.   
+   
+}  
 intuition;subst;trivial.
-+
++ 
 
 Admitted.    
 Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
