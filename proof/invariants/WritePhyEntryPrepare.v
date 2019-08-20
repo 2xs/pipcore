@@ -41,42 +41,25 @@ Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible MapMMUPage.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
  (* %%%%%%%%%%%%%%%%%%%%%%%%%%%%% InternalLemmas %%%%%%%%%%%%%%%%%%%%%%%% *)
-   Lemma multiplexerIsAncestor s : 
-           noDupPartitionTree s -> 
-           forall partition, parentInPartitionList s ->  partitionDescriptorEntry s ->  isParent s ->  In partition (getPartitions multiplexer s)
-         -> In partition (getPartitions multiplexer s) -> 
-              partition <> multiplexer -> 
-              In multiplexer (getAncestors partition s).
-        Proof.
-         intro Hnoduptree.
-         intro. 
-          unfold getAncestors.
-          unfold getPartitions at 2.
-          intros Hparentintree Hpde Hisparent .
-          revert partition. 
-          induction (nbPage+1);simpl;intuition. 
-          case_eq(getParent partition (memory s));[ intros parent Hparent | intros Hparent].
-          simpl. 
-          assert(Hor : parent = multiplexer \/ parent <> multiplexer) by apply pageDecOrNot.
-          destruct Hor as [Hor | Hor].
-          left;trivial.
-          right. 
-          apply IHn;trivial.
-          unfold parentInPartitionList in *.
-          apply Hparentintree with partition;trivial.
-          apply nextEntryIsPPgetParent;trivial.
-          apply getPartitionAuxMinus1 with partition;trivial.
-          unfold getPartitions.
-          destruct nbPage;left;trivial.
-          unfold partitionDescriptorEntry in *.
-          assert((exists entry : page,
-          nextEntryIsPP partition PPRidx entry s /\ entry <> defaultPage)).
-          apply Hpde;trivial.
-          do 4 right;left;trivial.
-          destruct H0 as (entry & Hi & _).
-          rewrite nextEntryIsPPgetParent in *.
-          rewrite Hi in Hparent. now contradict Hparent.
-          Qed. 
+  Lemma InDecOrNot (A:Type) (l:list A ) (elt: A) (P: forall p1 p2 : A, p1 = p2 \/ p1 <> p2):  
+  In elt l \/ ~In elt l.
+  Proof.
+  revert elt.
+  induction l;simpl.
+    right;intuition.
+    simpl.
+    intros.
+    subst.
+    assert( a = elt \/ a <> elt )  by apply P.
+    destruct H.
+    do 2 left;trivial.
+    generalize (IHl elt);clear IHl;intros IHl.
+    destruct IHl.
+    left.
+    right;trivial.     
+    right.
+    intuition.
+ Qed. 
 Lemma isEntryPageReadPhyEntry2 table idx phy s:
 isEntryPage table idx phy s -> 
 StateLib.readPhyEntry table idx (memory s) = Some phy.
@@ -89,7 +72,8 @@ try now contradict Hentrypage.
 destruct v; try now contradict Hentrypage.
 f_equal;trivial.
 Qed. 
-    Lemma notInGetAccessibleMappedPage ptvaInAncestor ancestor phypage pdAncestor vaInAncestor s  : 
+   
+  Lemma notInGetAccessibleMappedPage ptvaInAncestor ancestor phypage pdAncestor vaInAncestor s  : 
     noDupMappedPagesList s -> 
     In ancestor (getPartitions multiplexer s) -> 
   (forall idx : index,
@@ -186,7 +170,800 @@ rewrite  H2 in *.
 rewrite H1 in Hx1.
 now contradict Hx1.  
 Qed.
+   Lemma multiplexerIsAncestor s : 
+           noDupPartitionTree s -> 
+           forall partition, parentInPartitionList s ->  partitionDescriptorEntry s ->  isParent s ->  In partition (getPartitions multiplexer s)
+         -> In partition (getPartitions multiplexer s) -> 
+              partition <> multiplexer -> 
+              In multiplexer (getAncestors partition s).
+        Proof.
+         intro Hnoduptree.
+         intro. 
+          unfold getAncestors.
+          unfold getPartitions at 2.
+          intros Hparentintree Hpde Hisparent .
+          revert partition. 
+          induction (nbPage+1);simpl;intuition. 
+          case_eq(getParent partition (memory s));[ intros parent Hparent | intros Hparent].
+          simpl. 
+          assert(Hor : parent = multiplexer \/ parent <> multiplexer) by apply pageDecOrNot.
+          destruct Hor as [Hor | Hor].
+          left;trivial.
+          right. 
+          apply IHn;trivial.
+          unfold parentInPartitionList in *.
+          apply Hparentintree with partition;trivial.
+          apply nextEntryIsPPgetParent;trivial.
+          apply getPartitionAuxMinus1 with partition;trivial.
+          unfold getPartitions.
+          destruct nbPage;left;trivial.
+          unfold partitionDescriptorEntry in *.
+          assert((exists entry : page,
+          nextEntryIsPP partition PPRidx entry s /\ entry <> defaultPage)).
+          apply Hpde;trivial.
+          do 4 right;left;trivial.
+          destruct H0 as (entry & Hi & _).
+          rewrite nextEntryIsPPgetParent in *.
+          rewrite Hi in Hparent. now contradict Hparent.
+          Qed.    
+Lemma nextIndirectionNotAccessibleInAnyPartition s nextIndirection 
+(currentPart currentPD: page) ptMMUvaNextInd (vaNextInd : vaddr) ptSh1VaNextInd:
+writeAccessibleRecPreparePostcondition currentPart nextIndirection s ->
+verticalSharing s -> 
+partitionsIsolation s ->
+consistency s -> 
+(* noCycleInPartitionTree s ->
+noDupMappedPagesList s ->  *)
+In currentPart (getPartitions multiplexer s) -> 
+getTableAddrRoot ptMMUvaNextInd PDidx currentPart vaNextInd s ->
+isPE ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s  ->
+entryUserFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) false s ->
+entryPresentFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) true s ->
+nextEntryIsPP currentPart PDidx currentPD s ->
+(defaultPage =? ptMMUvaNextInd) = false -> 
+isEntryPage ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) nextIndirection s -> 
+(exists va : vaddr,
+   isEntryVA ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) va s /\
+   beqVAddr defaultVAddr va = true) ->
+(defaultPage =? ptSh1VaNextInd) = false ->
+getTableAddrRoot ptSh1VaNextInd sh1idx currentPart vaNextInd s ->
+isVE ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s ->
+
+
+forall partition1, In partition1 (getPartitions multiplexer s) ->
+   ~ In nextIndirection (getAccessibleMappedPages partition1 s).
+Proof.
+intros * Hancesnotaccecc Hvs Hiso Hcons  Hcurpart Htbl Hpe Huser Hpres Hcurpd Hnotdef Hispage
+Hshare Hshdef Htblsh1 Hve * Hpart.
+assert( noCycleInPartitionTree s /\ noDupMappedPagesList s ) as (Hcycle & Hnodupmap) by (unfold consistency in *;intuition).
+(* check if partition1 is an ancestor of currentPart **)    
+assert (Hances : In partition1 (getAncestors currentPart s) \/
+  ~ In partition1 (getAncestors currentPart s)).
+{ apply InDecOrNot.
+  apply pageDecOrNot. }
+destruct  Hances as [ Hances | Hances].
++ (** partition1 is ancestor of currentPart *)
+  assert(Hor : partition1 <> currentPart).
+  { unfold consistency in *. 
+    unfold noCycleInPartitionTree in *.
+    apply Hcycle;trivial. }
+  unfold writeAccessibleRecPreparePostcondition in *.
+  apply Hancesnotaccecc;trivial.
++ (** partition1 is not ancestor of currentPart *)
+  (* check if partition1 is the current part or not *)  
+  assert(Hor : currentPart = partition1 \/ currentPart <> partition1) by apply pageDecOrNot. 
+  destruct Hor as [Hor | Hor].
+  - (** partition1 is the currentPart *)
+    subst partition1.
+    apply notInGetAccessibleMappedPage with  ptMMUvaNextInd currentPD vaNextInd;trivial.
+    intros;subst;split;trivial.
+  - (** partition1 is not the currentPart, is not an ancestor **)
+    (** partition1 could be a descendent *)
+    assert(Hin : In partition1 (getPartitionAux currentPart s (nbPage+1)) \/ 
+            ~ In partition1 (getPartitionAux currentPart s (nbPage+1))).
+    { apply InDecOrNot.
+      apply pageDecOrNot. }
+    destruct Hin as [Hin | Hin].
+    * (** partition1 is a descendent *)
+       destruct nbPage. simpl in *.
+        revert Hin Hor. clear.
+        intros.
+        intuition. contradict H.
+        induction (getChildren currentPart s);simpl; intuition.
+        simpl in *.
+        destruct Hin as [Hin | Hin]. intuition.
+        rewrite in_flat_map in Hin.
+        destruct Hin as (x & Hx1 & Hx2).
+        assert (Hincl : incl (getAccessibleMappedPages partition1 s) 
+        (getMappedPages partition1 s)) by apply accessibleMappedPagesInMappedPages.
+        unfold incl in *.
+        assert(Hderivlist : ~ isDerived currentPart vaNextInd s ).
+        { unfold not;intros Hgoal.
+          intuition. subst.
+          contradict Hgoal.
+          eapply vaNotDerived with ptSh1VaNextInd ;trivial.
+          intros;split;subst;trivial. }
+        assert(Hlist : forall child, In child (getChildren currentPart s) ->
+             ~ In nextIndirection (getMappedPages child s)).
+        { intros.
+          unfold not;intros Hgoal.
+          intuition. subst.
+          contradict Hgoal.
+          apply phyNotDerived  with currentPart currentPD vaNextInd ptMMUvaNextInd ; trivial.
+          intros;split;subst;trivial.  }
+        unfold incl in *.
+        unfold not;intros Hpg.
+        apply Hincl in Hpg;clear Hincl.
+        simpl .
+        assert(Horx : x=partition1 \/ x<> partition1) by apply pageDecOrNot.
+        destruct Horx as [Horx | Horx].
+        ++ subst.
+           apply Hlist in Hx1.
+           now contradict Hx1.
+        ++ unfold consistency in *.
+           unfold noDupPartitionTree in *.
+           assert( Hincl2 : incl (getMappedPages partition1 s) (getMappedPages x s)).
+           apply verticalSharingRec with n;intuition.
+           apply childrenPartitionInPartitionList with currentPart;trivial.
+           unfold incl in Hincl2.
+           apply Hincl2 in Hpg.
+           apply Hlist in Hx1.
+           now contradict Hx1.
+      * (** partition1 is not a descendent, not the currentPart and not an ancestor *)
+          (** continuer sur le fichier UpdatePDFlagTrue : ligne 5030 *) 
+        (* clear.
+        Lemma pageNotAccessibleInCousins s (currentPart : page):
+        forall nextIndirection partition1,
+        ~ In partition1 (getPartitionAux multiplexer s (nbPage + 1)) ->
+        consistency s ->
+        In currentPart (getPartitions multiplexer s) ->
+        ~ In nextIndirection (getAccessibleMappedPages partition1 s).
+        Proof. 
+        intros * Hin.
+        intros.   *)      
+        assert (Hok:  forall partition, parentInPartitionList s ->  partitionDescriptorEntry s ->  isParent s ->  In partition (getPartitions multiplexer s)
+         -> In partition (getPartitions multiplexer s) -> 
+              partition <> multiplexer -> 
+              In multiplexer (getAncestors partition s)).  
+        apply multiplexerIsAncestor;trivial.
+        unfold consistency in *. intuition.
+        assert(Hnotanc : partition1 <> multiplexer). 
+        { assert(In multiplexer (getAncestors currentPart s)) . 
+          { unfold consistency in *; intuition.  
+            apply Hok;trivial.
+            unfold not;intros Hfalse;subst.
+            contradict Hin. unfold getPartitions in *;trivial.  }
+            unfold not;intros Hfalse;subst.
+           now contradict Hances.  }
+        assert(Hmulteq :currentPart = multiplexer \/ currentPart <> multiplexer ) by apply pageDecOrNot.
+        destruct Hmulteq as [Hmulteq | Hmulteq].
+        ++ subst currentPart.           
+           unfold getPartitions in Hpart.
+           now contradict Hin.     
+        ++ move Hcurpart at bottom.
+         unfold consistency in *.
+           assert(Hisparent : isParent s) by intuition. 
+           assert(Hmultnone : multiplexerWithoutParent s) by intuition.
+           assert(Hnoduptree : noDupPartitionTree s) by intuition.   
+         assert( match  closestAncestor currentPart partition1 s with 
+                  | Some closestAnc =>  True
+                  | None => False
+         end
+         ).
+         { case_eq (closestAncestor currentPart partition1 s ); [intros  closestAnc Hclose| 
+           intros Hclose];trivial.       
+           revert Hmultnone Hnoduptree Hcurpart Hclose Hisparent  .           
+           clear.
+           { unfold closestAncestor, getPartitions.
+             intro. intro.
+             revert currentPart partition1.
+             assert(Hmult : getParent multiplexer (memory s) = None) .
+             intuition.
+             induction nbPage.
+             simpl.
+            intros.            
+            destruct Hcurpart.
+            subst. 
+            rewrite Hmult in *.
+            now contradict Hclose.
+            contradict H. clear.
+            induction (getChildren multiplexer s); simpl; intuition.
+            simpl .
+            intros. 
+            destruct Hcurpart.
+            subst.
+            rewrite Hmult in *.
+            now contradict Hclose.
+            case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent];
+            rewrite Hparent in *; try now contradict Hclose.
+            case_eq ( in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1))); 
+            intros i Hi; rewrite Hi in *.
+            now contradict Hclose.
+            apply IHn with parent partition1;trivial.
+            assert (In currentPart (getPartitionAux multiplexer s (n + 2))).
+            replace (n + 2) with (S n +1) by omega.
+            simpl;right;trivial.
+            apply getPartitionAuxMinus1 with currentPart;trivial.
+            unfold getPartitions. destruct nbPage;simpl;left;trivial.
+          } }
+         case_eq(closestAncestor currentPart partition1 s); [intros  closestAnc Hclose| 
+          intros Hclose];
+          rewrite Hclose in *; try now contradict H. 
+         assert(Hcloseintree : In closestAnc (getPartitions multiplexer s)). 
+          { revert Hclose Hcurpart.
+            unfold consistency in *. 
+            assert(Hchild : isChild s) by intuition.
+            assert(Hparent: isParent s) by intuition.
+             assert(Hparenintreet: parentInPartitionList s) by intuition.
+            revert Hchild Hparent Hparenintreet.
+           clear. intro . intros Hisparent Hparentintree.
+           revert currentPart partition1 closestAnc.
+           unfold closestAncestor.
+           induction (nbPage+1);simpl;intros. now contradict Hclose.
+           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+           rewrite Hparent in *.
+           - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
+           intros i Hi; rewrite Hi in *.
+           * inversion Hclose;subst.
+             unfold parentInPartitionList in *.
+             apply Hparentintree with currentPart;trivial.
+             apply nextEntryIsPPgetParent;trivial.
+          * apply IHn with parent partition1;trivial. 
+           unfold parentInPartitionList in *.
+           apply Hparentintree with currentPart;trivial.
+           apply nextEntryIsPPgetParent;trivial.
+        - inversion Hclose; subst. unfold getPartitions.
+          destruct nbPage;simpl;left;trivial.
+          }
+         assert (Hinsubtree1 : In currentPart  (getPartitionAux closestAnc s (nbPage +1))).
+          { assert (Hcurpart1 :In currentPart (getPartitions multiplexer s)) by trivial.   
+          revert Hnoduptree Hmultnone Hclose Hcurpart Hcurpart1.
+          
+            unfold consistency in *. 
+            assert(Hchild : isChild s) by intuition.
+            assert(Hparent: isParent s) by intuition.
+             assert(Hparenintreet: parentInPartitionList s) by intuition.
+            revert Hchild Hparent Hparenintreet. 
+           clear. intro . intros Hisparent Hparentintree Hnoduptree.
+           intro.
+           revert currentPart partition1 closestAnc.
+           unfold closestAncestor.
+           unfold getPartitions  at 1.
+           induction (nbPage+1);simpl;intros.
+           trivial.
+           assert(Hor : closestAnc = currentPart \/ closestAnc <> currentPart) by apply pageDecOrNot.
+           destruct Hor as [Hor | Hor].
+           left;trivial.
+           destruct Hcurpart as [Hcurpart | Hcurpart].
+           + subst. assert (Hmult :  getParent multiplexer (memory s) = None) by intuition.
+           rewrite Hmult in *.
+           inversion Hclose. intuition.
+           +
+           right.
+           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+           rewrite Hparent in *.
+           - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
+           intros i Hi; rewrite Hi in *.
+           * inversion Hclose;subst.
+           rewrite in_flat_map.
+           exists currentPart;split;trivial.
+           unfold isChild in *.
+           apply Hchild;trivial. destruct n;simpl in *.
+           contradict Hcurpart.
+           clear. induction   (getChildren multiplexer s) ;simpl;intuition.
+           left;trivial.
+           * assert(In parent  (getPartitionAux closestAnc s n)).
+           apply IHn with partition1;trivial.
+           apply getPartitionAuxMinus1 with currentPart;trivial.
+           unfold getPartitions. destruct nbPage;simpl;left;trivial. 
+           unfold parentInPartitionList in *.
+           apply Hparentintree with currentPart;trivial.
+           apply nextEntryIsPPgetParent;trivial.
+             apply getPartitionAuxSn with parent;trivial.
+           - inversion Hclose; subst. trivial. }
+                   assert (Hinsubtree2 : In partition1  (getPartitionAux closestAnc s (nbPage +1))).
+         { assert (Hcurpart1 :In partition1 (getPartitions multiplexer s)) by trivial.   
+          revert Hclose Hcurpart Hcurpart1.
+            unfold consistency in *. 
+            assert(Hchild : isChild s) by intuition.
+            assert(Hparent: isParent s) by intuition.
+             assert(Hparenintreet: parentInPartitionList s) by intuition.
+            revert Hchild Hparent Hparenintreet.
+           clear. intro . intros Hisparent Hparentintree.
+           revert currentPart partition1 closestAnc.
+           unfold closestAncestor.
+(*            unfold getPartitions  at 1. *)
+          assert(Hnbpage : nbPage <= nbPage) by omega.
+          revert Hnbpage.
+          generalize nbPage at 1 3.
+           induction n;simpl;intros.
+           trivial.  
+           + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+              rewrite Hparent in *.
+              - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
+                intros i Hi; rewrite Hi in *.
+               * inversion Hclose;subst. trivial.
+               *  now contradict Hclose.
+              -  inversion Hclose. subst. unfold getPartitions in *;trivial.
+         + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+            rewrite Hparent in *.
+            - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
+              intros i Hi; rewrite Hi in *.
+              * inversion Hclose;subst. trivial.
+              * apply IHn with parent;trivial. omega.           
+                unfold parentInPartitionList in *.
+                apply Hparentintree with currentPart;trivial.
+                apply nextEntryIsPPgetParent;trivial.
+          - inversion Hclose; subst. trivial.  }  
+        assert(Heqclose : partition1 = closestAnc \/ partition1 <> closestAnc) by apply pageDecOrNot.
+         destruct Heqclose as [Heqclose | Heqclose].
+         **  subst closestAnc.
+          assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparent).
+          { unfold consistency in *. intuition. } 
+           assert(Hfalse : In partition1 (getAncestors currentPart s)).
+           { revert Hclose Hcurpart Hpde Hparent. clear .
+           unfold  closestAncestor.
+           unfold  getAncestors.
+           revert currentPart partition1.
+           induction (nbPage + 1).
+           simpl in *. intros.
+           now contradict Hclose.
+           simpl.
+           intros.    
+           case_eq(getParent currentPart (memory s) );intros.
+           rewrite H in *.
+           case_eq ( in_dec pageDec partition1 (getPartitionAux p s (nbPage + 1)));intros;
+           rewrite H0 in *.
+           inversion Hclose.
+           simpl;left;trivial.
+           simpl.
+           right.
+           apply IHn;trivial.
+           unfold parentInPartitionList in *.
+           apply Hparent with currentPart;trivial.
+           apply nextEntryIsPPgetParent;trivial.
+            unfold partitionDescriptorEntry in *.
+           assert((exists entry : page,
+          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
+          apply Hpde;trivial.
+          do 4 right;left;trivial.
+          destruct H0 as (entry & H1 & _).
+          rewrite nextEntryIsPPgetParent in *.
+          rewrite H1 in H. now contradict H1. }
+        now contradict Hfalse.
+        ** assert(Hsub1 : In currentPart
+          (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
+         {  replace (nbPage +1) with (1 + nbPage) in * by omega.
+             simpl in *.
+             apply Classical_Prop.not_or_and in Hin as (_ & Hin).  
+               destruct  Hinsubtree1 as [Hsub1 | Hsub1]; subst.
+      destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
+             now contradict Heqclose.  now contradict Hsub2.
+         destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
+             now contradict Heqclose. trivial. }
+      assert(Hsub2 : In partition1
+          (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
+          {  replace (nbPage +1) with (1 + nbPage) in * by omega.
+            simpl in *.
+            apply Classical_Prop.not_or_and in Hin as (_ & Hin).  
+            destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
+            destruct  Hinsubtree1 as [Hsub11 | Hsub11]; subst.
+            now contradict Heqclose.  now contradict Heqclose.
+            destruct  Hinsubtree1 as [Hsub11 | Hsub11]; subst.
+            now contradict Heqclose. trivial. }               
+
+             rewrite in_flat_map in Hsub1 , Hsub2.
+             destruct Hsub1 as (child1 & Hchild1 &  Hchild11).
+             destruct Hsub2 as (child2 & Hchild2 &  Hchild22).
+         assert(Horcurpart : child1 = currentPart \/ child1 <> currentPart ) by apply pageDecOrNot.
+         destruct Horcurpart as [Horcurpart | Horcurpart].
+          --- subst. 
+          assert (Htrue : currentPart <> child2 ). 
+          { unfold not;intros Hfasle;subst child2.
+            contradict Hin. 
+            apply getPartitionAuxSbound;trivial. 
+            }
+          assert(Hdisjoint : disjoint (getUsedPages currentPart s) (getUsedPages child2 s)).
+          { unfold partitionsIsolation in *. 
+            apply Hiso with closestAnc;trivial. }
+         assert (Hor1 : partition1 = child2 \/ partition1 <> child2) by apply pageDecOrNot.
+         destruct Hor1 as [Hor1 |Hor1].
+        {  subst child2.
+        unfold not;intros Hfalse. 
+         assert(Hx : In nextIndirection (getMappedPages partition1 s)).
+         apply accessibleMappedPagesInMappedPages; trivial. simpl. 
+        assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
+       unfold disjoint in Hdisjoint.
+       contradict Hx.
+       assert(Hgen : ~ In nextIndirection (getUsedPages partition1 s)).
+        
+       apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
+       right;trivial.
+       contradict Hgen.
+       unfold getUsedPages.
+       apply in_app_iff.
+       right;trivial. }
+      { assert(Hincl2:  incl (getMappedPages partition1 s) (getMappedPages child2 s)).
+        apply verticalSharingRec with (nbPage-1);trivial.
+        unfold consistency in *.
+        intuition.
+        apply childrenPartitionInPartitionList with closestAnc; trivial.
+        intuition.
+        destruct nbPage.
+        simpl in *. intuition.
+        simpl.
+        replace    (n - 0 + 1) with (S n) by omega.
+        trivial.
+        destruct nbPage.
+        simpl in *. intuition.
+        simpl.
+        replace    (n - 0 + 1) with (S n) by omega.
+        trivial.
+        unfold disjoint in *.
+       intros.
+       unfold not;intros Hfalse.
+       assert(Hx : In nextIndirection (getMappedPages partition1 s)).
+       apply accessibleMappedPagesInMappedPages; trivial. simpl.
+       unfold incl in *.
+       apply Hincl2 in Hx.
+       assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
+          assert(Hgen : ~ In nextIndirection (getUsedPages child2 s)).
+        apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
+       right;trivial.
+       contradict Hgen.
+       unfold getUsedPages.
+       apply in_app_iff.
+       right;trivial. } 
+      --- assert(Horpart1 : child2 = partition1 \/ child2 <> partition1 ) by apply pageDecOrNot.
+            destruct Horpart1 as [Horpart1 | Horpart1].
+            +++ subst. 
+              assert (Htrue : partition1 <> child1 ). 
+               { unfold not;intros Hfasle;subst child1.
+                contradict Hances.
+                revert Hchild11 Horcurpart  Hpart Hcurpart .
+
+                 assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparentintree).
+          { unfold consistency in *. intuition. } 
+                revert Hnoduptree Hisparent Hparentintree Hpde. 
+                clear.
+                revert currentPart partition1.
+                unfold getAncestors.
+                induction nbPage;simpl. intuition.
+                intros.               
+                destruct Hchild11. intuition.
+              case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent].
+              simpl.
+              assert(Hor : parent = partition1 \/ parent <> partition1) by apply pageDecOrNot.
+              destruct Hor as [Hor | or].
+              left;trivial.
+              right.
+              apply IHn;trivial.
+              apply getPartitionAuxMinus1 with currentPart;trivial.
+              intuition.
+              unfold parentInPartitionList in *.
+              apply Hparentintree with currentPart;trivial.
+              apply nextEntryIsPPgetParent;trivial.
+                 unfold partitionDescriptorEntry in *.
+           assert((exists entry : page,
+          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
+          apply Hpde;trivial.
+          do 4 right;left;trivial.
+          destruct H0 as (entry & H1 & _).
+          rewrite nextEntryIsPPgetParent in *.
+          rewrite H1 in Hparent. now contradict H1. }
+       assert(Hdisjoint : disjoint (getUsedPages partition1 s) (getUsedPages child1 s)).
+          { unfold partitionsIsolation in *. 
+            apply Hiso with closestAnc;trivial. }
+        { assert(Hincl2:  incl (getMappedPages currentPart s) (getMappedPages child1 s)).
+           apply verticalSharingRec with (nbPage-1);trivial.
+           unfold consistency in *.
+           intuition.
+           apply childrenPartitionInPartitionList with closestAnc; trivial.
+           
+           intuition.
+           destruct nbPage.
+           simpl in *. intuition.
+           simpl.
+           replace    (n - 0 + 1) with (S n) by omega.
+           trivial.
+           destruct nbPage.
+           simpl in *. intuition.
+           simpl.
+           replace    (n - 0 + 1) with (S n) by omega.
+           trivial.
+          unfold disjoint in *.
+         intros.
+         unfold not;intros Hfalse.
+         assert(Hx : In nextIndirection (getMappedPages partition1 s)).
+         apply accessibleMappedPagesInMappedPages; trivial.
+         
+         assert(Hgen : ~ In nextIndirection (getUsedPages child1 s)).
+        apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
+       right;trivial.
+        assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
+        unfold incl in *.
+        apply Hincl2 in Hincurpart.
+      contradict Hgen.
+       unfold getUsedPages.
+       apply in_app_iff.
+       right;trivial. }
+       +++ 
+          
+            assert(Horc : child1 = child2 \/ child1 <> child2) by apply pageDecOrNot.
+           destruct Horc as [Horc | Horc]. 
+            subst. 
+          { contradict Hclose.
+          assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparentintree).
+          { unfold consistency in *. intuition. } 
+           clear Hinsubtree1 Hinsubtree2 .
+           assert(Hnocycle : noCycleInPartitionTree s).
+            { unfold consistency in *. intuition. }
+           assert(Hchild2intree : In child2 (getPartitions multiplexer s)).
+           { apply childrenPartitionInPartitionList with closestAnc;trivial. } 
+           revert dependent child2. 
+(*            revert dependent child1.  *)
+           revert dependent partition1.
+           assert( partitionsIsolation s /\ isChild s /\ verticalSharing s) as (His & Hischild ).
+           { unfold consistency in *. intuition. }
+           intros partition1 Htmp Htmp1. 
+           revert Hparentintree Hischild Hmultnone Hnoduptree Hisparent Hcurpart (* Hmulteq *).
+           revert dependent closestAnc.
+           revert Hpde  Hnocycle His  Hvs Htmp1.
+           clear .
+           revert currentPart  partition1.
+           unfold closestAncestor.
+           unfold getAncestors.
+           assert(Hnbpage : nbPage <= nbPage) by omega.
+           revert Hnbpage.
+           generalize nbPage at 1 (* 3 4 5 *) 5    7. 
+           induction n.
+           intros. simpl in *.
+           intuition.
+           simpl.
+           intros.
+           case_eq (getParent currentPart (memory s));[intros parent Hparent| intros Hparent]. 
+           +  destruct Hchild11 as [Hchild11 | Hchild11];subst.
+             now contradict Horcurpart.
+           (*  destruct Hchild22 as [Hchild22 | Hchild22];subst.
+             now contradict Horpart1.  
+             apply Classical_Prop.not_or_and in Hin as (_ & Hin). *)
+            case_eq (in_dec pageDec partition1 
+                  (getPartitionAux parent s (nbPage + 1)));intros i Hi.
+            unfold not; intros; subst.
+            inversion H.
+            subst.         
+           - revert  Hparentintree Hischild Hmultnone Hnoduptree Hparent Hchild11 Hchild1 Horcurpart  His Hischild Hvs Hcurpart Hnocycle Hisparent Hcloseintree. 
+            clear .
+            intros.
+           assert(Hchild : In currentPart (getChildren closestAnc s) ).
+           unfold isChild in *.
+           intuition.  (* isChild *)
+           clear Hparent.
+         assert(Hii :  incl (getUsedPages currentPart s) (getMappedPages child2 s)). 
+          apply verticalSharingRec2 with n; trivial.
+          apply childrenPartitionInPartitionList with closestAnc;trivial.
+          replace (n+1) with (1+n) by omega.
+          simpl.
+          right;trivial.
+           assert(Hmap : In currentPart (getMappedPages child2 s)).
+           unfold getUsedPages in *.
+           unfold getConfigPages in *.
+           intuition.   
+           assert( disjoint (getUsedPages currentPart s) (getUsedPages child2 s)).
+           unfold partitionsIsolation in *.
+           apply His with closestAnc;trivial.
+           unfold not;intros; subst.
+           rewrite in_flat_map in Hchild11.
+           destruct Hchild11 as (x & Hx1 & Hx11).
+           contradict Hx11.
+              
+           apply noCycleInPartitionTree2;trivial.
+           intuition.
+            unfold disjoint in *.
+            unfold getUsedPages in *.
+            
+            assert( ~ In currentPart (getConfigPages child2 s ++ getMappedPages child2 s) ).
+            apply H.  
+           unfold getConfigPages.
+           simpl;left;trivial.
+           rewrite in_app_iff in H0.
+           intuition.
+           (** contradict Hparent, Hchild11 and Hchild1*)      
+           - apply IHn with  child2; trivial.
+(*            * omega. *)
+           * omega. 
  
+          * revert  Htmp1 Hparent Hpde Hisparent Hcurpart Hparentintree Hnoduptree Hmultnone.
+             clear.
+            revert currentPart partition1 parent.
+            intros.
+            contradict Htmp1.
+            assert(Hmult : In multiplexer (getAncestors currentPart s)).
+            { apply multiplexerIsAncestor;trivial. 
+              unfold not;intros; subst.
+               assert(Hmult :   getParent multiplexer (memory s) = None) by intuition.
+              rewrite Hmult in *. now contradict Hparent. }  
+            unfold getAncestors in *.
+            revert dependent currentPart.
+            revert dependent partition1.
+            revert parent.
+            induction (nbPage+1); simpl. intuition.
+            intros parent partition1 Hances.
+            intros.
+            rewrite Hparent in *. 
+            case_eq(getParent parent (memory s) );[intros ances Hances1 | intros Hances1];
+            rewrite Hances1 in *; try now contradict Hances.
+            simpl in *.
+            destruct Hmult as [Hmult | Hmult ].
+            subst.
+            assert(Hmultnoparent : getParent multiplexer (memory s) = None) by intuition.
+            rewrite Hances1 in *. 
+            now contradict Hmultnoparent.
+            destruct Hances as [Hances | Hances].
+            subst.
+            right.
+            destruct n;simpl in *; trivial.
+            rewrite Hances1 in *.
+            simpl;left;trivial.
+            right.
+            apply IHn with ances;trivial.
+            unfold parentInPartitionList in *.
+            apply Hparentintree with currentPart;trivial.
+            apply nextEntryIsPPgetParent;trivial. 
+                       * unfold parentInPartitionList in *. 
+             apply Hparentintree with currentPart;trivial.
+             apply nextEntryIsPPgetParent;trivial.  
+          * unfold not;intros.
+            subst. clear Hi. contradict i.
+            destruct nbPage;simpl;left;trivial.
+            * revert Hchild11.
+              
+              revert Hparent Horcurpart Hisparent Hchild2intree Hcurpart 
+              Hnocycle Hnoduptree Hmultnone Hischild Hparentintree.
+              clear.
+              intros.
+              destruct Hischild as (Hischild & Hvs).
+              assert(In currentPart (getPartitionAux child2 s (1+n))).
+              simpl.
+              right;trivial.
+              clear Hchild11.
+              revert dependent currentPart.
+              revert dependent child2.
+              revert parent.
+              induction n;
+              simpl in * ;intros.
+              intuition.
+              contradict H0.
+              clear.
+              induction (getChildren child2 s);simpl in *;intuition.
+              assert(child2 = parent \/ child2 <> parent) by apply pageDecOrNot.
+              destruct H0.
+              left;trivial.
+              destruct H.
+              intuition.
+              right.
+              rewrite in_flat_map in H.
+              destruct H as (x & Hx & Hxx).
+              simpl in *.
+              destruct Hxx.
+              subst.
+              assert(getParent currentPart (memory s) = Some child2).
+              unfold isParent in Hisparent.
+              apply Hisparent;trivial.
+              rewrite H in Hparent.
+              inversion Hparent. subst. now contradict H0.
+              rewrite in_flat_map.
+              exists x;split;trivial.
+              apply IHn with currentPart;trivial.
+              apply childrenPartitionInPartitionList with child2;trivial.
+              unfold not;intros;subst.
+              rewrite in_flat_map in H.
+              destruct H as (x2 & Hx2 & Hx22).
+              contradict Hx22.
+              apply noCycleInPartitionTree2;trivial.
+              right;trivial.
+           * unfold not;intros. subst.    
+            contradict Hchild22.
+            clear Hi.
+            contradict i.
+            revert i.
+            clear.
+            revert parent partition1.
+            induction nbPage.
+            simpl;intuition.
+            simpl.
+            intros.
+            intuition.
+            right.
+            rewrite in_flat_map in *.
+            destruct H as (x2 & Hx2 & Hx22).
+            exists x2;split;trivial.
+            apply IHn;trivial.
+           +        unfold partitionDescriptorEntry in *.
+           assert((exists entry : page,
+          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
+          apply Hpde;trivial.
+          do 4 right;left;trivial.
+          destruct H as (entry & H1 & _).
+          rewrite nextEntryIsPPgetParent in *.
+          rewrite H1 in Hparent. now contradict H1.  }
+         assert(Hintree : In  closestAnc (getPartitions multiplexer s)) by trivial.
+         assert(Horc1 : partition1 = child2 \/ partition1 <> child2) by apply pageDecOrNot.
+         { destruct Horc1 as [Horc1 | Horc1].
+           subst child2.  
+           **
+           assert(Horc1 : currentPart = child1 \/ currentPart <> child1) by apply pageDecOrNot.
+           destruct Horc1 as [Horc1 | Horc1].
+           --- subst child1. now contradict Horpart1.
+           --- now contradict Horpart1.
+           
+            ** assert(Horc2 : currentPart = child1 \/ currentPart <> child1) by apply pageDecOrNot.
+           destruct Horc2 as [Horc2 | Horc2].
+           --- subst child1. now contradict Horcurpart.
+           ---   assert(Hincl1 :  incl (getMappedPages currentPart s) (getMappedPages child1 s)).
+           apply verticalSharingRec with (nbPage-1);trivial.
+           unfold consistency in *.
+           intuition.
+           apply childrenPartitionInPartitionList with closestAnc; trivial.
+           intuition.
+           destruct nbPage.
+           simpl in *. intuition.
+           simpl.
+           replace    (n - 0 + 1) with (S n) by omega.
+           trivial.
+            assert(Hincl2:  incl (getMappedPages partition1 s) (getMappedPages child2 s)).
+           apply verticalSharingRec with (nbPage-1);trivial.
+           unfold consistency in *.
+           intuition.
+           apply childrenPartitionInPartitionList with closestAnc; trivial.
+           intuition.
+           destruct nbPage.
+           simpl in *. intuition.
+           simpl.
+           replace    (n - 0 + 1) with (S n) by omega.
+           trivial.
+           destruct nbPage.
+           simpl in *. intuition.
+           simpl.
+           replace    (n - 0 + 1) with (S n) by omega.
+           trivial.
+            assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
+           assert(Hdisjoint : disjoint (getUsedPages child1 s) (getUsedPages child2 s)).
+           unfold partitionsIsolation in *.
+           apply Hiso with closestAnc; trivial.
+           unfold disjoint in *.
+           intros.
+           unfold not;intros Hx.
+           assert(mapped1 : In nextIndirection (getMappedPages partition1 s)).
+           apply accessibleMappedPagesInMappedPages; trivial.
+           unfold incl in *.
+           apply Hincl2 in mapped1.
+           simpl. 
+           assert(Hmap: In nextIndirection (getUsedPages child1 s)).
+           unfold getUsedPages.
+           apply in_app_iff.
+           right.
+           apply Hincl1; trivial.
+           apply Hdisjoint in Hmap.
+           contradict Hmap.
+           
+           
+           unfold getUsedPages.
+           
+           apply in_app_iff.
+           right. trivial. }
+Qed.           
+ 
+
+
  Lemma getIndirectionStop1' s indirection x idxind va l entry :
 StateLib.Level.eqb l fstLevel = false ->  indirection <> defaultPage ->
 lookup indirection idxind (memory s) beqPage beqIndex = Some (PE x) ->
@@ -408,26 +1185,7 @@ apply getIndirectionStopS' with indirection;trivial.
 apply getIndirectionStop1'  with entry idxind ;trivial.
 Qed.
 
-  Lemma InDecOrNot (A:Type) (l:list A ) (elt: A) (P: forall p1 p2 : A, p1 = p2 \/ p1 <> p2):  
-  In elt l \/ ~In elt l.
-  Proof.
-  revert elt.
-  induction l;simpl.
-    right;intuition.
-    simpl.
-    intros.
-    subst.
-    assert( a = elt \/ a <> elt )  by apply P.
-    destruct H.
-    do 2 left;trivial.
-    generalize (IHl elt);clear IHl;intros IHl.
-    destruct IHl.
-    left.
-    right;trivial.     
-    right.
-    intuition.
- Qed. 
- 
+
 Lemma beq_nat_falseNot (tbl:page) :
 (defaultPage =? tbl) = false -> tbl <> defaultPage.
 Proof.
@@ -6969,767 +7727,117 @@ split; intros Hgoal;
   apply nextEntryIsPPgetPd;trivial.
 Qed.
 
-Lemma nextIndirectionNotAccessibleInAnyPartition s nextIndirection 
-(currentPart currentPD: page) ptMMUvaNextInd (vaNextInd : vaddr) ptSh1VaNextInd:
-writeAccessibleRecPreparePostcondition currentPart nextIndirection s ->
-verticalSharing s -> 
-partitionsIsolation s ->
-consistency s -> 
-noCycleInPartitionTree s ->
-noDupMappedPagesList s -> 
-In currentPart (getPartitions multiplexer s) -> 
-getTableAddrRoot ptMMUvaNextInd PDidx currentPart vaNextInd s ->
-isPE ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s  ->
-entryUserFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) false s ->
-entryPresentFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) true s ->
-nextEntryIsPP currentPart PDidx currentPD s ->
-(defaultPage =? ptMMUvaNextInd) = false -> 
-isEntryPage ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) nextIndirection s -> 
-(exists va : vaddr,
-   isEntryVA ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) va s /\
-   beqVAddr defaultVAddr va = true) ->
-(defaultPage =? ptSh1VaNextInd) = false ->
-getTableAddrRoot ptSh1VaNextInd sh1idx currentPart vaNextInd s ->
-isVE ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s ->
-
-
-forall partition1, In partition1 (getPartitions multiplexer s) ->
-   ~ In nextIndirection (getAccessibleMappedPages partition1 s).
-Proof.
-intros * Hancesnotaccecc Hvs Hiso Hcons Hcycle Hnodupmap Hcurpart Htbl Hpe Huser Hpres Hcurpd Hnotdef Hispage
-Hshare Hshdef Htblsh1 Hve * Hpart.
-(* check if partition1 is an ancestor of currentPart **)    
-assert (Hances : In partition1 (getAncestors currentPart s) \/
-  ~ In partition1 (getAncestors currentPart s)).
-{ apply InDecOrNot.
-  apply pageDecOrNot. }
-destruct  Hances as [ Hances | Hances].
-+ (** partition1 is ancestor of currentPart *)
-  assert(Hor : partition1 <> currentPart).
-  { unfold consistency in *. 
-    unfold noCycleInPartitionTree in *.
-    apply Hcycle;trivial. }
-  unfold writeAccessibleRecPreparePostcondition in *.
-  apply Hancesnotaccecc;trivial.
-+ (** partition1 is not ancestor of currentPart *)
-  (* check if partition1 is the current part or not *)  
-  assert(Hor : currentPart = partition1 \/ currentPart <> partition1) by apply pageDecOrNot. 
-  destruct Hor as [Hor | Hor].
-  - (** partition1 is the currentPart *)
-    subst partition1.
-    apply notInGetAccessibleMappedPage with  ptMMUvaNextInd currentPD vaNextInd;trivial.
-    intros;subst;split;trivial.
-  - (** partition1 is not the currentPart, is not an ancestor **)
-    (** partition1 could be a descendent *)
-    assert(Hin : In partition1 (getPartitionAux currentPart s (nbPage+1)) \/ 
-            ~ In partition1 (getPartitionAux currentPart s (nbPage+1))).
-    { apply InDecOrNot.
-      apply pageDecOrNot. }
-    destruct Hin as [Hin | Hin].
-    * (** partition1 is a descendent *)
-       destruct nbPage. simpl in *.
-        revert Hin Hor. clear.
-        intros.
-        intuition. contradict H.
-        induction (getChildren currentPart s);simpl; intuition.
-        simpl in *.
-        destruct Hin as [Hin | Hin]. intuition.
-        rewrite in_flat_map in Hin.
-        destruct Hin as (x & Hx1 & Hx2).
-        assert (Hincl : incl (getAccessibleMappedPages partition1 s) 
-        (getMappedPages partition1 s)) by apply accessibleMappedPagesInMappedPages.
-        unfold incl in *.
-        assert(Hderivlist : ~ isDerived currentPart vaNextInd s ).
-        { unfold not;intros Hgoal.
-          intuition. subst.
-          contradict Hgoal.
-          eapply vaNotDerived with ptSh1VaNextInd ;trivial.
-          intros;split;subst;trivial. }
-        assert(Hlist : forall child, In child (getChildren currentPart s) ->
-             ~ In nextIndirection (getMappedPages child s)).
-        { intros.
-          unfold not;intros Hgoal.
-          intuition. subst.
-          contradict Hgoal.
-          apply phyNotDerived  with currentPart currentPD vaNextInd ptMMUvaNextInd ; trivial.
-          intros;split;subst;trivial.  }
-        unfold incl in *.
-        unfold not;intros Hpg.
-        apply Hincl in Hpg;clear Hincl.
-        simpl .
-        assert(Horx : x=partition1 \/ x<> partition1) by apply pageDecOrNot.
-        destruct Horx as [Horx | Horx].
-        ++ subst.
-           apply Hlist in Hx1.
-           now contradict Hx1.
-        ++ unfold consistency in *.
-           unfold noDupPartitionTree in *.
-           assert( Hincl2 : incl (getMappedPages partition1 s) (getMappedPages x s)).
-           apply verticalSharingRec with n;intuition.
-           apply childrenPartitionInPartitionList with currentPart;trivial.
-           unfold incl in Hincl2.
-           apply Hincl2 in Hpg.
-           apply Hlist in Hx1.
-           now contradict Hx1.
-      * (** partition1 is not a descendent, not the currentPart and not an ancestor *)
-          (** continuer sur le fichier UpdatePDFlagTrue : ligne 5030 *) 
-        (* clear.
-        Lemma pageNotAccessibleInCousins s (currentPart : page):
-        forall nextIndirection partition1,
-        ~ In partition1 (getPartitionAux multiplexer s (nbPage + 1)) ->
-        consistency s ->
-        In currentPart (getPartitions multiplexer s) ->
-        ~ In nextIndirection (getAccessibleMappedPages partition1 s).
-        Proof. 
-        intros * Hin.
-        intros.   *)      
-        assert (Hok:  forall partition, parentInPartitionList s ->  partitionDescriptorEntry s ->  isParent s ->  In partition (getPartitions multiplexer s)
-         -> In partition (getPartitions multiplexer s) -> 
-              partition <> multiplexer -> 
-              In multiplexer (getAncestors partition s)).  
-        apply multiplexerIsAncestor;trivial.
-        unfold consistency in *. intuition.
-        assert(Hnotanc : partition1 <> multiplexer). 
-        { assert(In multiplexer (getAncestors currentPart s)) . 
-          { unfold consistency in *; intuition.  
-            apply Hok;trivial.
-            unfold not;intros Hfalse;subst.
-            contradict Hin. unfold getPartitions in *;trivial.  }
-            unfold not;intros Hfalse;subst.
-           now contradict Hances.  }
-        assert(Hmulteq :currentPart = multiplexer \/ currentPart <> multiplexer ) by apply pageDecOrNot.
-        destruct Hmulteq as [Hmulteq | Hmulteq].
-        ++ subst currentPart.           
-           unfold getPartitions in Hpart.
-           now contradict Hin.     
-        ++ move Hcurpart at bottom.
-         unfold consistency in *.
-           assert(Hisparent : isParent s) by intuition. 
-           assert(Hmultnone : multiplexerWithoutParent s) by intuition.
-           assert(Hnoduptree : noDupPartitionTree s) by intuition.   
-         assert( match  closestAncestor currentPart partition1 s with 
-                  | Some closestAnc =>  True
-                  | None => False
-         end
-         ).
-         { case_eq (closestAncestor currentPart partition1 s ); [intros  closestAnc Hclose| 
-           intros Hclose];trivial.       
-           revert Hmultnone Hnoduptree Hcurpart Hclose Hisparent  .           
-           clear.
-           { unfold closestAncestor, getPartitions.
-             intro. intro.
-             revert currentPart partition1.
-             assert(Hmult : getParent multiplexer (memory s) = None) .
-             intuition.
-             induction nbPage.
-             simpl.
-            intros.            
-            destruct Hcurpart.
-            subst. 
-            rewrite Hmult in *.
-            now contradict Hclose.
-            contradict H. clear.
-            induction (getChildren multiplexer s); simpl; intuition.
-            simpl .
-            intros. 
-            destruct Hcurpart.
-            subst.
-            rewrite Hmult in *.
-            now contradict Hclose.
-            case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent];
-            rewrite Hparent in *; try now contradict Hclose.
-            case_eq ( in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1))); 
-            intros i Hi; rewrite Hi in *.
-            now contradict Hclose.
-            apply IHn with parent partition1;trivial.
-            assert (In currentPart (getPartitionAux multiplexer s (n + 2))).
-            replace (n + 2) with (S n +1) by omega.
-            simpl;right;trivial.
-            apply getPartitionAuxMinus1 with currentPart;trivial.
-            unfold getPartitions. destruct nbPage;simpl;left;trivial.
-          } }
-         case_eq(closestAncestor currentPart partition1 s); [intros  closestAnc Hclose| 
-          intros Hclose];
-          rewrite Hclose in *; try now contradict H. 
-         assert(Hcloseintree : In closestAnc (getPartitions multiplexer s)). 
-          { revert Hclose Hcurpart.
-            unfold consistency in *. 
-            assert(Hchild : isChild s) by intuition.
-            assert(Hparent: isParent s) by intuition.
-             assert(Hparenintreet: parentInPartitionList s) by intuition.
-            revert Hchild Hparent Hparenintreet.
-           clear. intro . intros Hisparent Hparentintree.
-           revert currentPart partition1 closestAnc.
-           unfold closestAncestor.
-           induction (nbPage+1);simpl;intros. now contradict Hclose.
-           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
-           rewrite Hparent in *.
-           - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
-           intros i Hi; rewrite Hi in *.
-           * inversion Hclose;subst.
-             unfold parentInPartitionList in *.
-             apply Hparentintree with currentPart;trivial.
-             apply nextEntryIsPPgetParent;trivial.
-          * apply IHn with parent partition1;trivial. 
-           unfold parentInPartitionList in *.
-           apply Hparentintree with currentPart;trivial.
-           apply nextEntryIsPPgetParent;trivial.
-        - inversion Hclose; subst. unfold getPartitions.
-          destruct nbPage;simpl;left;trivial.
-          }
-         assert (Hinsubtree1 : In currentPart  (getPartitionAux closestAnc s (nbPage +1))).
-          { assert (Hcurpart1 :In currentPart (getPartitions multiplexer s)) by trivial.   
-          revert Hnoduptree Hmultnone Hclose Hcurpart Hcurpart1.
-          
-            unfold consistency in *. 
-            assert(Hchild : isChild s) by intuition.
-            assert(Hparent: isParent s) by intuition.
-             assert(Hparenintreet: parentInPartitionList s) by intuition.
-            revert Hchild Hparent Hparenintreet. 
-           clear. intro . intros Hisparent Hparentintree Hnoduptree.
-           intro.
-           revert currentPart partition1 closestAnc.
-           unfold closestAncestor.
-           unfold getPartitions  at 1.
-           induction (nbPage+1);simpl;intros.
-           trivial.
-           assert(Hor : closestAnc = currentPart \/ closestAnc <> currentPart) by apply pageDecOrNot.
-           destruct Hor as [Hor | Hor].
-           left;trivial.
-           destruct Hcurpart as [Hcurpart | Hcurpart].
-           + subst. assert (Hmult :  getParent multiplexer (memory s) = None) by intuition.
-           rewrite Hmult in *.
-           inversion Hclose. intuition.
-           +
-           right.
-           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
-           rewrite Hparent in *.
-           - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
-           intros i Hi; rewrite Hi in *.
-           * inversion Hclose;subst.
-           rewrite in_flat_map.
-           exists currentPart;split;trivial.
-           unfold isChild in *.
-           apply Hchild;trivial. destruct n;simpl in *.
-           contradict Hcurpart.
-           clear. induction   (getChildren multiplexer s) ;simpl;intuition.
-           left;trivial.
-           * assert(In parent  (getPartitionAux closestAnc s n)).
-           apply IHn with partition1;trivial.
-           apply getPartitionAuxMinus1 with currentPart;trivial.
-           unfold getPartitions. destruct nbPage;simpl;left;trivial. 
-           unfold parentInPartitionList in *.
-           apply Hparentintree with currentPart;trivial.
-           apply nextEntryIsPPgetParent;trivial.
-             apply getPartitionAuxSn with parent;trivial.
-           - inversion Hclose; subst. trivial. }
-                   assert (Hinsubtree2 : In partition1  (getPartitionAux closestAnc s (nbPage +1))).
-         { assert (Hcurpart1 :In partition1 (getPartitions multiplexer s)) by trivial.   
-          revert Hclose Hcurpart Hcurpart1.
-            unfold consistency in *. 
-            assert(Hchild : isChild s) by intuition.
-            assert(Hparent: isParent s) by intuition.
-             assert(Hparenintreet: parentInPartitionList s) by intuition.
-            revert Hchild Hparent Hparenintreet.
-           clear. intro . intros Hisparent Hparentintree.
-           revert currentPart partition1 closestAnc.
-           unfold closestAncestor.
-(*            unfold getPartitions  at 1. *)
-          assert(Hnbpage : nbPage <= nbPage) by omega.
-          revert Hnbpage.
-          generalize nbPage at 1 3.
-           induction n;simpl;intros.
-           trivial.  
-           + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
-              rewrite Hparent in *.
-              - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
-                intros i Hi; rewrite Hi in *.
-               * inversion Hclose;subst. trivial.
-               *  now contradict Hclose.
-              -  inversion Hclose. subst. unfold getPartitions in *;trivial.
-         + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
-            rewrite Hparent in *.
-            - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
-              intros i Hi; rewrite Hi in *.
-              * inversion Hclose;subst. trivial.
-              * apply IHn with parent;trivial. omega.           
-                unfold parentInPartitionList in *.
-                apply Hparentintree with currentPart;trivial.
-                apply nextEntryIsPPgetParent;trivial.
-          - inversion Hclose; subst. trivial.  }  
-        assert(Heqclose : partition1 = closestAnc \/ partition1 <> closestAnc) by apply pageDecOrNot.
-         destruct Heqclose as [Heqclose | Heqclose].
-         **  subst closestAnc.
-          assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparent).
-          { unfold consistency in *. intuition. } 
-           assert(Hfalse : In partition1 (getAncestors currentPart s)).
-           { revert Hclose Hcurpart Hpde Hparent. clear .
-           unfold  closestAncestor.
-           unfold  getAncestors.
-           revert currentPart partition1.
-           induction (nbPage + 1).
-           simpl in *. intros.
-           now contradict Hclose.
-           simpl.
-           intros.    
-           case_eq(getParent currentPart (memory s) );intros.
-           rewrite H in *.
-           case_eq ( in_dec pageDec partition1 (getPartitionAux p s (nbPage + 1)));intros;
-           rewrite H0 in *.
-           inversion Hclose.
-           simpl;left;trivial.
-           simpl.
-           right.
-           apply IHn;trivial.
-           unfold parentInPartitionList in *.
-           apply Hparent with currentPart;trivial.
-           apply nextEntryIsPPgetParent;trivial.
-            unfold partitionDescriptorEntry in *.
-           assert((exists entry : page,
-          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
-          apply Hpde;trivial.
-          do 4 right;left;trivial.
-          destruct H0 as (entry & H1 & _).
-          rewrite nextEntryIsPPgetParent in *.
-          rewrite H1 in H. now contradict H1. }
-        now contradict Hfalse.
-        ** assert(Hsub1 : In currentPart
-          (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
-         {  replace (nbPage +1) with (1 + nbPage) in * by omega.
-             simpl in *.
-             apply Classical_Prop.not_or_and in Hin as (_ & Hin).  
-               destruct  Hinsubtree1 as [Hsub1 | Hsub1]; subst.
-      destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
-             now contradict Heqclose.  now contradict Hsub2.
-         destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
-             now contradict Heqclose. trivial. }
-      assert(Hsub2 : In partition1
-          (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
-          {  replace (nbPage +1) with (1 + nbPage) in * by omega.
-            simpl in *.
-            apply Classical_Prop.not_or_and in Hin as (_ & Hin).  
-            destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
-            destruct  Hinsubtree1 as [Hsub11 | Hsub11]; subst.
-            now contradict Heqclose.  now contradict Heqclose.
-            destruct  Hinsubtree1 as [Hsub11 | Hsub11]; subst.
-            now contradict Heqclose. trivial. }               
-
-             rewrite in_flat_map in Hsub1 , Hsub2.
-             destruct Hsub1 as (child1 & Hchild1 &  Hchild11).
-             destruct Hsub2 as (child2 & Hchild2 &  Hchild22).
-         assert(Horcurpart : child1 = currentPart \/ child1 <> currentPart ) by apply pageDecOrNot.
-         destruct Horcurpart as [Horcurpart | Horcurpart].
-          --- subst. 
-          assert (Htrue : currentPart <> child2 ). 
-          { unfold not;intros Hfasle;subst child2.
-            contradict Hin. 
-            apply getPartitionAuxSbound;trivial. 
-            }
-          assert(Hdisjoint : disjoint (getUsedPages currentPart s) (getUsedPages child2 s)).
-          { unfold partitionsIsolation in *. 
-            apply Hiso with closestAnc;trivial. }
-         assert (Hor1 : partition1 = child2 \/ partition1 <> child2) by apply pageDecOrNot.
-         destruct Hor1 as [Hor1 |Hor1].
-        {  subst child2.
-        unfold not;intros Hfalse. 
-         assert(Hx : In nextIndirection (getMappedPages partition1 s)).
-         apply accessibleMappedPagesInMappedPages; trivial. simpl. 
-        assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
-        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
-          trivial. intros ;split;subst;trivial. }
-       unfold disjoint in Hdisjoint.
-       contradict Hx.
-       assert(Hgen : ~ In nextIndirection (getUsedPages partition1 s)).
-        
-       apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
-       right;trivial.
-       contradict Hgen.
-       unfold getUsedPages.
-       apply in_app_iff.
-       right;trivial. }
-      { assert(Hincl2:  incl (getMappedPages partition1 s) (getMappedPages child2 s)).
-        apply verticalSharingRec with (nbPage-1);trivial.
-        unfold consistency in *.
-        intuition.
-        apply childrenPartitionInPartitionList with closestAnc; trivial.
-        intuition.
-        destruct nbPage.
-        simpl in *. intuition.
-        simpl.
-        replace    (n - 0 + 1) with (S n) by omega.
-        trivial.
-        destruct nbPage.
-        simpl in *. intuition.
-        simpl.
-        replace    (n - 0 + 1) with (S n) by omega.
-        trivial.
-        unfold disjoint in *.
-       intros.
-       unfold not;intros Hfalse.
-       assert(Hx : In nextIndirection (getMappedPages partition1 s)).
-       apply accessibleMappedPagesInMappedPages; trivial. simpl.
-       unfold incl in *.
-       apply Hincl2 in Hx.
-       assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
-        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
-          trivial. intros ;split;subst;trivial. }
-          assert(Hgen : ~ In nextIndirection (getUsedPages child2 s)).
-        apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
-       right;trivial.
-       contradict Hgen.
-       unfold getUsedPages.
-       apply in_app_iff.
-       right;trivial. } 
-      --- assert(Horpart1 : child2 = partition1 \/ child2 <> partition1 ) by apply pageDecOrNot.
-            destruct Horpart1 as [Horpart1 | Horpart1].
-            +++ subst. 
-              assert (Htrue : partition1 <> child1 ). 
-               { unfold not;intros Hfasle;subst child1.
-                contradict Hances.
-                revert Hchild11 Horcurpart  Hpart Hcurpart .
-
-                 assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparentintree).
-          { unfold consistency in *. intuition. } 
-                revert Hnoduptree Hisparent Hparentintree Hpde. 
-                clear.
-                revert currentPart partition1.
-                unfold getAncestors.
-                induction nbPage;simpl. intuition.
-                intros.               
-                destruct Hchild11. intuition.
-              case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent].
-              simpl.
-              assert(Hor : parent = partition1 \/ parent <> partition1) by apply pageDecOrNot.
-              destruct Hor as [Hor | or].
-              left;trivial.
-              right.
-              apply IHn;trivial.
-              apply getPartitionAuxMinus1 with currentPart;trivial.
-              intuition.
-              unfold parentInPartitionList in *.
-              apply Hparentintree with currentPart;trivial.
-              apply nextEntryIsPPgetParent;trivial.
-                 unfold partitionDescriptorEntry in *.
-           assert((exists entry : page,
-          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
-          apply Hpde;trivial.
-          do 4 right;left;trivial.
-          destruct H0 as (entry & H1 & _).
-          rewrite nextEntryIsPPgetParent in *.
-          rewrite H1 in Hparent. now contradict H1. }
-       assert(Hdisjoint : disjoint (getUsedPages partition1 s) (getUsedPages child1 s)).
-          { unfold partitionsIsolation in *. 
-            apply Hiso with closestAnc;trivial. }
-        { assert(Hincl2:  incl (getMappedPages currentPart s) (getMappedPages child1 s)).
-           apply verticalSharingRec with (nbPage-1);trivial.
-           unfold consistency in *.
-           intuition.
-           apply childrenPartitionInPartitionList with closestAnc; trivial.
-           
-           intuition.
-           destruct nbPage.
-           simpl in *. intuition.
-           simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-           destruct nbPage.
-           simpl in *. intuition.
-           simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-          unfold disjoint in *.
-         intros.
-         unfold not;intros Hfalse.
-         assert(Hx : In nextIndirection (getMappedPages partition1 s)).
-         apply accessibleMappedPagesInMappedPages; trivial.
-         
-         assert(Hgen : ~ In nextIndirection (getUsedPages child1 s)).
-        apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
-       right;trivial.
-        assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
-        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
-          trivial. intros ;split;subst;trivial. }
-        unfold incl in *.
-        apply Hincl2 in Hincurpart.
-      contradict Hgen.
-       unfold getUsedPages.
-       apply in_app_iff.
-       right;trivial. }
-       +++ 
-          
-            assert(Horc : child1 = child2 \/ child1 <> child2) by apply pageDecOrNot.
-           destruct Horc as [Horc | Horc]. 
-            subst. 
-          { contradict Hclose.
-          assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparentintree).
-          { unfold consistency in *. intuition. } 
-           clear Hinsubtree1 Hinsubtree2 .
-           assert(Hnocycle : noCycleInPartitionTree s).
-            { unfold consistency in *. intuition. }
-           assert(Hchild2intree : In child2 (getPartitions multiplexer s)).
-           { apply childrenPartitionInPartitionList with closestAnc;trivial. } 
-           revert dependent child2. 
-(*            revert dependent child1.  *)
-           revert dependent partition1.
-           assert( partitionsIsolation s /\ isChild s /\ verticalSharing s) as (His & Hischild ).
-           { unfold consistency in *. intuition. }
-           intros partition1 Htmp Htmp1. 
-           revert Hparentintree Hischild Hmultnone Hnoduptree Hisparent Hcurpart (* Hmulteq *).
-           revert dependent closestAnc.
-           revert Hpde  Hnocycle His  Hvs Htmp1.
-           clear .
-           revert currentPart  partition1.
-           unfold closestAncestor.
-           unfold getAncestors.
-           assert(Hnbpage : nbPage <= nbPage) by omega.
-           revert Hnbpage.
-           generalize nbPage at 1 (* 3 4 5 *) 5    7. 
-           induction n.
-           intros. simpl in *.
-           intuition.
-           simpl.
-           intros.
-           case_eq (getParent currentPart (memory s));[intros parent Hparent| intros Hparent]. 
-           +  destruct Hchild11 as [Hchild11 | Hchild11];subst.
-             now contradict Horcurpart.
-           (*  destruct Hchild22 as [Hchild22 | Hchild22];subst.
-             now contradict Horpart1.  
-             apply Classical_Prop.not_or_and in Hin as (_ & Hin). *)
-            case_eq (in_dec pageDec partition1 
-                  (getPartitionAux parent s (nbPage + 1)));intros i Hi.
-            unfold not; intros; subst.
-            inversion H.
-            subst.         
-           - revert  Hparentintree Hischild Hmultnone Hnoduptree Hparent Hchild11 Hchild1 Horcurpart  His Hischild Hvs Hcurpart Hnocycle Hisparent Hcloseintree. 
-            clear .
-            intros.
-           assert(Hchild : In currentPart (getChildren closestAnc s) ).
-           unfold isChild in *.
-           intuition.  (* isChild *)
-           clear Hparent.
-         assert(Hii :  incl (getUsedPages currentPart s) (getMappedPages child2 s)). 
-          apply verticalSharingRec2 with n; trivial.
-          apply childrenPartitionInPartitionList with closestAnc;trivial.
-          replace (n+1) with (1+n) by omega.
-          simpl.
-          right;trivial.
-           assert(Hmap : In currentPart (getMappedPages child2 s)).
-           unfold getUsedPages in *.
-           unfold getConfigPages in *.
-           intuition.   
-           assert( disjoint (getUsedPages currentPart s) (getUsedPages child2 s)).
-           unfold partitionsIsolation in *.
-           apply His with closestAnc;trivial.
-           unfold not;intros; subst.
-           rewrite in_flat_map in Hchild11.
-           destruct Hchild11 as (x & Hx1 & Hx11).
-           contradict Hx11.
-              
-           apply noCycleInPartitionTree2;trivial.
-           intuition.
-            unfold disjoint in *.
-            unfold getUsedPages in *.
-            
-            assert( ~ In currentPart (getConfigPages child2 s ++ getMappedPages child2 s) ).
-            apply H.  
-           unfold getConfigPages.
-           simpl;left;trivial.
-           rewrite in_app_iff in H0.
-           intuition.
-           (** contradict Hparent, Hchild11 and Hchild1*)      
-           - apply IHn with  child2; trivial.
-(*            * omega. *)
-           * omega. 
- 
-          * revert  Htmp1 Hparent Hpde Hisparent Hcurpart Hparentintree Hnoduptree Hmultnone.
-             clear.
-            revert currentPart partition1 parent.
-            intros.
-            contradict Htmp1.
-            assert(Hmult : In multiplexer (getAncestors currentPart s)).
-            { apply multiplexerIsAncestor;trivial. 
-              unfold not;intros; subst.
-               assert(Hmult :   getParent multiplexer (memory s) = None) by intuition.
-              rewrite Hmult in *. now contradict Hparent. }  
-            unfold getAncestors in *.
-            revert dependent currentPart.
-            revert dependent partition1.
-            revert parent.
-            induction (nbPage+1); simpl. intuition.
-            intros parent partition1 Hances.
-            intros.
-            rewrite Hparent in *. 
-            case_eq(getParent parent (memory s) );[intros ances Hances1 | intros Hances1];
-            rewrite Hances1 in *; try now contradict Hances.
-            simpl in *.
-            destruct Hmult as [Hmult | Hmult ].
-            subst.
-            assert(Hmultnoparent : getParent multiplexer (memory s) = None) by intuition.
-            rewrite Hances1 in *. 
-            now contradict Hmultnoparent.
-            destruct Hances as [Hances | Hances].
-            subst.
-            right.
-            destruct n;simpl in *; trivial.
-            rewrite Hances1 in *.
-            simpl;left;trivial.
-            right.
-            apply IHn with ances;trivial.
-            unfold parentInPartitionList in *.
-            apply Hparentintree with currentPart;trivial.
-            apply nextEntryIsPPgetParent;trivial. 
-                       * unfold parentInPartitionList in *. 
-             apply Hparentintree with currentPart;trivial.
-             apply nextEntryIsPPgetParent;trivial.  
-          * unfold not;intros.
-            subst. clear Hi. contradict i.
-            destruct nbPage;simpl;left;trivial.
-            * revert Hchild11.
-              
-              revert Hparent Horcurpart Hisparent Hchild2intree Hcurpart 
-              Hnocycle Hnoduptree Hmultnone Hischild Hparentintree.
-              clear.
-              intros.
-              destruct Hischild as (Hischild & Hvs).
-              assert(In currentPart (getPartitionAux child2 s (1+n))).
-              simpl.
-              right;trivial.
-              clear Hchild11.
-              revert dependent currentPart.
-              revert dependent child2.
-              revert parent.
-              induction n;
-              simpl in * ;intros.
-              intuition.
-              contradict H0.
-              clear.
-              induction (getChildren child2 s);simpl in *;intuition.
-              assert(child2 = parent \/ child2 <> parent) by apply pageDecOrNot.
-              destruct H0.
-              left;trivial.
-              destruct H.
-              intuition.
-              right.
-              rewrite in_flat_map in H.
-              destruct H as (x & Hx & Hxx).
-              simpl in *.
-              destruct Hxx.
-              subst.
-              assert(getParent currentPart (memory s) = Some child2).
-              unfold isParent in Hisparent.
-              apply Hisparent;trivial.
-              rewrite H in Hparent.
-              inversion Hparent. subst. now contradict H0.
-              rewrite in_flat_map.
-              exists x;split;trivial.
-              apply IHn with currentPart;trivial.
-              apply childrenPartitionInPartitionList with child2;trivial.
-              unfold not;intros;subst.
-              rewrite in_flat_map in H.
-              destruct H as (x2 & Hx2 & Hx22).
-              contradict Hx22.
-              apply noCycleInPartitionTree2;trivial.
-              right;trivial.
-           * unfold not;intros. subst.    
-            contradict Hchild22.
-            clear Hi.
-            contradict i.
-            revert i.
-            clear.
-            revert parent partition1.
-            induction nbPage.
-            simpl;intuition.
-            simpl.
-            intros.
-            intuition.
-            right.
-            rewrite in_flat_map in *.
-            destruct H as (x2 & Hx2 & Hx22).
-            exists x2;split;trivial.
-            apply IHn;trivial.
-           +        unfold partitionDescriptorEntry in *.
-           assert((exists entry : page,
-          nextEntryIsPP currentPart PPRidx entry s /\ entry <> defaultPage)).
-          apply Hpde;trivial.
-          do 4 right;left;trivial.
-          destruct H as (entry & H1 & _).
-          rewrite nextEntryIsPPgetParent in *.
-          rewrite H1 in Hparent. now contradict H1.  }
-         assert(Hintree : In  closestAnc (getPartitions multiplexer s)) by trivial.
-         assert(Horc1 : partition1 = child2 \/ partition1 <> child2) by apply pageDecOrNot.
-         { destruct Horc1 as [Horc1 | Horc1].
-           subst child2.  
-           **
-           assert(Horc1 : currentPart = child1 \/ currentPart <> child1) by apply pageDecOrNot.
-           destruct Horc1 as [Horc1 | Horc1].
-           --- subst child1. now contradict Horpart1.
-           --- now contradict Horpart1.
-           
-            ** assert(Horc2 : currentPart = child1 \/ currentPart <> child1) by apply pageDecOrNot.
-           destruct Horc2 as [Horc2 | Horc2].
-           --- subst child1. now contradict Horcurpart.
-           ---   assert(Hincl1 :  incl (getMappedPages currentPart s) (getMappedPages child1 s)).
-           apply verticalSharingRec with (nbPage-1);trivial.
-           unfold consistency in *.
-           intuition.
-           apply childrenPartitionInPartitionList with closestAnc; trivial.
-           intuition.
-           destruct nbPage.
-           simpl in *. intuition.
-           simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-            assert(Hincl2:  incl (getMappedPages partition1 s) (getMappedPages child2 s)).
-           apply verticalSharingRec with (nbPage-1);trivial.
-           unfold consistency in *.
-           intuition.
-           apply childrenPartitionInPartitionList with closestAnc; trivial.
-           intuition.
-           destruct nbPage.
-           simpl in *. intuition.
-           simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-           destruct nbPage.
-           simpl in *. intuition.
-           simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
-           trivial.
-            assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
-        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
-          trivial. intros ;split;subst;trivial. }
-           assert(Hdisjoint : disjoint (getUsedPages child1 s) (getUsedPages child2 s)).
-           unfold partitionsIsolation in *.
-           apply Hiso with closestAnc; trivial.
-           unfold disjoint in *.
-           intros.
-           unfold not;intros Hx.
-           assert(mapped1 : In nextIndirection (getMappedPages partition1 s)).
-           apply accessibleMappedPagesInMappedPages; trivial.
-           unfold incl in *.
-           apply Hincl2 in mapped1.
-           simpl. 
-           assert(Hmap: In nextIndirection (getUsedPages child1 s)).
-           unfold getUsedPages.
-           apply in_app_iff.
-           right.
-           apply Hincl1; trivial.
-           apply Hdisjoint in Hmap.
-           contradict Hmap.
-           
-           
-           unfold getUsedPages.
-           
-           apply in_app_iff.
-           right. trivial. }
-Qed.           
       
-  
+ Lemma getConfigPagesAddIndirectionNotSamePage x nextIndirection partition s pdpart vaToPrepare l indirection entry :
+   consistency s ->
+      x <> nextIndirection -> 
+In x (getConfigPages partition {|
+      currentPartition := currentPartition s;
+      memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+                  (PE
+                     {|
+                     read := true;
+                     write := true;
+                     exec := true;
+                     present := true;
+                     user := true;
+                     pa := nextIndirection |}) (memory s) beqPage beqIndex |})->
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+In partition (getPartitions multiplexer s) ->
+nextEntryIsPP partition PDidx pdpart s ->
+indirectionDescription s partition indirection PDidx vaToPrepare l ->
+In x (getConfigPages partition s).
+Proof.
+set(s':= {|
+     currentPartition := _|}).
+intros Hcons Hkey1 Hkey2 Hlookup Hpart Hpdpart.
+intros.
+rewrite nextEntryIsPPgetPd in *.
+unfold getConfigPages in *.
+simpl in *.
+destruct Hkey2 as [Hkey2 | Hkey2].
+left;trivial.
+right.
+unfold getConfigPagesAux in *.
+assert(Hpd: forall partx, StateLib.getPd partx (memory s) =
+StateLib.getPd partx (memory s')).
+{ symmetry. apply getPdMapMMUPage with entry;trivial. }
+rewrite <- Hpd in Hkey2.
+clear Hpd.
+assert(Hpd: forall partx, StateLib.getFstShadow partx (memory s) =
+StateLib.getFstShadow partx (memory s')).
+{ symmetry. apply getFstShadowMapMMUPage with entry;trivial. }
+rewrite <- Hpd in Hkey2.
+clear Hpd.
+
+assert(Hpd: forall partx, StateLib.getSndShadow partx (memory s) =
+StateLib.getSndShadow partx (memory s')).
+{ symmetry. apply getSndShadowMapMMUPage with entry;trivial. }
+rewrite <- Hpd in Hkey2.
+clear Hpd.
+
+assert(Hpd: forall partx, StateLib.getConfigTablesLinkedList partx (memory s) =
+StateLib.getConfigTablesLinkedList partx (memory s')).
+{ symmetry. apply getConfigTablesLinkedListMapMMUPage with entry;trivial. }
+rewrite <- Hpd in Hkey2.
+clear Hpd.
+rewrite Hpdpart in *.
+assert(Hinmmu: In indirection (getIndirections pdpart s)). 
+{ apply indirectionDescriptionInGetIndirections with partition vaToPrepare l;trivial. 
+apply nextEntryIsPPgetPd;trivial. }
+
+case_eq ( getFstShadow partition (memory s)) ; [intros sh1 Hsh1|intros Hsh1];rewrite Hsh1 in *;trivial.
+case_eq ( getSndShadow partition (memory s) ) ; [intros sh2 Hsh2|intros Hsh2];rewrite Hsh2 in *;trivial.
+case_eq ( getConfigTablesLinkedList partition (memory s) ) ; [intros ll Hll|intros Hll];rewrite Hll in *;trivial.
+rewrite in_app_iff in *
+. destruct Hkey2 as [Hkey2 | Hkey2].
++ left.
+admit. 
++ right.
+
+assert(Hconfigdiff: noDupConfigPagesList s) by (unfold consistency in *;intuition).
+ unfold noDupConfigPagesList in *.
+  generalize(Hconfigdiff partition Hpart);clear Hconfigdiff;intros Hnodup.
+  unfold getConfigPages in *.
+apply NoDup_cons_iff in Hnodup as (Hnotin & Hnodup).
+ unfold getConfigPagesAux in Hnodup.
+ rewrite Hpdpart in Hnodup.
+ rewrite Hsh1 in Hnodup.
+ rewrite Hsh2 in Hnodup.
+ rewrite Hll in Hnodup.
+ rewrite NoDupSplitInclIff in Hnodup.
+ destruct Hnodup as ((Hn1 & Hn2) & Hn3).
+ unfold disjoint in *.
+ apply Hn3 in Hinmmu.
+ rewrite in_app_iff in Hinmmu.
+assert(Hnotsh1:  ~In indirection (getIndirections sh1 s)) by intuition.
+assert (Hsh1ind: getIndirections sh1 s =  getIndirections sh1 s')
+ by (apply getIndirectionsMapMMUPage1 with entry;trivial).
+ rewrite Hsh1ind in *.
+  rewrite in_app_iff in Hinmmu.
+assert(Hnotsh2:  ~In indirection (getIndirections sh2 s)) by intuition.
+assert (Hsh2ind: getIndirections sh2 s =  getIndirections sh2 s')
+ by (apply getIndirectionsMapMMUPage1 with entry;trivial).
+ rewrite Hsh2ind in *.
+assert(Hnotll:  ~In indirection (getLLPages ll s (nbPage + 1))) by intuition.
+assert (Hllind: getLLPages ll s (nbPage + 1) =  getLLPages ll s' (nbPage + 1))
+ by (apply getLLPagesMapMMUPage with entry;trivial).
+ rewrite Hllind in *.
+ trivial.
+ Admitted.     
   
   
 Lemma kernelDataIsolationAddIndirection
-s indirection nextIndirection  entry nbLgen  pd  indMMUToPrepare vaToPrepare partition l  :
+s indirection nextIndirection  entry nbLgen  pd  indMMUToPrepare 
+(vaToPrepare vaNextInd : vaddr) partition l  
+(currentPart currentPD ptMMUvaNextInd ptSh1VaNextInd: page) pdpart:
+(forall parts, In parts (getPartitions multiplexer s) ->
+   ~ In nextIndirection (getAccessibleMappedPages parts s)) ->
+kernelDataIsolation s ->   
 lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+verticalSharing s ->
+partitionsIsolation s ->
+consistency s ->
 Some nbLgen = StateLib.getNbLevel ->
 indirectionDescription s partition indirection PDidx vaToPrepare l ->
 isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
@@ -7737,6 +7845,20 @@ isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare 
 isWellFormedMMUTables nextIndirection s ->
 false = StateLib.Level.eqb l fstLevel ->
 nextEntryIsPP partition PDidx pd s ->
+writeAccessibleRecPreparePostcondition currentPart nextIndirection s ->
+In currentPart (getPartitions multiplexer s) ->
+getTableAddrRoot ptMMUvaNextInd PDidx currentPart vaNextInd s->
+isPE ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s->
+entryUserFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) false s ->
+entryPresentFlag ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) true s ->
+nextEntryIsPP currentPart PDidx currentPD s ->
+(defaultPage =? ptMMUvaNextInd) = false ->
+isEntryPage ptMMUvaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) nextIndirection s ->
+(* (exists va : vaddr,
+  isEntryVA ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) va s /\ beqVAddr defaultVAddr va = true)-> *)
+(defaultPage =? ptSh1VaNextInd) = false ->
+getTableAddrRoot ptSh1VaNextInd sh1idx currentPart vaNextInd s ->
+isVE ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s ->
 
 noDupPartitionTree s ->
 nextIndirection <> indirection ->
@@ -7746,7 +7868,8 @@ noDupConfigPagesList s ->
 isPresentNotDefaultIff s ->
 configTablesAreDifferent s ->
 (defaultPage =? nextIndirection) = false ->
-kernelDataIsolation s ->
+nextEntryIsPP partition PDidx pdpart s ->
+
 kernelDataIsolation
   {|
   currentPartition := currentPartition s;
@@ -7760,6 +7883,7 @@ kernelDataIsolation
                  user := true;
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
 Proof.
+intros * Hnotacces Hkdi.
 intros.
 set(s':={|currentPartition:= _ |}) in *.
 unfold kernelDataIsolation in *.
@@ -7784,8 +7908,9 @@ rewrite  getAccessibleMappedPagesAddIndirection with (vaToPrepare:= vaToPrepare)
 (l:=l) (entry:=entry)
 (nbLgen:=nbLgen) (partition:=partition) (nextIndirection:=nextIndirection)
 (indMMUToPrepare:=indMMUToPrepare) (indirection:=indirection) (part:=partition1)(pd:=pd) ;trivial.
-assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
-   ~ In nextIndirection (getAccessibleMappedPages parts s)) by admit.
+(*    intros.
+   apply nextIndirectionNotAccessibleInAnyPartition with currentPart currentPD ptMMUvaNextInd vaNextInd ptSh1VaNextInd;trivial.
+ *)   
 (* assert(Hinconfigs': In nextIndirection (getConfigPages partition s')) by admit. *)
 assert(Horpage: x=nextIndirection \/ x <> nextIndirection) by apply pageDecOrNot.
 destruct Horpage as [Horpage|Horpage].
@@ -7797,26 +7922,29 @@ destruct Horpage as [Horpage|Horpage].
   destruct Horparts1 as [Horparts1|Horparts1].
   + subst.
     assert(Hin: ~ In x (getConfigPages partition2 s)).
-    apply H15 with partition;trivial.
+    apply Hkdi with partition;trivial.
     contradict Hin.
     assert(Horparts2: partition2 = partition \/ partition2 <> partition) by apply pageDecOrNot.
     destruct Horparts2 as [Horparts2|Horparts2].
     * subst.
-      admit. (* Ok1 : In x (getConfigPages partition s') -> In x (getConfigPages partition s)*)
+    apply getConfigPagesAddIndirectionNotSamePage with nextIndirection pdpart vaToPrepare l indirection entry;
+    trivial. (* Ok1 : In x (getConfigPages partition s') -> In x (getConfigPages partition s)*)
     * assert(Hconfig: getConfigPages partition2 s' = getConfigPages partition2 s).
-      admit. (* Ok config Eq*)
+     symmetry. apply getConfigPagesMapMMUPage with partition entry;trivial.  admit. (* Ok config Eq : getConfigPagesMapMMUPage*)
+     admit.
+     intuition.
       rewrite <- Hconfig;trivial.
   + assert(Horparts2: partition2 = partition \/ partition2 <> partition) by apply pageDecOrNot.
     destruct Horparts2 as [Horparts2|Horparts2].
     * subst.
       assert(Hin: ~ In x (getConfigPages partition s)).
-      apply H15 with partition1;trivial.
+      apply Hkdi with partition1;trivial.
       contradict Hin.
       admit.  (* Ok1 *)
     * assert(Hconfig: getConfigPages partition2 s' = getConfigPages partition2 s).
       admit. (* Ok config Eq*)
       rewrite Hconfig;trivial.
-      apply H15 with partition1;trivial.
+      apply Hkdi with partition1;trivial.
 Admitted.
  
  
@@ -7824,7 +7952,7 @@ Lemma insertEntryIntoLLPCAddIndirection  ptMMUTrdVA phySh2addr phySh1addr indMMU
  phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
   ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy
-  lastLLTable idxToPrepare:
+  lastLLTable (* idxToPrepare *):
 forall s : state,
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
@@ -7834,7 +7962,7 @@ insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstV
 insertEntryIntoLLPC
   {|
   currentPartition := currentPartition s;
-  memory := add phyPDChild idxToPrepare
+  memory := add phyPDChild (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
                  read := true;
@@ -7852,17 +7980,66 @@ Proof.
 intros.
 unfold insertEntryIntoLLPC in *;intuition.
 unfold propagatedPropertiesPrepare in *.
-assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
+
+(* assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
    ~ In phyMMUaddr (getAccessibleMappedPages parts s)).
 { intros * Hpart. 
    unfold not; intros Hgoal. 
    intuition;subst;trivial.
    contradict Hgoal. admit.   
    
-}  
+}   *)
+assert(Hlookup: exists entry, lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry)). 
+{ assert(Hep: isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ) by intuition.
+unfold isEntryPage in Hep.
+  case_eq(lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex);intros * Hlookup;
+  rewrite Hlookup in *;try now contradict Hep.
+  destruct v;try now contradict Hep.
+  exists p;trivial. }
+destruct Hlookup as (entry & Hlookup).
+assert( exists pdchild, nextEntryIsPP descChildphy PDidx pdchild s) as(pdchild & Hpdchild).
+{ assert(Hpde : partitionDescriptorEntry s) by (unfold consistency in *;intuition).
+  unfold partitionDescriptorEntry in *.
+  assert(Hchildpart: In descChildphy (getPartitions multiplexer s) ) by intuition.
+  generalize (Hpde descChildphy Hchildpart PDidx);clear Hpde;intros Hpde.
+  destruct Hpde as (_ & _ & pdchild & Hppchild & Hnptdef). left;trivial.
+  exists pdchild;trivial. }
 intuition;subst;trivial.
-+ 
-
++ unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *;intuition.
+  eapply kernelDataIsolationAddIndirection with 
+(partition:= descChildphy)(pd:=pdchild)(currentPart:= currentPartition s) (ptSh1VaNextInd:= ptSh1FstVA); trivial; try eassumption. 
+admit.
+  unfold consistency in *;intuition.
+  assert(Hconfig: In phyPDChild (getConfigPages descChildphy s)). 
+  {  assert(Hroot: indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l) by trivial.
+     unfold getConfigPages. 
+     simpl. right.
+     unfold getConfigPagesAux.
+     apply nextEntryIsPPgetPd in Hpdchild.
+     rewrite Hpdchild.
+     pose proof pdSh1Sh2ListExistsNotNull as Hkey.
+     destruct Hkey  with s descChildphy as ( (pd & Hpd & _) & (sh1 & Hsh1 & _) & (sh2 & Hsh2 & _) & (ll & Hll & _));trivial.
+     rewrite Hsh1.
+     rewrite Hsh2.
+     rewrite Hll.
+     apply in_app_iff.
+     left.
+     apply indirectionDescriptionInGetIndirections  with descChildphy vaToPrepare l;trivial.
+     apply nextEntryIsPPgetPd;trivial.
+     }
+     
+  assert(Haccessnotconfig: forall part, In part (getPartitions multiplexer s) ->
+   ~In phyMMUaddr (getConfigPages part s)). 
+   {  unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *. 
+   unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+   intuition. }
+  assert(Hchildpart:  In descChildphy (getPartitions multiplexer s)) by trivial.
+  apply Haccessnotconfig in Hchildpart.
+  unfold not;intros;subst;now contradict Hchildpart.
+  eapply phyPageNotDefault;try eassumption.
+  +
+   SearchAbout entryPresentFlag.
+    
 Admitted.    
 Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
      phyMMUaddr phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
