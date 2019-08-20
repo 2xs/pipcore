@@ -7150,7 +7150,7 @@ destruct  Hances as [ Hances | Hances].
           } }
          case_eq(closestAncestor currentPart partition1 s); [intros  closestAnc Hclose| 
           intros Hclose];
-          rewrite Hclose in *; try now contradict H1.
+          rewrite Hclose in *; try now contradict H. 
          assert(Hcloseintree : In closestAnc (getPartitions multiplexer s)). 
           { revert Hclose Hcurpart.
             unfold consistency in *. 
@@ -7384,11 +7384,10 @@ destruct  Hances as [ Hances | Hances].
             destruct Horpart1 as [Horpart1 | Horpart1].
             +++ subst. 
               assert (Htrue : partition1 <> child1 ). 
-              (* { unfold not;intros Hfasle;subst child1.
+               { unfold not;intros Hfasle;subst child1.
                 contradict Hances.
-                revert Hchild11 Horcurpart  Hin1 Hcurpart .
-                assert(Hisparent : isParent s ). 
-                { unfold consistency in *. intuition. }
+                revert Hchild11 Horcurpart  Hpart Hcurpart .
+
                  assert( partitionDescriptorEntry s /\ parentInPartitionList s) as (Hpde & Hparentintree).
           { unfold consistency in *. intuition. } 
                 revert Hnoduptree Hisparent Hparentintree Hpde. 
@@ -7440,50 +7439,24 @@ destruct  Hances as [ Hances | Hances].
            trivial.
           unfold disjoint in *.
          intros.
-         assert(Hx : In x (getMappedPages partition1 s)).
-         apply accessibleMappedPagesInMappedPages; trivial. simpl.
-         unfold incl in *.   
-         intuition subst x.
-          * apply Hdisjoint with phyDescChild;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. apply Hincl2; trivial.
-           * 
-           apply Hdisjoint with phyPDChild ;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial. trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. apply Hincl2; trivial.
-          * 
-           apply Hdisjoint with phySh1Child;trivial.
-          unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial. trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-            right. apply Hincl2; trivial.
-            * 
-           apply Hdisjoint with phySh2Child;trivial.
-          unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial. trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-            right. apply Hincl2; trivial.
-          * 
-           apply Hdisjoint with phyConfigPagesList;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial. trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-          right. apply Hincl2; trivial. }
-     +++   
+         unfold not;intros Hfalse.
+         assert(Hx : In nextIndirection (getMappedPages partition1 s)).
+         apply accessibleMappedPagesInMappedPages; trivial.
+         
+         assert(Hgen : ~ In nextIndirection (getUsedPages child1 s)).
+        apply Hdisjoint. unfold getUsedPages. apply in_app_iff.
+       right;trivial.
+        assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
+        unfold incl in *.
+        apply Hincl2 in Hincurpart.
+      contradict Hgen.
+       unfold getUsedPages.
+       apply in_app_iff.
+       right;trivial. }
+       +++ 
+          
             assert(Horc : child1 = child2 \/ child1 <> child2) by apply pageDecOrNot.
            destruct Horc as [Horc | Horc]. 
             subst. 
@@ -7498,14 +7471,12 @@ destruct  Hances as [ Hances | Hances].
            revert dependent child2. 
 (*            revert dependent child1.  *)
            revert dependent partition1.
-           assert(Hisparent : isParent s).
-           { unfold consistency in *. intuition. }
            assert( partitionsIsolation s /\ isChild s /\ verticalSharing s) as (His & Hischild ).
            { unfold consistency in *. intuition. }
            intros partition1 Htmp Htmp1. 
            revert Hparentintree Hischild Hmultnone Hnoduptree Hisparent Hcurpart (* Hmulteq *).
            revert dependent closestAnc.
-           revert Hpde  Hnocycle His  Hvs.
+           revert Hpde  Hnocycle His  Hvs Htmp1.
            clear .
            revert currentPart  partition1.
            unfold closestAncestor.
@@ -7569,14 +7540,12 @@ destruct  Hances as [ Hances | Hances].
            - apply IHn with  child2; trivial.
 (*            * omega. *)
            * omega. 
-           * unfold parentInPartitionList in *. 
-             apply Hparentintree with currentPart;trivial.
-             apply nextEntryIsPPgetParent;trivial.   
-          * revert  Hances Hparent Hpde Hisparent Hcurpart Hparentintree Hnoduptree Hmultnone.
+ 
+          * revert  Htmp1 Hparent Hpde Hisparent Hcurpart Hparentintree Hnoduptree Hmultnone.
              clear.
             revert currentPart partition1 parent.
             intros.
-            contradict Hances.
+            contradict Htmp1.
             assert(Hmult : In multiplexer (getAncestors currentPart s)).
             { apply multiplexerIsAncestor;trivial. 
               unfold not;intros; subst.
@@ -7609,6 +7578,9 @@ destruct  Hances as [ Hances | Hances].
             unfold parentInPartitionList in *.
             apply Hparentintree with currentPart;trivial.
             apply nextEntryIsPPgetParent;trivial. 
+                       * unfold parentInPartitionList in *. 
+             apply Hparentintree with currentPart;trivial.
+             apply nextEntryIsPPgetParent;trivial.  
           * unfold not;intros.
             subst. clear Hi. contradict i.
             destruct nbPage;simpl;left;trivial.
@@ -7723,64 +7695,34 @@ destruct  Hances as [ Hances | Hances].
            simpl.
            replace    (n - 0 + 1) with (S n) by omega.
            trivial.
+            assert(Hincurpart: In nextIndirection (getMappedPages currentPart s)). 
+        { apply inGetMappedPagesGetTableRoot with vaNextInd ptMMUvaNextInd currentPD;
+          trivial. intros ;split;subst;trivial. }
            assert(Hdisjoint : disjoint (getUsedPages child1 s) (getUsedPages child2 s)).
            unfold partitionsIsolation in *.
            apply Hiso with closestAnc; trivial.
            unfold disjoint in *.
            intros.
-           assert(mapped1 : In x (getMappedPages partition1 s)).
+           unfold not;intros Hx.
+           assert(mapped1 : In nextIndirection (getMappedPages partition1 s)).
            apply accessibleMappedPagesInMappedPages; trivial.
            unfold incl in *.
            apply Hincl2 in mapped1.
            simpl. 
-           intuition subst x.
-           * apply Hdisjoint with phyDescChild;trivial.
+           assert(Hmap: In nextIndirection (getUsedPages child1 s)).
            unfold getUsedPages.
            apply in_app_iff.
            right.
            apply Hincl1; trivial.
+           apply Hdisjoint in Hmap.
+           contradict Hmap.
+           
+           
            unfold getUsedPages.
+           
            apply in_app_iff.
-           right. trivial.
-           * 
-           apply Hdisjoint with phyPDChild ;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right.
-           apply Hincl1; trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial.
-           * 
-           apply Hdisjoint with phySh1Child;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right.
-           apply Hincl1; trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial.
-           * 
-           apply Hdisjoint with phySh2Child;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right.
-           apply Hincl1; trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial.
-           * 
-           apply Hdisjoint with phyConfigPagesList;trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right.
-           apply Hincl1; trivial.
-           unfold getUsedPages.
-           apply in_app_iff.
-           right. trivial.
-            }    *)
-
-Admitted.  
+           right. trivial. }
+Qed.           
       
   
   
