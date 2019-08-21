@@ -225,24 +225,33 @@ induction stop.
      }
      { intros. rewrite H3 in H1.    inversion H1. }
 Qed.
-Lemma indirectionDescriptionInGetIndirections indirection pd partition vaToPrepare l s:
-nextEntryIsPP partition PDidx pd s ->
-indirectionDescription s partition indirection PDidx vaToPrepare l ->
+Lemma indirectionDescriptionInGetIndirections indirection pd partition vaToPrepare l s root:
+(root=PDidx\/ root=sh1idx \/ root=sh2idx) ->
+nextEntryIsPP partition root pd s ->
+indirectionDescription s partition indirection root vaToPrepare l ->
 In indirection (getIndirections pd s).
 Proof.
-intros Hpd Hind.
+intros Horroot Hpd Hind.
 unfold indirectionDescription in *.
 destruct Hind as (tableroot & Hpp & Hrootnotdef & Hor).
  assert(Hpdor: tableroot=pd).
- { apply getPdNextEntryIsPPEq with partition s;trivial.
-  apply nextEntryIsPPgetPd;trivial. }
+ { destruct Horroot as [Horroot | [Horroot | Horroot]];subst.
+  apply getPdNextEntryIsPPEq with partition s;trivial.
+  apply nextEntryIsPPgetPd;trivial.
+  apply getSh1NextEntryIsPPEq with partition s;trivial. 
+  apply nextEntryIsPPgetFstShadow;trivial. 
+  apply getSh2NextEntryIsPPEq with partition s;trivial. 
+  apply nextEntryIsPPgetSndShadow;trivial. 
+  }
   subst tableroot.
   destruct Hor as [Hor | Hor].
+  + clear Horroot.
   intuition;subst.
   unfold getIndirections.
   pose proof nbLevelNotZero.
   destruct  nbLevel;simpl. omega.
   left;trivial.
+  +
 destruct Hor as (nbL & stop & Hnbl & Hstop & Hind & Hdef & Hl).
 apply getIndirectionInGetIndirections with vaToPrepare nbL stop;trivial.
 apply nbLevelNotZero.
@@ -5782,7 +5791,8 @@ case_eq(StateLib.getNbLevel);intros;trivial.
 assert(Hin2: In indirection (getConfigPages partition s)).
 { right.
 apply inGetIndirectionsAuxInConfigPagesPD with pd;trivial.
-apply indirectionDescriptionInGetIndirections with partition vaToPrepare l;trivial.
+apply indirectionDescriptionInGetIndirections with partition vaToPrepare l PDidx;trivial.
+left;trivial.
 apply nextEntryIsPPgetPd;trivial. }
 assert(Hdisjoint: configTablesAreDifferent s) by trivial.
 unfold configTablesAreDifferent in *.
@@ -5894,7 +5904,8 @@ case_eq(StateLib.getNbLevel);intros;trivial.
 assert(Hin2: In indirection (getConfigPages partition s)).
 { right.
 apply inGetIndirectionsAuxInConfigPagesPD with pd;trivial.
-apply indirectionDescriptionInGetIndirections with partition vaToPrepare l;trivial.
+apply indirectionDescriptionInGetIndirections with partition vaToPrepare l PDidx;trivial.
+left;trivial.
 apply nextEntryIsPPgetPd;trivial. }
 assert(Hdisjoint: configTablesAreDifferent s) by trivial.
 unfold configTablesAreDifferent in *.
@@ -6364,7 +6375,8 @@ assert(Hpds : getPdsVAddr part nbLgen getAllVAddrWithOffset0 s =
 getPdsVAddr part nbLgen getAllVAddrWithOffset0 s') .
 { apply getPdsVAddrAddIndirection with partition pd entry;trivial.
 apply nextEntryIsPPgetPd;trivial.
-apply indirectionDescriptionInGetIndirections with partition vaToPrepare l;trivial.
+apply indirectionDescriptionInGetIndirections with partition vaToPrepare l PDidx;trivial.
+left;trivial.
 apply nextEntryIsPPgetPd;trivial. }
 rewrite <-Hpds.
 unfold s'.
@@ -6687,7 +6699,8 @@ rewrite <- Hpd in Hkey2.
 clear Hpd.
 rewrite Hpdpart in *.
 assert(Hinmmu: In indirection (getIndirections pdpart s)). 
-{ apply indirectionDescriptionInGetIndirections with partition vaToPrepare l;trivial. 
+{ apply indirectionDescriptionInGetIndirections with partition vaToPrepare l PDidx;trivial.
+left;trivial.
 apply nextEntryIsPPgetPd;trivial. }
 
 case_eq ( getFstShadow partition (memory s)) ; [intros sh1 Hsh1|intros Hsh1];rewrite Hsh1 in *;trivial.
@@ -6960,23 +6973,27 @@ destruct Horpage as [Horpage|Horpage].
       rewrite  Hconfig;trivial.
       apply Hkdi with partition1;trivial.
 Qed.
+Definition nextIndirectionsOR (indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr: page):=
+(indirection = phyPDChild /\ nextIndirection = phyMMUaddr ) \/ 
+(indirection = phySh1Child/\ nextIndirection = phySh1addr ) \/ 
+(indirection = phySh2Child/\ nextIndirection = phySh2addr).
  
- 
-Lemma insertEntryIntoLLPCAddIndirection  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
+Lemma insertEntryIntoLLPCAddIndirection  indirection nextIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
  phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
   ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy
   lastLLTable (* idxToPrepare *):
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr ->  
 forall s : state,
 insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
   lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
   ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
   vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy
-  lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) true ->
+  lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) true  ->
 insertEntryIntoLLPC
   {|
   currentPartition := currentPartition s;
-  memory := add phyPDChild (StateLib.getIndexOfAddr vaToPrepare l)
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
                  read := true;
@@ -6984,25 +7001,17 @@ insertEntryIntoLLPC
                  exec := true;
                  present := true;
                  user := true;
-                 pa := phyMMUaddr |}) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr
+                 pa := nextIndirection |}) (memory s) beqPage beqIndex |} ptMMUTrdVA phySh2addr
   phySh1addr phyMMUaddr ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2
   phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
   descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
   idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy lastLLTable
   (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) false.
 Proof.
+intros Hor.
 intros.
 unfold insertEntryIntoLLPC in *.
 unfold propagatedPropertiesPrepare in *.
-
-(* assert(Hnotacces:forall parts, In parts (getPartitions multiplexer s) ->
-   ~ In phyMMUaddr (getAccessibleMappedPages parts s)).
-{ intros * Hpart. 
-   unfold not; intros Hgoal. 
-   intuition;subst;trivial.
-
-   
-}   *)
 assert(Hlookup: exists entry, lookup phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry)). 
 { assert(Hep: isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ) by intuition.
 unfold isEntryPage in Hep.
@@ -7018,15 +7027,16 @@ assert( exists pdchild, nextEntryIsPP descChildphy PDidx pdchild s) as(pdchild &
   generalize (Hpde descChildphy Hchildpart PDidx);clear Hpde;intros Hpde.
   destruct Hpde as (_ & _ & pdchild & Hppchild & Hnptdef). left;trivial.
   exists pdchild;trivial. }
- assert(Hindin: In phyPDChild (getIndirections pdchild s)).
-    { unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *;intuition.
-    assert(Hroot: indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l) by trivial.
-     apply indirectionDescriptionInGetIndirections  with descChildphy vaToPrepare l;trivial.
-     }
- assert(Hconfig: In phyPDChild (getConfigPages descChildphy s)). 
+(*  assert(Hindin: In indirection (getIndirections pdchild s)).
+ { unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *.
+   assert(Hroot: indirectionDescription s descChildphy indirection PDidx vaToPrepare l).
+   { intuition subst;trivial.
+   apply indirectionDescriptionInGetIndirections  with descChildphy vaToPrepare l;subst;trivial.
+     } } *)
+ assert(Hconfig: In indirection (getConfigPages descChildphy s)). 
   { 
- unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *;intuition.
-    assert(Hroot: indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l) by trivial.
+ unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *.
+(*     assert(Hroot: indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l) by trivial. *)
      unfold getConfigPages. 
      simpl. right.
      unfold getConfigPagesAux.
@@ -7034,27 +7044,60 @@ assert( exists pdchild, nextEntryIsPP descChildphy PDidx pdchild s) as(pdchild &
      rewrite Hpdchild.
      pose proof pdSh1Sh2ListExistsNotNull as Hkey.
      destruct Hkey  with s descChildphy as ( (pd & Hpd & _) & (sh1 & Hsh1 & _) & (sh2 & Hsh2 & _) & (ll & Hll & _));trivial.
+     intuition.
+     intuition.     
      rewrite Hsh1.
      rewrite Hsh2.
      rewrite Hll.
+     destruct Hor as[Hor |[Hor | Hor]].
+     + intuition;subst.
      apply in_app_iff.
      left.
-     trivial. }     
+     trivial.
+     apply indirectionDescriptionInGetIndirections with descChildphy vaToPrepare l PDidx;subst;trivial.
+     left;trivial. 
+     apply nextEntryIsPPgetPd;trivial. 
+    + intuition;subst.
+     apply in_app_iff.
+     right.
+     apply in_app_iff.
+     left.
+     apply indirectionDescriptionInGetIndirections  with descChildphy vaToPrepare l sh1idx;subst;trivial.
+     right;left;trivial. 
+     apply nextEntryIsPPgetFstShadow;trivial.
+     + intuition;subst.
+     apply in_app_iff.
+     right.
+     apply in_app_iff.
+     right.
+     apply in_app_iff.
+     left.
+     apply indirectionDescriptionInGetIndirections  with descChildphy vaToPrepare l sh2idx;subst;trivial.
+     right;right;trivial. 
+     apply nextEntryIsPPgetSndShadow;trivial.
+       }     
   assert(Haccessnotconfig: forall part, In part (getPartitions multiplexer s) ->
-   ~In phyMMUaddr (getConfigPages part s)). 
-   {  unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *. 
-   unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+   ~In nextIndirection (getConfigPages part s)). 
+   { destruct Hor as[(Hi1&Hi2) |[(Hi1&Hi2) | (Hi1&Hi2)]];subst;
+     assert(Hcons: initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr ) by intuition;
+     unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
+     unfold initPEntryTablePreconditionToPropagatePrepareProperties in *; 
    intuition. }
    assert(Hchildpart:  In descChildphy (getPartitions multiplexer s)) by intuition.
   apply Haccessnotconfig in Hchildpart.
   unfold consistency, indirectionDescriptionAll, isWellFormedTables, writeAccessibleRecPreparePostconditionAll in *;intuition;subst;trivial.
 + (** kernelDataIsolation **) 
+
   eapply kernelDataIsolationAddIndirection with 
    (partition:= descChildphy)(pd:=pdchild)(currentPart:= currentPartition s) (ptSh1VaNextInd:= ptSh1FstVA); trivial; try eassumption.
   assert(Hnotacces: newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr) by trivial.
   unfold newIndirectionsAreNotAccessible in *.
   intros.
   apply Hnotacces;trivial.
+  unfold nextIndirectionsOR in *.
+  intuition.
+    unfold nextIndirectionsOR in *.
+  intuition.
   left;trivial.
   unfold consistency in *;intuition.
   assert(Hwell: isWellFormedMMUTables phyMMUaddr s) by trivial.
@@ -7063,8 +7106,7 @@ assert( exists pdchild, nextEntryIsPP descChildphy PDidx pdchild s) as(pdchild &
   unfold not;intros;subst;now contradict Hchildpart.
   unfold not;intros;subst;now contradict Hchildpart.
   eapply phyPageNotDefault;try eassumption.
-+
-   SearchAbout entryPresentFlag.
++ (** partitionsIsolation *)
     
 Admitted.    
 Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
