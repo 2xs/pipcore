@@ -619,6 +619,31 @@ case_eq (beqPairs (table, idx) (table2, idx2) beqPage beqIndex);trivial;intros H
      rewrite Hmemory. trivial.
 Qed.
 
+Lemma newIndirectionsAreNotAccessibleUpdateLLVA idx table    entry s x phyMMUaddr phySh1addr phySh2addr:
+let s':=  {|
+currentPartition := currentPartition s;
+memory := add table idx (VA x)
+            (memory s) beqPage beqIndex |}  in 
+lookup table idx (memory s) beqPage beqIndex = Some (VA entry) ->
+newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr ->
+newIndirectionsAreNotAccessible
+ s' phyMMUaddr phySh1addr phySh2addr.  
+Proof.
+intros * Hentry.
+unfold newIndirectionsAreNotAccessible.
+intros.
+assert(Haccessmap : forall partition, getAccessibleMappedPages partition s' =
+getAccessibleMappedPages partition s).
+{ intros. apply getAccessibleMappedPagesUpdateSh2 with entry;trivial. }
+rewrite Haccessmap in *. clear Haccessmap.
+apply H;trivial.
+assert(Hpartitions : getPartitions multiplexer
+    s = 
+getPartitions multiplexer s').
+apply getPartitionsUpdateSh2 with entry; trivial.
+rewrite <- Hpartitions in *; clear Hpartitions;trivial.
+Qed.
+  
 Lemma propagatedPropertiesPrepareUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
       ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA
@@ -747,6 +772,7 @@ intuition.
   trivial.
   (** In newLastLLable (getLLPages ?LLDescChild s (nbPage + 1)) **)
   (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
++ apply newIndirectionsAreNotAccessibleUpdateLLVA with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.

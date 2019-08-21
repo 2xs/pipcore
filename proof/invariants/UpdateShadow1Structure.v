@@ -6861,4 +6861,23 @@ apply readPresentAddDerivation with v0;trivial.
 apply readVirtualAddDerivation with v0;trivial.
 Qed.
    
-   
+Lemma newIndirectionsAreNotAccessibleAddDerivation s pt idx vaValue v0 phyMMUaddr phySh1addr phySh2addr: 
+let s':= {|
+  currentPartition := currentPartition s;
+  memory := add pt idx (VE {| pd := false; va := vaValue |}) (memory s) beqPage beqIndex |} in 
+  lookup pt idx (memory s) beqPage beqIndex = Some (VE v0) -> 
+isPartitionFalse pt idx s -> 
+ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr -> 
+ newIndirectionsAreNotAccessible s' phyMMUaddr phySh1addr phySh2addr.
+Proof.
+intros s' Hlookup Hpart Hgoal.
+unfold newIndirectionsAreNotAccessible in *.
+intros.
+assert(Haccess: getAccessibleMappedPages parts s' =getAccessibleMappedPages parts s).
+apply getAccessibleMappedPagesAddDerivation with v0;trivial.
+rewrite Haccess.
+apply Hgoal;trivial.
+assert(Hparts: getPartitions multiplexer s' = getPartitions multiplexer s).
+apply getPartitionsAddDerivation with v0;trivial.
+rewrite <- Hparts;trivial.
+Qed.

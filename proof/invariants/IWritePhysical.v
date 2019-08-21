@@ -2671,6 +2671,33 @@ apply readVirtualUpdateLLCouplePPVA with v0;trivial.
 Qed.
 
 
+Lemma newIndirectionsAreNotAccessibleUpdateLLCouplePPVA  s  idx  v0  table  x phyMMUaddr phySh1addr phySh2addr:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in 
+~ In table (getPartitions multiplexer s)->
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
+newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr ->
+newIndirectionsAreNotAccessible s' phyMMUaddr phySh1addr phySh2addr.
+Proof.
+intros * Hkey.
+intros.
+unfold newIndirectionsAreNotAccessible in *.
+intros.
+assert(Hparts: getPartitions multiplexer s = getPartitions multiplexer s').
+apply getPartitionsUpdateLLCouplePPVA  with v0;trivial.
+assert(Haccess: getAccessibleMappedPages parts s' =getAccessibleMappedPages parts s).
+apply getAccessibleMappedPagesUpdateLLCouplePPVA with v0;trivial.
+unfold not;intros;subst.
+
+rewrite <- Hparts in *;trivial.
+now contradict Hkey.
+rewrite Haccess.
+apply H0;trivial.
+rewrite Hparts in *;trivial.
+Qed.
+
 
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
@@ -2782,6 +2809,7 @@ admit. (** consistency property not found:  LLconfiguration5' (CIndex 1 <> nextF
   apply isWellFormedMMUTablesUpdateLLCouplePPVA with entry;trivial.
   apply isWellFormedFstShadowTablesUpdateLLCouplePPVA with entry;trivial.
   apply isWellFormedSndShadowTablesUpdateLLCouplePPVA with entry;trivial.
++ apply newIndirectionsAreNotAccessibleUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.  

@@ -246,7 +246,9 @@ intuition;subst;trivial;simpl.
 + assert(Hi: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hi.
   apply getConfigTablesLinkedListAddDerivation with v0;trivial.
-+
++ admit.
++ admit.
++ admit.
 Admitted.
 
 
@@ -261,7 +263,8 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA 
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
-   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s }} 
+   /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr }} 
   
   writeVirEntry ptSh1FstVA idxFstVA fstVA 
   
@@ -274,6 +277,7 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s}}.
 Proof.
 eapply weaken. 
@@ -311,6 +315,7 @@ intuition.
   apply isWellFormedFstShadowTablesAddDerivation with v0 (currentPartition s) ; 
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
++ apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
 + unfold isEntryVA;cbn.
   assert(Htrue : beqPairs (ptSh1FstVA, idxFstVA) (ptSh1FstVA, idxFstVA) beqPage beqIndex
     = true).
@@ -333,7 +338,9 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
  /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
  /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
    StateLib.Level.pred l = Some lpred /\
-   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\ isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
+   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s     /\ 
+   newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr /\ 
+   isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
   writeVirEntry ptSh1SndVA idxSndVA sndVA 
     
   {{fun _ s  => 
@@ -344,6 +351,7 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}}.
 Proof.
@@ -381,6 +389,7 @@ intuition.
   apply isWellFormedFstShadowTablesAddDerivation with v0 (currentPartition s) ; 
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
++ apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
 + unfold propagatedPropertiesPrepare in *.
   intuition;subst.
   apply isEntryVAAddDerivation;trivial.  
@@ -413,6 +422,7 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}} 
   writeVirEntry ptSh1TrdVA idxTrdVA trdVA 
@@ -424,6 +434,7 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s
    /\ isEntryVA  ptSh1TrdVA idxTrdVA trdVA s}}.
@@ -459,6 +470,7 @@ intuition.
   apply isWellFormedFstShadowTablesAddDerivation with v0 (currentPartition s) ; 
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
++ apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
 + unfold propagatedPropertiesPrepare in *.
   intuition;subst.
   apply isEntryVAAddDerivation;trivial.  

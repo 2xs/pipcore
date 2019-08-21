@@ -2654,7 +2654,26 @@ apply readPresentUpdateLLIndex with v0;trivial.
 apply readVirtualUpdateLLIndex with v0;trivial.
 Qed.
 
-
+Lemma newIndirectionsAreNotAccessibleUpdateLLIndex s  idx  v0  table  x phyMMUaddr phySh1addr phySh2addr:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (I x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
+newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr ->
+newIndirectionsAreNotAccessible s' phyMMUaddr phySh1addr phySh2addr.
+Proof.
+intros.
+unfold newIndirectionsAreNotAccessible in *.
+intros.
+assert(Haccess: getAccessibleMappedPages parts s' =getAccessibleMappedPages parts s).
+apply getAccessibleMappedPagesUpdateLLIndex with v0;trivial.
+rewrite Haccess.
+apply H0;trivial.
+assert(Hparts: getPartitions multiplexer s = getPartitions multiplexer s').
+apply getPartitionsUpdateLLIndex with v0;trivial.
+rewrite Hparts;trivial.
+Qed.
 
 Lemma insertEntryIntoLLPCUpdateLLIndex s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
@@ -2775,6 +2794,7 @@ subst.
   apply isWellFormedMMUTablesUpdateLLIndex with entry;trivial.
   apply isWellFormedFstShadowTablesUpdateLLIndex with entry;trivial.
   apply isWellFormedSndShadowTablesUpdateLLIndex with entry;trivial.
++ apply newIndirectionsAreNotAccessibleUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.  

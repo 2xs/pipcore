@@ -584,6 +584,11 @@ isWellFormedMMUTables phyMMUaddr s
 /\ isWellFormedFstShadow lpred phySh1addr s 
 /\ isWellFormedSndShadow lpred phySh2addr s.
 
+ 
+Definition newIndirectionsAreNotAccessible s  phyMMUaddr phySh1addr phySh2addr :=
+ forall parts nextIndirection, In parts (getPartitions multiplexer s) -> 
+    (nextIndirection = phyMMUaddr \/ nextIndirection = phySh1addr \/ nextIndirection = phySh2addr) -> 
+    ~ In nextIndirection (getAccessibleMappedPages parts s). 
 
 Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
@@ -596,6 +601,7 @@ propagatedPropertiesPrepare indMMUToPreparebool fstLL LLChildphy newLastLLable s
 writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
 StateLib.Level.pred l = Some lpred /\
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\
+newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr /\
 isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
 
 Definition initSndShadowPreconditionToProveNewProperty nbL s table  curidx:=

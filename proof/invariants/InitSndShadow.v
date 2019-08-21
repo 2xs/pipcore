@@ -43,7 +43,6 @@ Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
 
 (******************************TO BE MOVED ***********************)
 
- 
 
 (********************************************)
 
@@ -435,7 +434,9 @@ Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
     /\ StateLib.Level.pred l = Some lpred) 
     /\ isWellFormedMMUTables phyMMUaddr s 
     /\ isWellFormedFstShadow lpred phySh1addr s 
-    /\ isWellFormedSndShadow lpred phySh2addr s }}.
+    /\ isWellFormedSndShadow lpred phySh2addr s 
+    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+    }}.
    Proof.
  unfold initSndShadow. 
 eapply WP.bindRev.
@@ -518,6 +519,34 @@ eapply WP.bindRev.
   destruct lpred;simpl in *.
   destruct fstLevel;simpl in *.
   subst;f_equal;apply proof_irrelevance.
+  (** prove new property : newIndirectionsAreNotAccessible **)
+  unfold  propagatedPropertiesPrepare, consistency in *. 
+  intuition.
+  unfold newIndirectionsAreNotAccessible.
+  intros * Hpart Hor.
+  destruct Hor as [Hor| [Hor | Hor]];subst.
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUFstVA) 
+  (vaNextInd:= fstVA)
+  (ptSh1VaNextInd:=ptSh1FstVA);trivial;unfold consistency;intuition.
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUSndVA) 
+  (vaNextInd:= sndVA)
+  (ptSh1VaNextInd:=ptSh1SndVA);trivial;unfold consistency;intuition.
+   
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUTrdVA) 
+  (vaNextInd:= trdVA)
+  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition.
   - intros. subst.
   eapply strengthen.
   eapply weaken.
@@ -590,4 +619,32 @@ eapply WP.bindRev.
   contradict Hpred.
   inversion Hpred.
   trivial.
+(** prove new property : newIndirectionsAreNotAccessible **)
+  unfold  propagatedPropertiesPrepare, consistency in *. 
+  intuition.
+  unfold newIndirectionsAreNotAccessible.
+  intros * Hpart Hor.
+  destruct Hor as [Hor| [Hor | Hor]];subst.
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUFstVA) 
+  (vaNextInd:= fstVA)
+  (ptSh1VaNextInd:=ptSh1FstVA);trivial;unfold consistency;intuition.
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUSndVA) 
+  (vaNextInd:= sndVA)
+  (ptSh1VaNextInd:=ptSh1SndVA);trivial;unfold consistency;intuition.
+   
+  * 
+  eapply nextIndirectionNotAccessibleInAnyPartition with 
+  (currentPart:=(currentPartition s))
+  (currentPD:= currentPD)
+  (ptMMUvaNextInd:= ptMMUTrdVA) 
+  (vaNextInd:= trdVA)
+  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition.  
 Qed.

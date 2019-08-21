@@ -4894,6 +4894,7 @@ unfold s'.
   rewrite getIndirectionsOnlySh2 with phySh2Child level s;trivial.
   rewrite getLLPagesOnlyRoot;trivial.
   unfold incl.
+  
   assert (Hances : In partition1 (getAncestors currentPart s) \/
   ~ In partition1 (getAncestors currentPart s)).
   { clear. 
@@ -4936,6 +4937,7 @@ unfold s'.
         apply Hb4 with partition1; trivial.
   
    (** child config pages are not accessible into its ancestors **)
+   (** partition not an ancestor*)
   * assert(Hor : currentPart = partition1 \/ currentPart <> partition1) by apply pageDecOrNot. 
     destruct Hor as [Hor | Hor].
   -- subst partition1.
