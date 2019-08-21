@@ -2775,7 +2775,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   apply getLLPagesUpdateLLIndex with entry;trivial.
   rewrite <- Hconf;trivial.
 (* + assert(exists NbFI : index, isIndexValue newLastLLable (CIndex 1) NbFI s /\ NbFI >= minFI) as (nbFI & Hnbfi & Hnbfi1) by trivial.
-assert(idx=(CIndex 1) \/ idx<>(CIndex 1)) as [Hor|Hor] by admit.
+assert(idx=(CIndex 1) \/ idx<>(CIndex 1)) as [Hor|Hor] by .
 subst.
 * 
   exists nbFI.
