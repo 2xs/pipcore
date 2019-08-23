@@ -2671,6 +2671,31 @@ apply readPresentUpdateLLCouplePPVA with v0;trivial.
 apply readVirtualUpdateLLCouplePPVA with v0;trivial.
 Qed.
 
+Lemma newIndirectionsAreNotAccessibleUpdateLLCouplePPVA phyMMUaddr phySh1addr phySh2addr
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in            
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+~ In table (getPartitions multiplexer s) ->
+newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr ->
+newIndirectionsAreNotAccessible s' phyMMUaddr phySh1addr phySh2addr.
+Proof.
+intros s'  Hlookup (*   *)Hnotpart Hgoal.
+unfold newIndirectionsAreNotAccessible in *.
+intros * Hi Hii.
+assert(Hpartitions: getPartitions multiplexer s' = getPartitions multiplexer s).
+symmetry. apply getPartitionsUpdateLLCouplePPVA with v0;trivial.
+rewrite Hpartitions in *.
+assert(Haccess: getAccessibleMappedPages parts s' = getAccessibleMappedPages parts s). (* *)
+ apply getAccessibleMappedPagesUpdateLLCouplePPVA with v0;trivial.
+contradict Hnotpart;subst;trivial.
+rewrite Haccess.
+apply Hgoal;trivial.
+Qed.
+
+
 
 
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
@@ -2779,6 +2804,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   apply isWellFormedMMUTablesUpdateLLCouplePPVA with entry;trivial.
   apply isWellFormedFstShadowTablesUpdateLLCouplePPVA with entry;trivial.
   apply isWellFormedSndShadowTablesUpdateLLCouplePPVA with entry;trivial.
++ apply newIndirectionsAreNotAccessibleUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.  
