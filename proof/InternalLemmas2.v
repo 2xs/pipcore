@@ -384,9 +384,16 @@ apply H4 with n;trivial.
 omega.
 Qed.
 
+Definition or3 idxroot:=
+(idxroot=PDidx \/ idxroot=sh1idx \/ idxroot = sh2idx).
+
+Definition or2 idxroot:=
+(idxroot=PDidx \/ idxroot = sh2idx).
+
 Lemma indirectionNotInPreviousMMULevel' s (ptVaChildpd:page) idxvaChild (* phyVaChild *)  
   pdChildphy (* currentPart *)
-(* presentvaChild *) vaChild phyDescChild level (* entry *):
+(* presentvaChild *) vaChild phyDescChild level (* entry *) root:
+or3 root ->
  partitionDescriptorEntry s ->
  isPresentNotDefaultIff s ->
  noDupConfigPagesList s ->
@@ -402,14 +409,14 @@ In phyDescChild (getPartitions multiplexer s) ->
  (defaultPage =? ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild ->
 (*  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->   *)
-nextEntryIsPP phyDescChild PDidx pdChildphy s ->
+nextEntryIsPP phyDescChild root pdChildphy s ->
 pdChildphy <> defaultPage ->
 getIndirection pdChildphy vaChild level (nbLevel - 1) s =
             Some ptVaChildpd ->
             nbLevel -1 > 0 ->
 ~ In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel - 1)).
 Proof.
-intros Hpde Hpresdef Hnodupconf Hconfigdiff (* Hparts *) (* Haccess *) (* Hlookup *) Hlevel
+intros Hor3 Hpde Hpresdef Hnodupconf Hconfigdiff (* Hparts *) (* Haccess *) (* Hlookup *) Hlevel
  (* Hnotpresent *) Hchildpart (* Hpe Htblroot *) Hdefaut Hidx (* Hentrypresent *)
 Hpdchild Hpdchildnotnull Hindchild H0.
  {  assert(0<nbLevel) by apply nbLevelNotZero.
@@ -447,7 +454,7 @@ Some ptVaChildpd).
    
      }
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition.
-  revert Hstooo Htpp Hnotdef.
+  revert Hstooo Htpp Hnotdef Hor3.
   clear.
  
   replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
@@ -500,7 +507,7 @@ Some ptVaChildpd).
     intuition.
     subst.
     now contradict H1.
-      generalize(IHn p l ptVaChildpd Hii H3 Hi1 Hindchild Hdefaut
+      generalize(IHn p l ptVaChildpd Hii H3 Hi1 Hor3 Hindchild Hdefaut
        );clear IHn ; intros iHn .
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
@@ -540,9 +547,8 @@ f_equal.
 omega.
 rewrite H1.
 assert(Hdup :   noDupConfigPagesList s) by intuition.
-apply noDupConfigPagesListNoDupGetIndirections with phyDescChild PDidx;trivial.
+apply noDupConfigPagesListNoDupGetIndirections with phyDescChild root;trivial.
 apply Hdup;trivial.
-left;trivial.
 apply beq_nat_false in Hdefaut.
 unfold not;intros;subst.
 now contradict Hdefaut.
@@ -558,6 +564,7 @@ omega.
 omega.
 }
 Qed.
+
 Lemma indexDecOrNot :
 forall p1 p2 : index, p1 = p2 \/ p1<>p2.
 Proof.
