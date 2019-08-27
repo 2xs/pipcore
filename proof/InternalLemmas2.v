@@ -1790,7 +1790,7 @@ induction stop;simpl.
   + case_eq(StateLib.Level.pred nbL );intros * Hpred;rewrite Hpred in *;try now contradict H0.
     rewrite CLevelIdentity' in H.
     rewrite H in H0.
-    rewrite <- beq_nat_refl in H0.
+    rewrite <- beq_nat_refl in H0. 
     trivial.
 * intros.
 case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *;trivial.
