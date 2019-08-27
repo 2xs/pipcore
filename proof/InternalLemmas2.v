@@ -578,6 +578,20 @@ inversion H.
 subst.
 now contradict Heq.
 Qed.
+Lemma levelDecOrNot :
+forall p1 p2 : level, p1 = p2 \/ p1<>p2.
+Proof.
+destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
+assert (Heq :l=l0 \/ l<> l0) by omega.
+destruct Heq as [Heq|Heq].
+subst.
+left;f_equal;apply proof_irrelevance.
+right. unfold not;intros.
+inversion H.
+subst.
+now contradict Heq.
+Qed.
+
 Lemma checkVAddrsEqualityWOOffsetTrueLe  :
 forall stop stopi vaToPrepare vavalue nbL,
 stopi <= stop ->
