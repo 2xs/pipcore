@@ -2872,7 +2872,7 @@ destruct Hor as  [Hsh1 | Hsh2].
   symmetry.
   apply  getSndShadowUpdateMappedPageData;trivial. } } 
  assert(Hgetind : exists indirection2 : page, getIndirection structroot va nbL stop s = Some indirection2 /\
-        (defaultPage =? indirection2) = false).
+        (defaultPage =? indirection2) = b).
         apply Hget2  with partition pdroot indirection1;trivial.
     rewrite getPdUpdateMappedPageData in *;trivial.
     destruct Hor as [Hor | Hor]; subst.
@@ -4638,7 +4638,7 @@ destruct Hor as  [Hsh1 | Hsh2].
   symmetry.
   apply  getSndShadowUpdateMappedPageData;trivial. } } 
  assert(Hgetind : exists indirection2 : page, getIndirection structroot va nbL stop s = Some indirection2 /\
-        (defaultPage =? indirection2) = false).
+        (defaultPage =? indirection2) = b).
         apply Hget2  with partition pdroot indirection1;trivial.
         cbn in *.
     rewrite getPdUpdateMappedPageData in *;trivial.

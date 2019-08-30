@@ -12600,7 +12600,7 @@ intros.
 rewrite negb_true_iff in *;subst.
 unfold wellFormedShadows in *.
 move Hcons at bottom.
-intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va Hind Hnotnull.
+intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va b Hind Hnotnull.
 assert(Hpds : forall part, StateLib.getPd part (memory s') =
 StateLib.getPd part (memory s)).
 { intros. apply getPdMapMMUPage with entry;trivial. }
@@ -12628,7 +12628,7 @@ symmetry;trivial.
    left;trivial.
 assert(Hnewgoal : exists indirection2 : page,
   getIndirection structroot va nbL stop s = Some indirection2 /\
-  (defaultPage =? indirection2) = false).
+  (defaultPage =? indirection2) = b).
 { move Hcons at bottom. apply Hcons with partition pd ind1;trivial. } 
 destruct Hnewgoal as (ind2 & Hind2 & Hdef).
 exists ind2;split;trivial.

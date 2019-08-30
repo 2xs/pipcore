@@ -96,12 +96,12 @@ forall pdroot ,
 StateLib.getPd partition (memory s) = Some pdroot -> 
 forall structroot, nextEntryIsPP partition idxroot structroot s ->  
 forall nbL stop , Some nbL = getNbLevel -> 
-forall indirection1  va, 
+forall indirection1  va b, 
 getIndirection pdroot va nbL stop s = Some indirection1 ->
-(defaultPage =? indirection1) = false -> 
+(defaultPage =? indirection1) = b -> 
 (exists indirection2, 
 getIndirection structroot va nbL stop s = Some indirection2 /\ 
-(defaultPage =? indirection2) = false).  
+(defaultPage =? indirection2) = b).  
 
 (* Definition fstShadowWellFormed (s : state) :=
 forall (partition : page),  

@@ -777,7 +777,7 @@ split.
           unfold wellFormedShadows in *.
           intros. 
           assert(Hgoal : exists indirection2 : page, getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial. 
@@ -786,7 +786,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal :exists indirection2 , getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.            
@@ -1010,7 +1010,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal : exists indirection2 : page,getIndirection structroot va nbL stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.

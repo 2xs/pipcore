@@ -1730,7 +1730,7 @@ assert(Hind : forall root, getIndirection root va nbL stop
     { intros. apply getIndirectionUpdateLLIndex with entry;trivial. }
 assert(Hgoal :  exists indirection2 : page,
       getIndirection structroot va nbL stop s = Some indirection2 /\
-      (defaultPage =? indirection2) = false). 
+      (defaultPage =? indirection2) = b). 
 { apply H with partition pdroot indirection1;trivial.
   rewrite <- Hind;trivial. }
 destruct Hgoal as (indirection2 & Hind1 & Hindnotnul).

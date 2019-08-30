@@ -227,7 +227,7 @@ insertEntryIntoLLPC
   descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l
   idxFstVA idxSndVA idxTrdVA zeroI lpred fstLL LLChildphy lastLLTable
   (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) false.
-Proof.
+Proof. 
 intros Hor Hor3.
 intros.
 unfold insertEntryIntoLLPC in *.
@@ -353,7 +353,9 @@ unfold newIndirectionsAreNotAccessible in *.
     * unfold nextIndirectionsOR in *;intuition;subst;trivial.
     * unfold isWellFormedTables in *;intuition.
     * unfold consistency in *;intuition.
-    * assert((defaultPage =? indMMUToPrepare) = true /\ isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s) as (Hi1 & Hi2).
+    * assert(Hread: StateLib.readPhyEntry phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) (memory s) =
+Some defaultPage) by trivial.
+      assert((defaultPage =? indMMUToPrepare) = true /\ isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s) as (Hi1 & Hi2).
       split;trivial.
       apply beq_nat_true in Hi1.
       unfold isEntryPage, StateLib.readPhyEntry in *. rewrite Hlookup in *.
@@ -371,8 +373,21 @@ unfold newIndirectionsAreNotAccessible in *.
     * unfold nextIndirectionsOR in *;intuition;subst;trivial.
     * unfold isWellFormedTables in *;intuition.
     * unfold consistency in *;intuition.
-    * assert(Hwellx: wellFormedShadows sh1idx s) by trivial.
+    * assert(Hl: false = StateLib.Level.eqb l fstLevel) by trivial.
+      assert(Hwellx: wellFormedShadows sh1idx s) by trivial.
       unfold wellFormedShadows in Hwellx.
+      assert(Hi:  indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l) by trivial.
+      unfold indirectionDescription in *.
+      destruct Hi as (root &Hroot & Hrootdef & Horx).
+      destruct Horx as [(Heq & Horx)|Horx];subst.
+      ++ assert (exists indirection2 : page,
+           getIndirection phySh1Child vaToPrepare l 1 s = Some indirection2 /\
+            (defaultPage =? indirection2) = true).
+        apply Hwellx with descChildphy pdchild defaultPage;trivial.
+        apply nextEntryIsPPgetPd;trivial.
+        simpl.
+        rewrite <- Hl.
+      
        admit. 
     * unfold isWellFormedTables in *;intuition.
     * unfold not;intros;subst.

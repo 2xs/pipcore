@@ -8499,7 +8499,7 @@ assert(Hpds : forall part, StateLib.getPd part (memory s') =
 StateLib.getPd part (memory s)).
 { intros. apply getPdRemoveMMUPage with entry;trivial. }
 unfold wellFormedShadows in *.
-intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va Hind Hnotnull.
+intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va b Hind Hnotnull.
 rewrite Hpds in *;clear Hpds.
 assert(Hpartseq :getPartitions multiplexer s' = getPartitions multiplexer s).
 { apply getPartitionsRemoveMMUPage1  with shadow1Child  pdChildphy
@@ -8521,7 +8521,7 @@ assert(HindS : getIndirection pd va nbL stop s = Some ind1).
   + left;trivial. }
 assert(Hnewgoal : exists indirection2 : page,
   getIndirection structroot va nbL stop s = Some indirection2 /\
-  (defaultPage =? indirection2) = false).
+  (defaultPage =? indirection2) = b).
 { move Hcons at bottom. apply Hcons with partition pd ind1;trivial. } 
 destruct Hnewgoal as (ind2 & Hind2 & Hdef).
 exists ind2;split;trivial.
