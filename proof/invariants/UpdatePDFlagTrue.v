@@ -13135,7 +13135,7 @@ assert(Hnotderv : wellFormedShadows sh1idx s).
   intuition. }
 unfold wellFormedShadows in *.
 intros parent Hparent pdroot Hpdroot structroot Hstructroot 
-nbL stop HnbL indirection1    va Hind1 Hdef1 .
+nbL stop HnbL indirection1    va b Hind1 Hdef1 .
 
 assert(HmapS : forall structroot va nbL stop , getIndirection structroot va nbL stop s' 
 = getIndirection structroot va nbL stop s ).
@@ -13166,7 +13166,7 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     symmetry.
     apply getSh1NextEntryIsPPEq with phyDescChild s;trivial.
     rewrite <- nextEntryIsPPgetFstShadow in *;trivial. }
-  subst.
+  subst structroot.
   assert(Hlevel : Some level = StateLib.getNbLevel) by trivial.
    rewrite <- HnbL in *.
    inversion Hlevel; subst level.
@@ -13180,20 +13180,32 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     apply getPdNextEntryIsPPEq with phyDescChild s;trivial. }
    subst pdroot. 
    assert(Hnotnull : (defaultPage =? phySh1Child) = false) by trivial.
+   assert(Haux:  (defaultPage =? phyPDChild) = false) by trivial.
    revert  HnbL Hind1 Hwell Hdef1 Hwellpd  Hparent  Hpdroot  Hstructroot 
-        Hdef1 Hnotnull  .
+        Hdef1 Hnotnull Haux .
    clear.
+   
    revert phyPDChild phySh1Child nbL indirection1 va stop .
    induction stop.
    intros. 
    + simpl in *.
     exists phySh1Child; split;trivial.
+    destruct b.
+    inversion Hind1;subst.
+    rewrite Haux in Hdef0.
+    now contradict Hdef0.
+    trivial.
+   
    + intros.
      simpl in Hind1.
      simpl.
      case_eq (StateLib.Level.eqb nbL fstLevel);intros Hleveleq;
      rewrite Hleveleq in *.
-     ++  exists phySh1Child; split;trivial.
+     ++ destruct b;simpl in *. 
+     
+    inversion Hind1;subst.
+    rewrite Haux in Hdef0.
+    now contradict Hdef0.  exists phySh1Child; split;trivial.
      ++  destruct Hwellpd with ( (StateLib.getIndexOfAddr va nbL) ) as
      (Hwell1 & Hwell2). 
      rewrite Hwell1 in *.
@@ -13201,6 +13213,22 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
      rewrite <- beq_nat_refl;trivial.
      rewrite H in Hind1.
       inversion Hind1.
+      destruct b.
+      subst.
+      unfold isWellFormedFstShadow in *.
+      destruct Hwell as [(Hlv & Hwell)|(Hlv & Hwell)].
+      generalize (Hwell (StateLib.getIndexOfAddr va nbL) ) ; clear Hwell ; intros (Hwell & _).
+      rewrite Hwell.
+      exists defaultPage.
+      rewrite H.
+      split;trivial.
+      subst.
+      unfold StateLib.Level.eqb in *.
+        apply beq_nat_false in Hleveleq.
+        now contradict Hleveleq.
+      
+      
+      
       subst. 
        
      
@@ -13217,6 +13245,7 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
       rewrite nextEntryIsPPgetFstShadow;trivial. }
       apply Hnotderv with parent  pdroot indirection1;trivial.
       rewrite  nextEntryIsPPgetFstShadow;trivial.
+    
 Qed.
 
 Lemma wellFormedShadowsSh2AddPartition entry s descChild ptRefChildFromSh1 currentPart
@@ -13362,7 +13391,7 @@ assert(Hnotderv : wellFormedShadows sh2idx s).
   intuition. }
 unfold wellFormedShadows in *.
 intros parent Hparent pdroot Hpdroot structroot Hstructroot 
-nbL stop HnbL indirection1    va Hind1 Hdef1 .
+nbL stop HnbL indirection1    va b Hind1 Hdef1 .
 
 assert(HmapS : forall structroot va nbL stop , getIndirection structroot va nbL stop s' 
 = getIndirection structroot va nbL stop s ).
@@ -13393,7 +13422,7 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     symmetry.
     apply getSh2NextEntryIsPPEq with phyDescChild s;trivial.
     rewrite <- nextEntryIsPPgetSndShadow in *;trivial. }
-  subst.
+  subst structroot.
   assert(Hlevel : Some level = StateLib.getNbLevel) by trivial.
    rewrite <- HnbL in *.
    inversion Hlevel; subst level.
@@ -13407,20 +13436,30 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     apply getPdNextEntryIsPPEq with phyDescChild s;trivial. }
    subst pdroot. 
    assert(Hnotnull : (defaultPage =? phySh2Child) = false) by trivial.
+  assert(Haux:  (defaultPage =? phyPDChild) = false) by trivial.
    revert  HnbL Hind1 Hwell Hdef1 Hwellpd  Hparent  Hpdroot  Hstructroot 
-        Hdef1 Hnotnull  .
+        Hdef1 Hnotnull Haux .
    clear.
    revert phyPDChild phySh2Child nbL indirection1 va stop .
    induction stop.
    intros. 
    + simpl in *.
+     destruct b.
+    inversion Hind1;subst.
+    rewrite Haux in Hdef0.
+    now contradict Hdef0.
     exists phySh2Child; split;trivial.
+ 
    + intros.
      simpl in Hind1.
      simpl.
      case_eq (StateLib.Level.eqb nbL fstLevel);intros Hleveleq;
      rewrite Hleveleq in *.
-     ++  exists phySh2Child; split;trivial.
+     ++ destruct b;simpl in *. 
+     
+    inversion Hind1;subst.
+    rewrite Haux in Hdef0.
+    now contradict Hdef0.  exists phySh2Child; split;trivial.
      ++  destruct Hwellpd with ( (StateLib.getIndexOfAddr va nbL) ) as
      (Hwell1 & Hwell2). 
      rewrite Hwell1 in *.
@@ -13428,6 +13467,22 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
      rewrite <- beq_nat_refl;trivial.
      rewrite H in Hind1.
       inversion Hind1.
+      destruct b.
+      subst.
+      unfold isWellFormedSndShadow in *.
+      destruct Hwell as [(Hlv & Hwell)|(Hlv & Hwell)].
+      generalize (Hwell (StateLib.getIndexOfAddr va nbL) ) ; clear Hwell ; intros (Hwell & _).
+      rewrite Hwell.
+      exists defaultPage.
+      rewrite H.
+      split;trivial.
+      subst.
+      unfold StateLib.Level.eqb in *.
+        apply beq_nat_false in Hleveleq.
+        now contradict Hleveleq.
+      
+      
+      
       subst. 
        
      

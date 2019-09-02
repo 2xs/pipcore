@@ -1809,3 +1809,113 @@ case_eq( lt_dec (nbL - 1) nbLevel);intros * Hl;simpl.
 omega.
 destruct nbL. simpl in *. omega.
 Qed.
+
+Lemma levelPredMinus1Nat:
+  forall l0 l' : level,
+  StateLib.Level.eqb l0 fstLevel = false -> StateLib.Level.pred l0 = Some l' -> l0 - 1 = l'.
+Proof.
+pose proof levelPredMinus1.
+intros.
+assert(l' = CLevel (l0 - 1)).
+apply H;trivial.
+unfold CLevel in H2.
+case_eq(lt_dec (l0 - 1) nbLevel);intros * Hi; rewrite Hi in *;simpl in *;
+subst;
+destruct l0;simpl in *;trivial.
+omega.
+Qed.
+
+Lemma CLevelIdentity2  :
+forall x, x  < nbLevel -> x = CLevel (x).
+Proof.
+intros. 
+unfold CLevel.
+case_eq ( lt_dec x nbLevel);intros.
+simpl;trivial.
+omega.
+Qed.
+
+            
+Lemma getIndirectionStopSRead :
+forall  stop (s : state) (nbL : level)  nextind pd va indirection, 
+stop + 1 <= nbL -> indirection <> defaultPage ->
+StateLib.getIndirection pd va nbL stop s = Some indirection-> 
+StateLib.getIndirection pd va nbL (stop + 1) s = Some ( nextind) ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (nbL - stop))) (memory s) = Some ( nextind).
+
+Proof.
+induction stop.
+- intros. simpl.
+  cbn in *.
+  inversion H1.
+  subst.
+  rewrite NPeano.Nat.sub_0_r.
+  assert(HnbL: nbL = CLevel nbL).
+  unfold CLevel.
+  destruct (lt_dec nbL nbLevel ).
+  simpl in *.
+  destruct nbL.
+  simpl in *.
+  assert (Hl = ADT.CLevel_obligation_1 l0 l ).
+  apply proof_irrelevance.
+  f_equal.
+  trivial.
+  destruct nbL. simpl in *.
+  contradict n.
+  omega.
+  rewrite <- HnbL in *.
+   case_eq (StateLib.Level.eqb nbL fstLevel);intros * Hfst;rewrite Hfst in *.
+   * apply levelEqBEqNatTrue0 in Hfst. 
+     omega. 
+   * case_eq ( StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va nbL) (memory s) );intros * Hread;
+   rewrite Hread in *;try now contradict H2.
+   case_eq( defaultPage =? p);intros * Hdef;rewrite Hdef in *;try now contradict H2.
+   inversion H2.
+   rewrite H4.
+   apply beq_nat_true in Hdef.
+   f_equal.
+   rewrite <- H4.
+   destruct p;destruct defaultPage;simpl in *;subst;f_equal;apply proof_irrelevance.
+   case_eq (StateLib.Level.pred nbL );intros * Heq;rewrite Heq in *;try now contradict H2;trivial.
+   inversion H2;subst.
+   trivial.
+
+- intros.
+  simpl .
+  simpl in *.
+  case_eq (StateLib.Level.eqb nbL fstLevel) ; intros * Hfst;rewrite Hfst in *.
+  + apply levelEqBEqNatTrue0 in Hfst. 
+     omega. 
+  + case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va nbL) (memory s));intros * Hread;
+  rewrite Hread in *;try now contradict H1.
+  case_eq(defaultPage =? p);intros * Hp;rewrite Hp in *.
+  * inversion H2.
+    inversion H1.
+    subst.
+    now contradict H0.
+   * case_eq (StateLib.Level.pred nbL );intros * Heq;rewrite Heq in *;try now contradict H2;trivial.
+    assert(Hkey: (CLevel (nbL - S stop)) = (CLevel (l -  stop))).
+    pose proof levelPredMinus1Nat.
+    assert(nbL - 1 = l).
+    apply H3;trivial.
+    subst.
+    rewrite <- H4.
+    replace (nbL - 1 - stop) with (nbL - S stop) by omega.
+    trivial.
+    
+    rewrite Hkey.
+    apply IHstop with p;trivial.
+    
+    pose proof levelPredMinus1Nat.
+    assert(nbL - 1 = l).
+    apply H3;trivial.
+    subst.
+    rewrite <- H4.
+    omega.
+    
+    
+ 
+  
+
+Qed. 
+
