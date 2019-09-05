@@ -6794,4 +6794,96 @@ apply NoDup_cons_iff in Hnodup as (Hnotin & Hnodup).
  
 Qed.     
   
-  
+Lemma getMappedPagesAddIndirectionNotSamePart  s  indirection nextIndirection  entry nbLgen  pd   vaToPrepare partition idxroot l r w e
+phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr:
+let s':= {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |}) 
+              (memory s) beqPage beqIndex |}  in 
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+or3 idxroot ->
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
+
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection idxroot vaToPrepare l ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
+isWellFormedMMUTables phyMMUaddr s ->
+false = StateLib.Level.eqb l fstLevel ->
+noDupConfigPagesList s ->
+indirectionDescription s partition indirection idxroot vaToPrepare l ->
+
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+isPresentNotDefaultIff s ->
+configTablesAreDifferent s ->
+(defaultPage =? nextIndirection) = false ->
+nextEntryIsPP partition idxroot pd s ->
+nextIndirection <> indirection ->
+
+forall part ,
+part <> partition ->
+In part (getPartitions multiplexer s) ->
+getMappedPages part s = getMappedPages part s'.
+Proof. 
+intros * Hlookup.
+intros.
+unfold getMappedPages.
+assert(Hpd: forall partx, StateLib.getPd partx (memory s) =
+StateLib.getPd partx (memory s')).
+{ symmetry. apply getPdMapMMUPage with entry;trivial. }
+rewrite <- Hpd.
+case_eq(StateLib.getPd part (memory s));intros;trivial.
+apply getMappedPagesAuxAddIndirectionNotSamePart with entry nbLgen pd
+ partition idxroot  
+phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr part;trivial.
+apply nextEntryIsPPgetPd;trivial.
+Qed.
+
+Lemma getUsedPagesAddIndirectionNotSamePart s  indirection nextIndirection  entry nbLgen  pd   vaToPrepare phyDescChild idxroot l r w e
+phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr:
+let s':= {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |}) 
+              (memory s) beqPage beqIndex |}  in 
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+or3 idxroot ->
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
+
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s phyDescChild indirection idxroot vaToPrepare l ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
+isWellFormedMMUTables phyMMUaddr s ->
+false = StateLib.Level.eqb l fstLevel ->
+noDupConfigPagesList s ->
+indirectionDescription s phyDescChild indirection idxroot vaToPrepare l ->
+
+partitionDescriptorEntry s ->
+In phyDescChild (getPartitions multiplexer s) ->
+isPresentNotDefaultIff s ->
+configTablesAreDifferent s ->
+(defaultPage =? nextIndirection) = false ->
+nextEntryIsPP phyDescChild idxroot pd s ->
+nextIndirection <> indirection ->
+In indirection (getConfigPages phyDescChild s) ->
+forall part ,
+part <> phyDescChild ->
+In part (getPartitions multiplexer s) ->
+getUsedPages part s = getUsedPages part s'.
+Proof.
+intros.
+  unfold getUsedPages.
+  assert(Hconf: getConfigPages part s=getConfigPages part s').
+  { apply getConfigPagesMapMMUPage with phyDescChild entry;trivial.
+    intuition. intuition. }
+  rewrite Hconf.
+  assert(Hmaps: getMappedPages part s = getMappedPages part s').
+  { apply getMappedPagesAddIndirectionNotSamePart  with entry nbLgen pd
+     phyDescChild idxroot  
+    phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr ;trivial.
+ }
+  rewrite Hmaps.
+  trivial.
+Qed. 
+

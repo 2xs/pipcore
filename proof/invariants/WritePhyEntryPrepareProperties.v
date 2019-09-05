@@ -197,9 +197,10 @@ Qed.
 
 Lemma partitionsIsolationAddIndirection
 s indirection nextIndirection  entry nbLgen  pd idxroot  
-(vaToPrepare vaNextInd : vaddr) partition l  
+(vaToPrepare vaNextInd : vaddr) phyDescChild l  
 (currentPart currentPD ptMMUvaNextInd ptSh1VaNextInd: page) root r w e phyPDChild phyMMUaddr phySh1Child 
   phySh1addr phySh2Child phySh2addr lpred:
+  partitionsIsolation s ->
 nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child 
   phySh1addr phySh2Child phySh2addr idxroot ->
 isWellFormedFstShadow lpred phySh1addr s ->
@@ -210,10 +211,10 @@ or3 idxroot ->
 kernelDataIsolation s ->   
 lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
 verticalSharing s ->
-partitionsIsolation s ->
+
 consistency s ->
 Some nbLgen = StateLib.getNbLevel ->
-indirectionDescription s partition indirection idxroot vaToPrepare l ->
+indirectionDescription s phyDescChild indirection idxroot vaToPrepare l ->
 (* isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s -> *)
 (* (defaultPage =? indMMUToPrepare) = true -> *)
 StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage->
@@ -221,7 +222,7 @@ StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memor
    
 isWellFormedMMUTables phyMMUaddr s ->
 false = StateLib.Level.eqb l fstLevel ->
-nextEntryIsPP partition PDidx pd s ->
+nextEntryIsPP phyDescChild PDidx pd s ->
 writeAccessibleRecPreparePostcondition currentPart nextIndirection s ->
 In currentPart (getPartitions multiplexer s) ->
 getTableAddrRoot ptMMUvaNextInd PDidx currentPart vaNextInd s->
@@ -240,13 +241,14 @@ isVE ptSh1VaNextInd (StateLib.getIndexOfAddr vaNextInd fstLevel) s ->
 noDupPartitionTree s ->
 nextIndirection <> indirection ->
 partitionDescriptorEntry s ->
-In partition (getPartitions multiplexer s) ->
+In phyDescChild (getPartitions multiplexer s) ->
 noDupConfigPagesList s ->
 isPresentNotDefaultIff s ->
 configTablesAreDifferent s ->
 (defaultPage =? nextIndirection) = false ->
-nextEntryIsPP partition idxroot root s ->
-In indirection (getIndirections root s)->
+nextEntryIsPP phyDescChild idxroot root s ->
+In indirection (getIndirections root s)-> 
+In indirection (getConfigPages phyDescChild s) ->
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s  ->
 partitionsIsolation
   {|
@@ -261,12 +263,12 @@ partitionsIsolation
                  user := true;
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
 Proof.
-intros * Hindor3 Hwell1 Hlpred Hor3 Hnotacces Hkdi.
+intros * Hiso Hindor3 Hwell1 Hlpred Hor3 Hnotacces Hkdi.
 intros.
  
 set(s':={|currentPartition:= _ |}) in *.
 unfold partitionsIsolation in *.
-simpl in *;intros * Hparent Hchild1 Hchild2 Hdiff.
+simpl in *;intros * Hparent Hchild1 Hchild2 Hdist.
 assert(Hpart : forall part, In part (getPartitions multiplexer s) <-> In part (getPartitions multiplexer s')).
 intros.
 unfold s'.
@@ -278,8 +280,95 @@ intros.
 eapply getChildrenAddIndirection;try eassumption;trivial.
 symmetry;trivial.
 rewrite <- Hpart in *.
+assert(Hchild : In phyDescChild (getPartitions multiplexer s)) by trivial.
+assert(Hnotsamepart : forall part, phyDescChild <> part -> 
+In part (getPartitions multiplexer s) -> 
+getUsedPages part s = getUsedPages part s').
+{ intros. apply getUsedPagesAddIndirectionNotSamePart with entry nbLgen root
+     phyDescChild idxroot  
+    phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr ;trivial.
+    intuition. }
+assert(Horx:  ( phyDescChild <> child1 /\ phyDescChild <> child2) \/
+            (phyDescChild = child1 \/ phyDescChild = child2)).
+{ clear. destruct phyDescChild;destruct child1 ; destruct child2.
+  simpl in *.
+  assert(  (p <> p0 /\ p <> p1) \/
+  (p = p0 \/ p = p1)) by omega.
+  destruct
+   H. left. 
+   destruct H.
+   split. 
+   unfold not;intros.
+   inversion H1.
+   subst.
+   omega.
+   unfold not;intros.
+   inversion H1.
+   subst.
+   omega.
+   right. 
+   destruct H. 
+   left. 
+   subst.
+   f_equal.
+   apply proof_irrelevance.
+   right. 
+   subst;f_equal.
+   apply proof_irrelevance. }
+destruct Horx as [Horx| Horx].
++ (*phyDescChild <> child1 /\ phyDescChild <> child2 *)
+ destruct Horx as (Hor1 & Hor2).
+ assert(Hnodup :  noDupPartitionTree s).
+ unfold consistency in *.
+ intuition.
+  rewrite <- Hnotsamepart;trivial.
+  rewrite <- Hnotsamepart;trivial.
+  apply Hiso with parent;trivial.
+  apply childrenPartitionInPartitionList with parent;trivial.
+  apply childrenPartitionInPartitionList with parent;trivial.
++ destruct Horx as [Horx | Horx].  
+  - (** phyDescChild = child1 **)
+    subst child1.
+    assert(Heq: getUsedPages child2 s = getUsedPages child2 s'). 
+    { apply Hnotsamepart;trivial.
+      apply childrenPartitionInPartitionList with parent;trivial. }
+    rewrite <- Heq.
+    unfold getUsedPages.
+    unfold disjoint.
+    intros * Hgoal.
+    rewrite in_app_iff in *.
+    destruct Hgoal as [Hgoal | Hgoal].
+    * apply and_not_or.
+      split.
+      contradict Hgoal.
+      ++ 
+    SearchAbout getConfigPages.
+  
+  
+  
+  
+  
+rewrite <- Hnotsamepart.
+rewrite <- Hnotsamepart.
+apply Hiso with parent;trivial.
 
-unfold disjoint in *.
+  rewrite Hmaps.
+  trivial. 
+apply nextEntryIsPPgetPd;trivial.
+
+   unfold getMappedPages.
+    
+  apply indirectionDescriptionInGetIndirections.
+
+  apply getUsedPages with phyDescChild vaToPrepare entry nbLgen ;trivial.
+  unfold consistency in *.
+  intuition.
+  unfold consistency in *.
+  intuition.
+  split. 
+  subst;trivial.
+  subst;trivial. }
+(* unfold disjoint in *.
 intros x Hx.
 unfold getUsedPages in *.
 rewrite in_app_iff in *.
@@ -288,9 +377,9 @@ destruct Hx as [Hx | Hx].
 
 +
 split.
+ *)
 
-
-Qed.
+Admitted.
     
 Lemma insertEntryIntoLLPCAddIndirection  indirection nextIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
  phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
