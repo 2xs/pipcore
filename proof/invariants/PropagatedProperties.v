@@ -590,6 +590,14 @@ Definition newIndirectionsAreNotAccessible s  phyMMUaddr phySh1addr phySh2addr :
     (nextIndirection = phyMMUaddr \/ nextIndirection = phySh1addr \/ nextIndirection = phySh2addr) -> 
     ~ In nextIndirection (getAccessibleMappedPages parts s). 
 
+Definition newIndirectionsAreNotMappedInChildren s currentPart newIndirection :=
+forall child : page, In child (getChildren currentPart s) -> ~ In newIndirection (getMappedPages child s).
+
+Definition newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr :=
+newIndirectionsAreNotMappedInChildren s currentPart phyMMUaddr /\
+newIndirectionsAreNotMappedInChildren s currentPart phySh1addr /\
+newIndirectionsAreNotMappedInChildren s currentPart phySh2addr.
+
 Definition insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
 ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD 
 ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -619,7 +627,7 @@ Definition initFstShadowPreconditionToProveNewProperty nbL s table  curidx:=
  (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
 (StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
  StateLib.readPDflag table idx (memory s) = Some false)). 
- 
+
  
 Definition postConditionYieldBlock1   (s : state)
                                       (userTargetInterrupt userCallerContextSaveIndex : userValue)

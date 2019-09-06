@@ -1723,7 +1723,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     eapply initFstShadowPrepareHT.
     intros [].
 (** initSndShadow *)
-    eapply bindRev.   
+    eapply bindRev.
     apply initSndShadowPrepareHT.
     intros [].
 (** writeVirEntry **)

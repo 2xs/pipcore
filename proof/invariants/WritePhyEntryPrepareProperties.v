@@ -35,7 +35,7 @@
     We prove that this instruction preserves the isolation property  *)
     Require Import Arith Lia Classical_Prop.
 
-Require Export Utf8_core.
+
 
 Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
@@ -195,6 +195,7 @@ e idxroot phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr;
       apply Hkdi with partition1;trivial.
 Qed.
 
+
 Lemma partitionsIsolationAddIndirection
 s indirection nextIndirection  entry nbLgen  pd idxroot  
 (vaToPrepare vaNextInd : vaddr) phyDescChild l  
@@ -209,9 +210,10 @@ or3 idxroot ->
 (forall parts, In parts (getPartitions multiplexer s) ->
    ~ In nextIndirection (getAccessibleMappedPages parts s)) -> 
 kernelDataIsolation s ->   
+initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr ->
 lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
 verticalSharing s ->
-
+In phyDescChild (getChildren currentPart s) ->
 consistency s ->
 Some nbLgen = StateLib.getNbLevel ->
 indirectionDescription s phyDescChild indirection idxroot vaToPrepare l ->
@@ -250,6 +252,7 @@ nextEntryIsPP phyDescChild idxroot root s ->
 In indirection (getIndirections root s)-> 
 In indirection (getConfigPages phyDescChild s) ->
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s  ->
+(* isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA -> *)
 partitionsIsolation
   {|
   currentPartition := currentPartition s;
@@ -263,7 +266,7 @@ partitionsIsolation
                  user := true;
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
 Proof.
-intros * Hiso Hindor3 Hwell1 Hlpred Hor3 Hnotacces Hkdi.
+intros * Hiso Hindor3 Hwell1 Hlpred Hor3 Hnotacces Hkdi (Hnotconf1 & Hnotconf2 & Hnotconf3).
 intros.
  
 set(s':={|currentPartition:= _ |}) in *.
@@ -340,10 +343,75 @@ destruct Horx as [Horx| Horx].
     destruct Hgoal as [Hgoal | Hgoal].
     * apply and_not_or.
       split.
-      contradict Hgoal.
-      ++ 
-    SearchAbout getConfigPages.
-  
+      ++ assert(Hor1: x=nextIndirection \/ x<> nextIndirection) by apply pageDecOrNot.
+         destruct Hor1 as [Hor1 | Hor1].
+         -- subst x.
+            destruct Hindor3 as [(Hi1 & Hi2 & Hii3) | [(Hi1 & Hi2 & Hii3) | (Hi1 & Hi2 & Hii3)] ].
+            ** subst. apply Hnotconf1;trivial.
+               apply childrenPartitionInPartitionList with parent;trivial.         
+            ** subst. apply Hnotconf2;trivial.
+               apply childrenPartitionInPartitionList with parent;trivial.         
+            ** subst. apply Hnotconf3;trivial.
+               apply childrenPartitionInPartitionList with parent;trivial.         
+         -- assert(In x (getConfigPages phyDescChild s)).
+            apply getConfigPagesAddIndirectionNotSamePage with nextIndirection root vaToPrepare l lpred indirection entry r w
+            e idxroot phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr;
+            trivial. intuition.
+            assert(Hconf: configTablesAreDifferent s) by  trivial.
+            unfold configTablesAreDifferent in *.
+            unfold disjoint in *.
+            apply Hconf with phyDescChild;trivial.
+            apply childrenPartitionInPartitionList with parent;trivial.
+      ++ assert(Hor1: x=nextIndirection \/ x<> nextIndirection) by apply pageDecOrNot.
+         destruct Hor1 as [Hor1 | Hor1].
+         -- subst x.
+         assert(Hparentcons : isParent s).
+        unfold consistency in *.
+        intuition.
+        assert(parent = currentPart). 
+        { apply getParentNextEntryIsPPEq with phyDescChild s;
+          trivial.
+          apply nextEntryIsPPgetParent;trivial.
+          apply Hparentcons;trivial.
+          unfold consistency in *.
+          unfold currentPartitionInPartitionsList in *.
+        apply Hparentcons;trivial. }
+        subst parent.
+        destruct Hindor3 as [(Hi1 & Hi2 & Hii3) | [(Hi1 & Hi2 & Hii3) | (Hi1 & Hi2 & Hii3)] ];subst;admit. 
+        (** propagate new internal property: ~ In child  (getMappedPages phyDescChild s) *)
+        -- assert(In x (getConfigPages phyDescChild s)).
+           apply getConfigPagesAddIndirectionNotSamePage with nextIndirection root vaToPrepare l lpred indirection entry r w
+            e idxroot phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr;
+           trivial. intuition.
+           move Hiso at bottom.
+           assert(Hkey: disjoint (getUsedPages phyDescChild s) (getUsedPages child2 s)).
+           apply Hiso with parent;trivial.
+           unfold disjoint in Hkey.
+           unfold getUsedPages in *.
+           generalize(Hkey x);clear Hkey;intros Hkey.
+           rewrite in_app_iff in Hkey. 
+           unfold not;intros.
+           destruct Hkey. 
+           left;trivial.
+           apply in_app_iff.
+           right;trivial.
+   * apply and_not_or.
+     split.
+     ++ assert(Hor1: x=nextIndirection \/ x<> nextIndirection) by apply pageDecOrNot.
+        assert (Hssi: forall x, In x (getMappedPages phyDescChild s) <-> 
+                    In x (getMappedPages phyDescChild s')).
+        intros. 
+        eapply getMappedPagesAddIndirectionSamePart;try eassumption.
+        destruct Hor1 as [Hor1 | Hor1].
+        -- subst x.
+           rewrite <- Hssi in Hgoal.
+           clear Hssi.
+           contradict Hgoal.
+           admit.  (** propagate new internal property: ~In nextIndirection  (getMappedPages phyDescChild s) *)
+        -- rewrite <- Hssi in Hgoal.
+           
+           
+           
   
   
   

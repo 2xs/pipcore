@@ -45,6 +45,28 @@ Require Import Coq.Logic.ProofIrrelevance Omega List Bool.
 
 
 (*******************************************************************************)
+Lemma newIndirectionsAreNotMappedAddDerivation s pt idx vaValue v0 part newIndirection: 
+let s':= {|
+  currentPartition := currentPartition s;
+  memory := add pt idx (VE {| pd := false; va := vaValue |}) (memory s) beqPage beqIndex |} in 
+  lookup pt idx (memory s) beqPage beqIndex = Some (VE v0) -> 
+isPartitionFalse pt idx s -> 
+ newIndirectionsAreNotMappedInChildren s part newIndirection -> 
+ newIndirectionsAreNotMappedInChildren s' part newIndirection.
+Proof.
+intros s' Hlookup Hpart Hgoal.
+unfold newIndirectionsAreNotMappedInChildren in *.
+intros.
+assert(Haccess: getMappedPages child s' =getMappedPages child s).
+apply getMappedPagesAddDerivation with v0;trivial.
+rewrite Haccess.
+apply Hgoal;trivial.
+assert(Hparts: getChildren part s' = getChildren part s).
+apply getChildrenAddDerivation with v0;trivial.
+rewrite <- Hparts;trivial.
+Qed.
+
+
 Lemma propagatedPropertiesPrepareUpdateShadow1Structure b1 b2 b3 b4 b5 b6  (vaValue:vaddr) (ptMMU ptSh1  pg:page) (idx:index) s 
        ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
@@ -264,7 +286,8 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s 
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
-   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr }} 
+   /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+   /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr }} 
   
   writeVirEntry ptSh1FstVA idxFstVA fstVA 
   
@@ -278,7 +301,9 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
-   /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s}}.
+   /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr
+   /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
+   }}.
 Proof.
 eapply weaken. 
 eapply WP.writeVirEntry.
@@ -316,6 +341,8 @@ intuition.
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
 + apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *.
+  intuition ;apply newIndirectionsAreNotMappedAddDerivation with v0;trivial.  
 + unfold isEntryVA;cbn.
   assert(Htrue : beqPairs (ptSh1FstVA, idxFstVA) (ptSh1FstVA, idxFstVA) beqPage beqIndex
     = true).
@@ -336,11 +363,12 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
      idxSndVA idxTrdVA zeroI minFI
  /\ isPartitionFalse ptSh1SndVA idxSndVA s 
  /\ isPartitionFalse ptSh1TrdVA idxTrdVA s
- /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s /\
-   StateLib.Level.pred l = Some lpred /\
-   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s     /\ 
-   newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr /\ 
-   isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
+ /\ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phySh2addr s
+ /\ StateLib.Level.pred l = Some lpred
+ /\   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
+ /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+ /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr    
+ /\  isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
   writeVirEntry ptSh1SndVA idxSndVA sndVA 
     
   {{fun _ s  => 
@@ -352,6 +380,7 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+   /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}}.
 Proof.
@@ -390,6 +419,8 @@ intuition.
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
 + apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *.
+  intuition ;apply newIndirectionsAreNotMappedAddDerivation with v0;trivial.  
 + unfold propagatedPropertiesPrepare in *.
   intuition;subst.
   apply isEntryVAAddDerivation;trivial.  
@@ -423,6 +454,7 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+   /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}} 
   writeVirEntry ptSh1TrdVA idxTrdVA trdVA 
@@ -435,6 +467,7 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ StateLib.Level.pred l = Some lpred 
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+   /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr  
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
    /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s
    /\ isEntryVA  ptSh1TrdVA idxTrdVA trdVA s}}.
@@ -471,6 +504,8 @@ intuition.
     unfold propagatedPropertiesPrepare in *; unfold consistency in *;intuition; subst;trivial.
 + apply isWellFormedSndShadowTablesAddDerivation with v0;trivial.
 + apply newIndirectionsAreNotAccessibleAddDerivation with v0;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *.
+  intuition ;apply newIndirectionsAreNotMappedAddDerivation with v0;trivial. 
 + unfold propagatedPropertiesPrepare in *.
   intuition;subst.
   apply isEntryVAAddDerivation;trivial.  

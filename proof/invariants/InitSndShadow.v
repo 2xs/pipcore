@@ -406,6 +406,9 @@ eapply WP.bindRev.
 Qed. 
 
 
+
+
+
 Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA
       currentShadow1 descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l  
@@ -436,6 +439,7 @@ Lemma initSndShadowPrepareHT lpred ptMMUTrdVA phySh2addr phySh1addr indMMUToPrep
     /\ isWellFormedFstShadow lpred phySh1addr s 
     /\ isWellFormedSndShadow lpred phySh2addr s 
     /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
+    /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr
     }}.
    Proof.
  unfold initSndShadow. 
@@ -506,6 +510,7 @@ eapply WP.bindRev.
   intuition.
   simpl.
   intros.
+  (** propagate isWellFormedSndShadow **)
   intuition.
   unfold isWellFormedSndShadow.
   unfold initVAddrTableNewProperty in *.
@@ -524,7 +529,7 @@ eapply WP.bindRev.
   intuition.
   unfold newIndirectionsAreNotAccessible.
   intros * Hpart Hor.
-  destruct Hor as [Hor| [Hor | Hor]];subst.
+  { destruct Hor as [Hor| [Hor | Hor]];subst.
   * 
   eapply nextIndirectionNotAccessibleInAnyPartition with 
   (currentPart:=(currentPartition s))
@@ -546,7 +551,33 @@ eapply WP.bindRev.
   (currentPD:= currentPD)
   (ptMMUvaNextInd:= ptMMUTrdVA) 
   (vaNextInd:= trdVA)
-  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition.
+  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition. }
+  (** Prove new property:  newIndirectionsAreNotMappedInChildrenAll **)
+  unfold newIndirectionsAreNotMappedInChildrenAll , propagatedPropertiesPrepare in *.
+  intuition;
+  unfold newIndirectionsAreNotMappedInChildren;
+  intros * Hchild; subst.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUFstVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= fstVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1FstVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUSndVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= sndVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1SndVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUTrdVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= trdVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1TrdVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.    
   - intros. subst.
   eapply strengthen.
   eapply weaken.
@@ -620,7 +651,7 @@ eapply WP.bindRev.
   inversion Hpred.
   trivial.
 (** prove new property : newIndirectionsAreNotAccessible **)
-  unfold  propagatedPropertiesPrepare, consistency in *. 
+  { unfold  propagatedPropertiesPrepare, consistency in *. 
   intuition.
   unfold newIndirectionsAreNotAccessible.
   intros * Hpart Hor.
@@ -646,5 +677,31 @@ eapply WP.bindRev.
   (currentPD:= currentPD)
   (ptMMUvaNextInd:= ptMMUTrdVA) 
   (vaNextInd:= trdVA)
-  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition.  
-Qed.
+  (ptSh1VaNextInd:=ptSh1TrdVA);trivial;unfold consistency;intuition. }
+(** Prove new property:  newIndirectionsAreNotMappedInChildrenAll **)
+  unfold newIndirectionsAreNotMappedInChildrenAll , propagatedPropertiesPrepare in *.
+  intuition;
+  unfold newIndirectionsAreNotMappedInChildren;
+  intros * Hchild; subst.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUFstVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= fstVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1FstVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUSndVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= sndVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1SndVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  eapply phyNotDerived with (ptSh1Child:= ptMMUTrdVA) (currentPart:=  (currentPartition s) )
+  (shadow1:= trdVA) (currentPD:= currentPD);trivial.
+  apply vaNotDerived with ptSh1TrdVA;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.
+  unfold consistency in *;intuition.
+  intros;subst;split;trivial.      
+Qed. 
