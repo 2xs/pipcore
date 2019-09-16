@@ -610,6 +610,7 @@ writeAccessibleRecPreparePostconditionAll currentPart phyMMUaddr phySh1addr phyS
 StateLib.Level.pred l = Some lpred /\
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s /\
 newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr /\
+newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr /\
 isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
 
 Definition initSndShadowPreconditionToProveNewProperty nbL s table  curidx:=

@@ -2675,6 +2675,28 @@ apply getPartitionsUpdateLLIndex with v0;trivial.
 rewrite Hparts;trivial.
 Qed.
 
+Lemma newIndirectionsAreNotMappedInChildrenUpdateLLIndex s  idx  v0  table  x curpart newIndirection:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (I x)
+            (memory s) beqPage beqIndex |} in 
+lookup table idx (memory s) beqPage beqIndex = Some (I v0) ->
+newIndirectionsAreNotMappedInChildren s curpart newIndirection ->
+newIndirectionsAreNotMappedInChildren s' curpart newIndirection.
+Proof.
+intros.
+unfold newIndirectionsAreNotMappedInChildren in *.
+intros.
+assert(Haccess: getMappedPages child s' =getMappedPages child s).
+apply getMappedPagesUpdateLLIndex with v0;trivial.
+rewrite Haccess.
+apply H0;trivial.
+assert(Hparts: getChildren curpart s = getChildren curpart s').
+apply getChildrenUpdateLLIndex with v0;trivial.
+rewrite Hparts;trivial.
+Qed.
+
+
 Lemma insertEntryIntoLLPCUpdateLLIndex s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
       phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1
       descChildphy phySh1Child currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA
@@ -2795,6 +2817,10 @@ subst.
   apply isWellFormedFstShadowTablesUpdateLLIndex with entry;trivial.
   apply isWellFormedSndShadowTablesUpdateLLIndex with entry;trivial.
 + apply newIndirectionsAreNotAccessibleUpdateLLIndex with entry;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *;intuition. 
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLIndex with entry;trivial.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLIndex with entry;trivial.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLIndex with entry;trivial.  
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.
 + apply isEntryVAUpdateLLIndex with entry;trivial.  

@@ -740,7 +740,27 @@ intuition;subst.
   apply isIndexValueUpdateLLVA with entry;trivial.
 Qed.
 
-
+Lemma newIndirectionsAreNotMappedInChildrenUpdateLLContent currentPart newIndirection 
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx  (VA x)
+            (memory s) beqPage beqIndex |} in                                  
+lookup table idx (memory s) beqPage beqIndex = Some (VA v0) ->
+newIndirectionsAreNotMappedInChildren s currentPart newIndirection->
+newIndirectionsAreNotMappedInChildren s' currentPart newIndirection.
+Proof.
+intros s'   Hlookup (*   *) Hgoal.
+unfold newIndirectionsAreNotMappedInChildren in *.
+intros * Hi.
+assert(Hpartitions: getChildren currentPart s' = getChildren currentPart s).
+symmetry. apply getChildrenUpdateSh2 with v0;trivial.
+rewrite Hpartitions in *.
+assert(Haccess: getMappedPages child s' = getMappedPages child s). (* *)
+ apply getMappedPagesUpdateSh2 with v0;trivial.
+rewrite Haccess.
+apply Hgoal;trivial.
+Qed.
 
 Lemma insertEntryIntoLLPCUpdateLLContent s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr
       lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA
@@ -773,6 +793,10 @@ intuition.
   (** In newLastLLable (getLLPages ?LLDescChild s (nbPage + 1)) **)
   (** getConfigTablesLinkedList descChildphy (memory s) = Some ?LLDescChild *)
 + apply newIndirectionsAreNotAccessibleUpdateLLVA with entry;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *;intuition.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLContent with entry;trivial.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLContent with entry;trivial.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLContent with entry;trivial.    
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.
 + apply isEntryVAUpdateSh2 with entry;trivial.

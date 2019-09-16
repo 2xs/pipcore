@@ -2695,7 +2695,36 @@ rewrite Haccess.
 apply Hgoal;trivial.
 Qed.
 
-
+Lemma newIndirectionsAreNotMappedInChildrenUpdateLLCouplePPVA currentPart newIndirection 
+ table idx x v0 s:
+let s':= {|
+currentPartition := currentPartition s;
+memory := add table idx (PP x)
+            (memory s) beqPage beqIndex |} in    
+noDupPartitionTree s ->                
+In currentPart (getPartitions multiplexer s)->                  
+lookup table idx (memory s) beqPage beqIndex = Some (PP v0) ->
+~ In table (getPartitions multiplexer s) ->
+newIndirectionsAreNotMappedInChildren s currentPart newIndirection->
+newIndirectionsAreNotMappedInChildren s' currentPart newIndirection.
+Proof.
+intros s' Hndup Hpart Hlookup (*   *)Hnotpart Hgoal.
+unfold newIndirectionsAreNotMappedInChildren in *.
+intros * Hi.
+assert(Hpartitions: getChildren currentPart s' = getChildren currentPart s).
+symmetry. apply getChildrenUpdateLLCouplePPVA with v0;trivial.
+unfold not;intros;subst.
+contradiction.
+rewrite Hpartitions in *.
+assert(Haccess: getMappedPages child s' = getMappedPages child s). (* *)
+ apply getMappedPagesUpdateLLCouplePPVA with v0;trivial.
+unfold not;intros;subst.
+assert( In table  (getPartitions multiplexer s)). 
+apply childrenPartitionInPartitionList with currentPart;trivial.
+contradiction.
+rewrite Haccess.
+apply Hgoal;trivial.
+Qed.
 
 
 Lemma insertEntryIntoLLPCUpdateLLCouplePPVA s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
@@ -2805,6 +2834,13 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
   apply isWellFormedFstShadowTablesUpdateLLCouplePPVA with entry;trivial.
   apply isWellFormedSndShadowTablesUpdateLLCouplePPVA with entry;trivial.
 + apply newIndirectionsAreNotAccessibleUpdateLLCouplePPVA with entry;trivial.
++ unfold newIndirectionsAreNotMappedInChildrenAll in *;intuition.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLCouplePPVA with entry;trivial.
+  unfold consistency in *;intuition.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLCouplePPVA with entry;trivial.
+  unfold consistency in *;intuition.
+  apply newIndirectionsAreNotMappedInChildrenUpdateLLCouplePPVA with entry;trivial.
+  unfold consistency in *;intuition.    
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.
 + apply isEntryVAUpdateLLCouplePPVA with entry;trivial.  
