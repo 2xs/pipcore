@@ -1919,3 +1919,81 @@ induction stop.
 
 Qed. 
 
+Set Nested Proofs Allowed.
+
+Lemma inGetChildren child part s (level:level) (currentPD ptDescChildpd ptDescChild currentShadow:page)(descChild:vaddr):
+isPE ptDescChildpd (StateLib.getIndexOfAddr descChild fstLevel) s ->
+getTableAddrRoot ptDescChildpd PDidx part descChild s ->
+(defaultPage =? ptDescChildpd) = false -> 
+isEntryPage ptDescChildpd (StateLib.getIndexOfAddr descChild fstLevel) child s ->
+entryPresentFlag ptDescChildpd (StateLib.getIndexOfAddr descChild fstLevel) true s ->
+nextEntryIsPP part PDidx currentPD s ->
+nextEntryIsPP part sh1idx currentShadow s ->
+(defaultPage =? ptDescChild) = false ->
+ entryPDFlag ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) true s ->
+  Some level = StateLib.getNbLevel ->
+isVE ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) s ->
+getTableAddrRoot ptDescChild sh1idx part descChild s ->  
+In child (getChildren part s).
+Proof.
+intros.
+  unfold getChildren.
+  assert(Hlevel : Some level = StateLib.getNbLevel) by trivial.
+  rewrite <- Hlevel.
+  assert(Hcurpd : StateLib.getPd part (memory s) = Some currentPD).
+  { apply nextEntryIsPPgetPd.
+    intuition. }
+  rewrite Hcurpd.
+  unfold getMappedPagesAux.
+  rewrite filterOptionInIff.
+  unfold getMappedPagesOption.
+  rewrite in_map_iff.
+assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel descChild va1 ( CLevel (nbLevel -1) ) = true )
+by apply AllVAddrWithOffset0.
+destruct Heqvars as (va1 & Hva1 & Hva11).  
+exists va1.  split;trivial. 
+assert(Hnewgoal : getMappedPage currentPD s descChild = SomePage child). 
+{  apply getMappedPageGetTableRoot with ptDescChildpd part; intuition;
+  subst;trivial.
+ }
+  rewrite <- Hnewgoal.
+  symmetry.
+  apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+  apply getNbLevelEqOption.
+  unfold getPdsVAddr.
+  apply filter_In.
+  split;trivial. 
+  assert(Hnewgoal : checkChild part level s descChild = true).
+  { unfold checkChild. 
+  assert(Hcursh1 : StateLib.getFstShadow part (memory s) = Some currentShadow).
+  { apply nextEntryIsPPgetFstShadow. intuition; subst;trivial. }
+  rewrite Hcursh1.
+  assert(Hpt :getIndirection currentShadow descChild level (nbLevel - 1) s  = Some ptDescChild). 
+  { apply getIndirectionGetTableRoot with part;intuition.
+    subst;trivial. }
+  rewrite Hpt.
+  assert(Htrue : (ptDescChild =? defaultPage) = false ). 
+  { rewrite Nat.eqb_neq in *.
+   intuition. }
+  rewrite Htrue.
+  assert(Hpdchild :  entryPDFlag ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) true s) by intuition.
+  assert(Hpdtrue : StateLib.readPDflag ptDescChild
+    (StateLib.getIndexOfAddr descChild fstLevel) (memory s) = Some true).
+  { unfold StateLib.readPDflag, entryPDFlag in *.
+    intuition. subst.
+    destruct (lookup ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) (memory s) beqPage beqIndex );
+    try now contradict Hpdchild.
+    destruct v;try now contradict Hpdchild.
+    f_equal. subst. intuition. }
+    rewrite Hpdtrue;trivial. }
+  rewrite <- Hnewgoal.
+  apply checkChildEq.
+  intuition.
+  rewrite checkVAddrsEqualityWOOffsetPermut.
+  rewrite <- Hva11.
+  f_equal.
+  assert(Hlvl : StateLib.getNbLevel = Some (CLevel (nbLevel - 1))) by apply getNbLevelEqOption. 
+  rewrite  Hlvl in *.
+  inversion Hlevel;trivial.
+  Qed.

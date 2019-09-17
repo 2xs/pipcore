@@ -35,7 +35,7 @@ Require Import Model.ADT Model.Hardware Core.Services Isolation
 Consistency WeakestPreconditions Invariants StateLib Model.Lib
  Model.MAL GetTableAddr InternalLemmas DependentTypeLemmas  UpdateShadow2Structure 
 UpdateShadow1Structure 
- PropagatedProperties MapMMUPage.
+ PropagatedProperties MapMMUPage InternalLemmas2.
 Require Import Omega Bool List.
 
 (** * Summary 
@@ -668,69 +668,14 @@ cbn.
 intros s H.
 (** descChild is a child *)
 assert(Hchildren : In phyDescChild (getChildren (currentPartition s) s)).
-{ unfold getChildren.
-  assert(Hlevel : Some level = StateLib.getNbLevel) by intuition.
-  rewrite <- Hlevel.
-  assert(Hcurpd : StateLib.getPd currentPart (memory s) = Some currentPD).
-  { apply nextEntryIsPPgetPd.
-    intuition. }
-  assert (Heq : currentPartition s = currentPart) by intuition.
-  subst.
-  rewrite Hcurpd.
-  unfold getMappedPagesAux.
-  rewrite filterOptionInIff.
-  unfold getMappedPagesOption.
-  rewrite in_map_iff.
-assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
-StateLib.checkVAddrsEqualityWOOffset nbLevel descChild va1 ( CLevel (nbLevel -1) ) = true )
-by apply AllVAddrWithOffset0.
-destruct Heqvars as (va1 & Hva1 & Hva11).  
-exists va1.  split;trivial. 
-assert(Hnewgoal : getMappedPage currentPD s descChild = SomePage phyDescChild). 
-{  apply getMappedPageGetTableRoot with ptDescChildpd (currentPartition s); intuition;
+{ 
+ apply inGetChildren with level currentPD ptDescChildpd ptDescChild currentShadow descChild;
+  intuition;subst;trivial.
+      apply negb_false_iff in Hlegit.
   subst;trivial.
-  apply negb_false_iff in Hlegit.
-  subst;trivial. }
-  rewrite <- Hnewgoal.
-  symmetry.
-  apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
-  apply getNbLevelEqOption.
-  unfold getPdsVAddr.
-  apply filter_In.
-  split;trivial. 
-  assert(Hnewgoal : checkChild (currentPartition s) level s descChild = true).
-  { unfold checkChild. 
-  assert(Hcursh1 : getFstShadow (currentPartition s) (memory s) = Some currentShadow).
-  { apply nextEntryIsPPgetFstShadow. intuition; subst;trivial. }
-  rewrite Hcursh1.
-  assert(Hpt :getIndirection currentShadow descChild level (nbLevel - 1) s  = Some ptDescChild). 
-  { apply getIndirectionGetTableRoot with (currentPartition s);intuition.
-    subst;trivial. }
-  rewrite Hpt.
-  assert(Htrue : (ptDescChild =? defaultPage) = false ). 
-  { rewrite Nat.eqb_neq in *.
-    assert(Hfalse: (defaultPage =? ptDescChild) = false) by intuition.
-    apply beq_nat_false in Hfalse.  intuition. }
-  rewrite Htrue.
-  assert(Hpdchild :  entryPDFlag ptDescChild idxDescChild true s) by intuition.
-  assert(Hpdtrue : StateLib.readPDflag ptDescChild
-    (StateLib.getIndexOfAddr descChild fstLevel) (memory s) = Some true).
-  { unfold StateLib.readPDflag, entryPDFlag in *.
-    intuition. subst.
-    destruct (lookup ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) (memory s) beqPage beqIndex );
-    try now contradict Hpdchild.
-    destruct v;try now contradict Hpdchild.
-    f_equal. subst. intuition. }
-    rewrite Hpdtrue;trivial. }
-  rewrite <- Hnewgoal.
-  apply checkChildEq.
-  intuition.
-  rewrite checkVAddrsEqualityWOOffsetPermut.
-  rewrite <- Hva11.
-  f_equal.
-  assert(Hlvl : StateLib.getNbLevel = Some (CLevel (nbLevel - 1))) by apply getNbLevelEqOption. 
-  rewrite  Hlvl in *.
-  inversion Hlevel;trivial. }
+   }
+  
+
 split. 
 assert(Hnew := conj H Hchildren).  
 pattern s in Hnew.
