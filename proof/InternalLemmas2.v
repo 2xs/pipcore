@@ -1997,3 +1997,22 @@ assert(Hnewgoal : getMappedPage currentPD s descChild = SomePage child).
   rewrite  Hlvl in *.
   inversion Hlevel;trivial.
   Qed.
+Set Nested Proofs Allowed.
+    Lemma childIsNotParent (parent phyDescChild:page) s:
+    isParent s ->
+    noCycleInPartitionTree s ->
+    noDupPartitionTree s ->
+    In parent (getPartitions multiplexer s) ->
+    In phyDescChild (getChildren parent s) ->
+    parent <> phyDescChild.
+    Proof.
+    intros Hisparent Hnocycle.
+    intros. 
+    assert(Hparent : StateLib.getParent phyDescChild (memory s) = Some parent)by
+      (apply Hisparent;trivial).
+      assert (Hisances : In parent (getAncestors phyDescChild s)) by(
+      unfold getAncestors;destruct nbPage;simpl;rewrite Hparent;simpl
+      ;left;trivial).
+      apply Hnocycle;trivial.
+    apply childrenPartitionInPartitionList with parent;trivial.
+   Qed.

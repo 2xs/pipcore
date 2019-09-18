@@ -35,7 +35,7 @@
     We prove that this PIP service preserves the isolation property *)
 Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas PropagatedProperties
+Model.MAL Lib InternalLemmas InternalLemmas2 DependentTypeLemmas PropagatedProperties
 Classical_Prop.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
  Import List.ListNotations.
@@ -9278,14 +9278,10 @@ destruct Hor3 as [Hor3| Hor3].
   - (** phyDescChild = child **) 
     subst child.
     assert(Htrue : parent <> phyDescChild).
-    { assert(Hparent : StateLib.getParent phyDescChild (memory s) = Some parent)by
-      (apply Hisparent;trivial).
-      assert (Hisances : In parent (getAncestors phyDescChild s)) by(
-      unfold getAncestors;destruct nbPage;simpl;rewrite Hparent;simpl
-      ;left;trivial).
-      assert(Hnocycle : noCycleInPartitionTree s) by 
+    { assert(Hnocycle : noCycleInPartitionTree s) by 
       (unfold consistency in *; intuition).
-      apply Hnocycle;trivial. }
+      apply childIsNotParent with s;trivial.
+      unfold consistency in *; intuition. }
     assert(Hmap : getMappedPages parent s = getMappedPages parent s').
     { apply getMappedPagesMapMMUPage with phyDescChild vaChild
       entry level;trivial.
