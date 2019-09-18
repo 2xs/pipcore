@@ -1297,6 +1297,10 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartition
 { apply getPartitionsUpdateUserFlag; trivial.
  unfold propagatedPropertiesPrepare in *.
  intuition;subst;trivial. }
+assert(getChildren currentPart s' = getChildren currentPart s) as Hchildren.
+{ apply getChildrenUpdateFlagUser; trivial.
+ unfold propagatedPropertiesPrepare in *.
+ intuition;subst;trivial. }
 unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.
 intuition;subst;trivial.
 + apply kernelDataIsolationUpdateUserFlagFalse;trivial.
@@ -1359,6 +1363,7 @@ intuition;subst;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + rewrite Hpartitions;trivial.
++ unfold s' in *;simpl. rewrite Hchildren;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial. 
@@ -1436,6 +1441,10 @@ intuition;subst;trivial.
 set (s':= {| currentPartition := _ |}).
 assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
 { apply getPartitionsUpdateUserFlag; trivial. intuition;subst;trivial. }
+assert(getChildren currentPart s' = getChildren currentPart s) as Hchildren.
+{ apply getChildrenUpdateFlagUser; trivial.
+ unfold propagatedPropertiesPrepare in *.
+ intuition;subst;trivial. }
 intuition;subst;trivial.
 + apply kernelDataIsolationUpdateUserFlagFalse;trivial.
 + apply partitionsIsolationUpdateUserFlag;trivial.
@@ -1497,6 +1506,7 @@ intuition;subst;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + rewrite Hpartitions;trivial.
++ unfold s' in *;simpl. rewrite Hchildren;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
@@ -1575,6 +1585,10 @@ intuition;subst;trivial.
 set (s':= {| currentPartition := _ |}).
 assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
 { apply getPartitionsUpdateUserFlag; trivial. intuition;subst;trivial. }
+assert(getChildren currentPart s' = getChildren currentPart s) as Hchildren.
+{ apply getChildrenUpdateFlagUser; trivial.
+ unfold propagatedPropertiesPrepare in *.
+ intuition;subst;trivial. }
 intuition;subst;trivial.
 + apply kernelDataIsolationUpdateUserFlagFalse;trivial.
 + apply partitionsIsolationUpdateUserFlag;trivial.
@@ -1636,6 +1650,7 @@ intuition;subst;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + rewrite Hpartitions;trivial.
++ unfold s' in *;simpl. rewrite Hchildren;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
@@ -1968,6 +1983,9 @@ unfold propagatedPropertiesPrepare, indirectionDescriptionAll, initPEntryTablePr
 intros.
 assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions.
 { apply getPartitionsUpdateUserFlag; trivial. }
+assert(getChildren currentPart s' = getChildren currentPart s) as Hchildren.
+{ apply getChildrenUpdateFlagUser; trivial.
+}
 intuition;subst;trivial; unfold s'.
 + apply kernelDataIsolationUpdateUserFlagFalse;trivial.
 + apply partitionsIsolationUpdateUserFlag;trivial.
@@ -2026,6 +2044,7 @@ apply childAncestorConfigTablesAreDifferent with s
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + apply nextEntryIsPPUpdateUserFlag;trivial.
 + simpl. fold s'. rewrite Hpartitions;trivial.
++ unfold s' in *;simpl. rewrite Hchildren;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.
 + apply indirectionDescriptionUpdateUserFlag;trivial.

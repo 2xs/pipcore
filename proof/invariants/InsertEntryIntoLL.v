@@ -715,6 +715,11 @@ intuition;subst.
 + assert(Hi: getPartitions multiplexer s' = getPartitions multiplexer s).
   symmetry;apply getPartitionsUpdateSh2 with entry;trivial.
   rewrite Hi;trivial.
++ unfold s' in *;simpl.
+  assert(Hi: getChildren (currentPartition s) s' = getChildren (currentPartition s) s).
+  symmetry;apply getChildrenUpdateSh2 with entry;trivial.
+  unfold s' in *.
+  rewrite Hi;trivial.
 + unfold indirectionDescriptionAll in *.  
   intuition; apply indirectionDescriptionUpdateLLContent  with entry;trivial.
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *.  

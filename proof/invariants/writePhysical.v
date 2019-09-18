@@ -2761,7 +2761,14 @@ assert(Htablenotpart : ~ In newLastLLable (getPartitions multiplexer s)).
 {  apply LLtableNotPartition with descChildphy fstLL;trivial;
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *;intuition. }
 assert(Hpartitions : getPartitions multiplexer s = getPartitions multiplexer s') by (
-    eapply getPartitionsUpdateLLCouplePPVA with entry; trivial).
+    eapply getPartitionsUpdateLLCouplePPVA with entry; trivial).    
+assert(Hchildren : getChildren currentPart s = getChildren currentPart s'). 
+{ apply getChildrenUpdateLLCouplePPVA with entry; trivial.
+  unfold insertEntryIntoLLPC, propagatedPropertiesPrepare, consistency in *.
+  assert(Hi: In currentPart (getPartitions multiplexer s)).
+  { intuition;subst;trivial. }
+  unfold not;intros;subst.
+  now contradict Hi. }
 assert(Hnotanc: ~ In newLastLLable (getAncestors (currentPartition s) s)). 
 { contradict Htablenotpart.
   apply ancestorInPartitionTree with (currentPartition s);trivial;unfold insertEntryIntoLLPC, 
@@ -2807,6 +2814,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + unfold s'. rewrite <- nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
 + unfold s'. rewrite <- nextEntryIsPPUpdateLLCouplePPVA with entry;trivial.
 + rewrite <- Hpartitions ;trivial.
++ rewrite <- Hchildren;trivial.
 + unfold indirectionDescriptionAll in *;intuition;
   apply indirectionDescriptionUpdateLLCouplePPVA with entry;trivial.
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;

@@ -459,6 +459,7 @@ nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s /\
 beqVAddr defaultVAddr fstVA = false /\ 
  false = StateLib.Level.eqb l fstLevel /\ 
 In descChildphy (getPartitions multiplexer s) /\ 
+In descChildphy (getChildren (currentPartition s) s) /\
 indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l /\
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
 initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr /\

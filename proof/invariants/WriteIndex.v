@@ -2780,6 +2780,9 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + unfold s'. rewrite <- nextEntryIsPPUpdateLLIndex with entry;trivial.
 + unfold s'. rewrite <- nextEntryIsPPUpdateLLIndex with entry;trivial.
 + rewrite <- Hpartitions ;trivial.
++ assert(Hchildren : getChildren (currentPartition s)  s = getChildren (currentPartition s)  s'). 
+  { apply getChildrenUpdateLLIndex with entry; trivial. }
+  rewrite <- Hchildren. trivial.
 + unfold indirectionDescriptionAll in *;intuition;
   apply indirectionDescriptionUpdateLLIndex with entry;trivial.
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;

@@ -1667,9 +1667,7 @@ assert(Hread: StateLib.readPhyEntry phyPDChild (StateLib.getIndexOfAddr vaToPrep
     (memory s) beqPage beqIndex);intros * Hlook;rewrite Hlook in *;try now contradict Hi1.
     destruct v;try now contradict Hi1.
       f_equal. destruct defaultPage;destruct indMMUToPrepare;simpl in *;subst. rewrite Hi2;f_equal;apply proof_irrelevance. }
-assert(Hchild: In descChildphy (getChildren (currentPartition s) s)). 
-{ eapply inGetChildren;admit.      }
-  unfold consistency, indirectionDescriptionAll, writeAccessibleRecPreparePostconditionAll in *;intuition;subst;trivial.
+unfold consistency, indirectionDescriptionAll, writeAccessibleRecPreparePostconditionAll in *;intuition;subst;trivial.
 + (** kernelDataIsolation **) 
 apply toApplykernelDataIsolationAddIndirection with ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA
 phyMMUaddr phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA

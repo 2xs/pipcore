@@ -5941,6 +5941,7 @@ In partition (getPartitions multiplexer s) ->
  assert(Hfalse : (defaultPage =? table) = false) by 
 (unfold  initPEntryTablePreconditionToPropagatePrepareProperties in *; 
   intuition).
+ 
 assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
 { unfold s'.
  apply getPartitionsUpdateMappedPageData ; trivial.
@@ -6074,6 +6075,17 @@ intuition try assumption.
 + apply nextEntryIsPPUpdateMappedPageData; trivial.
 + apply nextEntryIsPPUpdateMappedPageData; trivial.
 + rewrite Hpartions;trivial.
++ unfold s';simpl.
+  rewrite getChildrenUpdateMappedPageData;trivial.
+  apply beq_nat_false in Hfalse.
+  unfold not;intros;subst.
+  now contradict Hfalse.
+  unfold getConfigPages;  simpl.
+  unfold not.
+  apply Hnotconfig;trivial.
+  unfold not;intros;subst.
+  apply Hnotconfig with  (currentPartition s);trivial.
+  left;trivial.
 + apply indirectionDescriptionUpdateMappedPageContent;trivial.
   left;trivial.
 + apply indirectionDescriptionUpdateMappedPageContent;trivial.

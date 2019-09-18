@@ -124,6 +124,8 @@ assert(Hlookup :exists entry,
  destruct Hlookup as(v0 & Hlookup).
 assert(Hpartitions: getPartitions multiplexer s' = getPartitions multiplexer s) by 
 (apply getPartitionsAddDerivation with v0;trivial).
+assert(Hchildren: getChildren (currentPartition s) s' = getChildren (currentPartition s) s) by 
+(apply getChildrenAddDerivation with v0;trivial).
 intuition;subst;trivial;simpl.
 + apply kernelDataIsolationUpdtateSh1Structure with (entry:= v0);trivial.
 + apply partitionsIsolationUpdtateSh1Structure with (entry:= v0);trivial.
@@ -259,6 +261,7 @@ intuition;subst;trivial;simpl.
 + apply nextEntryIsPPAddDerivation with v0; trivial.
 + apply nextEntryIsPPAddDerivation with v0; trivial.
 + rewrite Hpartitions;trivial.
++ rewrite Hchildren;trivial.
 + apply indirectionDescriptionAddDerivation with v0;trivial. 
 + apply indirectionDescriptionAddDerivation with v0;trivial.
 + apply indirectionDescriptionAddDerivation with v0;trivial.
