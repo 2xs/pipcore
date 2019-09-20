@@ -139,6 +139,97 @@ destruct nbL. simpl in *. omega.  apply beq_nat_false in H2.
  now contradict H2.
 Qed.
 
+ Lemma getIndirectionMapMMUPage11xx s a (phyVaChild ptVaChildpd pd:page) e r w   entry nbL stop1 a1 (li : level):  
+let s':= {|
+         currentPartition := currentPartition s;
+         memory := add ptVaChildpd  (StateLib.getIndexOfAddr a1 li)
+                     (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyVaChild |})
+                     (memory s) beqPage beqIndex |} in 
+  (forall (stop : nat) (tbl : page) ,
+        getIndirection pd a nbL stop s' = Some tbl -> (defaultPage =? tbl) = false ->
+        tbl <> ptVaChildpd \/  ( tbl = ptVaChildpd  /\ (StateLib.getIndexOfAddr a (CLevel (nbL-stop)) <>  StateLib.getIndexOfAddr a1 li))) ->
+       lookup ptVaChildpd (StateLib.getIndexOfAddr a1 li) (memory s) beqPage beqIndex = Some (PE entry) ->
+       pd <> defaultPage ->
+       getIndirection pd a nbL stop1 s =
+       getIndirection pd a nbL stop1 s'.
+                     Proof.
+
+                     
+   revert pd nbL li ptVaChildpd entry.
+   induction stop1.
+   simpl;trivial.
+   intros *  Hmykey  Hlookup Hpdnotnull.
+   simpl in *.
+
+    case_eq( StateLib.Level.eqb nbL fstLevel);intros;trivial.
+    assert(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL)
+    (add ptVaChildpd  (StateLib.getIndexOfAddr a1 li)
+       (PE
+          {|
+          read := r;
+          write := w;
+          exec := e;
+          present := true;
+          user := true;
+          pa := phyVaChild |}) (memory s) beqPage beqIndex) =
+          StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL)
+    (memory s)). symmetry.
+    apply readPhyEntryMapMMUPage with entry;trivial.
+    generalize (Hmykey 0 pd );clear Hmykey;intros Hmykey.
+    simpl in *.
+    assert(Hx: pd <> ptVaChildpd \/
+         pd = ptVaChildpd /\ StateLib.getIndexOfAddr a  (CLevel (nbL - 0)) <> StateLib.getIndexOfAddr a1 li).
+         
+         apply Hmykey;trivial.
+    apply NPeano.Nat.eqb_neq.
+    unfold not;intros.
+    subst.
+    destruct defaultPage;destruct pd;simpl in *;subst.
+    contradict Hpdnotnull.
+    f_equal. apply  proof_irrelevance.
+    destruct Hx.
+    left;trivial.
+    right.
+
+rewrite CLevelIdentity'  in H0.
+intuition.
+    rewrite H0.
+    case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a nbL) (memory s));intros;trivial.
+    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(StateLib.Level.pred nbL );intros;trivial.
+    apply IHstop1 with entry;trivial.
+    intros.
+    assert(tbl <> ptVaChildpd \/
+         tbl = ptVaChildpd /\
+         StateLib.getIndexOfAddr a (CLevel (nbL - (S stop))) <>
+         StateLib.getIndexOfAddr a1 li) as Hgen.
+         
+    apply Hmykey .
+    simpl.    
+     
+     rewrite H3 in *.
+     rewrite H.
+     rewrite H0.
+     rewrite H1.
+     rewrite H2;trivial.
+     trivial.
+ replace (nbL - S stop) with (l - stop) in *.
+ destruct Hgen.
+ left;trivial.
+ right.
+ intuition.
+ assert(l = CLevel (nbL - 1)).
+ apply levelPredMinus1;trivial.
+ rewrite H6.
+unfold CLevel .
+case_eq( lt_dec (nbL - 1) nbLevel);intros * Hl;simpl.
+omega.
+destruct nbL. simpl in *. omega.  apply beq_nat_false in H2.
+     unfold not;intros.
+     subst.
+ now contradict H2.
+Qed.
+
 
 Lemma  readPhyEntryAddIndirectionSameTable indirection idx pg r w e p s:
 StateLib.readPhyEntry indirection idx
