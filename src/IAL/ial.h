@@ -75,6 +75,13 @@ dispatchGlue (uint32_t descriptor, uint32_t vint, uint32_t notify,
                 );
 #endif
 
+void
+yieldGlue (uint32_t calleePartDescVAddr, uint32_t userTargetInterrupt, uint32_t userCallerContextSaveIndex, uint32_t flagsOnWake, uint32_t flagsOnYield
+#ifndef X86SMP
+              , gate_ctx_t *ctx);
+#else
+                );
+#endif
 /**
  * \struct partition_id
  * \brief Partition-to-PartitionID structure

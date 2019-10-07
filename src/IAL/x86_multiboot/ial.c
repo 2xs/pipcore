@@ -618,3 +618,12 @@ void resume (uint32_t descriptor, uint32_t pipflags)
 	ASSERT(0);
 }
 
+void
+yieldGlue (uint32_t calleePartDescVAddr, uint32_t userTargetInterrupt, uint32_t userCallerContextSaveIndex, uint32_t flagsOnWake, uint32_t flagsOnYield
+#ifndef X86SMP
+              , gate_ctx_t *ctx
+#endif
+) {
+	IAL_DEBUG(CRITICAL, "A brancher sur le code Coq ASAP\n");
+	ASSERT(0);
+}
