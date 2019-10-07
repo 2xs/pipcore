@@ -39,7 +39,7 @@
 #include "libc.h"
 #include "debug.h"
 
-tss_entry_t tssEntry; //!< Generic TSS entry for userland-to-kernel switch
+struct tss_descriptor tss; //!< Generic TSS for userland-to-kernel switch
 extern void tssFlush(); //!< ASM method to flush the TSS entry
 
 extern void *cg_outbGlue;
@@ -60,7 +60,7 @@ extern void *cg_removeVAddr;
 extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
-extern void *cg_yield;
+extern void *cg_yieldGlue;
 
 /**
  * \struct gdt_entry_s
@@ -101,7 +101,7 @@ struct gdt_entry_s gdtEntries[] = {
 
 #define gdtEntriesCount (6 + CG_COUNT)
 
-struct gdt_entry gdt[gdtEntriesCount]; //!< Our GDT
+gdt_entry_t gdt[gdtEntriesCount]; //!< Our GDT
 struct gdt_ptr gp; //!< Pointer to our GDT
 
 /**
@@ -115,15 +115,17 @@ struct gdt_ptr gp; //!< Pointer to our GDT
  */
 void gdtSetGate(int num, unsigned long base, unsigned long limit, unsigned char access, unsigned char gran)
 {
-    gdt[num].base_low = (base & 0xFFFF);
-    gdt[num].base_middle = (base >> 16) & 0xFF;
-    gdt[num].base_high = (base >> 24) & 0xFF;
+    gdt[num].segment.present = 0;
+    gdt[num].segment.base_low = (base & 0xFFFF);
+    gdt[num].segment.base_middle = (base >> 16) & 0xFF;
+    gdt[num].segment.base_high = (base >> 24) & 0xFF;
 
-    gdt[num].limit_low = (limit & 0xFFFF);
-    gdt[num].granularity = ((limit >> 16) & 0x0F);
+    gdt[num].segment.limit_low = (limit & 0xFFFF);
+    gdt[num].segment.granularity = ((limit >> 16) & 0x0F);
 
-    gdt[num].granularity |= (gran & 0xF0);
-    gdt[num].access = access;
+    gdt[num].segment.granularity |= (gran & 0xF0);
+    gdt[num].segment.access = access;
+    gdt[num].segment.present = 1;
 }
 
 /**
@@ -137,19 +139,17 @@ void gdtSetGate(int num, unsigned long base, unsigned long limit, unsigned char 
  */
 void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t segment)
 {
-	callgate_t gate;
-	gate.dpl = rpl & 0x3; /* We require ring-level 3, so that our call-gate may be used from user-land */
-	gate.zero = 0 & 0x1; /* Zero value */
-	gate.present = 1 & 0x1; /* Callgate is present */
-	gate.type = 0xC & 0xF; /* Call-gate type */
-	gate.selector = segment & 0xFFFF; /* Segment selector for ring-level 1 */
-	gate.reserved = 0x00 & 0x3;
-	gate.args = args & 0x1F;
+	gdt[num].callgate.present = 0; /* Make sure the entry is not valid until the end */
+	gdt[num].callgate.dpl = rpl; /* Caller ring privilege level */
+	gdt[num].callgate.zero = 0;
+	gdt[num].callgate.type = 0xC; /* Call-gate type */
+	gdt[num].callgate.selector = segment; /* Segment selector for ring-level 1 */
+	gdt[num].callgate.reserved = 0;
+	gdt[num].callgate.args = args;
 	uint32_t addr = (uint32_t)(handler);
-	gate.offset_low = (uint16_t)(addr & 0xFFFF);
-	gate.offset_high = (uint16_t)((addr >> 16) & 0xFFFF);
-	memcpy(&(gdt[num]), &gate, sizeof(struct gdt_entry)); /* Install call-gate into GDT */
-	
+	gdt[num].callgate.offset_low = (uint16_t)(addr & 0xFFFF);
+	gdt[num].callgate.offset_high = (uint16_t)((addr >> 16) & 0xFFFF);
+	gdt[num].callgate.present = 1; /* Validate callgate entry */
 	return;
 }
 
@@ -162,18 +162,18 @@ void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t s
  */
 void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
 {
-	uint32_t base = (uint32_t) &tssEntry;
-	uint32_t limit = sizeof(tssEntry);
+	uint32_t base = (uint32_t) &tss;
+	uint32_t limit = sizeof(tss);
 
 	gdtSetGate(num, base, limit, 0xE9, 0x00);
 
-	memset(&tssEntry, 0, sizeof(tssEntry));
+	memset(&tss, 0, sizeof(tss));
 
-	tssEntry.ss0 = ss0;
-	tssEntry.esp0 = esp0;
+	tss.ss0 = ss0;
+	tss.esp0 = esp0;
 
-	tssEntry.cs = 0x0B;
-	tssEntry.ss = tssEntry.ds = tssEntry.es = tssEntry.fs = tssEntry.gs = 0x13;
+	tss.cs = 0x0B;
+	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = 0x13;
 }
 
 /**
@@ -183,7 +183,7 @@ void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
  */
 void setKernelStack (uint32_t stack)
 {
-	tssEntry.esp0 = stack;
+	tss.esp0 = stack;
 }
 
 /**
@@ -195,7 +195,7 @@ void gdtInstall(void)
 	unsigned i;
 	struct gdt_entry_s *e;
 
-	gp.limit = (sizeof(struct gdt_entry) * (gdtEntriesCount)) - 1;
+	gp.limit = (sizeof(gdt_entry_t) * (gdtEntriesCount)) - 1;
 	gp.base = (uint32_t)&gdt;
 
 	gdtSetGate(0, 0, 0, 0, 0);

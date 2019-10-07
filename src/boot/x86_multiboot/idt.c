@@ -393,7 +393,7 @@ void initIDT(void) {
 
 /**
  * \fn remapIrq
- * \brief Remaps IRQ from int. 0-15 to int. 33-48
+ * \brief Remaps IRQ from int. 0-15 to int. 32-47
  */
 void
 remapIRQ (void)

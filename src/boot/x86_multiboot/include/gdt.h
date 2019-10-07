@@ -43,18 +43,42 @@
 #include <stdbool.h>
 
 /**
- * \struct gdt_entry
- * \brief Global Descriptor Table entry structure
+ * \struct segment_entry
+ * \brief Global Descriptor Table segment entry structure
  */
-struct gdt_entry
+struct segment_entry
 {
-    unsigned short limit_low; //!< Lower bytes of address limit
-    unsigned short base_low; //!< Lower bytes of base address
-    unsigned char base_middle; //!< Middle bytes of base address
-    unsigned char access; //!< Access flags
-    unsigned char granularity; //!< Granularity (TODO: find out what this is supposed to do)
-    unsigned char base_high; //!< Higher bytes of base address
-} __attribute__((packed));
+    unsigned limit_low   : 16; //!< Lower bytes of address limit
+    unsigned base_low    : 16; //!< Lower bytes of base address
+    unsigned base_middle :  8; //!< Middle bytes of base address
+    unsigned access      :  7; //!< Access flags
+    unsigned present     :  1; //!< Valid entry flag
+    unsigned granularity :  8; //!< Granularity
+    unsigned base_high   :  8; //!< Higher bytes of base address
+};
+
+typedef struct segment_entry segment_entry_t;
+
+struct callgate_entry {
+	unsigned offset_low  : 16;
+	unsigned selector    : 16;
+	unsigned args        :  5;
+	unsigned reserved    :  3;
+	unsigned type        :  4;
+	unsigned zero        :  1;
+	unsigned dpl         :  2;
+	unsigned present     :  1;
+	unsigned offset_high : 16;
+};
+
+typedef struct callgate_entry callgate_entry_t;
+
+union gdt_entry {
+	segment_entry_t segment;
+	callgate_entry_t callgate;
+};
+
+typedef union gdt_entry gdt_entry_t;
 
 /**
  * \struct gdt_ptr
@@ -67,10 +91,10 @@ struct gdt_ptr
 } __attribute__((packed));
 
 /**
- * \struct tss_entry_struct
+ * \struct tss_entry
  * \brief Task State Segment entry structure
  */
-struct tss_entry_struct {
+struct tss_descriptor {
 	uint32_t prev_tss; //!< Pointer to the previous TSS entry
 	uint32_t esp0; //!< Kernel-mode ESP
 	uint32_t ss0; //!< Kernel-mode stack segment
@@ -100,21 +124,6 @@ struct tss_entry_struct {
 	uint16_t iomap_base; //!< IOMMU base
 } __attribute__((packed));
 
-typedef struct tss_entry_struct tss_entry_t; //!< TSS entry for kernel-mode switch
-
-struct gdt_callgate {
-	unsigned short offset_low;
-	unsigned short selector;
-	unsigned char args : 5;
-	unsigned char reserved : 3;
-	unsigned char type : 4;
-	unsigned char zero : 1;
-	unsigned char dpl : 2;
-	unsigned char present : 1;
-	unsigned short offset_high;
-};
-
-typedef struct gdt_callgate callgate_t;
 
 void gdtInstall();
 void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t segment);
