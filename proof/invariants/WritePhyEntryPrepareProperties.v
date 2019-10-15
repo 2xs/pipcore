@@ -2218,13 +2218,13 @@ isWellFormedMMUTables phyMMUaddr s ->
 false = StateLib.Level.eqb l fstLevel ->
 nextEntryIsPP partition idxroot pd s ->
 In indirection (getIndirections pd s) ->
+In partition (getPartitions multiplexer s) ->
 
 StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
 
 noDupPartitionTree s ->
 nextIndirection <> indirection ->
 partitionDescriptorEntry s ->
-In partition (getPartitions multiplexer s) ->
 noDupConfigPagesList s ->
 isPresentNotDefaultIff s ->
 configTablesAreDifferent s ->
@@ -2245,11 +2245,11 @@ dataStructurePdSh1Sh2asRoot PDidx
                  pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
-intros * Hgoal Hindor3  Hwell1 Hlpred Hor3 Hlookup Hnblgen Hindesc Hwellmmu Hnotfst Hppx Hinmmu.
+intros * Hgoal Hindor3  Hwell1 Hlpred Hor3 Hlookup Hnblgen Hindesc Hwellmmu Hnotfst Hppx Hinmmu Hpartin.
 intros.
 move Hgoal at bottom.
 unfold dataStructurePdSh1Sh2asRoot in *. 
-intros. 
+intros * Hpart0 * Hpp0 * Ht * Hllv * Hind .
 assert(Hpart : forall part, In part (getPartitions multiplexer s) <-> In part (getPartitions multiplexer s')).
 intros.
 unfold s'.
@@ -2258,8 +2258,9 @@ rewrite <- Hpart in *.
 assert(Hpp': nextEntryIsPP partition0 PDidx entry0 s).
 apply nextEntryIsPPMapMMUPage' with indirection (StateLib.getIndexOfAddr vaToPrepare l) 
   nextIndirection r w  e;trivial.    
-    unfold indirectionDescription,  initPEntryTablePreconditionToPropagatePrepareProperties in *.
-    destruct Hindesc as (tableroot & Hpp & Hrootnotdef & Hor).  
+unfold indirectionDescription,  initPEntryTablePreconditionToPropagatePrepareProperties in *.
+move Hindesc at bottom.
+destruct Hindesc as (tableroot & Hpp & Hrootnotdef & Hor). 
 assert(Horx: partition = partition0 \/ partition <> partition0) by apply pageDecOrNot.
 destruct Horx as[Horx | Horx].
 + subst partition0.
@@ -2270,11 +2271,402 @@ destruct Horx as[Horx | Horx].
     apply getPdNextEntryIsPPEq with partition s;trivial.
     apply nextEntryIsPPgetPd;trivial.
     subst entry0 .
-    assert(indirection = indirection0 \/ indirection <> indirection0) by admit. 
-    destruct H13.
+     assert (pd = tableroot).
+    apply getPdNextEntryIsPPEq with partition s;trivial.
+    apply nextEntryIsPPgetPd;trivial.
+    subst tableroot.
+    rewrite <- Hnblgen in Hllv.
+    inversion Hllv;subst nbLgen.
+    clear Hpp0.
+      assert(Hispe:isPE indirection idx s).
+    { destruct Hor as [(Heq & HnbL) | Hor].
+      + subst.
+     assert(Heq: Some indirection = Some indirection ) by trivial.
+(*     { f_equal. apply getPdNextEntryIsPPEq with partition s;trivial.
+      apply nextEntryIsPPgetPd;trivial. } *)
+      generalize (Hgoal partition Hpartin indirection Hpp' vaToPrepare  Ht l 0 HnbL indirection idx);
+      clear Hgoal;intros Hgoal.
+      simpl in *.
+      generalize (Hgoal Heq);clear Hgoal;intros Hgoal.
+      destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+      subst.
+      intuition.
+      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+      intuition.
+       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+       contradict hi.
+       apply idxPDidxSh1notEq.
+       apply idxPDidxSh2notEq.
+    +  
+    destruct Hor as (nbL & sstop & Hnbl & Hsstop & Hind1 & Hinddef & Hli).
+      generalize (Hgoal partition Hpartin pd Hpp vaToPrepare  Ht nbL sstop Hnbl indirection idx Hind1);  
+       clear Hgoal;intros Hgoal.
+        destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+      subst.
+      intuition.
+      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+      intuition.
+       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+       contradict hi.
+       apply idxPDidxSh1notEq.
+       apply idxPDidxSh2notEq. }
+    destruct Hor as [(Hroot & Hnbl) | (nbl & sstop & Hnbl & Hsstop & Hind1 & Hnotdef & Hl)].
+    * subst.
+    ++ assert(Hvaddr: StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare va l = true \/
+  StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare va l = false)
+  by (destruct (StateLib.checkVAddrsEqualityWOOffset);[left|right];trivial).
+  destruct Hvaddr as [Hvaddr|Hvaddr].
+  -- 
+  destruct stop;simpl in *.
+  **
+  inversion Hind.
+  subst indirection0.
+  generalize(Hgoal partition Hpart0  indirection Hpp va Ht level 0 Hnblgen indirection idx);
+  clear Hgoal;intros Hgoal.
+  simpl in *.
+  apply Hgoal in Hind;clear Hgoal.
+  destruct Hind as [Hind|Hind].
+  left;trivial.
+  right.
+  destruct Hind as (Hind & Hii).
+  split;trivial.
+  destruct Hind as [Hind|Hind].
+  left. 
+  intuition.
+  apply isPEMapMMUPage with entry;trivial.
+  right.
+  intuition;trivial.
+  left;split;trivial.
+  apply isVEMapMMUPage with entry;trivial.
+  right;left;split;trivial.
+  apply isVAMapMMUPage with entry;trivial.
+  right;right;split;trivial.
+  apply isPEMapMMUPage with entry;trivial.
+  ** rewrite <- Hnblgen in Hnbl.
+     inversion Hnbl;subst.
+     rewrite <- Hnotfst in Hind.
+     assert(Heq: (StateLib.getIndexOfAddr va level) = (StateLib.getIndexOfAddr vaToPrepare level)). 
+     { admit. }
+     rewrite  Heq in Hind.
+     assert(Hnewind:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare level)
+           (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyMMUaddr |}) (memory s) beqPage beqIndex) =
+              Some phyMMUaddr). 
+     { apply readPhyEntryAddIndirectionSameTable. }  
+     rewrite Hnewind in Hind.
+     assert(Hnotdef: (defaultPage =? phyMMUaddr) = false) by trivial.
+     rewrite Hnotdef in Hind.
+     rewrite Hlpred in Hind.
+     destruct stop; simpl in *.
+     +++ inversion Hind;subst indirection0.
+       right.
+       split. 
+       --- assert(Horl:1 < level \/ 1 >= level) by omega.
+       destruct Horl.
+       left;split;trivial.
+         apply isPEMapMMUPage with entry ;trivial.
+         move Hwellmmu at bottom.
+         unfold isWellFormedMMUTables in *.
+         destruct Hwellmmu with idx as (Hi & _).
+         unfold  StateLib.readPhyEntry, isPE in *.
+         destruct (lookup phyMMUaddr idx (memory s) beqPage beqIndex);try now contradict Hi.
+         destruct v;try now contradict Hi.
+         trivial.
+       right;split;trivial.
+         right;right;split;trivial.
+         apply isPEMapMMUPage with entry ;trivial.
+         move Hwellmmu at bottom.
+         unfold isWellFormedMMUTables in *.
+         destruct Hwellmmu with idx as (Hi & _).
+         unfold  StateLib.readPhyEntry, isPE in *.
+         destruct (lookup phyMMUaddr idx (memory s) beqPage beqIndex);try now contradict Hi.
+         destruct v;try now contradict Hi.
+         trivial.
+       --- apply beq_nat_false in Hnotdef. intuition.
+           subst.
+           apply Hnotdef;trivial.
+     +++ case_eq(StateLib.Level.eqb lpred fstLevel);intros * Hlpred0;rewrite Hlpred0 in *. 
+       --- inversion Hind;subst indirection0.     
+           right.
+           split. 
+           *** assert(Horl:S (S stop)  < level \/ S (S stop)  >= level) by omega.
+           destruct Horl.
+           left;split;trivial.
+             apply isPEMapMMUPage with entry ;trivial.
+             move Hwellmmu at bottom.
+             unfold isWellFormedMMUTables in *.
+             destruct Hwellmmu with idx as (Hi & _).
+             unfold  StateLib.readPhyEntry, isPE in *.
+             destruct (lookup phyMMUaddr idx (memory s) beqPage beqIndex);try now contradict Hi.
+             destruct v;try now contradict Hi.
+             trivial.
+           right;split;trivial.
+             right;right;split;trivial.
+             apply isPEMapMMUPage with entry ;trivial.
+             move Hwellmmu at bottom.
+             unfold isWellFormedMMUTables in *.
+             destruct Hwellmmu with idx as (Hi & _).
+             unfold  StateLib.readPhyEntry, isPE in *.
+             destruct (lookup phyMMUaddr idx (memory s) beqPage beqIndex);try now contradict Hi.
+             destruct v;try now contradict Hi.
+             trivial.
+            *** apply beq_nat_false in Hnotdef. intuition.
+               subst.
+               apply Hnotdef;trivial.
+        --- assert(Hreadnext: StateLib.readPhyEntry phyMMUaddr (StateLib.getIndexOfAddr va lpred)
+           (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyMMUaddr |}) (memory s) beqPage beqIndex) = Some defaultPage) by admit.
+            rewrite Hreadnext in *.
+            rewrite <- beq_nat_refl in Hind.
+            inversion Hind;subst.
+            left;trivial.
+  --        
+     
+  destruct Hind
+  
+    
+    
+    
+    
+    
+    destruct stop;simpl in *.
+    ++ inversion Hind;subst indirection0.
+         right. split;trivial.
+         assert( 0 < level \/  0 >= level) as [Horstop|Horstop] by omega.
+         --  left;split;trivial.
+          unfold s'.    
+          apply isPEMapMMUPage with entry;trivial.
+          -- right.
+          split;trivial.
+          right;right.
+          split;trivial.
+          apply isPEMapMMUPage with entry;trivial.
+     ++ assert(Hlvl: Some level = StateLib.getNbLevel) by trivial.
+             rewrite <- Hlvl in Hnbl.
+             inversion Hnbl;subst.
+             rewrite <- Hnotfst in Hind.
+          rewrite Hlpred in *.
+          assert(Horidx: StateLib.getIndexOfAddr vaToPrepare level = StateLib.getIndexOfAddr va level \/
+          StateLib.getIndexOfAddr vaToPrepare level <> StateLib.getIndexOfAddr va level) by apply indexDecOrNot. 
+          destruct Horidx as [Horidx | Horidx ].
+          -- rewrite <- Horidx in *.
+          
+          
+          
+          
+  
+      assert(Hread:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare level)
+           (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
+              (PE
+                 {|
+                 read := r;
+                 write := w;
+                 exec := e;
+                 present := true;
+                 user := true;
+                 pa := phyMMUaddr |}) (memory s) beqPage beqIndex) = Some phyMMUaddr).    
+{                apply readPhyEntryAddIndirectionSameTable. }
+                rewrite Hread in Hind.
+                assert(Hdef: (defaultPage =? phyMMUaddr) = false) by trivial.
+                rewrite Hdef in *.
+                destruct stop;simpl in Hind.
+                **
+                inversion Hind; subst indirection0.
+                assert(Hwell':  isWellFormedMMUTables phyMMUaddr s').
+      apply isWellFormedMMUTablesAddIndirection with entry;trivial.
+      unfold isWellFormedMMUTables in Hwell'.
+      generalize(Hwell' idx ) ; clear Hwell'; intros (Hwell' & _).
+               right. split;trivial;[|
+        apply beq_nat_false in Hdef; unfold not;intros;subst;try now contradict Hdef]. 
+        assert( 1 < level \/  1 >= level) as [Horstop|Horstop] by omega.
+      +++ 
+          left;split;trivial.
+          unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      +++  right.
+          split;trivial.
+          right;right.
+          split;trivial.
+            unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      ** destruct ( StateLib.Level.eqb lpred fstLevel);simpl in *.
+     inversion Hind;subst indirection0.
+                     assert(Hwell':  isWellFormedMMUTables phyMMUaddr s').
+      apply isWellFormedMMUTablesAddIndirection with entry;trivial.
+      unfold isWellFormedMMUTables in Hwell'.
+      generalize(Hwell' idx ) ; clear Hwell'; intros (Hwell' & _).
+               right. split;trivial;[|
+        apply beq_nat_false in Hdef; unfold not;intros;subst;try now contradict Hdef]. 
+       assert(S (S stop)  < level \/ S (S stop) >= level) as [Horstop|Horstop] by omega.
+      +++ 
+          left;split;trivial.
+          unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      +++ right.
+          split;trivial.
+          right;right.
+          split;trivial.
+            unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      
+      
+      
+      +++       
+    
+      assert( pd = indirection \/ pd <> indirection) as [Hpdor | Hpdor] by apply pageDecOrNot. 
+      ++ subst pd.     
+         assert(Hvaddr: StateLib.checkVAddrsEqualityWOOffset (stop) vaToPrepare va level = true \/
+  StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare va level = false)
+  by (destruct (StateLib.checkVAddrsEqualityWOOffset);[left|right];trivial).
+  destruct Hvaddr as [Hvaddr|Hvaddr].
+  --
+         destruct stop ;simpl in *.
+         ** inversion Hxi;subst indirection0.
+         right. split;trivial.
+         assert( 0 < level \/  0 >= level) as [Horstop|Horstop] by omega.
+          +++ 
+          left;split;trivial.
+          unfold s'.    
+          apply isPEMapMMUPage with entry;trivial.
+          +++ right.
+          split;trivial.
+          right;right.
+          split;trivial.
+          apply isPEMapMMUPage with entry;trivial.
+          -- assert(Hlvl: Some level = StateLib.getNbLevel) by trivial.
+             rewrite <- Hlvl in Hnbl.
+             inversion Hnbl;subst.
+             rewrite <- Hnotfst in Hxi.
+          rewrite <- Hnotfst in *.
+          rewrite Hlpred in *.
+          case_eq(StateLib.getIndexOfAddr vaToPrepare level =? StateLib.getIndexOfAddr va level);intros * Hx;
+          rewrite Hx in *.
+          apply beq_nat_true in Hx.
+          replace (StateLib.getIndexOfAddr va level) with (StateLib.getIndexOfAddr vaToPrepare level) in Hxi.
+         
+      assert(Hread:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare level)
+           (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
+              (PE
+                 {|
+                 read := r;
+                 write := w;
+                 exec := e;
+                 present := true;
+                 user := true;
+                 pa := phyMMUaddr |}) (memory s) beqPage beqIndex) = Some phyMMUaddr).    
+                apply readPhyEntryAddIndirectionSameTable.
+                rewrite Hread in Hxi.
+                assert(Hdef: (defaultPage =? phyMMUaddr) = false) by trivial.
+                rewrite Hdef in *.
+                destruct stop;simpl in Hxi.
+                inversion Hxi; subst indirection0.
+                assert(Hwell':  isWellFormedMMUTables phyMMUaddr s').
+      apply isWellFormedMMUTablesAddIndirection with entry;trivial.
+      unfold isWellFormedMMUTables in Hwell'.
+      generalize(Hwell' idx ) ; clear Hwell'; intros (Hwell' & _).
+               right. split;trivial.
+       assert( 1 < level \/  1 >= level) as [Horstop|Horstop] by omega.
+      ** 
+          left;split;trivial.
+          unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      **  right.
+          split;trivial.
+          right;right.
+          split;trivial.
+            unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      **
+      apply beq_nat_false in Hdef.
+      unfold not;intros;subst. now contradict Hdef.
+     **
+     destruct ( StateLib.Level.eqb lpred fstLevel);simpl in *.
+     inversion Hxi;subst indirection0.
+                     assert(Hwell':  isWellFormedMMUTables phyMMUaddr s').
+      apply isWellFormedMMUTablesAddIndirection with entry;trivial.
+      unfold isWellFormedMMUTables in Hwell'.
+      generalize(Hwell' idx ) ; clear Hwell'; intros (Hwell' & _).
+               right. split;trivial.
+       assert(S (S stop)  < level \/ S (S stop) >= level) as [Horstop|Horstop] by omega.
+      +++ 
+          left;split;trivial.
+          unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+      +++ right.
+          split;trivial.
+          right;right.
+          split;trivial.
+            unfold s'.
+          unfold     StateLib.readPhyEntry , isPE in *;simpl in *.
+           destruct (beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare level) (phyMMUaddr, idx) beqPage beqIndex);trivial.
+           destruct(  lookup phyMMUaddr idx (removeDup indirection 
+           (StateLib.getIndexOfAddr vaToPrepare level) (memory s) beqPage beqIndex) beqPage beqIndex);try now contradict Hwell';trivial.
+           destruct v;try now contradict Hwell';trivial.
+           trivial.
+     +++
+      apply beq_nat_false in Hdef.
+      unfold not;intros;subst. now contradict Hdef.
+     +++
+     destruct ( StateLib.Level.eqb lpred fstLevel);simpl in *.
+     inversion Hxi;subst indirection0.
+     
+           }
+          apply isPEMapMMUPage with entry;trivial.
+          ** right.
+          split;trivial.
+          right;right.
+          split;trivial.
+          apply isPEMapMMUPage with entry;trivial.
+      
+      rewrite Hread in Hind.
+          case_eq(  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va level)
+          (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
+             (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyMMUaddr |}) (memory s) beqPage beqIndex));intros * Hxx;
+             rewrite Hxx in *.
+           rewrite  readPhyEntryAddIndirectionSameTable in Hxx.  
+          rewrite Hx in Hxi.
+    assert(Horind : indirection = indirection0 \/ indirection <> indirection0) by apply pageDecOrNot. 
+    destruct Horind.
+    *
     subst indirection0. 
-    assert( idx= (StateLib.getIndexOfAddr vaToPrepare l) \/ idx <> (StateLib.getIndexOfAddr vaToPrepare l) ) by admit.
-  destruct H13. subst.
+    assert(Horidx: idx= (StateLib.getIndexOfAddr vaToPrepare l) \/ idx <> (StateLib.getIndexOfAddr vaToPrepare l) ) by apply indexDecOrNot.
+  destruct Horidx. 
+  ++ subst.
   right. 
       split;trivial.
     assert( stop < level \/  stop >= level) as [Horstop|Horstop] by omega.
@@ -2298,16 +2690,111 @@ destruct Horx as[Horx | Horx].
       (indirection, StateLib.getIndexOfAddr vaToPrepare l) beqPage beqIndex = true). 
     apply beqPairsTrue.
     split;trivial.
-    rewrite HT;trivial.
-    
-    
-    
-    
+    rewrite HT;trivial.   
      assert(Hpdor: tableroot=pd).
 
  { apply getPdNextEntryIsPPEq with partition s;trivial.
   apply nextEntryIsPPgetPd;trivial. }
   subst tableroot.
+  admit. (* indirection <> defaultPage*)
+  ++ right. 
+      split;trivial.
+      assert(Hispe:isPE indirection idx s).
+    { destruct Hor as [(Heq & HnbL) | Hor].
+      + subst.
+      assert (Ht: True) by trivial.
+     assert(Heq: Some pd = Some indirection ).
+     { f_equal. apply getPdNextEntryIsPPEq with partition s;trivial.
+      apply nextEntryIsPPgetPd;trivial. }
+      generalize (Hgoal partition Hpartin pd Hpp' vaToPrepare  Ht l 0 HnbL indirection idx);
+      clear Hgoal;intros Hgoal.
+      simpl in *.
+      generalize (Hgoal Heq);clear Hgoal;intros Hgoal.
+      destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+      subst.
+      intuition.
+      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+      intuition.
+       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+       contradict hi.
+       apply idxPDidxSh1notEq.
+       apply idxPDidxSh2notEq.
+    +    assert (Ht: True) by trivial.
+    destruct Hor as (nbL & sstop & Hnbl & Hsstop & Hind & Hinddef & Hli).
+      generalize (Hgoal partition Hpartin tableroot Hpp vaToPrepare  Ht nbL sstop Hnbl indirection idx Hind);  
+       clear Hgoal;intros Hgoal.
+        destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+      subst.
+      intuition.
+      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+      intuition.
+       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+       contradict hi.
+       apply idxPDidxSh1notEq.
+       apply idxPDidxSh2notEq. }
+    assert( stop < level \/  stop >= level) as [Horstop|Horstop] by omega.
+    --
+    left;split;trivial.
+    unfold s'.    
+      apply isPEMapMMUPage with entry;trivial.
+ -- right.
+ split;trivial.
+ right;right.
+ split;trivial.
+             apply isPEMapMMUPage with entry;trivial. 
+  -- admit. (* indirection <> defaultPage*)         
+  *  
+  
+  
+   assert(Hgoal1: indirection0 = defaultPage \/
+        (stop < level /\ isPE indirection0 idx s \/
+         stop >= level /\
+         (isVE indirection0 idx s /\ PDidx = sh1idx \/
+          isVA indirection0 idx s /\ PDidx = sh2idx \/ isPE indirection0 idx s /\ PDidx = PDidx)) /\
+        indirection0 <> defaultPage).
+eapply Hgoal with (va:=va)(entry:= pd)(stop:=stop);try eassumption;trivial.
+rewrite <- H11.
+apply getIndirectionMapMMUPage11 with entry;intros;trivial.
+rewrite <- H12. 
+      
+      simpl in *.
+       
+       
+       
+
+      destruct 
+            generalize 
+      subst pd.
+      rewrite H in Hgoal.
+      rewrite <- beq_nat_refl in Hgoal.
+      assert(Hgoal1: indirection = defaultPage \/
+        (stop < level /\ isPE indirection idx s \/
+         stop >= level /\
+         (isVE indirection idx s /\ PDidx = sh1idx \/
+          isVA indirection idx s /\ PDidx = sh2idx \/ isPE indirection idx s /\ PDidx = PDidx)) /\
+        indirection <> defaultPage).
+        
+eapply Hgoal with (va:=va) ;try eassumption;trivial.
+
+indirec
+        SearchAbout isPE.
+    eapply  middleIndirectionsContainsPE with (idxroot:=PDidx) (currentPart:= partition)
+    (rootind:=pd)(l0:=l) ;trivial.
+    symmetry;trivial.
+    apply pdPartNotNull with partition s;trivial.
+    intuition.
+    
+    unfold isPE.
+    simpl. 
+    
+     assert(HT: beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare l)
+      (indirection, idx) beqPage beqIndex = false). 
+    apply beqPairsFalse.
+    right;intuition.
+    rewrite HT;trivial.
+    rewrite removeDupIdentity.
+    SearchAbout isPE.
+
   intuition.
 
 destruct Hor as [(Heq & HnbL) | Hor].
