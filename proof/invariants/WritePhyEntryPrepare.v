@@ -139,6 +139,8 @@ destruct nbL. simpl in *. omega.  apply beq_nat_false in H2.
  now contradict H2.
 Qed.
 
+
+
  Lemma getIndirectionMapMMUPage11xx s a (phyVaChild ptVaChildpd pd:page) e r w   entry nbL stop1 a1 (li : level):  
 let s':= {|
          currentPartition := currentPartition s;
@@ -230,6 +232,50 @@ destruct nbL. simpl in *. omega.  apply beq_nat_false in H2.
  now contradict H2.
 Qed.
 
+     Set Nested Proofs Allowed.
+     Lemma getIndirectionAddIndirectionEq stop :
+      forall s pd  indirection phyMMUaddr e w r  va entry idx level,
+     lookup indirection idx
+            (memory s) beqPage beqIndex = Some (PE entry) ->
+     ~ In indirection (getIndirectionsAux pd s stop) -> 
+     getIndirection pd va level stop {|
+      currentPartition := currentPartition s;
+      memory := add indirection idx
+                  (PE
+                     {| read := r; write := w; exec := e; present := true; user := true; pa := phyMMUaddr |})
+                  (memory s) beqPage beqIndex |} =getIndirection pd va level stop s.
+     Proof.
+     induction stop;simpl.
+     intros;trivial.
+     intros * Hlook HI.
+     apply not_or_and in HI.
+     destruct HI as (Hi1 & Hi2).
+     case_eq(StateLib.Level.eqb level fstLevel);intros * Hisfst;trivial.
+     assert(HreadEq:  StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level)
+    (add indirection idx
+       (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phyMMUaddr |})
+       (memory s) beqPage beqIndex) = StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level) (memory s) ). 
+       { symmetry. apply readPhyEntryMapMMUPage with entry;trivial.
+          left;trivial. }
+          rewrite HreadEq.
+          clear HreadEq.
+     case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level) (memory s));intros * Hread;
+     trivial.
+     case_eq( defaultPage =? p);intros * Hdef;trivial.
+     case_eq(StateLib.Level.pred level );intros * Hpred;trivial.
+     rewrite in_flat_map in Hi2.
+     
+     apply IHstop with entry;trivial.
+     contradict Hi2.
+     exists p;split;trivial.
+     apply readPhyEntryInGetTablePages with (StateLib.getIndexOfAddr va level) ;trivial.
+     destruct(StateLib.getIndexOfAddr va level);simpl;omega.
+     apply beq_nat_false in Hdef.
+     unfold not;intros;subst; now contradict Hdef.
+     rewrite <- Hread.
+     f_equal.
+     apply indexEqId.
+     Qed.
 
 Lemma  readPhyEntryAddIndirectionSameTable indirection idx pg r w e p s:
 StateLib.readPhyEntry indirection idx
