@@ -2349,7 +2349,7 @@ destruct Horx as[Horx | Horx].
      inversion Hnbl;subst.
      rewrite <- Hnotfst in Hind.
      assert(Heq: (StateLib.getIndexOfAddr va level) = (StateLib.getIndexOfAddr vaToPrepare level)). 
-     { admit. }
+     {  admit. }
      rewrite  Heq in Hind.
      assert(Hnewind:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare level)
            (add indirection (StateLib.getIndexOfAddr vaToPrepare level)
@@ -2774,19 +2774,176 @@ admit. (** Ok *)
 assert(Heqind: getIndirection pd va level sstop s' =getIndirection pd va level sstop s). 
      {  apply getIndirectionAddIndirectionEq with entry;trivial. }
      admit. (** Ok *)
-**        assert(Horstop: checkVAddrsEqualityWOOffset (sstop+1) vaToPrepare va level = true \/
-checkVAddrsEqualityWOOffset (sstop+1) vaToPrepare va level = false) .
-{ destruct (checkVAddrsEqualityWOOffset (sstop+1) vaToPrepare va level).
+**
+assert(Hdefind0: indirection0 = defaultPage  \/ indirection0 <> defaultPage ) by apply pageDecOrNot. 
+destruct Hdefind0 as [Hdefind0|Hdefind0].
+left;trivial.
+right. 
+assert(Hkey: ~In indirection (getIndirectionsAux pd s sstop)).
+     { assert(Hex: sstop + 1 <= nbLevel).
+destruct level;simpl in *.
+omega.
+     apply getIndirectionInGetIndirections2' with vaToPrepare level;trivial.
+unfold getIndirections in *.
+apply noDupPreviousMMULevels with nbLevel ;trivial.
+admit. (** Ok *)
+     }
+assert(Heqind: getIndirection pd vaToPrepare level sstop s' =getIndirection pd vaToPrepare level sstop s). 
+     {  apply getIndirectionAddIndirectionEq with entry;trivial. }
+assert(Heqindx: getIndirection pd va level sstop s' =getIndirection pd va level sstop s). 
+      {  apply getIndirectionAddIndirectionEq with entry;trivial. }     
+ pose proof getIndirectionMiddle as Hmid. 
+ generalize (Hmid stop pd va level s' indirection0 sstop Hind Hdefind0 Hor);clear Hmid;
+ intros Hmid.
+ destruct Hmid as (middle & Hmid1 & Hmid2).
+ rewrite Heqindx in Hmid1.      
+assert(Horstop: checkVAddrsEqualityWOOffset (sstop) vaToPrepare va level = true \/
+checkVAddrsEqualityWOOffset (sstop) vaToPrepare va level = false) .
+{ destruct (checkVAddrsEqualityWOOffset (sstop) vaToPrepare va level).
   left;trivial.
   right;trivial. }
 destruct Horstop as [Hstopor| Hstopor].
 +++ 
+assert(Heq: getIndirection pd vaToPrepare level sstop s =
+getIndirection pd va level sstop s) by (apply getIndirectionEqStop;trivial).
+assert(Heq': getIndirection pd vaToPrepare level sstop s' =
+getIndirection pd va level sstop s') by (apply getIndirectionEqStop;trivial).
+ rewrite <- Heq in Hmid1.
+ rewrite Hind1 in Hmid1.
+ inversion Hmid1;subst middle.
+ (** See the first case line 2318 ++ *)
+(*  destruct (stop - sstop);simpl in *.
+ 
+ admit. (** ok *) 
+ rewrite <- Hnotfst in Hmid2.
+ 
+ admit. (** to do *)
+  *) admit.
+ +++ assert(Heq: getIndirection pd va level stop s' = getIndirection pd va level stop s).
+     { symmetry.
+       apply getIndirectionMapMMUPage11 with entry;trivial.
+       intros * Hi1 Hi2.
+       assert(Hor0 : stop0 < sstop \/ stop0=sstop \/ stop0 > sstop) by omega.
+  { destruct Hor0 as [Hor0 | [Hor0 | Hor0]].
+  -  assert(Hinind: In tbl (getIndirectionsAux pd  s (stop0+1))).
+  { apply getIndirectionInGetIndirections1 with va level;trivial.
+  destruct level;simpl in *.
+  omega.
+  apply beq_nat_false in Hi2.
+  unfold not;intros;subst;now contradict Hi2.
+  }
+  assert(Hnotinind: ~ In indirection (getIndirectionsAux pd s (stop0+1))).
+  
 
-  assert(Heq: getIndirection pd vaToPrepare level sstop s =
-getIndirection pd va level sstop s).
-apply getIndirectionEqStop;trivial.
+  apply getIndirectionInGetIndirections2n with sstop vaToPrepare level;trivial.
+  admit. (** ok **)
+  admit. (** ok *)
+  omega.
+  unfold not;intros;subst;now contradict Hkey.
+  -  subst stop0.
+  
+  assert(HsstopS: (S (sstop - 1)) = sstop) by omega.
 
-rewrite Heq in Hind1.
+    eapply pageTablesAreDifferentMiddle with (root1:=pd) (root2:=pd) (s:=s) 
+    (va1:= va) (va2:= vaToPrepare) (stop0:= sstop-1) (level1:=level) ;trivial;try rewrite HsstopS;trivial.
+
+admit. (** ok **)
+admit. (** ok **)
+rewrite <- checkVAddrsEqualityWOOffsetPermut';trivial.
+left;split;trivial.
+apply getNbLevelEq;trivial.
+apply beq_nat_false in Hi2.
+unfold not;intros;subst;now contradict Hi2.
+
+- SearchAbout getIndirectionsAux.
+Set Nested Proofs Allowed.
+Lemma disjointGetIndirectionsAuxMiddlen:
+
+  forall (n : nat) (p0 p1 root : page) sstop vaToPrepare va(s : state) level,
+  p0 <> p1 ->
+  n >sstop->
+  p0 <> defaultPage->
+  p1 <> defaultPage ->
+  NoDup (getIndirectionsAux root s n) ->
+  getIndirection root vaToPrepare level sstop s = Some p1 -> 
+  getIndirection root va level sstop s = Some p0 -> 
+  disjoint (getIndirectionsAux p0 s (n - sstop)) (getIndirectionsAux p1 s (n - sstop)). 
+Admitted.
+pose proof disjointGetIndirectionsAuxMiddlen as Hi.
+assert(Hmiddef: middle <> defaultPage) by admit. 
+assert(Hid: middle<> indirection).
+{ 
+  assert(HsstopS: (S (sstop - 1)) = sstop) by omega.
+
+    eapply pageTablesAreDifferentMiddle with (root1:=pd) (root2:=pd) (s:=s) 
+    (va1:= va) (va2:= vaToPrepare) (stop0:= sstop-1) (level1:=level) ;trivial;try rewrite HsstopS;trivial.
+
+admit. (** ok **)
+admit. (** ok **)
+rewrite <- checkVAddrsEqualityWOOffsetPermut';trivial.
+left;split;trivial.
+apply getNbLevelEq;trivial.
+
+(* unfold not;intros;subst;now contradict Hi2. *)
+}
+assert(Hnodup:  NoDup (getIndirectionsAux pd s stop0)) by admit. (** need stop0<=nbLevel *)
+generalize (Hi stop0 middle indirection pd sstop vaToPrepare va s level Hid Hor0 Hmiddef Hnotdef Hnodup
+Hind1 Hmid1);
+clear Hi;intros Hi.
+
+ SearchAbout getIndirectionsAux.
+ 
+ Lemma 
+ stop0 > sstop ->
+ getIndirection pd va level stop0 s = Some tbl -> 
+ getIndirection pd va level sstop s = Some middle ->
+ NoDup (getIndirectionsAux pd s stop0) ->
+ In tbl ((getIndirectionsAux pd s sstop)++middle++(getIndirectionsAux middle s (stop0 - sstop)). 
+ 
+ . 
+disjointGetIndirectionsAuxMiddle:
+disjoint (getIndirectionsAux p0 s (n - 1)) (getIndirectionsAux p1 s (n - 1))
+intuition.
+SearchAbout StateLib.getNbLevel.
+unfold StateLib.getNbLevel in *.
+  unfold getIndirections in *.
+  apply noDupPreviousMMULevels with nbLevel ;trivial.
+  omega.
+  pose proof inclGetIndirectionsAuxLe as Hproof.
+  contradict Hnotinind.
+  unfold incl in Hproof.
+  apply Hproof with (stop0+1).
+  omega.
+  subst;trivial.
+  
+      SearchPattern (getIndirection _ _ _ _ _= getIndirection _ _ _ _ _).
+      }
+ rewrite Heq in Hind.
+ generalize(Hgoal partition Hpart0  pd Hpp va Ht level  stop Hnblgen indirection0 idx Hind);
+ clear Hgoal;intros Hgoal.
+ destruct Hgoal as [Hgoal | Hgoal];try now contradict Hgoal.
+ 
+ admit. 
+ 
+ 
+ assert(Hinind: ~ In indirection (getIndirectionsAux 
+ assert(Hxx: getIndirection middle va (CLevel (level - sstop)) (stop - sstop) s' = Some indirection0 
+pose proof getIndirectionInGetIndirections2n as Hkeyp.
+generalize(Hkeyp sstop stop
+
+
+assert(~In indirection 
+ apply getIndirectionMiddle with sstop in Hind.
+    
+ SearchAbout getIndirection.
+   
+   
+   getIndirectionStopS'
+   
+   
+   
+   pageTablesOrIndicesAreDifferentMiddle
+rewrite <- Heq' in Hind.
 assert(
 admit. (** OK *)
 tbl <> indirection)as [Hortbl| Hortbl]  by apply pageDecOrNot .

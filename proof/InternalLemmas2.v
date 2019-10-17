@@ -2016,3 +2016,79 @@ Set Nested Proofs Allowed.
       apply Hnocycle;trivial.
     apply childrenPartitionInPartitionList with parent;trivial.
    Qed.
+  Lemma levelPredSn nbL l n :
+   StateLib.Level.eqb nbL fstLevel = false ->
+   StateLib.Level.pred nbL = Some l ->
+   l - n = nbL - S n.
+   Proof.
+   intros.
+   assert (nbL - 1 = l). 
+   apply levelPredMinus1Nat;trivial.
+   rewrite <- H1.
+   omega.
+   Qed.
+ Lemma getIndirectionMiddle max:
+ forall  pd va nbL  s last stop, 
+ getIndirection pd va nbL max s = Some last -> 
+ last <> defaultPage -> 
+ max > stop ->
+ (exists middle,   getIndirection pd va nbL stop s = Some middle /\
+ getIndirection middle va (CLevel (nbL - stop)) (max-stop) s = Some last).
+ Proof. 
+ induction max;simpl in *;intros.
+ omega.
+ case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hisfst;rewrite Hisfst in *.
+ + inversion H;subst.
+  destruct stop;simpl.
+  rewrite CLevelIdentity'.
+exists last;split;trivial.
+rewrite Hisfst.
+trivial.
+rewrite Hisfst.
+exists last;split;trivial.
+  destruct ((max - stop));simpl;trivial.
+   assert( Hfst: StateLib.Level.eqb (CLevel (nbL -S stop)) fstLevel = true).
+   { replace (CLevel (nbL - S stop)) with fstLevel. 
+     unfold StateLib.Level.eqb.
+     rewrite <- beq_nat_refl. trivial.
+    unfold fstLevel.
+    f_equal.
+    unfold StateLib.Level.eqb in *.
+    apply beq_nat_true in Hisfst.
+    unfold fstLevel in *.
+    rewrite Hisfst.
+    unfold CLevel.
+    case_eq(lt_dec 0 nbLevel);intros;try omega.
+    simpl.
+    trivial.
+    pose proof nbLevelNotZero.
+    omega. }
+rewrite Hfst;trivial.
++ case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va nbL) (memory s));
+intros * Hread;rewrite Hread in *;try now contradict H.
+case_eq(defaultPage =? p);intros * Hdef; rewrite Hdef in *.
+- inversion H;subst. now contradict H0.
+-  case_eq( StateLib.Level.pred nbL);intros * Hpred;rewrite Hpred in *;
+try now contradict H.
+  case_eq stop;intros;subst.
+  * simpl.
+  exists pd.
+  split;trivial.  
+  rewrite CLevelIdentity'.
+  rewrite Hisfst.
+  rewrite Hread.
+  rewrite Hdef.
+  rewrite Hpred.
+  trivial.
+  * simpl. 
+   rewrite Hisfst.
+  rewrite Hread.
+  rewrite Hdef.
+  rewrite Hpred.
+  replace (CLevel (nbL - S n)) with (CLevel (l -  n)).
+  apply IHmax;trivial.
+  omega.
+    f_equal.
+
+   apply levelPredSn;trivial.
+   Qed. 
