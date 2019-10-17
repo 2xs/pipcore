@@ -49,7 +49,7 @@ flush2:
 
 global tssFlush
 tssFlush:
-	mov ax, 0x2B
+	mov ax, 0x2B ; TSS descriptor offset in GDT (5 * 0x08) + USER_RING RPL (0b11)
 	ltr ax
 	ret
 

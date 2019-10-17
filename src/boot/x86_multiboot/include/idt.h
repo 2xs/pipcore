@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université Lille 1, The Pip Development Team (2015-2018)                 */
+/*  © Université Lille 1, The Pip Development Team (2015-2019)                 */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -37,30 +37,66 @@
 #include <stdint.h>
 
 /**
- * \struct idt_entry_struct
+ * \struct idt_int_trap_entry
+ * \brief Interrupt Descriptor Table Trap and Interrupt entry common struct
+ */
+struct idt_int_trap_entry_s {
+    unsigned offset_low  : 16; //<! Lower bits of handler address
+    unsigned segment     : 16; //<! Segment selector
+    unsigned rfu         :  5; //<! Reserved
+    unsigned zero        :  3; //<! Always zero smh
+    unsigned type        :  5; //<! TRAP_GATE_TYPE or INTERRUPT_GATE_TYPE
+    unsigned dpl         :  2; //<! Descriptor Privilege Level
+    unsigned present     :  1; //<! Present flag (validity)
+    unsigned offset_high : 16; //<! Higher bits of handler address
+};
+typedef struct idt_int_trap_entry_s idt_trap_entry_t;
+typedef struct idt_int_trap_entry_s idt_int_entry_t;
+
+
+/**
+ * \struct idt_task_entry_s
+ * \brief Interrupt Descriptor Table Task entry struct
+ */
+struct idt_task_entry_s {
+    unsigned rfu0    : 16; //<! Reserved
+    unsigned segment : 16; //<! TSS segment selector
+    unsigned rfu1    :  8; //<! Reserved
+    unsigned type    :  5; //<! TASK_GATE_TYPE
+    unsigned dpl     :  2; //<! Descriptor Privilege Level
+    unsigned present :  1; //<! Present flag (validity)
+    unsigned rfu2    : 16; //<! Reserved
+};
+typedef struct idt_task_entry_s idt_task_entry_t;
+
+/**
+ * \union idt_entry_u
  * \brief Interrupt Descriptor Table entry
  */
-struct idt_entry_struct
-{
-    uint16_t base_lo;   //!< Lower bytes of handler address
-    uint16_t sel;       //!< Selector
-    uint8_t  always0;	//!< RFU
-    uint8_t  flags;     //!< Interrupt handler flags (Required Privilege Level etc)
-    uint16_t base_hi;   //!< Higher bytes of handler address
-} __attribute__((packed));
+union idt_entry_u {
+    idt_int_entry_t  interrupt;
+    idt_trap_entry_t trap;
+    idt_task_entry_t task;
+};
+typedef union idt_entry_u idt_entry_t;
 
-typedef struct idt_entry_struct idt_entry_t;
+#define TASK_GATE_TYPE      0b00101
+#define INTERRUPT_GATE_TYPE 0b01110
+#define TRAP_GATE_TYPE      0b01111
+
+#define KERNEL_RING 0
+#define USER_RING   3
 
 /**
  * \struct idt_ptr_struct
  * \brief IDT pointer structure
  */
-struct idt_ptr_struct
+struct idt_ptr_s
 {
     uint16_t limit;     //!< Address limit
     idt_entry_t *base;  //!< IDT pointer base
 } __attribute__((packed));
 
-typedef struct idt_ptr_struct idt_ptr_t;
+typedef struct idt_ptr_s idt_ptr_t;
 
 #endif
