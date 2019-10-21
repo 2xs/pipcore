@@ -2092,3 +2092,70 @@ try now contradict H.
 
    apply levelPredSn;trivial.
    Qed. 
+
+Lemma getIndirectionMiddle2 stop:
+ forall  pd va nbL  s last max middle, 
+ last <> defaultPage -> 
+ max >= stop ->
+ getIndirection pd va nbL stop s = Some middle ->
+ getIndirection middle va (CLevel (nbL - stop)) (max-stop) s = Some last ->
+  middle <> defaultPage ->
+ getIndirection pd va nbL max s = Some last.
+ Proof. 
+ induction stop;simpl in *;intros.
+ inversion H1;subst.
+ rewrite <- H2.
+ f_equal.
+ rewrite CLevelIdentity';trivial.
+ omega.
+ 
+ case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hisfst;rewrite Hisfst in *.
+ + inversion H1;subst.
+  destruct max;simpl.
+  simpl in *.
+  trivial.
+rewrite Hisfst.
+
+   assert( Hfst: StateLib.Level.eqb (CLevel (nbL -S stop)) fstLevel = true).
+   { replace (CLevel (nbL - S stop)) with fstLevel. 
+     unfold StateLib.Level.eqb.
+     rewrite <- beq_nat_refl. trivial.
+    unfold fstLevel.
+    f_equal.
+    unfold StateLib.Level.eqb in *.
+    apply beq_nat_true in Hisfst.
+    unfold fstLevel in *.
+    rewrite Hisfst.
+    unfold CLevel.
+    case_eq(lt_dec 0 nbLevel);intros;try omega.
+    simpl.
+    trivial.
+    pose proof nbLevelNotZero.
+    omega. }
+    destruct (S max - S stop);simpl in *;trivial.
+    rewrite Hfst in H2;trivial.
++ case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va nbL) (memory s));
+intros * Hread;rewrite Hread in *;try now contradict H.
+case_eq(defaultPage =? p);intros * Hdef; rewrite Hdef in *.
+- inversion H1;subst. now contradict H3.
+-  case_eq( StateLib.Level.pred nbL);intros * Hpred;rewrite Hpred in *;
+try now contradict H.
+  case_eq max;intros;subst.
+  * simpl. omega.
+  * simpl. 
+   rewrite Hisfst.
+  rewrite Hread.
+  rewrite Hdef.
+  rewrite Hpred.
+  
+(*   replace (CLevel (nbL - S n)) with (CLevel (l -  n)). *)
+  apply IHstop with middle;trivial.
+  omega.
+  rewrite <- H2.
+    f_equal. 
+f_equal.
+    
+
+   apply levelPredSn;trivial.
+   Qed. 
+
