@@ -62,11 +62,6 @@
 /* GDT configuration */
 #include "gdt.h"
 
-/* Include serial only if we're in debug mode */
-#ifdef PIPDEBUG
-#include "serial.h"
-#endif
-
 /**
  * \brief Virtual address at which to load the multiplexer.
  */
@@ -110,28 +105,6 @@ void spawnFirstPartition()
 	// Send virtual IRQ 0 to partition
 
 	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
-}
-
-/**
- * \fn uintptr_t fillFpInfo()
- * \brief Creates and fills in the first partition info structure
- */
-uintptr_t fillFpInfo()
-{
-	extern uint32_t __end;
-	extern uint32_t ramEnd;
-
-	DEBUG(TRACE, "FPInfo now at %x\n", fpinfo);
-	
-	// Fill first partition info structure
-
-	
-	return (uintptr_t)fpinfo;
-}
-
-void fixFpInfo()
-{
-	fpinfo->membegin = (uint32_t)firstFreePage;
 }
 
 /**
