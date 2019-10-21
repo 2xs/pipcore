@@ -38,6 +38,7 @@
 #include "gdt.h"
 #include "libc.h"
 #include "debug.h"
+#include "pipcall.h"
 
 /* FIXME FIXME */
 #define USER_RING   0b11
@@ -66,44 +67,9 @@ extern void *cg_deletePartition;
 extern void *cg_collect;
 extern void *cg_yieldGlue;
 
-/**
- * \struct gdt_entry_s
- * \brief Global Descriptor Table callgate entry structure
- */
-struct gdt_callgate_entry_s {
-	void *handler;
-	unsigned nargs;
-};
+#define GDT_SIZE (LAST_PIPCALL + 1)
 
-struct gdt_callgate_entry_s callgateEntries[] = {
-	{&cg_outbGlue, 		2}, /* 0x30 */
-	{&cg_inbGlue, 		1}, /* 0x38 */
-	{&cg_outwGlue, 		2}, /* 0x40 */
-	{&cg_inwGlue, 		1}, /* 0x48 */
-	{&cg_outlGlue, 		2}, /* 0x50 */
-	{&cg_inlGlue, 		1}, /* 0x58 */
-
-	{&cg_createPartition, 	5}, /* 0x60 */
-	{&cg_countToMap, 	2}, /* 0x68 */
-	{&cg_prepare, 		4}, /* 0x70 */
-	{&cg_addVAddr, 		6}, /* 0x78 */
-	{&cg_dispatchGlue, 	5}, /* 0x80 */
-
-	{&cg_outaddrlGlue, 	2}, /* 0x88 */
-	{&cg_timerGlue, 	0}, /* 0x90 */
-	{&cg_resume, 		2}, /* 0x98 */
-	{&cg_removeVAddr, 	2}, /* 0xA0 */
-	{&cg_mappedInChild,	1}, /* 0xA8 */
-	{&cg_deletePartition,	1}, /* 0xB0 */
-	{&cg_collect,		1}, /* 0xB8 */
-	{&cg_yieldGlue,		5}, /* 0xC0 */
-};
-
-#define CG_COUNT (sizeof(callgateEntries)/sizeof(struct gdt_callgate_entry_s))
-
-#define gdtEntriesCount (6 + CG_COUNT)
-
-gdt_entry_t gdt[gdtEntriesCount]; //!< Our GDT
+gdt_entry_t gdt[GDT_SIZE]; //!< Our GDT
 struct gdt_ptr gp; //!< Pointer to our GDT
 
 void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
@@ -197,7 +163,7 @@ void gdtInstall(void)
 	unsigned i;
 	struct gdt_callgate_entry_s *e;
 
-	gp.limit = (sizeof(gdt_entry_t) * (gdtEntriesCount)) - 1;
+	gp.limit = (sizeof(gdt_entry_t) * GDT_SIZE) - 1;
 	gp.base = (uint32_t)&gdt;
 
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 3.5.1
@@ -237,12 +203,26 @@ void gdtInstall(void)
 
 	/**
 	 * Callgate setup (Syscalls)
-	 */
-	for (i=0;i<CG_COUNT; i++)
-	{
-		e = &callgateEntries[i];
-		set_callgate_descriptor(6+i, e->handler, e->nargs, USER_RING, 0x08);
-	}
+	 */ 
+	set_callgate_descriptor(PIPCALL_OUTB,            &cg_outbGlue, 		PIPCALL_NARGS_OUTB,              USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_INB,             &cg_inbGlue, 		PIPCALL_NARGS_INB,               USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_OUTW,            &cg_outwGlue, 		PIPCALL_NARGS_OUTW,              USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_INW,             &cg_inwGlue, 		PIPCALL_NARGS_INW,               USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_OUTL,            &cg_outlGlue, 		PIPCALL_NARGS_OUTL,              USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_INL,             &cg_inlGlue, 		PIPCALL_NARGS_INL,               USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_CREATEPARTITION, &cg_createPartition, 	PIPCALL_NARGS_CREATEPARTITION,   USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_COUNTTOMAP,      &cg_countToMap, 	PIPCALL_NARGS_COUNTTOMAP,        USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_PREPARE,         &cg_prepare, 		PIPCALL_NARGS_PREPARE,           USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_ADDVADDR,        &cg_addVAddr, 		PIPCALL_NARGS_ADDVADDR,          USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_OUTADDRL,        &cg_outaddrlGlue, 	PIPCALL_NARGS_OUTADDRL,          USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_REMOVEVADDR,     &cg_removeVAddr, 	PIPCALL_NARGS_REMOVEVADDR,       USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_MAPPEDINCHILD,   &cg_mappedInChild,	PIPCALL_NARGS_MAPPEDINCHILD,     USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, 0x08);
+	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, 0x08);
 	
 	DEBUG(INFO, "Callgate set-up\n");
 
