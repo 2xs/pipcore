@@ -226,7 +226,7 @@ void gdtInstall(void)
 	 * currently running task.
 	 */
 	init_tss_segment(0x10, 0x0); // kernel data segment and offset 0
-        set_tss_descriptor(5, (uint32_t) &tss, sizeof(tss_segment_t) - 1, GDT_TSS_INACTIVE_TYPE, USER_RING /* FIXME DPL of task switch in user ring ??????? FIXME */, 0);
+        set_tss_descriptor(5, (uint32_t) &tss, sizeof(tss_segment_t) - 1, GDT_TSS_INACTIVE_TYPE, KERNEL_RING /* FIXME DPL of task switch in user ring ??????? FIXME */, 0);
 
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 7.2.2
 	 * In most systems, the DPLs of TSS descriptors are to values less than 3 (USER_RING),
