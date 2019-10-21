@@ -123,34 +123,8 @@ void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigne
     gdt[num].segment_desc.present     = 1; // validate entry now that it is full
 }
 
-
 /**
- * -  Deprecated - use set_segment_descriptor instead
- * \fn void gdtSetGate(int num, unsigned long base, unsigned long limit, unsigned char access, unsigned char gran)
- * \brief Installs a segment selector into the GDT
- * \param num The index of the segment into the GDT
- * \param base The base address for the segment
- * \param limit The maximal value of an address, given this segment is selected
- * \param access Access byte for this segment
- * \param gran Granularity. I never understood what this is supposed to mean. TODO: find out.
- */
-//void gdtSetGate(int num, unsigned long base, unsigned long limit, unsigned char access, unsigned char gran)
-//{
-//    gdt[num].segment_desc.present = 0;
-//    gdt[num].segment_desc.base_low = (base & 0xFFFF);
-//    gdt[num].segment_desc.base_middle = (base >> 16) & 0xFF;
-//    gdt[num].segment_desc.base_high = (base >> 24) & 0xFF;
-//
-//    gdt[num].segment_desc.limit_low = (limit & 0xFFFF);
-//    gdt[num].segment_desc.granularity = ((limit >> 16) & 0x0F);
-//
-//    gdt[num].segment_desc.granularity |= (gran & 0xF0);
-//    gdt[num].segment_desc.access = access;
-//    gdt[num].segment_desc.present = 1;
-//}
-
-/**
- * \fn void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t segment)
+ * \fn void set_callgate_descriptor(int num, void* handler, uint8_t args, uint8_t dpl, uint16_t segment)
  * \brief Installs a call gate entry into the GDT
  * \param num The index of the segment into the GDT
  * \param handler The function pointer
@@ -203,28 +177,6 @@ void init_tss_segment(uint16_t kernel_stack_segment, uint32_t kernel_esp) {
 	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = 0x10 | USER_RING; // Kernel data segment + USER_RING (RPL)
 }
 
-/**
- * \fn void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
- * \brief Writes the TSS entry into the given GDT segment
- * \param num The GDT entry
- * \param ss0 The stack selector for kernel mode
- * \param esp0 The stack pointer for kernel mode
- */
-//void writeTss(int32_t num, uint16_t ss0, uint32_t esp0)
-//{
-//	uint32_t base = (uint32_t) &tss;
-//	uint32_t limit = sizeof(tss);
-//
-//	gdtSetGate(num, base, limit, 0xE9, 0x00);
-//
-//	memset(&tss, 0, sizeof(tss));
-//
-//	tss.ss0 = ss0;
-//	tss.esp0 = esp0;
-//
-//	tss.cs = 0x0B; /* 0x08 + 3 (RPL)*/
-//	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = 0x13; /* 0x10 + 3 (RPL) */
-//}
 
 /**
  * \fn void setKernelStack (uint32_t stack)
@@ -255,22 +207,17 @@ void gdtInstall(void)
 	 * fault when an attempt is made to access memory using this descriptor */
 
 	/* initialize a null GDT descriptor */
-	//gdtSetGate(0, 0, 0, 0, 0);
 	memset(&gdt[0], 0, sizeof(gdt_entry_t));
 
 	/* segment selectors */
 	/* Kernel code segment  */
-	//gdtSetGate(1, 0, 0xFFFFF, 0x9A, 0xC0);
 	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECREAD_NONCONFORMING_TYPE, KERNEL_RING, 1);
 	/* Kernel data segment (stack) */
-	//gdtSetGate(2, 0, 0xFFFFF, 0x92, 0xC0);
-	set_segment_descriptor(2, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE/*?*/, KERNEL_RING, 1);
+	set_segment_descriptor(2, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, KERNEL_RING, 1);
 	/* User code segment */
-	//gdtSetGate(3, 0, 0xFFFFF, 0xFA, 0xC0);
 	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECREAD_NONCONFORMING_TYPE, USER_RING, 1);
 	/* User data segment (stack) */
-	//gdtSetGate(4, 0, 0xFFFFF, 0xF2, 0xC0);
-	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE/*?*/, USER_RING, 1);
+	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, USER_RING, 1);
 
 	/* Intel 64 and IA-32 Architectures Software Developer's Manual - Vol. 3a - Sec. 2.1.2
 	 * If the call requires a change in privilege level, the processor
@@ -278,7 +225,6 @@ void gdtInstall(void)
 	 * segment selector for the new stack is obtained from the TSS for the
 	 * currently running task.
 	 */
-	/*writeTss(5, 0x10, 0x0);*/
 	init_tss_segment(0x10, 0x0); // kernel data segment and offset 0
         set_tss_descriptor(5, (uint32_t) &tss, sizeof(tss_segment_t) - 1, GDT_TSS_INACTIVE_TYPE, USER_RING /* FIXME DPL of task switch in user ring ??????? FIXME */, 0);
 
