@@ -211,11 +211,11 @@ void gdtInstall(void)
 
 	/* segment selectors */
 	/* Kernel code segment  */
-	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECREAD_NONCONFORMING_TYPE, KERNEL_RING, 1);
+	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, KERNEL_RING, 1);
 	/* Kernel data segment (stack) */
 	set_segment_descriptor(2, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, KERNEL_RING, 1);
 	/* User code segment */
-	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECREAD_NONCONFORMING_TYPE, USER_RING, 1);
+	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, USER_RING, 1);
 	/* User data segment (stack) */
 	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, USER_RING, 1);
 
