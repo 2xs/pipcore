@@ -67,16 +67,16 @@ SECTION .text
 
 ; Kernel entrypoint, setup stack, push multiboot header pointer, clear interrupts and jump to the C entrypoint
 start:
-	cli
+    cli
     ; Reset stack
     mov ecx, 16384 ; Repeat operation 16384 times
     mov eax, 0 ; We want to write 0
     mov edi, krnstack ; Starting at krnstack
     rep stosb ; Rep that "ecx" times
-	mov esp, _sys_stack
-	push ebx
-	call c_main
-	jmp $
+    mov esp, _sys_stack
+    push ebx
+    call c_main
+    jmp $
 
 SECTION .bss
 krnstack:   resb    16384 ; Allocate 16kb in the BSS for the kernel stack
