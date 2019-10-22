@@ -70,7 +70,6 @@ extern void *cg_yieldGlue;
 #define GDT_SIZE (LAST_PIPCALL + 1)
 
 gdt_entry_t gdt[GDT_SIZE]; //!< Our GDT
-struct gdt_ptr gp; //!< Pointer to our GDT
 
 void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
     gdt[num].segment_desc.present     = 0; // invalidate entry until its completion
@@ -98,6 +97,29 @@ void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigne
  * \param dpl Descriptor Privilege Level (Caller Privilege Level must be numerically less or equal to DPL)
  * \param segment The segment to switch to
  */
+
+
+/*
+void set_callgate_descriptor(int num, void* handler, uint8_t args, uint8_t dpl, uint16_t segment)
+{
+	uint32_t addr = (uint32_t)(handler);
+	gdt[num] = (gdt_entry_t) {
+		.callgate_desc = {
+			.dpl         = dpl,
+			.zero        = 0,
+			.type        = GDT_CALLGATE_TYPE,
+			.segment     = segment,
+			.reserved    = 0,
+			.args        = args,
+			.offset_low  = (uint16_t)(addr & 0xFFFF),
+			.offset_high = (uint16_t)((addr >> 16) & 0xFFFF),
+			.present     = 1
+		}
+	};
+}
+*/
+
+
 void set_callgate_descriptor(int num, void* handler, uint8_t args, uint8_t dpl, uint16_t segment)
 {
 	gdt[num].callgate_desc.present = 0; // Make sure the entry is not valid until the end
@@ -154,18 +176,60 @@ void setKernelStack (uint32_t stack)
 	tss.esp0 = stack;
 }
 
+
+static inline void load_gdt(void *base, uint16_t limit) {
+
+	struct gdt_ptr gp = {.limit = limit, .base = (uint32_t) base}; //!< Pointer to our GDT
+	asm(/* load the GDT, but our current segment selectors remain the same
+	     * we have to change them manually */
+	    "lgdt (%0);" // gp
+
+	    /* we can't load ss with a mov instruction
+	     * we jump through the GDT to the next instruction to change ss
+	     * (we jump to a label defined in the next assembly line) */
+	    "lcall $0x08, $set_kernel_data_segment_selectors;"
+
+	    /* label declaration before the next instruction */
+	    "set_kernel_data_segment_selectors:;"
+	    /* store KERNEL_DATA_SEGMENT_SELECTOR in ax */
+	    "mov $0x10, %%ax;"
+	    /* move the value from ax to the segment registers */
+	    "mov %%ax, %%ds;"
+	    "mov %%ax, %%es;"
+	    "mov %%ax, %%fs;"
+	    "mov %%ax, %%gs;"
+	    "mov %%ax, %%ss;"
+
+	    /* output operands */
+	    :
+	    /* input operands */
+	    : "r"(&gp)
+	    /* registers we changed during that inline assembly */
+	    : "%eax"
+	);
+}
+
+static inline void load_tss() {
+	asm(
+	    "mov $0x2B, %%ax;" // TSS selector + USER_RING RPL (0b11)
+	    "ltr %%ax;"
+
+	    /* output operands */
+	    :
+	    /* input operands */
+	    :
+	    /* cloberred registers */
+	    : "%eax"
+	);
+}
+
+
 /**
  * \fn void gdtInstall()
  * \brief Installs the GDT into the CPU
  */
 void gdtInstall(void)
 {
-	unsigned i;
-	struct gdt_callgate_entry_s *e;
-
-	gp.limit = (sizeof(gdt_entry_t) * GDT_SIZE) - 1;
-	gp.base = (uint32_t)&gdt;
-
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 3.5.1
 	 * The first descriptor is not used by the GDT is not used by the processor.
 	 * A segment selector to this "null descriptor" does not generate an exception when
@@ -223,10 +287,11 @@ void gdtInstall(void)
 	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, 0x08);
 	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, 0x08);
 	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, 0x08);
-	
 	DEBUG(INFO, "Callgate set-up\n");
 
-	gdtFlush();
-	tssFlush();
-}
+	load_gdt(&gdt, (sizeof(gdt_entry_t) * GDT_SIZE) - 1);
+	DEBUG(INFO, "GDT loaded\n");
 
+	load_tss();
+	DEBUG(INFO, "TSS loaded\n");
+}

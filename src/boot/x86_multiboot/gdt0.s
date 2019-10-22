@@ -33,26 +33,6 @@
 
 ; Configuration of the x86 Global Descriptor Table and Task State Segment.
 
-extern gp
-global gdtFlush
-gdtFlush:
-    lgdt [gp] ; Load the GDT
-    mov ax, 0x10 ; Set segments to kernel land
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    jmp 0x08:flush2 ; Far jump to our newly, freshly-created GDT entry
-flush2:
-    ret ; Get back to business
-
-global tssFlush
-tssFlush:
-	mov ax, 0x2B ; TSS descriptor offset in GDT (5 * 0x08) + USER_RING RPL (0b11)
-	ltr ax
-	ret
-
 %macro CG_GLUE_NOARG 1
 extern %1
 global cg_%1
