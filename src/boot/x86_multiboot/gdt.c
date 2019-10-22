@@ -187,7 +187,7 @@ static inline void load_gdt(void *base, uint16_t limit) {
 	    /* we can't load ss with a mov instruction
 	     * we jump through the GDT to the next instruction to change ss
 	     * (we jump to a label defined in the next assembly line) */
-	    "lcall $0x08, $set_kernel_data_segment_selectors;"
+	    "ljmp $0x08, $set_kernel_data_segment_selectors;"
 
 	    /* label declaration before the next instruction */
 	    "set_kernel_data_segment_selectors:;"
