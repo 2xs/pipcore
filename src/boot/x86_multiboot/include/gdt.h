@@ -66,7 +66,7 @@ struct segment_descriptor_s
     unsigned dpl         :  2; //!< Descriptor privilege level
     unsigned present     :  1; //!< Preset flag (validity of descriptor)
     unsigned limit_high  :  4; //!< Higher bits of the size of the segment (bits 19..16)
-    unsigned avl         :  1; //!< Available for use by system software TODO wth
+    unsigned avl         :  1; //!< Available for use by system software
     unsigned l           :  1; //!< Long? flag (only useful in IA-32e) 64 bits code segment.
     unsigned d_b         :  1; //!< default operation size (0 => 16-bit, 1 => 32-bit)
     unsigned granularity :  1; //!< granularity (see 2/ in above comment)
@@ -125,7 +125,7 @@ struct tss_descriptor_s {
 	unsigned dpl         :  2; //<! Descriptor Privilege Level
 	unsigned present     :  1; //<! Present flag (validity of descriptor)
 	unsigned limit_high  :  4; //<! Segment limit 19..16
-	unsigned avl         :  1; //<! Available for use by system software TODO wth
+	unsigned avl         :  1; //<! Available for use by system software
 	unsigned zero2       :  2; //<! Also always zero smh
 	unsigned granularity :  1; //<! 0 => segment limit range from 1B to 1MB, byte per byte
                                    //<! 1 => segment limit range from 4kB to 4GB, 4kB per 4kB
@@ -161,11 +161,11 @@ struct gdt_ptr
 } __attribute__((packed));
 
 /**
- * \struct tss_segment_s
+ * \struct tss_s
  * \brief Task State Segment structure
  * \seealso 
  */
-struct tss_segment_s {
+struct tss_s {
 	unsigned prev_tss   : 16; //!< Pointer to the previous TSS entry (updated on a task switch)
 	unsigned reserved0  : 16;
 	unsigned esp0       : 32; //!< Kernel-mode ESP           (static)
@@ -207,17 +207,10 @@ struct tss_segment_s {
 	unsigned iomap_base : 16; //!< IOMMU base
 };
 
-typedef struct tss_segment_s tss_segment_t;
+typedef struct tss_s tss_t;
 
 
 void gdtInstall();
-void buildCallgate(int num, void* handler, uint8_t args, uint8_t rpl, uint16_t segment);
-
-/**
- * \fn extern void gdtFlush()
- * \brief Installs the GDT into the CPU and flushes its entries.
- */
-extern void gdtFlush();
 
 void setKernelStack(uint32_t stack);
 

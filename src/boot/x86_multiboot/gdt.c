@@ -39,13 +39,12 @@
 #include "libc.h"
 #include "debug.h"
 #include "pipcall.h"
+#include "segment_selectors.h"
 
-/* FIXME FIXME */
-#define USER_RING   0b11
-#define KERNEL_RING 0b00
+#define GDT_N_ENTRY (LAST_PIPCALL + 1)
 
-tss_segment_t tss; //!< Generic TSS for userland-to-kernel switch
-extern void tssFlush(); //!< ASM method to flush the TSS entry
+gdt_entry_t gdt[GDT_N_ENTRY]; //!< Our GDT
+tss_t tss; //!< Generic TSS for userland-to-kernel switch
 
 extern void *cg_outbGlue;
 extern void *cg_inbGlue;
@@ -66,10 +65,6 @@ extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
 extern void *cg_yieldGlue;
-
-#define GDT_SIZE (LAST_PIPCALL + 1)
-
-gdt_entry_t gdt[GDT_SIZE]; //!< Our GDT
 
 void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
     gdt[num].segment_desc.present     = 0; // invalidate entry until its completion
@@ -97,8 +92,6 @@ void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigne
  * \param dpl Descriptor Privilege Level (Caller Privilege Level must be numerically less or equal to DPL)
  * \param segment The segment to switch to
  */
-
-
 /*
 void set_callgate_descriptor(int num, void* handler, uint8_t args, uint8_t dpl, uint16_t segment)
 {
@@ -136,7 +129,8 @@ void set_callgate_descriptor(int num, void* handler, uint8_t args, uint8_t dpl, 
 	return;
 }
 
-void set_tss_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
+void set_tss_descriptor(uint32_t num, tss_t *tss_ptr, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
+	uint32_t base = (uint32_t) tss_ptr;
 	gdt[num].tss_desc.present     = 0; // ensures the entry is not valid until completion
 	gdt[num].tss_desc.base_low    = base & 0xFFFF;
 	gdt[num].tss_desc.base_middle = (base >> 16) & 0xFF;
@@ -149,20 +143,20 @@ void set_tss_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned ch
 	gdt[num].tss_desc.granularity = granularity; // A TSS struct is 104 bytes
 	gdt[num].tss_desc.zero        = 0;
 	gdt[num].tss_desc.zero2       = 0;
-	gdt[num].tss_desc.avl         = 0; // Available for use by system software TODO wth
+	gdt[num].tss_desc.avl         = 0; // Available for use by system software
 	gdt[num].tss_desc.present     = 1; // Validate the entry
 }
 
 
-void init_tss_segment(uint16_t kernel_stack_segment, uint32_t kernel_esp) {
+void init_tss(uint16_t kernel_stack_segment, uint32_t kernel_esp) {
         memset(&tss, 0, sizeof(tss)); // Sets all tss fields to 0
 
 	tss.ss0 = kernel_stack_segment;
 	tss.esp0 = kernel_esp;
 
 	/* TODO RPL USER_RING is it correct ? TODO */
-	tss.cs = 0x08 | USER_RING; // Kernel code segment (+ GDT) + USER_RING (RPL)
-	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = 0x10 | USER_RING; // Kernel data segment + USER_RING (RPL)
+	tss.cs = KERNEL_CODE_SEGMENT_SELECTOR | USER_RING;
+	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = KERNEL_DATA_SEGMENT_SELECTOR | USER_RING;
 }
 
 
@@ -176,7 +170,10 @@ void setKernelStack (uint32_t stack)
 	tss.esp0 = stack;
 }
 
-
+/* Effectively loads the GDT, and changes the code segment selector to
+ * KERNEL_CODE_SEGMENT, and the data segment selectors to KERNEL_DATA_SEGMENT.
+ * /!\ This function defines a label ! Multiple calls to this function
+ * may prevent the code from compiling ! */
 static inline void load_gdt(void *base, uint16_t limit) {
 
 	struct gdt_ptr gp = {.limit = limit, .base = (uint32_t) base}; //!< Pointer to our GDT
@@ -187,12 +184,12 @@ static inline void load_gdt(void *base, uint16_t limit) {
 	    /* we can't load ss with a mov instruction
 	     * we jump through the GDT to the next instruction to change ss
 	     * (we jump to a label defined in the next assembly line) */
-	    "ljmp $0x08, $set_kernel_data_segment_selectors;"
+	    "ljmp %1, $set_kernel_data_segment_selectors;"
 
 	    /* label declaration before the next instruction */
 	    "set_kernel_data_segment_selectors:;"
 	    /* store KERNEL_DATA_SEGMENT_SELECTOR in ax */
-	    "mov $0x10, %%ax;"
+	    "mov %2, %%ax;"
 	    /* move the value from ax to the segment registers */
 	    "mov %%ax, %%ds;"
 	    "mov %%ax, %%es;"
@@ -203,21 +200,22 @@ static inline void load_gdt(void *base, uint16_t limit) {
 	    /* output operands */
 	    :
 	    /* input operands */
-	    : "r"(&gp)
+	    : "r"(&gp), "i"(KERNEL_CODE_SEGMENT_SELECTOR), "i"(KERNEL_DATA_SEGMENT_SELECTOR)
 	    /* registers we changed during that inline assembly */
 	    : "%eax"
 	);
 }
 
+/* Loads the TSS register with the TSS selector */
 static inline void load_tss() {
 	asm(
-	    "mov $0x2B, %%ax;" // TSS selector + USER_RING RPL (0b11)
+	    "mov %0, %%ax;"
 	    "ltr %%ax;"
 
 	    /* output operands */
 	    :
 	    /* input operands */
-	    :
+	    : "i"(TSS_SELECTOR | USER_RING) /* TODO Correct ? */
 	    /* cloberred registers */
 	    : "%eax"
 	);
@@ -239,7 +237,7 @@ void gdtInstall(void)
 	/* initialize a null GDT descriptor */
 	memset(&gdt[0], 0, sizeof(gdt_entry_t));
 
-	/* segment selectors */
+	/* segment descriptors */
 	/* Kernel code segment  */
 	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, KERNEL_RING, 1);
 	/* Kernel data segment (stack) */
@@ -248,6 +246,7 @@ void gdtInstall(void)
 	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, USER_RING, 1);
 	/* User data segment (stack) */
 	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, USER_RING, 1);
+	DEBUG(INFO, "Segments initialized\n");
 
 	/* Intel 64 and IA-32 Architectures Software Developer's Manual - Vol. 3a - Sec. 2.1.2
 	 * If the call requires a change in privilege level, the processor
@@ -255,8 +254,9 @@ void gdtInstall(void)
 	 * segment selector for the new stack is obtained from the TSS for the
 	 * currently running task.
 	 */
-	init_tss_segment(0x10, 0x0); // kernel data segment and offset 0
-        set_tss_descriptor(5, (uint32_t) &tss, sizeof(tss_segment_t) - 1, GDT_TSS_INACTIVE_TYPE, KERNEL_RING /* FIXME DPL of task switch in user ring ??????? FIXME */, 0);
+	init_tss(KERNEL_DATA_SEGMENT_SELECTOR, 0); // kernel data segment and offset 0
+        set_tss_descriptor(5, &tss, sizeof(tss_t) - 1, GDT_TSS_INACTIVE_TYPE, KERNEL_RING, 0);
+	DEBUG(INFO, "TSS and its descriptor initialized\n");
 
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 7.2.2
 	 * In most systems, the DPLs of TSS descriptors are to values less than 3 (USER_RING),
@@ -268,29 +268,29 @@ void gdtInstall(void)
 	/**
 	 * Callgate setup (Syscalls)
 	 */ 
-	set_callgate_descriptor(PIPCALL_OUTB,            &cg_outbGlue, 		PIPCALL_NARGS_OUTB,              USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_INB,             &cg_inbGlue, 		PIPCALL_NARGS_INB,               USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_OUTW,            &cg_outwGlue, 		PIPCALL_NARGS_OUTW,              USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_INW,             &cg_inwGlue, 		PIPCALL_NARGS_INW,               USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_OUTL,            &cg_outlGlue, 		PIPCALL_NARGS_OUTL,              USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_INL,             &cg_inlGlue, 		PIPCALL_NARGS_INL,               USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_CREATEPARTITION, &cg_createPartition, 	PIPCALL_NARGS_CREATEPARTITION,   USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_COUNTTOMAP,      &cg_countToMap, 	PIPCALL_NARGS_COUNTTOMAP,        USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_PREPARE,         &cg_prepare, 		PIPCALL_NARGS_PREPARE,           USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_ADDVADDR,        &cg_addVAddr, 		PIPCALL_NARGS_ADDVADDR,          USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_OUTADDRL,        &cg_outaddrlGlue, 	PIPCALL_NARGS_OUTADDRL,          USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_REMOVEVADDR,     &cg_removeVAddr, 	PIPCALL_NARGS_REMOVEVADDR,       USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_MAPPEDINCHILD,   &cg_mappedInChild,	PIPCALL_NARGS_MAPPEDINCHILD,     USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, 0x08);
-	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, 0x08);
-	DEBUG(INFO, "Callgate set-up\n");
+	set_callgate_descriptor(PIPCALL_OUTB,            &cg_outbGlue, 		PIPCALL_NARGS_OUTB,              USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_INB,             &cg_inbGlue, 		PIPCALL_NARGS_INB,               USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_OUTW,            &cg_outwGlue, 		PIPCALL_NARGS_OUTW,              USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_INW,             &cg_inwGlue, 		PIPCALL_NARGS_INW,               USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_OUTL,            &cg_outlGlue, 		PIPCALL_NARGS_OUTL,              USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_INL,             &cg_inlGlue, 		PIPCALL_NARGS_INL,               USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_CREATEPARTITION, &cg_createPartition, 	PIPCALL_NARGS_CREATEPARTITION,   USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_COUNTTOMAP,      &cg_countToMap, 	PIPCALL_NARGS_COUNTTOMAP,        USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_PREPARE,         &cg_prepare, 		PIPCALL_NARGS_PREPARE,           USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_ADDVADDR,        &cg_addVAddr, 		PIPCALL_NARGS_ADDVADDR,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_OUTADDRL,        &cg_outaddrlGlue, 	PIPCALL_NARGS_OUTADDRL,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_REMOVEVADDR,     &cg_removeVAddr, 	PIPCALL_NARGS_REMOVEVADDR,       USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_MAPPEDINCHILD,   &cg_mappedInChild,	PIPCALL_NARGS_MAPPEDINCHILD,     USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	DEBUG(INFO, "Callgate descriptors initialized\n");
 
-	load_gdt(&gdt, (sizeof(gdt_entry_t) * GDT_SIZE) - 1);
-	DEBUG(INFO, "GDT loaded\n");
+	load_gdt(&gdt, (sizeof(gdt_entry_t) * GDT_N_ENTRY) - 1);
+	DEBUG(INFO, "GDT loaded and current segments updated\n");
 
 	load_tss();
 	DEBUG(INFO, "TSS loaded\n");
