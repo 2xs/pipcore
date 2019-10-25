@@ -2031,11 +2031,14 @@ Set Nested Proofs Allowed.
  forall  pd va nbL  s last stop, 
  getIndirection pd va nbL max s = Some last -> 
  last <> defaultPage -> 
- max > stop ->
+ max >= stop ->
  (exists middle,   getIndirection pd va nbL stop s = Some middle /\
  getIndirection middle va (CLevel (nbL - stop)) (max-stop) s = Some last).
  Proof. 
  induction max;simpl in *;intros.
+ exists last.
+ destruct stop;simpl.
+ split;trivial.
  omega.
  case_eq(StateLib.Level.eqb nbL fstLevel);intros * Hisfst;rewrite Hisfst in *.
  + inversion H;subst.
@@ -2158,4 +2161,246 @@ f_equal.
 
    apply levelPredSn;trivial.
    Qed. 
+
+Lemma nodupLevelMinusN : 
+forall(m n: nat)  p root s va l, p<> defaultPage -> 
+NoDup (getIndirectionsAux root s (n+m) ) ->
+n+m <= nbLevel  -> 
+getIndirection root va l n s = Some p -> 
+NoDup (getIndirectionsAux p s m).
+Proof.
+induction n;simpl in *.
++ intros.
+inversion H2;subst.
+apply noDupPreviousMMULevels with m;trivial.
++
+intros * Hnotnull Hnodup Hn0  Hind .
+
+case_eq (StateLib.Level.eqb l fstLevel);intros * Hl0;rewrite Hl0 in *.
+- inversion Hind;subst.
+apply IHn with p va l;trivial.
+SearchAbout getIndirectionsAux NoDup.
+
+apply noDupPreviousMMULevels with (S(n + m));trivial.
+omega. omega.
+destruct n;simpl;trivial.
+rewrite Hl0;trivial.
+-  case_eq(StateLib.readPhyEntry root (StateLib.getIndexOfAddr va l) (memory s));
+intros * Hread;rewrite Hread in *;try now contradict Hind.
+case_eq(defaultPage =? p0);intros * Hdef;rewrite Hdef in *.
+* inversion Hind;subst; now contradict Hnotnull.
+* case_eq ( StateLib.Level.pred l );intros * Hpred;rewrite Hpred in *; try now contradict Hind.
+
+apply IHn with p0 va l0;trivial;try
+ omega.
+ apply NoDup_cons_iff in Hnodup.
+destruct Hnodup as (_ & Hnodup).
+assert (In p0 (getTablePages root tableSize s)) as HIn.
+apply readPhyEntryInGetTablePages with (StateLib.getIndexOfAddr va l); trivial.
+destruct (StateLib.getIndexOfAddr va l). simpl in *; trivial.
+apply beq_nat_false in Hdef.
+unfold not;intros;subst;now contradict Hdef.
+rewrite indexEqId;trivial.
+induction (getTablePages root tableSize s).
+simpl in *.
+now contradict HIn.
+simpl in *.
+apply NoDupSplit in Hnodup.
+destruct HIn;
+destruct Hnodup;
+subst; trivial.
+apply IHl1;trivial.
+Qed.
+
+ Lemma LLPartNotNone phyDescChild s:
+In phyDescChild (getPartitions multiplexer s) -> 
+partitionDescriptorEntry s -> 
+StateLib.getConfigTablesLinkedList phyDescChild (memory s) = None -> False.
+Proof.
+intros. 
+unfold partitionDescriptorEntry in *. 
+  assert(Hexist : (exists entry : page,
+          nextEntryIsPP phyDescChild sh3idx entry s /\ entry <> defaultPage)).
+        apply H0;trivial.
+        do 3 right;left;trivial.
+        destruct Hexist as (entryPd & Hpp & Hnotnull).
+apply nextEntryIsPPgetConfigList in Hpp.
+rewrite Hpp in *.
+now contradict H1.
+Qed.
+ Lemma disjointPartitionDataStructure tbl1 tbl2 root1 root2 idxroot1 idxroot2  partition s: 
+ or3 idxroot1 ->
+ or3 idxroot2 ->
+ idxroot1<> idxroot2 ->
+nextEntryIsPP partition idxroot1 root1 s ->
+nextEntryIsPP partition idxroot2 root2 s ->
+consistency s ->
+In partition (getPartitions multiplexer s) ->
+In tbl1 (getIndirections root1 s) ->
+In tbl2 (getIndirections root2 s) ->
+NoDup (getConfigPagesAux partition s) -> tbl1 <> tbl2.
+Proof.
+intros * Hor1 Hor2 Hdist Hpp1 Hpp2 Hcons Hpart Htbl1 Htbl2 Hnodup. 
+unfold getConfigPagesAux in Hnodup.
+case_eq(StateLib.getPd partition (memory s));intros pd Hpd.
+2:{ assert False. apply pdPartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+rewrite Hpd in Hnodup.    
+case_eq(StateLib.getFstShadow  partition (memory s));intros sh1 Hsh1.
+2:{ assert False. apply sh1PartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+case_eq(StateLib.getSndShadow  partition (memory s));intros sh2 Hsh2.
+2:{ assert False. apply sh2PartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+case_eq(StateLib.getConfigTablesLinkedList partition (memory s));intros LL HLL.
+2:{ assert False. apply LLPartNotNone with partition s;trivial. 
+    unfold consistency in *;intuition. auto. }
+rewrite Hsh1 in Hnodup.
+rewrite Hsh2 in Hnodup.
+rewrite HLL in Hnodup.
+apply Lib.NoDupSplitInclIff in Hnodup.
+destruct Hnodup as ((_ & Hnodup1) & Hnodup11).
+apply Lib.NoDupSplitInclIff in Hnodup1.
+destruct Hnodup1 as ((_ & Hnodup2) & Hnodup22).
+apply Lib.NoDupSplitInclIff in Hnodup2.
+destruct Hnodup2 as (_  & Hnodup33).
+unfold Lib.disjoint in *.
+unfold not;intros;subst.
+destruct Hor1 as [Hor1 |[Hor1|Hor1]];subst.
++ destruct Hor2 as [Hor2 |[Hor2|Hor2]];subst;try now contradict Hdist.
+  - apply nextEntryIsPPgetPd in Hpp1.
+    rewrite Hpp1 in Hpd.
+    inversion Hpd;subst.
+    apply nextEntryIsPPgetFstShadow in Hpp2.
+    rewrite Hpp2 in Hsh1.
+    inversion Hsh1;subst.    
+    apply Hnodup11 in Htbl1.
+    contradict Htbl1.
+    apply in_app_iff.
+    left;trivial.
+  - apply nextEntryIsPPgetPd in Hpp1.
+    rewrite Hpp1 in Hpd.
+    inversion Hpd;subst.
+    apply nextEntryIsPPgetSndShadow in Hpp2.
+    rewrite Hpp2 in Hsh2.
+    inversion Hsh2;subst.    
+    apply Hnodup11 in Htbl1.
+    contradict Htbl1.
+    apply in_app_iff.
+    right.
+    apply in_app_iff.
+    left;trivial.
++ destruct Hor2 as [Hor2 |[Hor2|Hor2]];subst;try now contradict Hdist.
+  - apply nextEntryIsPPgetPd in Hpp2.
+    rewrite Hpp2 in Hpd.
+    inversion Hpd;subst.
+    apply nextEntryIsPPgetFstShadow in Hpp1.
+    rewrite Hpp1 in Hsh1.
+    inversion Hsh1;subst.    
+    apply Hnodup11 in Htbl2.
+    contradict Htbl2.
+    apply in_app_iff.
+    left;trivial.
+  - apply nextEntryIsPPgetFstShadow in Hpp1.
+    rewrite Hpp1 in Hsh1.
+    inversion Hsh1;subst.    
+    apply nextEntryIsPPgetSndShadow in Hpp2.
+    rewrite Hpp2 in Hsh2.
+    inversion Hsh2;subst.    
+    apply Hnodup22 in Htbl1.
+    contradict Htbl1.
+    apply in_app_iff.
+    left;trivial.
++ destruct Hor2 as [Hor2 |[Hor2|Hor2]];subst;try now contradict Hdist.
+  - apply nextEntryIsPPgetPd in Hpp2.
+    rewrite Hpp2 in Hpd.
+    inversion Hpd;subst.   
+    apply nextEntryIsPPgetSndShadow in Hpp1.
+    rewrite Hpp1 in Hsh2.
+    inversion Hsh2;subst.    
+    apply Hnodup11 in Htbl2.
+    contradict Htbl2.
+    apply in_app_iff.
+    right.
+    apply in_app_iff.
+    left;trivial.
+  - apply nextEntryIsPPgetSndShadow in Hpp1.
+    rewrite Hpp1 in Hsh2.
+    inversion Hsh2;subst.    
+    apply nextEntryIsPPgetFstShadow in Hpp2.
+    rewrite Hpp2 in Hsh1.
+    inversion Hsh1;subst.    
+    apply Hnodup22 in Htbl2.
+    contradict Htbl2.
+    apply in_app_iff.
+    left;trivial.
+Qed. 
+
+Lemma indirectionDescriptionNotDefault  s partition indirection idxroot vaToPrepare l:
+indirectionDescription s partition indirection idxroot vaToPrepare l ->
+indirection <> defaultPage.
+Proof.
+intros Hk.
+unfold indirectionDescription in *.
+destruct Hk.
+intuition.
+subst.
+apply H;trivial.
+destruct H2 as (xx & xxx & Hx & Hx1 & Hx2& Hx3 & Hx4 ).
+subst.
+apply Hx3;trivial.
+Qed.
+
+Lemma inGetIndirectionsAuxInConfigPages partition pd table idxroot s:
+or3 idxroot -> 
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+In table (getIndirectionsAux pd s nbLevel)->
+ nextEntryIsPP partition idxroot pd s -> 
+In table (getConfigPagesAux partition s).
+Proof.
+intros Hor1.
+intros. 
+destruct Hor1 as [Hor1 |[Hor1|Hor1]];subst.
+apply inGetIndirectionsAuxInConfigPagesPD with pd;trivial.
+apply nextEntryIsPPgetPd;trivial.
+apply inGetIndirectionsAuxInConfigPagesSh1 with pd;trivial.
+apply nextEntryIsPPgetFstShadow;trivial.
+apply inGetIndirectionsAuxInConfigPagesSh2 with pd;trivial.
+apply nextEntryIsPPgetSndShadow;trivial.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
