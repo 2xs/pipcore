@@ -236,6 +236,7 @@ updateCurPartition (uint32_t descriptor)
 		writePhysical(descriptor, 12, next_pid);
 		DEBUG(TRACE, "Registered partition descriptor %x as PID %d.\n", descriptor, next_pid);
 		next_pid++;
+		/* TODO assert next_pid doesn't wrap-up */
 	}
 }
 
