@@ -78,6 +78,10 @@ pip_fpinfo* fpinfo;
  */ 
 void spawnFirstPartition()
 {
+	// Install and test MMU
+	DEBUG(INFO, "-> Initializing MMU.\n");
+	initMmu();
+
 	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
 
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", multiplexer_cr3);
@@ -101,10 +105,6 @@ void spawnFirstPartition()
 	/* Set VCLI flag ! */
 	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
 	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
-	
-	// Send virtual IRQ 0 to partition
-
-	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 }
 
 /**
@@ -122,21 +122,21 @@ int c_main(struct multiboot *mbootPtr)
 	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
 	
 	// Install GDT & IDT
-	DEBUG(INFO, "-> Initializing interrupts.\n");
-	initInterrupts();
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();
+	DEBUG(INFO, "-> Initializing interrupts.\n");
+	initInterrupts();
 	
 	// Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");
 	dumpMmap((uint32_t*)mbootPtr->mmap_addr, mbootPtr->mmap_length);
-
-	// Install and test MMU
-	DEBUG(INFO, "-> Initializing MMU.\n");
-	initMmu();
 	
 	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();
+	
+	// Send virtual IRQ 0 to partition
+        DEBUG(TRACE, "Dispatching from boot sequence to root partition.\n");
+	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);

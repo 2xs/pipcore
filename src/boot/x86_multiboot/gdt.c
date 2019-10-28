@@ -148,15 +148,46 @@ void set_tss_descriptor(uint32_t num, tss_t *tss_ptr, uint32_t limit, unsigned c
 }
 
 
-void init_tss(uint16_t kernel_stack_segment, uint32_t kernel_esp) {
-        memset(&tss, 0, sizeof(tss)); // Sets all tss fields to 0
-
-	tss.ss0 = kernel_stack_segment;
-	tss.esp0 = kernel_esp;
-
-	/* TODO RPL USER_RING is it correct ? TODO */
-	tss.cs = KERNEL_CODE_SEGMENT_SELECTOR | USER_RING;
-	tss.ss = tss.ds = tss.es = tss.fs = tss.gs = KERNEL_DATA_SEGMENT_SELECTOR | USER_RING;
+void set_tss(uint16_t kernel_code_segment, uint16_t kernel_data_segment, uint16_t kernel_stack_segment) {
+	tss.prev_tss   = 0; //!< Pointer to the previous TSS entry (updated on a task switch)
+	tss.reserved0  = 0;
+	tss.esp0       = 0; //!< Kernel-mode ESP           (static)
+	tss.ss0        = kernel_stack_segment; //!< Kernel-mode stack segment (static)
+	tss.reserved1  = 0;
+	tss.esp1       = 0; //!< Ring-1 ESP                (static)
+	tss.ss1        = 0; //!< Ring-1 stack segment      (static)
+	tss.reserved2  = 0;
+	tss.esp2       = 0; //!< Ring-2 ESP                (static)
+	tss.ss2        = 0; //!< Ring-2 stack segment      (static)
+	tss.reserved3  = 0;
+	tss.cr3        = 0; //!< Page directory address    (static)
+	tss.eip        = 0; //!< Execution pointer    (prior to task switch)
+	tss.eflags     = 0; //!< CPU flags            (prior to task switch)
+	tss.eax        = 0; //!< General register EAX (prior to task switch)
+	tss.ecx        = 0; //!< General register ECX (prior to task switch)
+	tss.edx        = 0; //!< General register EDX (prior to task switch)
+	tss.ebx        = 0; //!< General register EBX (prior to task switch)
+	tss.esp        = 0; //!< User-mode ESP        (prior to task switch)
+	tss.ebp        = 0; //!< User-mode EBP        (prior to task switch)
+	tss.esi        = 0; //!< General register ESI (prior to task switch)
+	tss.edi        = 0; //!< General register EDI (prior to task switch)
+	tss.es         = 0; //!< Segment selector ES  (prior to task switch)
+	tss.reserved4  = 0;
+	tss.cs         = kernel_code_segment; //!< Segment selector CS  (prior to task switch)
+	tss.reserved5  = 0;
+	tss.ss         = kernel_data_segment; //!< Segment selector SS  (prior to task switch)
+	tss.reserved6  = 0;
+	tss.ds         = kernel_data_segment; //!< Segment selector DS  (prior to task switch)
+	tss.reserved7  = 0;
+	tss.fs         = kernel_data_segment; //!< Segment selector FS  (prior to task switch)
+	tss.reserved8  = 0;
+	tss.gs         = kernel_data_segment; //!< Segment selector GS  (prior to task switch)
+	tss.reserved9  = 0;
+	tss.ldt        = 0; //!< Pointer to the LDT (static)
+	tss.reserved10 = 0;
+	tss.trap       = 0; //!< Flag to raise an exception when a task switch to this task occurs (static)
+	tss.reserved11 = 0;
+	tss.iomap_base = 0; //!< IOMMU base
 }
 
 
@@ -174,7 +205,7 @@ void setKernelStack (uint32_t stack)
  * KERNEL_CODE_SEGMENT, and the data segment selectors to KERNEL_DATA_SEGMENT.
  * /!\ This function defines a label ! Multiple calls to this function
  * may prevent the code from compiling ! */
-static inline void load_gdt(void *base, uint16_t limit) {
+static void load_gdt(void *base, uint16_t limit) {
 
 	struct gdt_ptr gp = {.limit = limit, .base = (uint32_t) base}; //!< Pointer to our GDT
 	asm(/* load the GDT, but our current segment selectors remain the same
@@ -182,7 +213,7 @@ static inline void load_gdt(void *base, uint16_t limit) {
 	    "lgdt (%0);" // gp
 
 	    /* we can't load ss with a mov instruction
-	     * we jump through the GDT to the next instruction to change ss
+	     * we jump through the GDT to the next instruction to change cs
 	     * (we jump to a label defined in the next assembly line) */
 	    "ljmp %1, $set_kernel_data_segment_selectors;"
 
@@ -207,7 +238,7 @@ static inline void load_gdt(void *base, uint16_t limit) {
 }
 
 /* Loads the TSS register with the TSS selector */
-static inline void load_tss() {
+static void load_tss() {
 	asm(
 	    "mov %0, %%ax;"
 	    "ltr %%ax;"
@@ -235,17 +266,17 @@ void gdtInstall(void)
 	 * fault when an attempt is made to access memory using this descriptor */
 
 	/* initialize a null GDT descriptor */
-	memset(&gdt[0], 0, sizeof(gdt_entry_t));
+	gdt[0].null_desc = 0;
 
 	/* segment descriptors */
 	/* Kernel code segment  */
-	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, KERNEL_RING, 1);
+	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, KERNEL_RING, GRANULARITY_4096);
 	/* Kernel data segment (stack) */
-	set_segment_descriptor(2, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, KERNEL_RING, 1);
+	set_segment_descriptor(2, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, KERNEL_RING, GRANULARITY_4096);
 	/* User code segment */
-	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, USER_RING, 1);
+	set_segment_descriptor(3, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, USER_RING, GRANULARITY_4096);
 	/* User data segment (stack) */
-	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, USER_RING, 1);
+	set_segment_descriptor(4, 0, 0xFFFFF, SEG_DATA_READWRITE_EXPANDUP_TYPE, USER_RING, GRANULARITY_4096);
 	DEBUG(INFO, "Segments initialized\n");
 
 	/* Intel 64 and IA-32 Architectures Software Developer's Manual - Vol. 3a - Sec. 2.1.2
@@ -254,8 +285,9 @@ void gdtInstall(void)
 	 * segment selector for the new stack is obtained from the TSS for the
 	 * currently running task.
 	 */
-	init_tss(KERNEL_DATA_SEGMENT_SELECTOR, 0); // kernel data segment and offset 0
-        set_tss_descriptor(5, &tss, sizeof(tss_t) - 1, GDT_TSS_INACTIVE_TYPE, KERNEL_RING, 0);
+	/* TODO check RPL for the following segments once we get into userland*/
+	set_tss(KERNEL_CODE_SEGMENT_SELECTOR | USER_RING, KERNEL_DATA_SEGMENT_SELECTOR | USER_RING, KERNEL_DATA_SEGMENT_SELECTOR);
+        set_tss_descriptor(5, &tss, sizeof(tss_t) - 1, GDT_TSS_INACTIVE_TYPE, KERNEL_RING, GRANULARITY_1);
 	DEBUG(INFO, "TSS and its descriptor initialized\n");
 
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 7.2.2

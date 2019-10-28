@@ -73,6 +73,9 @@ struct segment_descriptor_s
     unsigned base_high   :  8; //!< Higher bits of base address (bits 31..24)
 };
 
+#define GRANULARITY_1    0
+#define GRANULARITY_4096 1
+
 /**
  * All the different types of segments entries
  * Last bit of the type is written every time the segment is accessed, and can be cleared
@@ -146,6 +149,7 @@ union gdt_entry {
 	segment_descriptor_t segment_desc;
 	callgate_descriptor_t callgate_desc;
 	tss_descriptor_t tss_desc;
+	uint64_t null_desc;
 };
 
 typedef union gdt_entry gdt_entry_t;
