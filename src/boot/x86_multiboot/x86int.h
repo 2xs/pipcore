@@ -60,7 +60,6 @@ typedef struct pushad_regs_s
 /**
  * \struct int_stack_s
  * \brief Stack context from interrupt/exception
- * Intel IA-32 Architectures Software Developer's Manual Volume 3A, Sec. 6.12.1
  */
 typedef const struct int_stack_s
 {
@@ -70,7 +69,7 @@ typedef const struct int_stack_s
     uint32_t eip; //!< Execution pointer
     uint32_t cs; //!< Code segment
     uint32_t eflags; //!< CPU flags
-    /* only present when we're coming from userland
+    /* only present when we're coming from userland 
      * Intel Architectures Softwer Dev Manual Vol 3A. 6-12, fig 6.4*/
     uint32_t useresp; //!< User-mode ESP
     uint32_t ss; //!< Stack segment

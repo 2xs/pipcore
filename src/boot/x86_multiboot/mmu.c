@@ -328,14 +328,14 @@ void initMmu()
     extern uint32_t end;
 
     /* Map kernel, stack up to root partition */
-    while(curAddr <= (uint32_t)(/* &end */ /* RAM_END */0x700000))
+    while(curAddr <= (uint32_t)(/* &end */ /* RAM_END */__multiplexer))
     {
         mapPageWrapper(kernelDirectory, curAddr, curAddr, 0);
         curAddr += PAGE_SIZE;
     }
 	
 	/* Map root partition in userland */
-	curAddr = 0x700000;
+	curAddr = __multiplexer;
 	while(curAddr <= (uint32_t)(&end /* RAM_END */ /* 0xFFFFE000 */))
 	{
 		mapPageWrapper(kernelDirectory, curAddr, curAddr, 1);

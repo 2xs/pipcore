@@ -62,13 +62,41 @@
 /* GDT configuration */
 #include "gdt.h"
 
+/* Beurk */
+#include "x86int.h"
+
 /**
  * \brief Virtual address at which to load the multiplexer.
  */
-extern uint32_t __multiplexer;
+extern void __multiplexer();
 #define MULTIPLEXER_LOAD_ADDR (uint32_t)&__multiplexer
 
 pip_fpinfo* fpinfo;
+
+#if 0
+typedef struct user_ctx_s
+{
+	uint32_t eip;
+	uint32_t pipflags;
+	uint32_t eflags;
+	pushad_regs_t regs;
+	uint32_t valid;
+	uint32_t nfu[4];
+} user_ctx_t;
+#endif
+
+extern void resumeAsm(user_ctx_t *ctx);
+#define loadContext resumeAsm
+
+void updateCurPartAndActivate(uint32_t calleePartDesc, uint32_t calleePageDir) {
+	updateCurPartition(calleePartDesc);
+	activate(calleePageDir);	
+}
+
+void switchContext(uint32_t calleePartDesc, uint32_t calleePageDir, user_ctx_t *ctx){
+	updateCurPartAndActivate(calleePartDesc, calleePageDir);
+	loadContext(ctx);
+}
 
 /**
  * \fn void spawn_first_process()
@@ -78,33 +106,44 @@ pip_fpinfo* fpinfo;
  */ 
 void spawnFirstPartition()
 {
+	uint32_t pageDir, pt, vidtPaddr;
+	void *usrStack;
+	user_ctx_t *ctx;
+
+
 	// Install and test MMU
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
 
-	uint32_t multiplexer_cr3 = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
+	pageDir = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
 
-	DEBUG(TRACE, "multiplexer cr3 is %x\n", multiplexer_cr3);
+	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 
 	// Prepare kernel stack for multiplexer
-	uint32_t *usrStack = /*allocPage()*/(uint32_t*)0xFFFFE000 - sizeof(uint32_t), *krnStack = /*allocPage()*/(uint32_t*)0x300000;
-	setKernelStack((uint32_t)krnStack);
-
-	DEBUG(TRACE, "kernel stack is %x\n", krnStack);
+	usrStack = (void*)0xFFFFE000;
 
 	// Find virtual interrupt vector for partition
-	uintptr_t ptVirq = readPhysicalNoFlags((uintptr_t)multiplexer_cr3, getTableSize() - 1);
-	uintptr_t virq = readPhysicalNoFlags(ptVirq, getTableSize() - 1);
+	pt = readPhysicalNoFlags((uintptr_t)pageDir, getTableSize() - 1);
+	vidtPaddr = readPhysicalNoFlags(pt, getTableSize() - 1);
+
+	// Create interrupted context of multiplexer (FIXME: architecture dependent)
+	// Maybe we don't need to decrement the stack pointer though
+	usrStack = ctx = (user_ctx_t*)(usrStack - sizeof(*ctx));
+	ctx->eip = (uint32_t) __multiplexer;
+	DEBUG(INFO, "__multiplexer %x", ctx->eip);
+	ctx->pipflags = 1; // TODO
+	ctx->eflags = 0;
+	ctx->regs.esp = (uint32_t)usrStack;
+	ctx->regs.ebx = 0xFFFFC000; /* emulate grub behaviour: pass meminfo in ebx
+       					meminfo is mapped in initMmu for now.	*/
+	ctx->valid = 1;
 	
-	// Set user stack into virq
-	uint32_t target = (uint32_t)(virq) + sizeof(uint32_t);
-	writePhysical(target, 0x1, (uint32_t)usrStack);
-	
-	DEBUG(TRACE, "user stack is %x\n", usrStack);
-	
-	/* Set VCLI flag ! */
-	writePhysicalNoFlags(virq, getTableSize()-1, 0x1);
-	IAL_DEBUG(TRACE, "Root VIDT at %x has set flags at %x to 0x1.\n", virq, virq + 0xFFC);
+	/* Write context address in vidt'0 */ 
+	writePhysical(vidtPaddr, 0, (uint32_t)ctx);
+
+	DEBUG(INFO, "TODO: yield !");
+	switchContext(getRootPartition(), pageDir, ctx);
+	for(;;);
 }
 
 /**
@@ -125,6 +164,8 @@ int c_main(struct multiboot *mbootPtr)
 	DEBUG(INFO, "-> Initializing GDT.\n");
 	gdtInstall();
 	DEBUG(INFO, "-> Initializing interrupts.\n");
+
+	setKernelStack(0x300000);
 	initInterrupts();
 	
 	// Initialize free page list
@@ -133,10 +174,11 @@ int c_main(struct multiboot *mbootPtr)
 	
 	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();
-	
+
+
 	// Send virtual IRQ 0 to partition
-        DEBUG(TRACE, "Dispatching from boot sequence to root partition.\n");
-	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
+//        DEBUG(TRACE, "Dispatching from boot sequence to root partition.\n");
+//	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);

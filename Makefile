@@ -233,6 +233,9 @@ $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
 $(TARGET_DIR)/$(PARTITION).bin:
 	cp $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)/$(PARTITION).bin $@
 
+gdb:
+	gdb $(GDBARGS)
+
 qemu:
 	$(QEMU) $(QEMUARGS)
 

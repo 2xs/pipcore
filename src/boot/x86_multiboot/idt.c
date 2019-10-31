@@ -46,6 +46,13 @@ extern void irq_unsupported(void);
 extern void irq_timer(void);
 extern void irq_test(void);
 
+
+void iret_handler(void *ctx) {
+	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
+	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
+	asm("iret");
+}
+
 void unsupportedHandler(void *ctx) {
 	DEBUG(TRACE, "Unsupported IRQ !\n");
 	while(1);
@@ -62,6 +69,7 @@ void testHandler(void *ctx) {
 	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
 	DEBUG(TRACE, "Hello from testHandler !\n");
 }
+
 
 /**
  * \brief Type of callback functions (IRQ handlers)
