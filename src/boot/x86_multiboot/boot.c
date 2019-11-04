@@ -128,9 +128,9 @@ void spawnFirstPartition()
 
 	// Create interrupted context of multiplexer (FIXME: architecture dependent)
 	// Maybe we don't need to decrement the stack pointer though
-	usrStack = ctx = (user_ctx_t*)(usrStack - sizeof(*ctx));
+	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
-	DEBUG(INFO, "__multiplexer %x", ctx->eip);
+	DEBUG(INFO, "__multiplexer %x\n", ctx->eip);
 	ctx->pipflags = 1; // TODO
 	ctx->eflags = 0;
 	ctx->regs.esp = (uint32_t)usrStack;
@@ -141,7 +141,7 @@ void spawnFirstPartition()
 	/* Write context address in vidt'0 */ 
 	writePhysical(vidtPaddr, 0, (uint32_t)ctx);
 
-	DEBUG(INFO, "TODO: yield !");
+	DEBUG(INFO, "TODO: yield !\n");
 	switchContext(getRootPartition(), pageDir, ctx);
 	for(;;);
 }
