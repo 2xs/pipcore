@@ -89,12 +89,15 @@ extern void resumeAsm(user_ctx_t *ctx);
 #define loadContext resumeAsm
 
 void updateCurPartAndActivate(uint32_t calleePartDesc, uint32_t calleePageDir) {
+	DEBUG(CRITICAL, "Updating current partition to %x\n", calleePartDesc);
 	updateCurPartition(calleePartDesc);
+	DEBUG(CRITICAL, "Activating MMU for the current partition (page directory %x)\n", calleePageDir);
 	activate(calleePageDir);	
 }
 
 void switchContext(uint32_t calleePartDesc, uint32_t calleePageDir, user_ctx_t *ctx){
 	updateCurPartAndActivate(calleePartDesc, calleePageDir);
+	DEBUG(CRITICAL, "Loading context into registers...\n");
 	loadContext(ctx);
 }
 
@@ -126,7 +129,7 @@ void spawnFirstPartition()
 	pt = readPhysicalNoFlags((uintptr_t)pageDir, getTableSize() - 1);
 	vidtPaddr = readPhysicalNoFlags(pt, getTableSize() - 1);
 
-	// Create interrupted context of multiplexer (FIXME: architecture dependent)
+	// Build initial execution context of multiplexer (architecture dependent)
 	// Maybe we don't need to decrement the stack pointer though
 	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
@@ -141,7 +144,7 @@ void spawnFirstPartition()
 	/* Write context address in vidt'0 */ 
 	writePhysical(vidtPaddr, 0, (uint32_t)ctx);
 
-	DEBUG(INFO, "TODO: yield !\n");
+	DEBUG(INFO, "Calling switchContext !\n");
 	switchContext(getRootPartition(), pageDir, ctx);
 	for(;;);
 }
