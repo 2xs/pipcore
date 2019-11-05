@@ -64,55 +64,53 @@ extern testHandler
 [GLOBAL irq_test]
 irq_test:
 	cli
+	; push err_code=0, intno = 1
 	push 0
-	push 0x2B
+	push 1
 	; save & go kernel land
 	pusha
 	push esp
-	mov si, ds
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+	; TODO : should we force ss to 0x10 ? 
 ; call c handler (&ctx)
 	call testHandler
+; FIXME : testHandler now never returns !
+
 	add esp, 4
 ; restore - assuming a common data segment for ds es fs gs
-	mov ds, si
-	mov es, si
-	mov fs, si
-	mov gs, si
+	mov ds, 0x10
+	mov es, 0x10 
+	mov fs, 0x10 
+	mov gs, 0x10 
 	popa
 ; skip err_code & int_no
 	add esp, 8
 	iret
 
 
-extern timerHandler
+; extern timerHandler
+extern irqHardwareHandler
 
 [GLOBAL irq_timer]
 irq_timer:
 	cli
-	push 0
-	push 0x2B
-	; save & go kernel land
+	; push err_code=0, intno = 32
+	push 0	
+	push 32	
+	; push user registers
 	pusha
 	push esp
-	mov si, ds
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+	; TODO : should we force ss to 0x10 ? 
 ; call c handler (&ctx)
-	call timerHandler
+	call irqHardwareHandler
+
+	/* This code is mandatory if irqHardwareHandler returns,
+	 * for instance if irq occured in kernel-land. */
 	add esp, 4
 ; restore - assuming a common data segment for ds es fs gs
-	mov ds, si
-	mov es, si
-	mov fs, si
-	mov gs, si
+	mov ds, 0x10
+	mov es, 0x10 
+	mov fs, 0x10 
+	mov gs, 0x10 
 	popa
 ; skip err_code & int_no
 	add esp, 8

@@ -66,6 +66,7 @@ typedef const struct int_stack_s
     pushad_regs_t regs;//!< Interrupt handler saved regs
     uint32_t int_no; //!< Interrupt number
     uint32_t err_code; //!< Interrupt error code
+    /* Plain-old iret-able structure */
     uint32_t eip; //!< Execution pointer
     uint32_t cs; //!< Code segment
     uint32_t eflags; //!< CPU flags

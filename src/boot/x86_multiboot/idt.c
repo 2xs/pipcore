@@ -36,6 +36,7 @@
 #include "pic8259.h"
 #include "debug.h"
 #include "libc.h"
+#include "x86int.h"
 
 /**
  * IRQ C handlers and declaration of their assembly counterparts
@@ -70,6 +71,24 @@ void testHandler(void *ctx) {
 	DEBUG(TRACE, "Hello from testHandler !\n");
 }
 
+
+void irqHardwareHandler(int_stack_s *ctx)
+{
+	/* We need to convert the int_stack_s ctx 
+	 * into a generic user_ctx_t */
+	user_ctx_s uctx;
+
+	/* Bail out if kernel was interrupted */
+	if (ctx->cs == 8)
+		return;
+
+	uctx->regs = ctx->regs;
+	uctx->pipflags = 0; 	// todo : get it from vidt
+	uctx->eflags = ctx->eflags;
+	uctx->valid = 1;
+
+	/* todo : go yield(ctx->int_no, ctx->err_code,  uctx)*/
+}
 
 /**
  * \brief Type of callback functions (IRQ handlers)

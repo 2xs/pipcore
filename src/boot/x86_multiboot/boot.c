@@ -88,17 +88,99 @@ typedef struct user_ctx_s
 extern void resumeAsm(user_ctx_t *ctx);
 #define loadContext resumeAsm
 
-void updateCurPartAndActivate(uint32_t calleePartDesc, uint32_t calleePageDir) {
+typedef int yield_checks_t; 
+typedef uintptr_t vaddr_t;
+typedef uintptr_t page_t;
+typedef uint32_t uservalue_t;
+typedef uint32_t int_mask_t;
+
+
+/* Entry point for syscalls  (callgates)
+ * 	- 4 user args (TODO: pass argments to callee)
+ * 	- user_ctx_t of callgate caller
+ * Warning:
+ *      - We must built a proper user_ctx_t from cg_stack_s
+ * Post-condition:
+ *      - userTargetInterrupt is valid (0-255)
+ *      - userCallerContextSaveIndex is valid (0-255)
+ *      - caller has a vidt
+ */
+yield_checks_t yield(vaddr_t calleePartDescVAddr,
+		   uservalue_t userTargetInterrupt,
+		   uservalue_t userCallerContextSaveIndex, 
+		   int_mask_t flagsOnWake,
+		   int_mask_t flagsOnYield,
+		   user_ctx_t *callerInterruptedContext);
+
+yield_checks_t childRelatedChecks (vaddr_t calleePartDescVaddr,
+                                   page_t callerPartDesc,
+                                   page_t callerPageDir,
+                                   page_t callerVidt,
+                                   unsigned nbL,
+                                   unsigned idxVidtInLastMMUPage,
+                                   unsigned targetInterrupt,
+                                   unsigned callerContextSaveIndex,
+                                   user_ctx_t* callerInterruptedContext,
+                                   int_mask_t flagsOnWake,
+                                   int_mask_t flagsOnYield);
+
+yield_checks_t parentRelatedChecks (page_t callerPartDesc,
+                                    page_t callerPageDir,
+                                    page_t callerVidt,
+                                    unsigned nbL,
+                                    unsigned idxVidtInLastMMUPage,
+                                    unsigned targetInterrupt,
+                                    unsigned callerContextSaveIndex,
+                                    user_ctx_t* callerInterruptedContext,
+                                    int_mask_t flagsOnWake,
+                                    int_mask_t flagsOnYield);
+
+yield_checks_t checkCalleeContext ( page_t calleePartDesc,
+                                    page_t callerPageDir,
+                                    page_t callerVidt,
+                                    unsigned nbL,
+                                    unsigned idxVidtInLastMMUPage,
+                                    unsigned targetInterrupt,
+                                    unsigned callerContextSaveIndex,
+                                    user_ctx_t* callerInterruptedContext,
+                                    int_mask_t flagsOnWake,
+                                    int_mask_t flagsOnYield);
+
+
+yield_checks_t saveCallerContext ( page_t callerPageDir,
+                                    page_t callerVidt,
+                                    unsigned callerContextSaveIndex,
+                                    vaddr_t callerContextSaveVAddr,
+                                    int_mask_t flagsOnWake,
+                                    int_mask_t flagsOnYield,
+                                    user_ctx_t* callerInterruptedContext,
+                                    page_t calleePartDesc,
+                                    page_t calleePageDir,
+                                    unsigned nbL,
+                                    unsigned fstLevel);
+
+yield_checks_t switchContext (page_t callerVidt,
+			    int_mask_t flagsOnYield,
+		            page_t calleePartDesc,
+		            page_t calleePageDir,
+			    user_ctx_t *ctx);
+
+void updateCurPartAndActivate(page_t calleePartDesc, page_t calleePageDir) {
 	DEBUG(CRITICAL, "Updating current partition to %x\n", calleePartDesc);
 	updateCurPartition(calleePartDesc);
 	DEBUG(CRITICAL, "Activating MMU for the current partition (page directory %x)\n", calleePageDir);
 	activate(calleePageDir);	
 }
 
-void switchContext(uint32_t calleePartDesc, uint32_t calleePageDir, user_ctx_t *ctx){
+yield_checks_t switchContext (page_t callerVidt,
+			    int_mask_t flagsOnYield,
+		            page_t calleePartDesc,
+		            page_t calleePageDir,
+			    user_ctx_t *ctx) {
 	updateCurPartAndActivate(calleePartDesc, calleePageDir);
 	DEBUG(CRITICAL, "Loading context into registers...\n");
 	loadContext(ctx);
+	return 0;
 }
 
 /**
@@ -145,7 +227,7 @@ void spawnFirstPartition()
 	writePhysical(vidtPaddr, 0, (uint32_t)ctx);
 
 	DEBUG(INFO, "Calling switchContext !\n");
-	switchContext(getRootPartition(), pageDir, ctx);
+	switchContext(0, 0, getRootPartition(), pageDir, ctx);
 	for(;;);
 }
 
