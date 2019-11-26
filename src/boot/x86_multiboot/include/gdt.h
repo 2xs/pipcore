@@ -40,7 +40,7 @@
 #define __GDT__
 
 #include <stdint.h>
-#include <stdbool.h>
+#include "maldefines.h"
 
 /**
  * \struct segment_descriptor_s
