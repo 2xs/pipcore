@@ -71,7 +71,7 @@ typedef const struct int_stack_s
     uint32_t cs; //!< Code segment
     uint32_t eflags; //!< CPU flags
     /* only present when we're coming from userland 
-     * Intel Architectures Softwer Dev Manual Vol 3A. 6-12, fig 6.4*/
+     * Intel Architectures Software Dev Manual Vol 3A. 6-12, fig 6.4*/
     uint32_t useresp; //!< User-mode ESP
     uint32_t ss; //!< Stack segment
 } int_ctx_t ;
