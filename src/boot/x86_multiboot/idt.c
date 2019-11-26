@@ -36,65 +36,104 @@
 #include "pic8259.h"
 #include "debug.h"
 #include "libc.h"
+#include "Internal.h"
+
+/* declaration of the int_ctx_t type */
 #include "x86int.h"
 
-/**
- * IRQ C handlers and declaration of their assembly counterparts
- * \seealso irq.s file for assembly wrappers
- * /!\ Defining an assembly wrapper is mandatory for each handler /!\
- */
-extern void irq_unsupported(void);
-extern void irq_timer(void);
-extern void irq_test(void);
+/* declaration of the assembly interrupt counterparts */
+#include "asm_int.h"
+
+/* TODO remove me once the new service is written in Coq */
+#include "yield_c.h"
 
 
-void iret_handler(void *ctx) {
-	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
-	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
-	asm("iret");
-}
-
-void unsupportedHandler(void *ctx) {
-	DEBUG(TRACE, "Unsupported IRQ !\n");
-	while(1);
-}
-
-void timerHandler(void *ctx) {
-	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
-	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
-	DEBUG(TRACE, "Interrupted by alarm !\n");
-}
-
-void testHandler(void *ctx) {
-	outb (PIC1_COMMAND, PIC_EOI); // interrupt acknowledgment
-	outb (PIC2_COMMAND, PIC_EOI); // interrupt acknowledgment
-	DEBUG(TRACE, "Hello from testHandler !\n");
-}
-
-
-void irqHardwareHandler(int_stack_s *ctx)
+/* C handler called when interrupt linked to the PIC are triggered
+ * i.e. hardware related interrupts like alarms)
+ * (see calling code in irq.s - macro HARDWARE_INT) */
+void hardwareInterruptHandler(int_ctx_t *ctx)
 {
+	DEBUG(TRACE, "Received hardware int n°%d\n", ctx->int_no);
+	outb (PIC1_COMMAND, PIC_EOI); // PIC interrupt acknowledgment
+	outb (PIC2_COMMAND, PIC_EOI); // PIC interrupt acknowledgment
+
+	/* It might happen that, at the very first instruction of a callgate,
+	 * an interrupt occurs, thus receiving an interrupt in kernelland.
+	 * There is no way to prevent that. Nonetheless, no stack switch would
+	 * occur in that case, because we are already on ring 0. Thus, the
+	 * calling (userland) context of the callgate would still be accessible.
+	 * What we could do is to ignore the far call, as if userland was about
+	 * to execute the far call when the interrupt occured, and handle the
+	 * interrupt as usual.
+	 * Then, we can modify the userland context's EIP in order to roll it
+	 * back by a single instruction as if the far call never occured.
+	 * Hence when executing IRET, the userland context would be restored a
+	 * single instruction back, and execute the far call 
+	 *
+	 * But that's for another time */
+	if (ctx->cs == 8) {
+		DEBUG(TRACE, "Infamous interrupt on the callgate cli, we just lost an interrupt\n");
+		return;
+	}
+
 	/* We need to convert the int_stack_s ctx 
 	 * into a generic user_ctx_t */
-	user_ctx_s uctx;
+	user_ctx_t uctx;
+	uctx.regs = ctx->regs;
+	uctx.pipflags = 0; 	// TODO : still unimplemented
+	uctx.eflags = ctx->eflags;
+	uctx.valid = 1;
 
-	/* Bail out if kernel was interrupted */
-	if (ctx->cs == 8)
-		return;
-
-	uctx->regs = ctx->regs;
-	uctx->pipflags = 0; 	// todo : get it from vidt
-	uctx->eflags = ctx->eflags;
-	uctx->valid = 1;
-
-	/* todo : go yield(ctx->int_no, ctx->err_code,  uctx)*/
+	page rootPartDesc = getRootPartition();
+	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
+	page rootPageDir  = getPd(rootPartDesc);
+	//DEBUG(TRACE, "Hardware interrupt handler - Calculated root page dir : %x\n", rootPageDir);
+	int rc = getTargetPartVidtCont(rootPartDesc, rootPageDir, 0, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	DEBUG(CRITICAL, "Returned from hardware interrupt, an error occurred : %d\n", rc);
 }
 
-/**
- * \brief Type of callback functions (IRQ handlers)
- * No return value, and no arguments
- */
-typedef void (*callback_t)(void);
+
+/* C handler called when software interrupts are triggered
+ * i.e. explicit interrupts with `int __` instructions
+ * (see calling code in irq.s - macro SOFTWARE_INT) */
+void softwareInterruptHandler(int_ctx_t *ctx)
+{
+	DEBUG(TRACE, "Received software int n°%d\n", ctx->int_no);
+
+	user_ctx_t uctx;
+	uctx.regs = ctx->regs;
+	uctx.pipflags = 0; 	// TODO : still unimplemented
+	uctx.eflags = ctx->eflags;
+	uctx.valid = 1;
+
+	page currentPartDesc = getCurPartition();
+	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
+	page currentPageDir  = getPd(currentPartDesc);
+	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
+	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, 0, getNbLevel(), 0, 0, &uctx);
+	DEBUG(TRACE, "Returned from software interrupt, an error occurred : %d\n", rc);
+}
+
+/* C handler called when faults are triggered
+ * e.g when trying to divide by zero 
+ * (see calling code in irq.s - macro FAULT_INT_ERRCODE/FAULT_INT_NOERRCODE) */
+void faultInterruptHandler(int_ctx_t *ctx)
+{
+	DEBUG(TRACE, "Received fault int n°%d\n", ctx->int_no);
+
+	user_ctx_t uctx;
+	uctx.regs = ctx->regs;
+	uctx.pipflags = 0; 	// TODO : still unimplemented
+	uctx.eflags = ctx->eflags;
+	uctx.valid = 1;
+
+	page currentPartDesc = getCurPartition();
+	//DEBUG(TRACE, "Fault interrupt handler - Got current partition : %x\n", currentPartDesc);
+	page currentPageDir  = getPd(currentPartDesc);
+	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
+	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, 0, getNbLevel(), 0, 0, &uctx);
+	DEBUG(CRITICAL, "Returned from fault interrupt, an error occurred : %d\n", rc);
+}
 
 /**
  * \struct idt_callback_conf_s
@@ -123,262 +162,272 @@ struct idt_callback_conf_s {
  * This table associates IRQ numbers to handlers, as well as their privilege level and their segment (configured in the GDT).
  */
 static struct idt_callback_conf_s idt_callbacks[256] = {
-	[0]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DE : Divide Error
-	[1]   = {irq_test       , IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DB : Debug Exception
-	[2]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved -    : NMI Interrupt
-	[3]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - BP : Breakpoint
-	[4]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - OF : Overflow
-	[5]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - BR : BOUND Range Exceeded
-	[6]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - UD : Invalid Opcode
-	[7]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - NM : Device Not Available
-	[8]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DF : Double Fault
-	[9]   = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved -    : Coprocessor Segment Overrun
-	[10]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - TS : Invalid TSS
-	[11]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - NP : Segment Not Present
-	[12]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - SS : Stack-Segment Fault
-	[13]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - GP : General Protection
-	[14]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - PF : Page Fault
-	[15]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[16]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - MF : x87 FPU Floating-Point Error
-	[17]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - AC : Alignment Check
-	[18]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - MC : Machine Check
-	[19]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - XM : SIMD Floating-Point Exception
-	[20]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - VE : Virtualization Exception
-	[21]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[22]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[23]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[24]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[25]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[26]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[27]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[28]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[29]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[30]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[31]  = {irq_unsupported, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
-	[32]  = {irq_timer      , IRQ_CODE_SEGMENT, USER_RING},
-	[33]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[34]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[35]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[36]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[37]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[38]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[39]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[40]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[41]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[42]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[43]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[44]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[45]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[46]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[47]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[48]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[49]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[50]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[51]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[52]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[53]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[54]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[55]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[56]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[57]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[58]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[59]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[60]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[61]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[62]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[63]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[64]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[65]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[66]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[67]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[68]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[69]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[70]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[71]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[72]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[73]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[74]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[75]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[76]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[77]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[78]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[79]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[80]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[81]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[82]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[83]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[84]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[85]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[86]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[87]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[88]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[89]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[90]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[91]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[92]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[93]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[94]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[95]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[96]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[97]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[98]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[99]  = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[100] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[101] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[102] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[103] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[104] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[105] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[106] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[107] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[108] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[109] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[110] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[111] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[112] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[113] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[114] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[115] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[116] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[117] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[118] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[119] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[120] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[121] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[122] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[123] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[124] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[125] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[126] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[127] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[128] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[129] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[130] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[131] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[132] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[133] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[134] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[135] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[136] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[137] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[138] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[139] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[140] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[141] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[142] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[143] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[144] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[145] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[146] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[147] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[148] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[149] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[150] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[151] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[152] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[153] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[154] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[155] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[156] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[157] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[158] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[159] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[160] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[161] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[162] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[163] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[164] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[165] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[166] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[167] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[168] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[169] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[170] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[171] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[172] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[173] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[174] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[175] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[176] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[177] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[178] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[179] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[180] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[181] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[182] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[183] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[184] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[185] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[186] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[187] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[188] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[189] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[190] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[191] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[192] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[193] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[194] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[195] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[196] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[197] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[198] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[199] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[200] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[201] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[202] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[203] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[204] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[205] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[206] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[207] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[208] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[209] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[210] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[211] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[212] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[213] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[214] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[215] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[216] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[217] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[218] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[219] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[220] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[221] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[222] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[223] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[224] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[225] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[226] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[227] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[228] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[229] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[230] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[231] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[232] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[233] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[234] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[235] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[236] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[237] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[238] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[239] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[240] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[241] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[242] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[243] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[244] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[245] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[246] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[247] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[248] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[249] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[250] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[251] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[252] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[253] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[254] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING},
-	[255] = {irq_unsupported, IRQ_CODE_SEGMENT, USER_RING}
+
+	/* Intel reserved interrupts, triggered by CPU faults */
+
+	[0]   = {fault_DE_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DE : Divide Error
+	[1]   = {fault_DB_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DB : Debug Exception
+	[2]   = {fault_NMI_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved -    : NMI Interrupt
+	[3]   = {fault_BP_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - BP : Breakpoint
+	[4]   = {fault_OF_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - OF : Overflow
+	[5]   = {fault_BR_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - BR : BOUND Range Exceeded
+	[6]   = {fault_UD_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - UD : Invalid Opcode
+	[7]   = {fault_NM_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - NM : Device Not Available
+	[8]   = {fault_DF_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - DF : Double Fault
+	[9]   = {fault_CSO_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved -    : Coprocessor Segment Overrun
+	[10]  = {fault_TS_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - TS : Invalid TSS
+	[11]  = {fault_NP_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - NP : Segment Not Present
+	[12]  = {fault_SS_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - SS : Stack-Segment Fault
+	[13]  = {fault_GP_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - GP : General Protection
+	[14]  = {fault_PF_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - PF : Page Fault
+	[15]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[16]  = {fault_MF_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - MF : x87 FPU Floating-Point Error
+	[17]  = {fault_AC_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - AC : Alignment Check
+	[18]  = {fault_MC_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - MC : Machine Check
+	[19]  = {fault_XM_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - XM : SIMD Floating-Point Exception
+	[20]  = {fault_VE_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved - VE : Virtualization Exception
+	[21]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[22]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[23]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[24]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[25]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[26]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[27]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[28]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[29]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[30]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+	[31]  = {fault_RES_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Intel Reserved ------ RFU
+
+	/* Interrupt generated by the PIC 8259 
+	 * These were remapped to this range (32-47) in remapIRQ */
+
+	[32]  = {hardware_ALRM_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Timer Interrupt
+	[33]  = {hardware_KEYB_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Keyboard Interrupt
+	[34]  = {hardware_CASC_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Cascade (used internally by the two PICs. never raised)
+	[35]  = {hardware_COM2_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // COM2
+	[36]  = {hardware_COM1_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // COM1
+	[37]  = {hardware_LPT2_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // LPT2
+	[38]  = {hardware_FLPD_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Floppy Disk
+	[39]  = {hardware_SPUR_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // LPT1 / "spurious" interrupt
+	[40]  = {hardware_RTC_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // CMOS real-time clock
+	[41]  = {hardware_PER1_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Free for peripherals / legacy SCSI / NIC
+	[42]  = {hardware_PER2_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Free for peripherals / SCSI / NIC
+	[43]  = {hardware_PER3_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // Free for peripherals / SCSI / NIC
+	[44]  = {hardware_PS2M_asm, IRQ_CODE_SEGMENT, KERNEL_RING}, // PS2 Mouse
+	[45]  = {hardware_FPU_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // FPU / Coprocessor / Inter-processor
+	[46]  = {hardware_PHD_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Primary ATA Hard Disk
+	[47]  = {hardware_SHD_asm,  IRQ_CODE_SEGMENT, KERNEL_RING}, // Secondary ATA Hard Disk
+
+	/* Free to use, general purpose handlers */
+
+	[48]  = {software_48_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[49]  = {software_49_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[50]  = {software_50_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[51]  = {software_51_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[52]  = {software_52_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[53]  = {software_53_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[54]  = {software_54_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[55]  = {software_55_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[56]  = {software_56_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[57]  = {software_57_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[58]  = {software_58_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[59]  = {software_59_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[60]  = {software_60_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[61]  = {software_61_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[62]  = {software_62_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[63]  = {software_63_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[64]  = {software_64_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[65]  = {software_65_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[66]  = {software_66_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[67]  = {software_67_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[68]  = {software_68_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[69]  = {software_69_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[70]  = {software_70_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[71]  = {software_71_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[72]  = {software_72_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[73]  = {software_73_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[74]  = {software_74_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[75]  = {software_75_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[76]  = {software_76_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[77]  = {software_77_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[78]  = {software_78_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[79]  = {software_79_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[80]  = {software_80_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[81]  = {software_81_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[82]  = {software_82_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[83]  = {software_83_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[84]  = {software_84_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[85]  = {software_85_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[86]  = {software_86_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[87]  = {software_87_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[88]  = {software_88_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[89]  = {software_89_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[90]  = {software_90_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[91]  = {software_91_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[92]  = {software_92_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[93]  = {software_93_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[94]  = {software_94_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[95]  = {software_95_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[96]  = {software_96_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[97]  = {software_97_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[98]  = {software_98_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[99]  = {software_99_asm,  IRQ_CODE_SEGMENT, USER_RING},
+	[100] = {software_100_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[101] = {software_101_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[102] = {software_102_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[103] = {software_103_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[104] = {software_104_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[105] = {software_105_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[106] = {software_106_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[107] = {software_107_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[108] = {software_108_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[109] = {software_109_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[110] = {software_110_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[111] = {software_111_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[112] = {software_112_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[113] = {software_113_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[114] = {software_114_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[115] = {software_115_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[116] = {software_116_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[117] = {software_117_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[118] = {software_118_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[119] = {software_119_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[120] = {software_120_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[121] = {software_121_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[122] = {software_122_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[123] = {software_123_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[124] = {software_124_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[125] = {software_125_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[126] = {software_126_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[127] = {software_127_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[128] = {software_128_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[129] = {software_129_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[130] = {software_130_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[131] = {software_131_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[132] = {software_132_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[133] = {software_133_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[134] = {software_134_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[135] = {software_135_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[136] = {software_136_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[137] = {software_137_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[138] = {software_138_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[139] = {software_139_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[140] = {software_140_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[141] = {software_141_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[142] = {software_142_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[143] = {software_143_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[144] = {software_144_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[145] = {software_145_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[146] = {software_146_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[147] = {software_147_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[148] = {software_148_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[149] = {software_149_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[150] = {software_150_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[151] = {software_151_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[152] = {software_152_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[153] = {software_153_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[154] = {software_154_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[155] = {software_155_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[156] = {software_156_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[157] = {software_157_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[158] = {software_158_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[159] = {software_159_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[160] = {software_160_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[161] = {software_161_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[162] = {software_162_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[163] = {software_163_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[164] = {software_164_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[165] = {software_165_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[166] = {software_166_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[167] = {software_167_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[168] = {software_168_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[169] = {software_169_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[170] = {software_170_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[171] = {software_171_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[172] = {software_172_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[173] = {software_173_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[174] = {software_174_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[175] = {software_175_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[176] = {software_176_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[177] = {software_177_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[178] = {software_178_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[179] = {software_179_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[180] = {software_180_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[181] = {software_181_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[182] = {software_182_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[183] = {software_183_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[184] = {software_184_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[185] = {software_185_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[186] = {software_186_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[187] = {software_187_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[188] = {software_188_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[189] = {software_189_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[190] = {software_190_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[191] = {software_191_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[192] = {software_192_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[193] = {software_193_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[194] = {software_194_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[195] = {software_195_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[196] = {software_196_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[197] = {software_197_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[198] = {software_198_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[199] = {software_199_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[200] = {software_200_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[201] = {software_201_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[202] = {software_202_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[203] = {software_203_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[204] = {software_204_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[205] = {software_205_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[206] = {software_206_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[207] = {software_207_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[208] = {software_208_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[209] = {software_209_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[210] = {software_210_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[211] = {software_211_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[212] = {software_212_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[213] = {software_213_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[214] = {software_214_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[215] = {software_215_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[216] = {software_216_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[217] = {software_217_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[218] = {software_218_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[219] = {software_219_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[220] = {software_220_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[221] = {software_221_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[222] = {software_222_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[223] = {software_223_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[224] = {software_224_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[225] = {software_225_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[226] = {software_226_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[227] = {software_227_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[228] = {software_228_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[229] = {software_229_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[230] = {software_230_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[231] = {software_231_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[232] = {software_232_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[233] = {software_233_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[234] = {software_234_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[235] = {software_235_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[236] = {software_236_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[237] = {software_237_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[238] = {software_238_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[239] = {software_239_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[240] = {software_240_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[241] = {software_241_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[242] = {software_242_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[243] = {software_243_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[244] = {software_244_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[245] = {software_245_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[246] = {software_246_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[247] = {software_247_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[248] = {software_248_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[249] = {software_249_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[250] = {software_250_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[251] = {software_251_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[252] = {software_252_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[253] = {software_253_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[254] = {software_254_asm, IRQ_CODE_SEGMENT, USER_RING},
+	[255] = {software_255_asm, IRQ_CODE_SEGMENT, USER_RING},
 };
 
 
@@ -404,6 +453,7 @@ static struct idt_callback_conf_s idt_callbacks[256] = {
  * \brief IDT trap entry initializer.
  * \seealso idt_int_trap_entry_t
  * Notice that the only difference with the IDT_INTERRUPT_ENTRY macro is the type field
+ * Trap gates do not clear the interrupt flag when accessed
  */
 #define IDT_TRAP_ENTRY(callback_index) (idt_entry_t) {                                 \
 	.trap = {                                                                      \
@@ -582,7 +632,4 @@ void initInterrupts(void) {
 	timer_ticks = 0;
 	initCPU();
 	BOOT_DEBUG(INFO, "Done initializing interrupts\n");
-	BOOT_DEBUG(TRACE, "Calling int 1\n");
-	asm("int $0x1");
-	BOOT_DEBUG(TRACE, "Returned from int 1\n");
 }

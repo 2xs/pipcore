@@ -62,8 +62,8 @@
 /* GDT configuration */
 #include "gdt.h"
 
-/* Beurk */
-#include "x86int.h"
+/* TODO Remove me once rewritten in C */
+#include "yield_c.h"
 
 /**
  * \brief Virtual address at which to load the multiplexer.
@@ -73,115 +73,6 @@ extern void __multiplexer();
 
 pip_fpinfo* fpinfo;
 
-#if 0
-typedef struct user_ctx_s
-{
-	uint32_t eip;
-	uint32_t pipflags;
-	uint32_t eflags;
-	pushad_regs_t regs;
-	uint32_t valid;
-	uint32_t nfu[4];
-} user_ctx_t;
-#endif
-
-extern void resumeAsm(user_ctx_t *ctx);
-#define loadContext resumeAsm
-
-typedef int yield_checks_t; 
-typedef uintptr_t vaddr_t;
-typedef uintptr_t page_t;
-typedef uint32_t uservalue_t;
-typedef uint32_t int_mask_t;
-
-
-/* Entry point for syscalls  (callgates)
- * 	- 4 user args (TODO: pass argments to callee)
- * 	- user_ctx_t of callgate caller
- * Warning:
- *      - We must built a proper user_ctx_t from cg_stack_s
- * Post-condition:
- *      - userTargetInterrupt is valid (0-255)
- *      - userCallerContextSaveIndex is valid (0-255)
- *      - caller has a vidt
- */
-yield_checks_t yield(vaddr_t calleePartDescVAddr,
-		   uservalue_t userTargetInterrupt,
-		   uservalue_t userCallerContextSaveIndex, 
-		   int_mask_t flagsOnWake,
-		   int_mask_t flagsOnYield,
-		   user_ctx_t *callerInterruptedContext);
-
-yield_checks_t childRelatedChecks (vaddr_t calleePartDescVaddr,
-                                   page_t callerPartDesc,
-                                   page_t callerPageDir,
-                                   page_t callerVidt,
-                                   unsigned nbL,
-                                   unsigned idxVidtInLastMMUPage,
-                                   unsigned targetInterrupt,
-                                   unsigned callerContextSaveIndex,
-                                   user_ctx_t* callerInterruptedContext,
-                                   int_mask_t flagsOnWake,
-                                   int_mask_t flagsOnYield);
-
-yield_checks_t parentRelatedChecks (page_t callerPartDesc,
-                                    page_t callerPageDir,
-                                    page_t callerVidt,
-                                    unsigned nbL,
-                                    unsigned idxVidtInLastMMUPage,
-                                    unsigned targetInterrupt,
-                                    unsigned callerContextSaveIndex,
-                                    user_ctx_t* callerInterruptedContext,
-                                    int_mask_t flagsOnWake,
-                                    int_mask_t flagsOnYield);
-
-yield_checks_t checkCalleeContext ( page_t calleePartDesc,
-                                    page_t callerPageDir,
-                                    page_t callerVidt,
-                                    unsigned nbL,
-                                    unsigned idxVidtInLastMMUPage,
-                                    unsigned targetInterrupt,
-                                    unsigned callerContextSaveIndex,
-                                    user_ctx_t* callerInterruptedContext,
-                                    int_mask_t flagsOnWake,
-                                    int_mask_t flagsOnYield);
-
-
-yield_checks_t saveCallerContext ( page_t callerPageDir,
-                                    page_t callerVidt,
-                                    unsigned callerContextSaveIndex,
-                                    vaddr_t callerContextSaveVAddr,
-                                    int_mask_t flagsOnWake,
-                                    int_mask_t flagsOnYield,
-                                    user_ctx_t* callerInterruptedContext,
-                                    page_t calleePartDesc,
-                                    page_t calleePageDir,
-                                    unsigned nbL,
-                                    unsigned fstLevel);
-
-yield_checks_t switchContext (page_t callerVidt,
-			    int_mask_t flagsOnYield,
-		            page_t calleePartDesc,
-		            page_t calleePageDir,
-			    user_ctx_t *ctx);
-
-void updateCurPartAndActivate(page_t calleePartDesc, page_t calleePageDir) {
-	DEBUG(CRITICAL, "Updating current partition to %x\n", calleePartDesc);
-	updateCurPartition(calleePartDesc);
-	DEBUG(CRITICAL, "Activating MMU for the current partition (page directory %x)\n", calleePageDir);
-	activate(calleePageDir);	
-}
-
-yield_checks_t switchContext (page_t callerVidt,
-			    int_mask_t flagsOnYield,
-		            page_t calleePartDesc,
-		            page_t calleePageDir,
-			    user_ctx_t *ctx) {
-	updateCurPartAndActivate(calleePartDesc, calleePageDir);
-	DEBUG(CRITICAL, "Loading context into registers...\n");
-	loadContext(ctx);
-	return 0;
-}
 
 /**
  * \fn void spawn_first_process()
@@ -189,7 +80,7 @@ yield_checks_t switchContext (page_t callerVidt,
  *
  * Spawns the multiplexer given into the first partition space.
  */ 
-void spawnFirstPartition()
+void spawnFirstPartition(void)
 {
 	uint32_t pageDir, pt, vidtPaddr;
 	void *usrStack;
@@ -215,7 +106,6 @@ void spawnFirstPartition()
 	// Maybe we don't need to decrement the stack pointer though
 	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
-	DEBUG(INFO, "__multiplexer %x\n", ctx->eip);
 	ctx->pipflags = 1; // TODO
 	ctx->eflags = 0;
 	ctx->regs.esp = (uint32_t)usrStack;
@@ -223,11 +113,13 @@ void spawnFirstPartition()
        					meminfo is mapped in initMmu for now.	*/
 	ctx->valid = 1;
 	
-	/* Write context address in vidt'0 */ 
-	writePhysical(vidtPaddr, 0, (uint32_t)ctx);
+	/* Write context address in vidt'0 */
+        for (unsigned i=0; i < 256; i++) {
+		writePhysical(vidtPaddr, i, (uint32_t)ctx);
+	}
 
 	DEBUG(INFO, "Calling switchContext !\n");
-	switchContext(0, 0, getRootPartition(), pageDir, ctx);
+	switchContextCont(getRootPartition(), pageDir, 0, 0, ctx);
 	for(;;);
 }
 
@@ -259,11 +151,6 @@ int c_main(struct multiboot *mbootPtr)
 	
 	DEBUG(INFO, "-> Now spawning multiplexer in userland.\n");
 	spawnFirstPartition();
-
-
-	// Send virtual IRQ 0 to partition
-//        DEBUG(TRACE, "Dispatching from boot sequence to root partition.\n");
-//	dispatch2(getRootPartition(), 0, 0x1e75b007, (uint32_t)0xFFFFC000, 0);
 
 	DEBUG(CRITICAL, "-> Unexpected multiplexer return freezing\n");
 	for(;;);
