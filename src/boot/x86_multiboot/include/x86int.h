@@ -61,7 +61,7 @@ typedef struct pushad_regs_s
  * \struct int_stack_s
  * \brief Stack context from interrupt/exception
  */
-typedef const struct int_stack_s
+typedef const struct int_ctx_s
 {
     pushad_regs_t regs;//!< Interrupt handler saved regs
     uint32_t int_no; //!< Interrupt number
@@ -78,7 +78,7 @@ typedef const struct int_stack_s
  * \struct gate_stack_s
  * \brief Stack context from callgate
  */
-typedef const struct gate_stack_s
+typedef const struct gate_ctx_s
 {
 	pushad_regs_t regs;
 	uint32_t eip;
