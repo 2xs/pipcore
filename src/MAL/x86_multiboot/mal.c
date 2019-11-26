@@ -43,7 +43,7 @@
 
 uint32_t current_partition; /* Current partition's CR3 */
 uint32_t root_partition; /* Multiplexer's partition descriptor */
-uint32_t next_pid = 0;
+uint32_t next_pid = 1;
 extern uint32_t pcid_enabled;
 /*!	\fn void enable_paging()
 	\brief enables paging
