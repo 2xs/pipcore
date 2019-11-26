@@ -450,7 +450,9 @@ void initMmu()
 	DEBUG(TRACE, "Building linear memory space\n");
 	
 	/* Build a multiplexer stack */
-	mapPageWrapper(kernelDirectory, (uint32_t)allocPage(), 0xFFFFD000, 1);
+	uint32_t rootPartitionStack = (uint32_t) allocPage();
+	mapPageWrapper(kernelDirectory, rootPartitionStack, 0xFFFFD000, 1);
+	DEBUG(INFO, "Mapped page %x as root part stack\n", rootPartitionStack);
 	
 	/* Map first partition info */
 	mapPageWrapper(kernelDirectory, (uint32_t)fpinfo, 0xFFFFC000, 1);
