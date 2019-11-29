@@ -5487,6 +5487,52 @@ destruct Horx as[Horx | Horx].
   rewrite <- Hindeq;trivial.
   apply  indirectionDescriptionNotDefault in Hindesc;trivial.
 Qed.
+
+Lemma currentPartitionInPartitionsListAddIndirection 
+s indirection nextIndirection idxroot  entry nbLgen  pd   vaToPrepare partition l lpred r w e
+phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr :
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
+isWellFormedFstShadow lpred phySh1addr s ->
+StateLib.Level.pred l = Some lpred ->
+or3 idxroot ->
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection idxroot vaToPrepare l ->
+(* isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s ->
+(defaultPage =? indMMUToPrepare) = true -> *)
+isWellFormedMMUTables phyMMUaddr s ->
+false = StateLib.Level.eqb l fstLevel ->
+nextEntryIsPP partition idxroot pd s ->
+In indirection (getIndirections pd s) ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
+noDupPartitionTree s ->
+nextIndirection <> indirection ->
+partitionDescriptorEntry s ->
+In partition (getPartitions multiplexer s) ->
+noDupConfigPagesList s ->
+isPresentNotDefaultIff s ->
+configTablesAreDifferent s ->
+(defaultPage =? nextIndirection) = false ->
+currentPartitionInPartitionsList s ->
+currentPartitionInPartitionsList
+{|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE
+                 {|
+                 read := r;
+                 write := w;
+                 exec := e;
+                 present := true;
+                 user := true;
+                 pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
+Proof.
+unfold currentPartitionInPartitionsList in *. 
+simpl in *.
+intros.
+rewrite <- getPartitionsAddIndirection;trivial;try eassumption;trivial.
+Qed.
+
 Lemma consistencyAddIndirection
 s indirection nextIndirection  entry nbLgen  pd idxroot  
 (vaToPrepare vaNextInd : vaddr) phyDescChild l  
@@ -5570,6 +5616,8 @@ intuition.
 + (** dataStructurePdSh1Sh2asRoot **)
  eapply dataStructurePdSh1Sh2asRootSh2AddIndirection;trivial;try eassumption;trivial.
  unfold consistency ;intuition.
++ (** currentPartitionInPartitionsList **)
+ eapply currentPartitionInPartitionsListAddIndirection;trivial;try eassumption;trivial.
  
 Admitted.
 
