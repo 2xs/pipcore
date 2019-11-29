@@ -366,6 +366,45 @@ apply readVirEntryMapMMUPage  with entry;trivial.
 apply readPDflagMapMMUPage with entry;trivial.
 Qed.
 
+Lemma isWellFormedSndShadowTablesAddIndirection nextIndirection indirection  entry  vaToPrepare l lpred s e w r:
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l)
+      (memory s) beqPage beqIndex = Some (PE entry) ->
+nextIndirection <> indirection -> 
+isWellFormedSndShadow lpred nextIndirection s ->
+isWellFormedSndShadow lpred nextIndirection 
+  {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |}) 
+              (memory s) beqPage beqIndex |}.
+Proof.
+intros Hlookup Hdef Hwell.
+unfold isWellFormedSndShadow in *.
+simpl.
+intros.
+destruct Hwell as [(Hl & Hwell)|(Hl & Hwell)];intros.
++ left.
+split;trivial.
+intros.
+generalize (Hwell idx ); clear Hwell ; intros (Hi1 & Hi2).
+rewrite <- Hi1.
+rewrite <- Hi2.
+split.
+symmetry.
+apply readPhyEntryMapMMUPage with entry;trivial.
+left;intuition.
+symmetry.
+apply readPresentMapMMUPage with entry;trivial.
+intuition.
++ right.
+
+split;trivial.
+intros.
+generalize (Hwell idx ); clear Hwell ; intros Hi1.
+rewrite <- Hi1.
+apply readVirtualMapMMUPage with entry;trivial.
+Qed.
+
 Lemma getIndirectionAddIndirectionCheckVaddrsFalse  vapg l indirection vaToPrepare nextIndirection p pg  entry partition  s r e  w:
 let s' := {|
       currentPartition := currentPartition s;

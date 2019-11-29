@@ -47,7 +47,7 @@ WriteAccessible MapMMUPage InternalLemmas2 WritePhyEntryPrepare.
 
 (************************************************************************)   
  (******************************************* InternalLemmas2 ***************************)
-      
+
 (********************************** dependentTypeLemma **********************************)
 
 
@@ -2977,6 +2977,177 @@ destruct stop;simpl in *.
       trivial.
  
 Qed. 
+
+Lemma wellFormedSh2AddIndirection  l indirection0 vaToPrepare  m va stop indirection idx s  phySh2addr   e r w level  entry lpred : 
+  let s':=  {|
+      currentPartition := currentPartition s;
+      memory := add indirection (StateLib.getIndexOfAddr vaToPrepare m)
+                  (PE
+                     {|
+                     read := r;
+                     write := w;
+                     exec := e;
+                     present := true;
+                     user := true;
+                     pa := phySh2addr |}) (memory s) beqPage beqIndex |} in
+phySh2addr <> indirection -> 
+isWellFormedSndShadow lpred phySh2addr s ->
+   lookup indirection (StateLib.getIndexOfAddr vaToPrepare m) (memory s) beqPage beqIndex =
+          Some (PE entry) -> 
+(defaultPage =? phySh2addr) = false ->  
+false = StateLib.Level.eqb level fstLevel ->
+StateLib.Level.pred level = Some lpred ->
+ StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va l)
+            (add indirection (StateLib.getIndexOfAddr va l)
+               (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) (memory s) beqPage beqIndex) =
+          Some phySh2addr -> 
+getIndirection phySh2addr va lpred stop s' = Some indirection0->
+PCWellFormedRootDataStruct (S stop) level indirection0 idx s' sh2idx.
+Proof.
+intros * Hdiffnew Hwellmmu Hlook Hnotdef Hfst Hlpred Hread Hind.
+intros.
+assert(Hind0def: indirection0= defaultPage \/ indirection0<>defaultPage) by apply pageDecOrNot.
+destruct Hind0def as[Hind0def|Hind0def]. 
+left;trivial.
+right.
+split;trivial.
+assert(Hwell': isWellFormedSndShadow lpred phySh2addr s').
+{  apply isWellFormedSndShadowTablesAddIndirection with entry;trivial. }
+unfold isWellFormedFstShadow in Hwellmmu.
+destruct stop;simpl in *.
+- inversion Hind;subst indirection0.
+  assert ( 1 < level \/ 1 >= level) by omega.
+  destruct H.
+  + left.
+    split. trivial.
+    destruct Hwellmmu as [(Hip &Hwellmmu) |(Hip &Hwellmmu)].
+    apply isPEMapMMUPage with entry ;trivial.
+    move Hwellmmu at bottom.
+    destruct Hwellmmu with idx as (Hi & _).
+    unfold  StateLib.readPhyEntry, isPE in *.
+    destruct (lookup phySh2addr idx (memory s) beqPage beqIndex);try now contradict Hi.
+    destruct v;try now contradict Hi.
+    trivial.
+    subst.
+    symmetry in Hfst.
+    apply levelPredMinus1Nat in Hlpred;trivial.
+    unfold fstLevel in Hlpred.
+    rewrite <- CLevelIdentity2 in Hlpred.
+    subst.
+    omega.
+    apply nbLevelNotZero.
+  + right.
+    split;trivial.
+    right;left.
+    split;trivial.
+    assert( lpred = fstLevel).
+    { symmetry in Hfst.
+    apply levelPredMinus1Nat in Hlpred;trivial.
+    unfold fstLevel .
+    symmetry.
+    assert (0 = lpred).
+    omega.
+    rewrite H0.
+    apply CLevelIdentity1. }
+    destruct Hwellmmu as [(Hip &Hwellmmu) |(Hip &Hwellmmu)].
+    now contradict Hip.
+    apply isVAMapMMUPage with entry ;trivial.
+    move Hwellmmu at bottom.
+    generalize (Hwellmmu idx);intros Hi.
+    unfold  StateLib.readVirtual, isVA in *.
+    destruct (lookup phySh2addr idx (memory s) beqPage beqIndex);try now contradict Hi.
+    destruct v;try now contradict Hi.
+    trivial.
+- assert ( S (S stop)  < level \/ S (S stop) >= level) by omega.
+  destruct H.
+  + destruct Hwellmmu as [(Hip &Hwellmmu) |(Hip &Hwellmmu)].
+    * left.
+      split. trivial.
+      assert(Hf: StateLib.Level.eqb lpred fstLevel = false) .
+      { rewrite <- not_true_iff_false.
+        contradict Hip.
+        apply levelEqBEqNatTrue in Hip;trivial. }
+      rewrite Hf in *. 
+      assert(Hreadnext:  StateLib.readPhyEntry phySh2addr (StateLib.getIndexOfAddr va lpred)
+               (add indirection (StateLib.getIndexOfAddr vaToPrepare m) (PE {| read := r; 
+               write := w; exec := e; present := true; user := true; pa := phySh2addr |}) 
+                  (memory s) beqPage beqIndex) = Some defaultPage).
+      { unfold isWellFormedSndShadow in *.
+        destruct Hwell' as [Hwell'|Hwell'].
+        destruct Hwell' as (_ & Hwell').
+        destruct Hwell' with (StateLib.getIndexOfAddr va lpred) as ( Hi & _ ).
+        trivial.
+        destruct Hwell' as (hFALSE & _).
+        subst. now contradict Hip.
+        }
+      rewrite Hreadnext in Hind.
+      rewrite <- beq_nat_refl in Hind.              
+      apply isPEMapMMUPage with entry ;trivial.
+      inversion Hind. subst.
+      now contradict Hind0def.
+    * subst.
+      clear Hind.
+      contradict Hlpred.
+      unfold not;intros Hfalse.
+      symmetry in Hfst.
+      eapply levelPredMinus1Nat with (l':= fstLevel) in Hfst.
+      unfold fstLevel in Hfst.
+      rewrite <- CLevelIdentity2 in Hfst.
+      omega.
+      apply nbLevelNotZero;trivial.
+      trivial.
+  + destruct Hwellmmu as [(Hip &Hwellmmu) |(Hip &Hwellmmu)].
+    * right. 
+      split. trivial.
+      right;left. 
+      split;trivial.
+      assert(Hf: StateLib.Level.eqb lpred fstLevel = false) . 
+      { move Hip at bottom.
+      unfold StateLib.Level.eqb.
+      apply Nat.eqb_neq.
+      destruct fstLevel; destruct lpred;simpl in *.
+      simpl in *.
+      contradict Hip.
+      subst.
+      f_equal.
+      apply proof_irrelevance. }      
+      
+      rewrite Hf in *.
+           assert(Hreadnext:  StateLib.readPhyEntry phySh2addr (StateLib.getIndexOfAddr va lpred)
+               (add indirection (StateLib.getIndexOfAddr vaToPrepare m) (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) 
+                  (memory s) beqPage beqIndex) = Some defaultPage).
+      { unfold isWellFormedSndShadow in *.
+        destruct Hwell' as [Hwell'|Hwell'].
+        destruct Hwell' as (_ & Hwell').
+        destruct Hwell' with (StateLib.getIndexOfAddr va lpred) as ( Hi & _ ).
+        trivial.
+        destruct Hwell' as (hFALSE & _).
+        subst. now contradict Hip.
+        }
+      rewrite Hreadnext in Hind.
+      rewrite <- beq_nat_refl in Hind.
+      inversion Hind. subst.
+      now contradict Hind0def.
+    * right.
+      split;trivial.
+      right;left;split;trivial.
+      assert(Hf: StateLib.Level.eqb lpred fstLevel = true).
+      subst.
+      unfold  StateLib.Level.eqb.
+      rewrite <- beq_nat_refl;trivial.
+      rewrite Hf in *.
+      inversion Hind;subst indirection0.
+      apply isVAMapMMUPage with entry ;trivial.
+      move Hwellmmu at bottom.
+      generalize(Hwellmmu idx);intros Hi. 
+      unfold  StateLib.readVirtual, isVA in *.
+      destruct (lookup phySh2addr idx (memory s) beqPage beqIndex);try now contradict Hi.
+      destruct v;try now contradict Hi.
+      trivial.
+Qed. 
+
+
+
 Lemma PCWellFormedDataStructAddIndirectionsh1 stop  indirection0 idx s phySh1addr e r w  m
 (* vaToPrepare *) l  va indirection entry partition lpred: 
 let s' := {|
@@ -3047,6 +3218,88 @@ destruct stop.
       assert(Hindeq: getIndirection p va l0 stop s' = getIndirection p va l0 stop s).
       { apply getIndirectionEqAddIndirectionIndirectionIsRoot' with l entry
       partition sh1idx;trivial. }
+      rewrite Hindeq in Hind.
+      assert(Hi: getIndirection indirection va l (S stop) s = Some indirection0). 
+      simpl. 
+      rewrite <- Hnotfst.
+      rewrite Hnextind.
+      rewrite Hdef.
+      rewrite Hl.
+      trivial.
+      trivial. 
+   eapply wellFormedRootDataStructAddIndirection with partition va indirection entry  ;trivial.
+Qed.
+
+Lemma PCWellFormedDataStructAddIndirectionsh2 stop  indirection0 idx s phySh2addr e r w  m
+(* vaToPrepare *) l  va indirection entry partition lpred: 
+let s' := {|
+currentPartition := currentPartition s;
+memory := add indirection m
+            (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) 
+            (memory s) beqPage beqIndex |} in 
+getIndirection indirection va l stop s' = Some indirection0 -> 
+lookup indirection m (memory s) beqPage beqIndex =
+    Some (PE entry) ->
+In partition (getPartitions multiplexer s) ->
+nextEntryIsPP partition sh2idx indirection s ->
+Some l = StateLib.getNbLevel ->
+false = StateLib.Level.eqb l fstLevel ->
+StateLib.Level.pred l = Some lpred -> 
+(defaultPage =? phySh2addr) = false ->
+dataStructurePdSh1Sh2asRoot sh2idx s ->
+isWellFormedSndShadow lpred phySh2addr s -> 
+phySh2addr <> indirection ->
+indirection <> defaultPage ->
+NoDup (getIndirectionsAux indirection s nbLevel) -> 
+PCWellFormedRootDataStruct stop l indirection0 idx s' sh2idx.
+Proof.
+intros * Hind Hlook Hpart0 Hpp Hnbl Hnotfst Hlpred Hdup.
+intros.
+destruct stop.
+** simpl in *.
+   inversion Hind.
+   subst indirection0.
+    eapply wellFormedRootDataStructAddIndirection with partition va indirection entry  ;trivial.
+** simpl in *.
+   rewrite <- Hnotfst in Hind.
+    assert(Hor : m = (StateLib.getIndexOfAddr va l) \/ m <> (StateLib.getIndexOfAddr va l)) by apply indexDecOrNot.  
+   destruct Hor as [Hor | Hor].
+   ++ subst.
+   assert(Hnewind:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va l)
+         (add indirection (StateLib.getIndexOfAddr va l)
+            (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) (memory s) beqPage beqIndex) =
+            Some phySh2addr). 
+   { apply readPhyEntryAddIndirectionSameTable. }  
+   rewrite Hnewind in Hind.
+   assert(Hnotdef: (defaultPage =? phySh2addr) = false) by trivial.
+   rewrite Hnotdef in Hind.
+   rewrite Hlpred in Hind.
+   unfold PCWellFormedRootDataStruct.
+   unfold dataStructurePdSh1Sh2asRoot in *.
+   clear H.
+   apply wellFormedSh2AddIndirection with l va entry lpred;trivial.
+   ++ assert(Hreadeq: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va l)
+       (add indirection m
+          (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) 
+          (memory s) beqPage beqIndex) =
+          StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va l)
+      (memory s)). {
+      symmetry. apply readPhyEntryMapMMUPage with entry;trivial.
+      right;trivial.
+      intuition. }
+      rewrite Hreadeq in Hind.
+      case_eq(StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va l) (memory s));intros * Hnextind;
+      rewrite Hnextind in *;try now contradict Hind.
+      case_eq(defaultPage =? p);intros * Hdef; rewrite Hdef in *;try now contradict Hind.
+      -- inversion Hind;subst.
+         unfold PCWellFormedRootDataStruct.
+         left;trivial.
+      --
+      trivial.
+      case_eq(StateLib.Level.pred l );intros * Hl; rewrite Hl in *;try now contradict Hind.
+      assert(Hindeq: getIndirection p va l0 stop s' = getIndirection p va l0 stop s).
+      { apply getIndirectionEqAddIndirectionIndirectionIsRoot' with l entry
+      partition sh2idx;trivial. }
       rewrite Hindeq in Hind.
       assert(Hi: getIndirection indirection va l (S stop) s = Some indirection0). 
       simpl. 
@@ -3621,7 +3874,7 @@ destruct Horx as[Horx | Horx].
   apply  indirectionDescriptionNotDefault in Hindesc;trivial.
 Qed.
 
-     Lemma getIndirectionUpdateLastIndirection lpred sstop s indirection va phySh1addr r w e entry : 
+     Lemma getIndirectionUpdateLastIndirectionSh1 lpred sstop s indirection va phySh1addr r w e entry : 
       forall (stop : nat) (level : level),
 let s' :=
   {|
@@ -3740,6 +3993,132 @@ case_eq (StateLib.Level.eqb level fstLevel);intros * Hfst;rewrite  Hfst in *.
      omega. }
      omega.
 Qed.
+
+Lemma getIndirectionUpdateLastIndirectionSh2 lpred sstop s indirection va phySh1addr r w e entry : 
+      forall (stop : nat) (level : level),
+let s' :=
+  {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop)))
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh1addr |})
+              (memory s) beqPage beqIndex |} in
+forall pd : page,
+isWellFormedSndShadow lpred phySh1addr s' ->
+lookup indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop))) (memory s) beqPage beqIndex =
+Some (PE entry) ->
+~ In indirection (getIndirectionsAux pd s sstop) ->
+(defaultPage =? phySh1addr) = false ->
+phySh1addr <> indirection ->
+getIndirection pd va level stop s' = Some indirection ->
+getIndirection pd va level sstop s = Some indirection ->
+level <= stop -> indirection <> defaultPage -> sstop >= level.
+Proof.
+induction sstop;simpl;intros * Hwell' Hlookup Hkey Hnotdefp H Hind Hmid1 Hix Hdefind0.
+* destruct stop;simpl in *.  omega.
+  case_eq(StateLib.Level.eqb level fstLevel);intros * Hll;rewrite Hll in *.
+  +
+  unfold  StateLib.Level.eqb in *.
+  apply beq_nat_true in Hll.
+  rewrite <- fstLevelIs0 in Hll.
+  omega.
+  +
+  inversion Hmid1.
+  subst.
+  assert(Hread: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va level)
+  (add indirection (StateLib.getIndexOfAddr va (CLevel (level - 0)))
+  (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh1addr |}) (memory s) beqPage beqIndex) =
+  Some phySh1addr). 
+  { rewrite <- minus_n_O.
+  rewrite CLevelIdentity1.
+  apply readPhyEntryAddIndirectionSameTable. }
+  rewrite Hread in *.
+  rewrite Hnotdefp in Hind. 
+  case_eq(StateLib.Level.pred level);intros * Hl;rewrite Hl in *; try now contradict Hind.
+  destruct stop;simpl in *.
+  -
+  inversion Hind;subst. now contradict H.
+  -
+  case_eq(StateLib.Level.eqb l fstLevel);intros Hli;rewrite Hli in *.
+  inversion Hind;subst. now contradict H.
+  unfold isWellFormedFstShadow in *.
+  destruct Hwell' as [(_ &Hwell')|(_ &Hwell')];simpl in *.
+  destruct Hwell' with (StateLib.getIndexOfAddr va l) as (Hw & _).
+  simpl in *.
+  rewrite Hw in Hind.
+  rewrite <- beq_nat_refl in Hind.
+  inversion Hind;subst.
+  now contradict Hdefind0.
+  generalize(Hwell'  (StateLib.getIndexOfAddr va l)); intros Hw.
+  clear Hwell'.
+  unfold StateLib.readPhyEntry, StateLib.readVirtual in *;
+  simpl in *. 
+  destruct ( beqPairs (indirection, StateLib.getIndexOfAddr va (CLevel (level - 0)))
+  (phySh1addr, StateLib.getIndexOfAddr va l) beqPage beqIndex);simpl in *;subst; try now contradict Hw.
+  destruct (  lookup phySh1addr (StateLib.getIndexOfAddr va l)
+  (removeDup indirection (StateLib.getIndexOfAddr va (CLevel (level - 0))) 
+  (memory s) beqPage beqIndex) beqPage beqIndex); simpl; subst.
+  destruct v;try now contradict Hw.
+  try now contradict Hw.
+*
+case_eq (StateLib.Level.eqb level fstLevel);intros * Hfst;rewrite  Hfst in *.
++ inversion Hmid1;subst.
+  unfold StateLib.Level.eqb in *.
+  apply beq_nat_true in Hfst.
+  unfold fstLevel in *.
+  unfold CLevel in Hfst.
+  case_eq(lt_dec 0 nbLevel);intros * Hnb;rewrite Hnb in *;simpl in *.
+  rewrite Hfst in Hind.
+  simpl in *.
+  omega.
+  pose proof nbLevelNotZero.
+  omega.
++ case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level) (memory s));
+ intros * Hpd;rewrite Hpd in *;try now contradict Hmid1.
+ case_eq(defaultPage =? p);intros * Hp;rewrite Hp in *.
+ - inversion Hmid1;subst. now contradict Hdefind0.
+ - case_eq( StateLib.Level.pred level );intros * Hpred;rewrite Hpred in *;
+ try now contradict Hmid1.
+ apply not_or_and in Hkey.
+ destruct Hkey as (Hkey1 & Hkey2).
+ rewrite in_flat_map in Hkey2.
+ apply NNPP.
+ unfold not;intros Hfalse.
+ contradict Hkey2.
+ exists p;split.
+ apply readPhyEntryInGetTablePages with (StateLib.getIndexOfAddr va level);
+ try omega.
+ destruct(StateLib.getIndexOfAddr va level);simpl;omega.
+ apply beq_nat_false in Hp.
+ unfold not;intros;subst;now contradict Hp.
+ rewrite indexEqId;trivial.
+ apply NNPP.
+ unfold not at 1;intros.
+ apply Hfalse. clear Hfalse.
+ destruct stop;simpl in *.
+ inversion Hind;subst.
+ now contradict Hkey1.
+ rewrite Hfst in Hind.       
+ assert(Htruep:  StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level)
+     (add indirection (StateLib.getIndexOfAddr va (CLevel (level - S sstop)))
+        (PE {| read := r; write := w; exec := e; present := true; user := true; 
+        pa := phySh1addr |}) (memory s) beqPage beqIndex) = Some p).
+ { rewrite <- Hpd.
+   symmetry.
+   apply readPhyEntryMapMMUPage with entry;trivial.
+   left;intuition. }
+ rewrite Htruep in *.
+ rewrite Hp in *.
+ rewrite Hpred in *.
+  assert(Hpredl: level -1 = l) by (apply levelPredMinus1Nat;trivial).
+     assert(Hkey2: (level - S sstop = l - sstop)) by (rewrite <- Hpredl;omega).
+     assert( sstop >= l).
+ {    rewrite Hkey2 in *.
+     apply IHsstop with stop p;trivial.
+
+     omega. }
+     omega.
+Qed.
+
 Lemma PCWellFormedRootDataStructSh1AddIndirection stop (level:level) phySh1addr idx  s e w r 
 sstop vaToPrepare indirection lpred entry pd va :
 let s':=  {|
@@ -3880,7 +4259,150 @@ destruct  Hwellmmu as [Hwellmmu|Hwellmmu].
       destruct Hwellmmu as (_ & Hwellmmu).
       destruct Hwellmmu with idx as (Hwellmmu' & _).
       apply readVirEntryIsPE with defaultVAddr;trivial. 
-Admitted.      
+Admitted.
+
+Lemma PCWellFormedRootDataStructSh2AddIndirection stop (level:level) phySh2addr idx  s e w r 
+sstop vaToPrepare indirection lpred entry pd va :
+let s':=  {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+              (PE
+                 {|
+                 read := r;
+                 write := w;
+                 exec := e;
+                 present := true;
+                 user := true;
+                 pa := phySh2addr |}) (memory s) beqPage beqIndex |}  in 
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop))) 
+        (memory s) beqPage beqIndex = Some (PE entry) -> 
+isWellFormedSndShadow lpred phySh2addr s -> 
+phySh2addr <> defaultPage -> 
+phySh2addr <> indirection -> 
+ stop <= level -> 
+false = StateLib.Level.eqb (CLevel (level - sstop)) fstLevel -> 
+StateLib.Level.pred (CLevel (level - sstop)) = Some lpred -> 
+getIndirection pd va level sstop s = Some indirection -> 
+getIndirection pd va level sstop s' = getIndirection pd va level sstop s -> 
+indirection <> defaultPage ->
+StateLib.getIndexOfAddr va (CLevel (level - sstop)) =
+   StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)) ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+        (add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+           (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |})
+           (memory s) beqPage beqIndex) = Some phySh2addr -> 
+getIndirection pd va level stop s' = Some phySh2addr -> 
+pd <> defaultPage -> 
+stop > sstop -> 
+PCWellFormedRootDataStruct stop level phySh2addr idx s' sh2idx.    
+Proof.
+intros * Hlookup Hwellmmu Hdefind00 H Hii Hnotfst Hlpred Hmid1 Heqindx 
+Hdefind0 Horx Hnewind Hind Hrootnotdef Horxx.
+move Hwellmmu at bottom.
+unfold isWellFormedFstShadow in *.
+unfold PCWellFormedRootDataStruct.
+right;split;trivial.
+   assert(Hwell': isWellFormedSndShadow lpred phySh2addr s').
+  { apply isWellFormedSndShadowTablesAddIndirection with entry;trivial. }
+assert( Horstop: stop < level \/ stop = level) by omega.    
+assert((level - sstop)>0).
+{ symmetry in Hnotfst.
+  apply levelEqBEqNatFalse0 in Hnotfst.
+  rewrite <- CLevelIdentity2 in Hnotfst.
+  trivial.
+  destruct level;simpl in *.
+  omega. }
+assert(Hlpred1: (level - sstop) -1 = lpred).
+{ symmetry in Hnotfst.
+  eapply levelPredMinus1Nat with (l':=lpred) in Hnotfst;trivial.
+  rewrite <- Hnotfst.
+  rewrite <- CLevelIdentity2 .
+  trivial.
+  destruct level;simpl in *.
+  omega. }
+destruct  Hwellmmu as [Hwellmmu|Hwellmmu].
+-- destruct Horstop as [Horstop|Horstop]. 
+   ++ subst. 
+      left;split;trivial.
+      destruct Hwellmmu as (_ & Hwellmmu).
+      destruct Hwellmmu with idx as (Hwellmmu' & _).
+      apply isPEMapMMUPage with entry; trivial.
+      apply readPhyEntryIsPE with defaultPage;trivial.
+   ++  
+    assert(sstop+1 = stop \/ sstop+1 < stop). omega.
+    destruct H1.
+    **  subst.
+        replace (level - sstop - 1 ) with (level - (sstop + 1) ) in * by omega.
+        rewrite <- H1 in Hlpred1.
+        destruct Hwellmmu as (Hkey1 & _).
+        unfold fstLevel in Hkey1.
+        contradict Hkey1.
+        intros. 
+        assert(Hi:0= lpred). omega.
+        revert Hi.
+        clear.    
+        intros.
+        assert(0 = CLevel 0).
+        apply CLevelIdentity2;trivial.
+        apply nbLevelNotZero.
+        rewrite H in Hi.
+        symmetry.
+        apply level_eq_l;trivial.
+    **  assert(getIndirection pd va level (sstop+1) s' = Some phySh2addr). 
+        apply getIndirectionStopS' with indirection;trivial. omega.
+        rewrite Heqindx;trivial.
+        simpl.
+        rewrite <- Hnotfst.
+        rewrite Horx.
+        rewrite Hnewind.
+        assert(Hnotdefp: (defaultPage =? phySh2addr) = false).
+        rewrite Nat.eqb_neq.
+        unfold not;intros;subst.
+        contradict Hdefind00.
+        symmetry.
+        apply page_eq_p;trivial.
+        rewrite Hnotdefp.
+        rewrite Hlpred;trivial.
+        move Hind at bottom.
+        assert( In phySh2addr (getIndirectionsAux pd s' ((sstop+1)+1))).
+        { apply getIndirectionInGetIndirections1  with va level;trivial.
+        destruct level;simpl in *.
+        omega. }
+        assert(~ In phySh2addr (getIndirectionsAux pd s' stop)).
+        apply getIndirectionInGetIndirections2' with va level;trivial.
+        destruct level;simpl in *.
+        omega.
+        admit. (** NoDup (getIndirectionsAux pd s' nbLevel) (stop+1 = level+1 = nbLevel)*)
+        omega.
+        assert(incl (getIndirectionsAux pd s' (sstop+1+1)) (getIndirectionsAux pd s' stop)).
+        subst.
+        apply inclGetIndirectionsAuxLe.
+        omega.
+        unfold incl in *.
+        contradict H4.
+        apply H5;trivial.
+-- destruct Horstop as [Horstop|Horstop]. 
+   ++  subst. 
+      assert( sstop - 1 = level).
+      { destruct Hwellmmu as (Hkey1 & _).
+      unfold fstLevel in Hkey1.
+      rewrite Hkey1 in Hlpred1.
+      assert(Hi:0= lpred).
+      assert(0 = CLevel 0).
+      apply CLevelIdentity2;trivial.
+      apply nbLevelNotZero.
+      subst. trivial.
+      subst.
+      rewrite <- Hi in Hlpred1.
+      omega. } omega.
+   ++ subst. right;split. omega.
+      left;split;trivial.
+      apply isVEMapMMUPage with entry;trivial.
+      destruct Hwellmmu as (_ & Hwellmmu).
+      generalize(Hwellmmu idx);intros Hwellmmu'. 
+      apply readVirEntryIsPE with defaultVAddr;trivial. 
+Admitted.
+      
 Lemma PCWellFormedRootDataStructAddIndirectionSh1 pd vaToPrepare (level lpred:level) sstop s indirection idx 
 va  indirection0 stop phySh1addr r w e entry partition:
 let s' := {|
@@ -3972,7 +4494,7 @@ destruct Heqmid as [Heqmid|Heqmid].
         revert dependent level.
         revert dependent stop.           
         intros. 
-        eapply getIndirectionUpdateLastIndirection; try eassumption.  }
+        eapply getIndirectionUpdateLastIndirectionSh1; try eassumption.  }
       subst. assert(sstop = level). omega.
       subst.
       unfold StateLib.Level.eqb in *.
@@ -4091,6 +4613,279 @@ destruct Heqmid as [Heqmid|Heqmid].
     assert(Hreadeq: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop)))
     (add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
      (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh1addr |})
+     (memory s) beqPage beqIndex) =
+     StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop)))
+     (memory s) ).
+     symmetry.
+     apply readPhyEntryMapMMUPage with entry;trivial.
+     right;trivial.
+     rewrite Hreadeq;clear Hreadeq.
+    case_eq(StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop))) (memory s));intros 
+    *  Hre;trivial.
+    case_eq (      defaultPage =? p);intros * Hp;trivial.
+    case_eq( StateLib.Level.pred (CLevel (level - sstop)) );intros;trivial.
+    apply beq_nat_false in Hp.
+    assert(p <> defaultPage).
+    { unfold not;intros;subst;now contradict Hp. }
+
+    apply getIndirectionMapMMUPage11Stoplt with entry;trivial.
+    intros.
+    simpl in Hnodup.
+    apply NoDup_cons_iff in Hnodup.
+    destruct Hnodup as (Hnodup & _).
+    rewrite in_flat_map in Hnodup.
+    contradict Hnodup.
+    exists p.
+    split.
+    * apply readPhyEntryInGetTablePages with (StateLib.getIndexOfAddr va (CLevel (level - sstop)));
+      trivial.
+      destruct (StateLib.getIndexOfAddr va (CLevel (level - sstop)));simpl;trivial.
+      rewrite <- Hre.
+      f_equal.
+      apply indexEqId.
+    * rewrite <- Hnodup.
+      assert(In tbl (getIndirectionsAux p s (stop0+1))).
+      apply getIndirectionInGetIndirections1 with va l;trivial.
+      destruct level;simpl in *.
+      omega.
+      assert(Hdef: (defaultPage =? tbl) = false) by trivial.
+      apply beq_nat_false in Hdef.
+      unfold not;intros;subst;now contradict Hdef.
+      pose proof inclGetIndirectionsAuxLe as Hproof.
+      unfold incl in *.
+      apply Hproof with (stop0 + 1);trivial.
+      omega.
+- apply wellFormedRootDataStructAddIndirection  with partition va pd entry;trivial.
+  rewrite <- Hind.
+  symmetry.
+  apply getIndirectionEqAddIndirectionIndirectionIsMiddle with entry
+  sstop indirection0;trivial.
+  assert(Hori: checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
+  checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
+  { destruct (checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
+    left;trivial.
+    right;trivial. }
+  destruct Hori;trivial.
+  assert(Hkey1: getIndirection pd vaToPrepare level sstop s = getIndirection pd va level sstop s).
+
+  apply getIndirectionEqStop;trivial.
+  rewrite checkVAddrsEqualityWOOffsetPermut';trivial.
+  rewrite Hind1 in Hkey1.
+  rewrite Hmid1 in Hkey1.
+  inversion Hkey1.
+  now contradict Heqmid.
+Qed.
+
+Lemma PCWellFormedRootDataStructAddIndirectionSh2 pd vaToPrepare (level lpred:level) sstop s indirection idx 
+va  indirection0 stop phySh2addr r w e entry partition:
+let s' := {|
+currentPartition := currentPartition s;
+memory := add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+    (PE
+       {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |})
+    (memory s) beqPage beqIndex |} in 
+NoDup (getIndirectionsAux pd s nbLevel) -> 
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop))) 
+  (memory s) beqPage beqIndex = Some (PE entry) -> 
+isWellFormedSndShadow lpred phySh2addr s -> 
+dataStructurePdSh1Sh2asRoot sh2idx s -> 
+Some level = StateLib.getNbLevel -> 
+In partition (getPartitions multiplexer s) ->
+getIndirection pd vaToPrepare level sstop s = Some indirection -> 
+
+getIndirection pd va level stop s' = Some indirection0 -> 
+stop <= nbLevel - 1 ->
+sstop <= level ->
+stop > sstop -> 
+sstop > 0 ->
+(* isPE indirection idx s ->  *)
+indirection <> defaultPage -> 
+false = StateLib.Level.eqb (CLevel (level - sstop)) fstLevel -> 
+(defaultPage =? phySh2addr) = false -> 
+StateLib.Level.pred (CLevel (level - sstop)) = Some lpred -> 
+nextEntryIsPP partition sh2idx pd s -> 
+indirection0 <> defaultPage ->
+pd <> defaultPage -> 
+phySh2addr <> indirection -> 
+PCWellFormedRootDataStruct stop level indirection0 idx s' sh2idx.
+Proof.
+intros * Hdup Hlookup Hwellmmu Hgoal Hnblgen Hpart0 Hind1 (* Hmid1 Hmid2 *) Hind Hi Hsstop
+  Horxx Hsstop0 (* Hispe *) Hdefind0 Hnotfst Hnotdefp Hlpred Hpp Hdefind00 Hrootnotdef.
+intros.
+assert(Hii: stop <= level).
+rewrite <- getNbLevelEqNat;trivial. 
+clear Hi.
+assert(Hor : stop >= sstop) by omega.
+pose proof getIndirectionMiddle as Hmid.
+generalize (Hmid stop pd va level s' indirection0 sstop Hind Hdefind00 Hor);clear Hmid;
+intros Hmid.
+destruct Hmid as (middle & Hmid1 & Hmid2).
+assert(Hkey: ~In indirection (getIndirectionsAux pd s sstop)).
+{ assert(Hex: sstop + 1 <= nbLevel).
+  destruct level;simpl in *.
+  omega.
+  apply getIndirectionInGetIndirections2' with vaToPrepare level;trivial.
+  unfold getIndirections in *.
+  apply noDupPreviousMMULevels with nbLevel ;trivial. }
+assert(Heqindx: getIndirection pd va level sstop s' =getIndirection pd va level sstop s). 
+{  apply getIndirectionAddIndirectionEq with entry;trivial. }
+rewrite Heqindx in Hmid1.
+assert(Heqmid: middle = indirection \/  middle <> indirection) by apply pageDecOrNot.
+destruct Heqmid as [Heqmid|Heqmid].
+- subst.
+  assert( Horx: (StateLib.getIndexOfAddr va (CLevel (level - sstop))) =  
+  (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))\/ 
+  (StateLib.getIndexOfAddr va (CLevel (level - sstop))) <>  
+  (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop))) ) by apply indexDecOrNot.
+  destruct Horx as [Horx | Horx].
+  destruct (stop - sstop) ;simpl in *.
+  + inversion Hmid2.
+    subst indirection0.
+    right.
+    split;trivial.
+    assert(stop < level \/ stop = level) by omega.
+    destruct H0.
+    * pose proof sh2indirectionIsVA as Hisve.
+      generalize (Hisve partition pd indirection va s Hrootnotdef Hgoal Hpp
+      Hpart0 level sstop Hnblgen Hsstop Hmid1 Hdefind0 idx)
+      ; clear Hisve;intros Hisve.
+      destruct Hisve as [Hisve|Hisve]. 
+      -- left. split;trivial.
+         apply isPEMapMMUPage with entry;intuition.
+      -- destruct Hisve.
+         omega.
+    *
+     assert(Hix : level<= stop) by omega. 
+      assert(Hwell': isWellFormedSndShadow lpred phySh2addr s').
+      { apply isWellFormedSndShadowTablesAddIndirection with entry;trivial. }
+      assert(Htrue: sstop>=level).
+      { unfold s' in *. rewrite <- Horx in *.
+        revert Hwell' Hlookup Hkey Hnotdefp H Hind Hmid1 (* Hdup *) (* Hsstop0 *) Hix Hdefind0 . 
+        clear.
+        set (s':= {| currentPartition := _ |}). 
+        revert dependent pd.
+        revert dependent level.
+        revert dependent stop.           
+        intros. 
+        eapply getIndirectionUpdateLastIndirectionSh2; try eassumption.  }
+      subst. assert(sstop = level). omega.
+      subst.
+      unfold StateLib.Level.eqb in *.
+      symmetry in Hnotfst.
+      apply beq_nat_false in Hnotfst.
+      replace (level - level) with 0 in * by omega.
+      unfold fstLevel in *.
+      now contradict Hnotfst.
+ + rewrite <- Hnotfst in *.
+    assert(Hnewind:  StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va  (CLevel (level - sstop)))
+    (add indirection (StateLib.getIndexOfAddr va  (CLevel (level - sstop)))
+    (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |}) (memory s) beqPage beqIndex) =
+    Some phySh2addr). 
+    { apply readPhyEntryAddIndirectionSameTable. }
+    rewrite Horx in *. 
+    rewrite Hnewind in Hmid2.
+    rewrite Hnotdefp in Hmid2.
+    rewrite Hlpred in Hmid2.
+    destruct n; simpl in *.
+    * inversion Hmid2;subst indirection0.
+      apply PCWellFormedRootDataStructSh2AddIndirection with lpred entry pd va;trivial.
+    * case_eq(StateLib.Level.eqb lpred fstLevel);intros * Hlpred0;rewrite Hlpred0 in *. 
+      ++ inversion Hmid2;subst indirection0.
+         apply PCWellFormedRootDataStructSh2AddIndirection with lpred entry pd va;trivial.
+      ++ move Hwellmmu at bottom. 
+         clear Hnewind.
+         case_eq(  StateLib.readPhyEntry phySh2addr (StateLib.getIndexOfAddr va lpred)
+            (add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+               (PE
+                  {|
+                  read := r;
+                  write := w;
+                  exec := e;
+                  present := true;
+                  user := true;
+                  pa := phySh2addr |}) (memory s) beqPage beqIndex));intros * Hreadv; rewrite Hreadv in *;try now contradict Hmid2.
+         case_eq(defaultPage =? p);intros * Hp;rewrite Hp in *. 
+         -- inversion Hmid2.
+            unfold PCWellFormedRootDataStruct.
+            left;trivial.
+         -- case_eq( StateLib.Level.pred lpred );intros * Hpredl; rewrite Hpredl in *;try now contradict Hmid2.
+        unfold PCWellFormedRootDataStruct.
+        right.
+        assert(Hwell': isWellFormedSndShadow lpred phySh2addr s').
+      { apply isWellFormedSndShadowTablesAddIndirection with entry;trivial. }
+      assert(stop < level \/ stop = level) by omega.
+    destruct H0.
+    ** split;trivial. left. split;trivial.
+      unfold isWellFormedSndShadow in *.
+      destruct Hwell' as [Hwell'| Hwell']. 
+      destruct Hwell' as (_ & Hwell'1).
+      destruct Hwell'1 with (StateLib.getIndexOfAddr va lpred) as (Hwell'x & _).
+      clear Hwell'1.
+      simpl in *.
+      rewrite Hwell'x in Hreadv.
+      inversion Hreadv;subst.
+      apply beq_nat_false in Hp.
+      now contradict Hp.
+      destruct Hwell' as (Hix & _). 
+      unfold StateLib.Level.eqb in *.
+      apply beq_nat_false in Hlpred0.
+      subst.
+      now contradict Hlpred0.
+    ** subst.
+    destruct n;simpl in *.
+    inversion Hmid2.
+    subst.
+    assert((defaultPage =? indirection0) = true).
+    unfold isWellFormedFstShadow in Hwell'.
+     destruct Hwell' as [Hwell'| Hwell']. 
+      destruct Hwell' as (_ & Hwell'1).
+      destruct Hwell'1 with (StateLib.getIndexOfAddr va lpred) as (Hwell'x & _).
+      clear Hwell'1.
+      simpl in *.
+      rewrite Hwell'x in Hreadv.
+      inversion Hreadv;subst.
+      apply beq_nat_false in Hp.
+      now contradict Hp.
+      destruct Hwell' as (Hix & _). 
+      unfold StateLib.Level.eqb in *.
+      apply beq_nat_false in Hlpred0.
+      subst.
+      now contradict Hlpred0.
+    rewrite Hp in H0.
+    now contradict H0.
+    assert((defaultPage =? p) = true).
+        unfold isWellFormedSndShadow in Hwell'.
+     destruct Hwell' as [Hwell'| Hwell']. 
+      destruct Hwell' as (_ & Hwell'1).
+      destruct Hwell'1 with (StateLib.getIndexOfAddr va lpred) as (Hwell'x & _).
+      clear Hwell'1.
+      simpl in *.
+      rewrite Hwell'x in Hreadv.
+      inversion Hreadv;subst.
+      apply beq_nat_false in Hp.
+      now contradict Hp.
+      destruct Hwell' as (Hix & _). 
+      unfold StateLib.Level.eqb in *.
+      apply beq_nat_false in Hlpred0.
+      subst.
+      now contradict Hlpred0.
+    rewrite Hp in H0.
+    now contradict H0.
+ +  apply wellFormedRootDataStructAddIndirection  with partition va pd entry;trivial. 
+    apply getIndirectionMiddle2  with sstop indirection;trivial.
+    rewrite <- Hmid2.
+    clear    Hind1 .
+    assert(Hnodup: NoDup (getIndirectionsAux indirection s (stop - sstop))).
+    eapply nodupLevelMinusN with sstop pd va level ;trivial.
+    replace (sstop + (stop - sstop)) with stop by omega.
+    apply noDupPreviousMMULevels with nbLevel;trivial.
+    destruct level;simpl in *;omega.
+    destruct level;simpl in *;omega.
+    case_eq (stop - sstop);simpl;intros * Hc;rewrite Hc in *;trivial.
+    case_eq(StateLib.Level.eqb (CLevel (level - sstop)) fstLevel);intros * Hl;trivial.
+    assert(Hreadeq: StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop)))
+    (add indirection (StateLib.getIndexOfAddr vaToPrepare (CLevel (level - sstop)))
+     (PE {| read := r; write := w; exec := e; present := true; user := true; pa := phySh2addr |})
      (memory s) beqPage beqIndex) =
      StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr va (CLevel (level - sstop)))
      (memory s) ).
@@ -4425,7 +5220,273 @@ destruct Horx as[Horx | Horx].
   apply  indirectionDescriptionNotDefault in Hindesc;trivial.
 Qed.
 
-                
+Lemma dataStructurePdSh1Sh2asRootSh2AddIndirection
+s indirection nextIndirection idxroot  entry nbLgen  pd   vaToPrepare partition l lpred r w e
+phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr  :
+dataStructurePdSh1Sh2asRoot sh2idx s->
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
+isWellFormedFstShadow lpred phySh1addr s ->
+StateLib.Level.pred l = Some lpred ->
+or3 idxroot ->
+lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex = Some (PE entry) ->
+Some nbLgen = StateLib.getNbLevel ->
+indirectionDescription s partition indirection idxroot vaToPrepare l ->
+isWellFormedMMUTables phyMMUaddr s ->
+false = StateLib.Level.eqb l fstLevel ->
+nextEntryIsPP partition idxroot pd s ->
+In indirection (getIndirections pd s) ->
+In partition (getPartitions multiplexer s) ->
+(defaultPage =? nextIndirection) = false ->
+StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
+noDupPartitionTree s ->
+nextIndirection <> indirection ->
+partitionDescriptorEntry s ->
+noDupConfigPagesList s ->
+isPresentNotDefaultIff s ->
+configTablesAreDifferent s ->
+consistency s -> 
+isWellFormedSndShadow lpred phySh2addr s -> 
+dataStructurePdSh1Sh2asRoot sh2idx
+  {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE
+                 {|
+                 read := r;
+                 write := w;
+                 exec := e;
+                 present := true;
+                 user := true;
+                 pa := nextIndirection |}) (memory s) beqPage beqIndex |}.
+Proof.
+set(s':={|currentPartition:= _ |}) in *.
+intros * Hgoal  Hindor3  Hwell1 Hlpred Hor3 Hlookup Hnblgen Hindesc Hwellmmu Hnotfst Hppx Hinmmu Hpartin Hnewnotdef.
+intros.
+move Hgoal at bottom.
+ unfold dataStructurePdSh1Sh2asRoot in *.
+intros * Hpart0 * Hpp0 * Ht * Hllv * Hind .
+ assert(Hdup : NoDup (getIndirections pd s)).
+{ apply noDupConfigPagesListNoDupGetIndirections with partition idxroot;trivial. 
+  assert(Hconsdup: noDupConfigPagesList s) by trivial.
+  apply Hconsdup;trivial. }
+assert(Hpart : forall part, In part (getPartitions multiplexer s) <-> In part (getPartitions multiplexer s')).
+intros.
+unfold s'.
+eapply  getPartitionsAddIndirection;trivial;try eassumption;trivial.
+rewrite <- Hpart in *.
+assert(Hpp': nextEntryIsPP partition0 sh2idx entry0 s).
+apply nextEntryIsPPMapMMUPage' with indirection (StateLib.getIndexOfAddr vaToPrepare l) 
+  nextIndirection r w  e;trivial.
+assert(Horx: partition = partition0 \/ partition <> partition0) by apply pageDecOrNot.
+destruct Horx as[Horx | Horx].
++ subst partition0.
+  move Hindesc at bottom.
+  destruct Hindor3 as [(Hi1 & Hi2 & Hii3) | [(Hi1 & Hi2 & Hii3) | (Hi1 & Hi2 & Hii3)] ].
+  - subst.
+    clear Hpart.
+    move Hinmmu at bottom.
+    move Hppx at bottom.
+    assert(Hindeq: getIndirection entry0 va level stop s' = getIndirection entry0 va level stop s).
+    { symmetry.
+      apply getIndirectionMapMMUPage11 with entry;trivial.
+      intros * Hi Hi1.
+      assert(Hin: In tbl (getIndirections entry0 s)).
+      { apply  getIndirectionInGetIndirections with va level stop0;trivial.
+        apply nbLevelNotZero.
+        apply beq_nat_false in Hi1;unfold not;intros ;subst;now contradict Hi1.
+        rewrite getNbLevelEq with level;trivial.
+        apply sh2PartNotNull with partition s;trivial. }
+        apply disjointPartitionDataStructure with entry0 pd sh2idx  PDidx   partition s;trivial.        
+        unfold or3;right;right;trivial.
+        symmetrynot.
+        apply idxPDidxSh2notEq. 
+        assert(Hconsdup: noDupConfigPagesList s) by trivial.
+        unfold noDupConfigPagesList in *.
+        apply Hconsdup in Hpart0.
+        unfold getConfigPages in Hpart0.
+        apply NoDup_cons_iff in Hpart0.
+        intuition.
+        apply sh2PartNotNull with partition s;trivial.  }
+      apply wellFormedRootDataStructAddIndirection with partition va entry0 entry;trivial.
+      rewrite <- Hindeq;trivial.
+      apply  indirectionDescriptionNotDefault in Hindesc;trivial.
+ - subst.
+        clear Hpart.
+        move Hinmmu at bottom.
+        move Hppx at bottom.
+        assert(Hindeq: getIndirection entry0 va level stop s' = getIndirection entry0 va level stop s).
+        { symmetry.
+          apply getIndirectionMapMMUPage11 with entry;trivial.
+          intros * Hi Hi1.
+          assert(Hin: In tbl (getIndirections entry0 s)).
+          { apply  getIndirectionInGetIndirections with va level stop0;trivial.
+            apply nbLevelNotZero.
+            apply beq_nat_false in Hi1;unfold not;intros ;subst;now contradict Hi1.
+            rewrite getNbLevelEq with level;trivial.
+            apply sh2PartNotNull with partition s;trivial. }
+            apply disjointPartitionDataStructure with entry0 pd sh2idx sh1idx partition s;trivial.        
+            unfold or3;right;right;trivial.
+            apply idxSh2idxSh1notEq.
+            assert(Hconsdup: noDupConfigPagesList s) by trivial.
+            unfold noDupConfigPagesList in *.
+            apply Hconsdup in Hpart0.
+            unfold getConfigPages in Hpart0.
+            apply NoDup_cons_iff in Hpart0.
+            intuition.
+            apply sh2PartNotNull with partition s;trivial.  }
+          apply wellFormedRootDataStructAddIndirection with partition va entry0 entry;trivial.
+          rewrite <- Hindeq;trivial.
+          apply  indirectionDescriptionNotDefault in Hindesc;trivial.
+  - assert(HingetInd : In indirection (getIndirections  entry0 s)).
+    { apply indirectionDescriptionInGetIndirections with partition vaToPrepare l sh2idx;trivial.
+      right;right;trivial.
+      subst;trivial. } 
+    unfold indirectionDescription,  initPEntryTablePreconditionToPropagatePrepareProperties in *.
+    destruct Hindesc as (tableroot & Hpp & Hrootnotdef & Hor). 
+    subst phySh2Child. 
+    subst.
+    assert (pd = entry0).
+    apply getSh2NextEntryIsPPEq with partition s;trivial.
+    apply nextEntryIsPPgetSndShadow;trivial.
+    subst entry0 .
+    assert (pd = tableroot).
+    apply getSh2NextEntryIsPPEq with partition s;trivial.
+    apply nextEntryIsPPgetSndShadow;trivial.
+    subst tableroot.
+    rewrite <- Hnblgen in Hllv.
+    inversion Hllv;subst nbLgen.
+    clear Hpp0.
+    destruct Hor as [(Hroot & Hnbl) | (nbl & sstop & Hnbl & Hsstop & Hind1 & Hnotdef & Hl)].
+    * subst.
+      rewrite <- Hnblgen in Hnbl.
+      inversion Hnbl;subst. 
+      apply PCWellFormedDataStructAddIndirectionsh2 with va entry partition lpred;trivial.
+    * rewrite <- Hnblgen in Hnbl.
+      inversion Hnbl;subst.
+      clear Hllv Hpp' Hpart Hnbl.
+      move Hnotfst at bottom.
+      move Hlpred at bottom.
+
+      
+      assert(sstop=0 \/ sstop>0) as [Horsstop0|Hsstop0] by omega.
+      -- subst;simpl in *.
+         inversion Hind1;subst.
+         rewrite CLevelIdentity' in *. (* 
+          assert(stop=0 \/ stop>0) as [Horstop0|Hstop0] by omega.
+          subst.
+          simpl in *.
+          inversion Hind;subst indirection0. *)
+
+         apply PCWellFormedDataStructAddIndirectionsh2 with va entry partition lpred;trivial.
+         unfold s' in *;trivial.
+         rewrite CLevelIdentity' in *.
+         trivial.
+      -- assert(stop < sstop \/ stop = sstop \/ stop>sstop) as [Hor |[Hor|Hor]] by omega.
+         ** assert(Heq : getIndirection pd va level stop s' =getIndirection pd va level stop s). 
+            { symmetry.
+              apply getIndirectionMapMMUPage11Stoplt with entry;trivial.        
+              intros.
+            assert(Hin: In tbl (getIndirectionsAux pd s (stop0+1))).
+            { apply getIndirectionInGetIndirections1 with va level ;trivial.
+              destruct level;simpl in *.  omega.
+              assert(Hx: (defaultPage =? tbl) = false) by trivial.
+              apply beq_nat_false in Hx;unfold not;intros;subst;now contradict Hx. }
+           assert(~In indirection (getIndirectionsAux pd s (stop0+1))).
+           { apply getIndirectionInGetIndirections2n with sstop vaToPrepare level;trivial.
+             destruct level;simpl in *.
+             omega.
+             apply noDupPreviousMMULevels with nbLevel ;trivial.
+             destruct level;simpl in *.
+             omega.
+             omega. }
+            unfold not;intros ;subst; now contradict Hin. }
+            rewrite Heq in Hind.
+            apply wellFormedRootDataStructAddIndirection with partition va pd entry;trivial.
+         ** subst.
+            assert(Hkey: ~In indirection (getIndirectionsAux pd s sstop)).
+            { assert(Hex: sstop + 1 <= nbLevel).
+              destruct level;simpl in *.
+              omega.
+              apply getIndirectionInGetIndirections2' with vaToPrepare level;trivial.
+              unfold getIndirections in *.
+              apply noDupPreviousMMULevels with nbLevel ;trivial. }
+            assert(Heqind: getIndirection pd va level sstop s' =getIndirection pd va level sstop s). 
+            {  apply getIndirectionAddIndirectionEq with entry;trivial. }
+            rewrite Heqind in Hind.
+            apply wellFormedRootDataStructAddIndirection with partition va pd entry;trivial.
+        ** assert(Hdefind0: indirection0 = defaultPage  \/ indirection0 <> defaultPage ) by apply pageDecOrNot. 
+           destruct Hdefind0 as [Hdefind0|Hdefind0].
+           left;trivial.
+(*            right.  *)
+           assert(Hkey: ~In indirection (getIndirectionsAux pd s sstop)).
+           { assert(Hex: sstop + 1 <= nbLevel).
+            destruct level;simpl in *.
+            omega.
+            apply getIndirectionInGetIndirections2' with vaToPrepare level;trivial.
+            unfold getIndirections in *.
+            apply noDupPreviousMMULevels with nbLevel ;trivial.
+           }
+          assert(Heqind: getIndirection pd vaToPrepare level sstop s' =getIndirection pd vaToPrepare level sstop s). 
+               {  apply getIndirectionAddIndirectionEq with entry;trivial. }
+          assert(Heqindx: getIndirection pd va level sstop s' =getIndirection pd va level sstop s). 
+                {  apply getIndirectionAddIndirectionEq with entry;trivial. }
+          assert(Hi: stop <= nbLevel-1 \/ stop > nbLevel -1) by omega.
+          destruct Hi as [Hi | Hi].
+          +++ apply PCWellFormedRootDataStructAddIndirectionSh2 with pd lpred va  entry partition;trivial.
+          +++ pose proof nbLevelNotZero.  
+               assert(Hx:  (nbLevel -1) = level).
+              {  rewrite  CLevelIdentity2 with (nbLevel-1).
+                 symmetry.
+                 rewrite getNbLevelEq with level;trivial. 
+                 omega. }
+              assert(Hxp: PCWellFormedRootDataStruct (nbLevel - 1) level indirection0 idx s' sh2idx).
+              apply PCWellFormedRootDataStructAddIndirectionSh2 with pd lpred va  entry partition;trivial.
+              apply getIndirectionStopLevelGT2 with stop;trivial.
+              omega.
+              assert(level>sstop). 
+              symmetry in Hnotfst.
+              apply levelEqBEqNatFalse0 in Hnotfst;trivial.
+              rewrite <- CLevelIdentity2 in Hnotfst.
+              subst.
+              omega.
+              rewrite <- CLevelIdentity2 in Hnotfst.
+              subst.
+              omega.
+              omega. omega.
+              unfold PCWellFormedRootDataStruct in Hxp.
+              subst.
+              trivial.
+              intuition.
++ assert(Hindeq: getIndirection entry0 va level stop s' = getIndirection entry0 va level stop s).
+  { symmetry.
+          apply getIndirectionMapMMUPage11 with entry;trivial.
+          intros * Hi Hi1.
+     assert(Hin: In tbl (getConfigPages partition0 s)).
+     { assert(Hin: In tbl (getIndirections entry0 s)).
+          { apply  getIndirectionInGetIndirections with va level stop0;trivial.
+            apply nbLevelNotZero.
+            apply beq_nat_false in Hi1;unfold not;intros ;subst;now contradict Hi1.
+            rewrite getNbLevelEq with level;trivial.
+            apply sh2PartNotNull with partition0 s;trivial. } 
+      unfold getConfigPages.
+      simpl;right.
+      apply inGetIndirectionsAuxInConfigPagesSh2 with entry0;trivial.
+      apply nextEntryIsPPgetSndShadow;trivial. }
+     assert(Hinx: In indirection (getConfigPages partition s)).
+     { unfold getConfigPages.
+      simpl;right.
+      apply inGetIndirectionsAuxInConfigPages with pd idxroot;trivial. }
+      assert(Hkdi: configTablesAreDifferent s) by trivial. 
+      unfold configTablesAreDifferent in *.
+      unfold disjoint in *.
+      contradict Hin.      
+      apply Hkdi with partition;trivial.
+      subst;trivial.
+      apply sh2PartNotNull with partition0 s;trivial. }
+  apply wellFormedRootDataStructAddIndirection with partition0 va entry0 entry;trivial.
+  rewrite <- Hindeq;trivial.
+  apply  indirectionDescriptionNotDefault in Hindesc;trivial.
+Qed.
 Lemma consistencyAddIndirection
 s indirection nextIndirection  entry nbLgen  pd idxroot  
 (vaToPrepare vaNextInd : vaddr) phyDescChild l  
@@ -4435,7 +5496,7 @@ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phy
   consistency s ->
 nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child 
   phySh1addr phySh2Child phySh2addr idxroot ->
-isWellFormedFstShadow lpred phySh1addr s ->
+isWellFormedSndShadow lpred phySh1addr s ->
 StateLib.Level.pred l = Some lpred ->
 or3 idxroot ->
 (forall parts, In parts (getPartitions multiplexer s) ->
@@ -4496,15 +5557,18 @@ Proof.
 intros * Hnotshared Hiso Hindor3 Hwell1 Hlpred Hor3 Hnotacces Hkdi (Hnotconf1 & Hnotconf2 & Hnotconf3).
 intros. 
 set(s':={|currentPartition:= _ |}) in *.
-unfold consistency in *. 
+unfold consistency, isWellFormedTables in *. 
 intuition.
 + (** partitionDescriptorEntry **)
- eapply partitionDescriptorEntryAddIndirection ;trivial;try eassumption;trivial.
+ eapply partitionDescriptorEntryAddIndirection with (phySh1addr:=phySh1addr);trivial;try eassumption;trivial.
 + (** dataStructurePdSh1Sh2asRoot **)
  eapply dataStructurePdSh1Sh2asRootMMUAddIndirection;trivial;try eassumption;trivial.
  unfold consistency ;intuition.
 + (** dataStructurePdSh1Sh2asRoot **)
  eapply dataStructurePdSh1Sh2asRootSh1AddIndirection;trivial;try eassumption;trivial.
+ unfold consistency ;intuition.
++ (** dataStructurePdSh1Sh2asRoot **)
+ eapply dataStructurePdSh1Sh2asRootSh2AddIndirection;trivial;try eassumption;trivial.
  unfold consistency ;intuition.
  
 Admitted.

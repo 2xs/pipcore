@@ -2482,3 +2482,50 @@ unfold fstLevel.
 apply CLevelIdentity2.
 apply nbLevelNotZero.
 Qed. 
+
+      Lemma sh2indirectionIsVA partition  pd  indirection  vaToPrepare  s: 
+pd <> defaultPage ->
+dataStructurePdSh1Sh2asRoot sh2idx s ->
+nextEntryIsPP partition sh2idx pd s -> 
+In partition (getPartitions multiplexer s) ->
+forall (nbL : ADT.level) (stop : nat),
+ Some nbL = StateLib.getNbLevel ->
+ stop <= nbL ->
+ getIndirection pd vaToPrepare nbL stop s = Some indirection ->
+ indirection <> defaultPage -> (* l = CLevel (nbL - stop) ->  *)   
+( forall idx,
+( stop < nbL /\ isPE indirection idx s \/
+stop >= nbL /\
+isVA indirection idx s)).
+Proof.
+assert(Ht: True) by trivial.
+intros Hrootnotdef  Hgoal Hpp' Hpart0 * HnbL Hstop Hind  Hdef (* Hl *).
+intros.
+generalize (Hgoal partition Hpart0 pd Hpp' vaToPrepare  Ht nbL stop HnbL indirection idx Hind);  
+clear Hgoal;intros Hgoal.
+destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+subst.
+intuition.
+destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+
+left.
+intuition.
+right.
+destruct Hgoal as [(Hi1 & hi) | [(Hi1& hi)|(HH & hi)]];trivial.
+intuition.
+contradict hi.
+apply idxSh2idxSh1notEq.
+split;trivial.
+      contradict hi.
+symmetrynot.
+apply idxPDidxSh2notEq.
+Qed.
+Lemma readVirtualIsVA table idx p s: 
+StateLib.readVirtual table idx (memory s) = Some p ->
+isVA table idx s.
+Proof. 
+unfold isVA, StateLib.readVirtual in *.
+destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now contradict H.
+destruct v;try now contradict H;trivial.
+trivial.
+Qed.
