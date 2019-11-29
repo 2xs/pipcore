@@ -214,7 +214,7 @@ struct tss_s {
 typedef struct tss_s tss_t;
 
 
-void gdtInstall();
+void gdt_init();
 
 void setKernelStack(uint32_t stack);
 

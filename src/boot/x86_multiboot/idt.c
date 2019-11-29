@@ -44,6 +44,8 @@
 /* declaration of the assembly interrupt counterparts */
 #include "asm_int.h"
 
+#include "segment_selectors.h"
+
 /* TODO remove me once the new service is written in Coq */
 #include "yield_c.h"
 
@@ -71,7 +73,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	 * single instruction back, and execute the far call 
 	 *
 	 * But that's for another time */
-	if (ctx->cs == 8) {
+	if (ctx->cs == KERNEL_CODE_SEGMENT_SELECTOR) {
 		DEBUG(TRACE, "Infamous interrupt on the callgate cli, we just lost an interrupt\n");
 		return;
 	}
@@ -149,7 +151,7 @@ struct idt_callback_conf_s {
 	 * structs and will truncate the most significant bits - hopefully */
 };
 
-#define IRQ_CODE_SEGMENT (0x08) //Kernel code segment in GDT (2nd entry)
+#define IRQ_CODE_SEGMENT KERNEL_CODE_SEGMENT_SELECTOR //Kernel code segment in GDT (2nd entry)
 
 /**
  * Some segment selector stuff :
@@ -562,6 +564,22 @@ timerPhase (uint32_t hz)
 
 uint32_t pcid_enabled = 0;
 
+/** issue a single request to CPUID. Fits 'intel features', for instance
+ *  note that even if only "eax" and "edx" are of interest, other registers
+ *  will be modified by the operation, so we need to tell the compiler about it.
+ */
+static inline void cpuid(int code, uint32_t *a, uint32_t *d) {
+	asm volatile("cpuid":"=a"(*a),"=d"(*d):"a"(code):"ecx","ebx");
+}
+
+/** issue a complete request, storing general registers output as a string
+ */
+static inline int cpuid_string(int code, uint32_t where[4]) {
+	asm volatile("cpuid":"=a"(*where),"=b"(*(where+1)),
+				 "=c"(*(where+2)),"=d"(*(where+3)):"a"(code));
+	return (int)where[0];
+}
+
 /**
  * \fn void initCpu()
  * \brief Initializes CPU-specific features
@@ -624,7 +642,7 @@ void initCPU()
 
 uint32_t timer_ticks = 0;
 
-void initInterrupts(void) {
+void idt_init(void) {
 	BOOT_DEBUG(INFO, "Initializing interrupts\n");
 	initIDT();
 	remapIRQ();

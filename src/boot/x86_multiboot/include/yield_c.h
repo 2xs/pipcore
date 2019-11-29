@@ -5,10 +5,7 @@
 #include "x86int.h"
 #include "maldefines.h"
 #include "Internal.h"
-
-extern void resumeAsm(user_ctx_t *ctx);
-#define loadContext resumeAsm
-
+#include "segment_selectors.h"
 
 typedef uint32_t vaddr_t;
 typedef uint32_t page_t;

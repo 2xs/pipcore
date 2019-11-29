@@ -1,6 +1,0 @@
-Some of the code present in the x86 IAL for the Pip proto-kernel (in ial.c, ial_init.c and ial0.s) were taken from the Riku kernel sources, another project of mine, released under GNU GPL licence.
-As the main (and only) developer of Riku, I hebery allow this code to be released and used in the Pip proto-kernel under the CECILL licence.
-
-Quentin Bergougnoux
-<quentin.bergougnoux@univ-lille1.fr>
-<quentin.bergougnoux@gmail.com>

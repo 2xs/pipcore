@@ -26,6 +26,7 @@ void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake)
 	return;
 }
 
+void loadContext(user_ctx_t *ctx);
 
 yield_checks_t checkCtxSaveIdxCont(vaddr_t calleePartDescVAddr, unsigned targetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
@@ -285,4 +286,71 @@ yield_checks_t switchContextCont (page_t calleePartDesc,
 	DEBUG(CRITICAL, "Loading context into registers...\n");
 	loadContext(ctx);
 	return SUCCESS;
+}
+
+/* copies or pushes SS, ESP, EFLAGS, CS, EIP from the given context to the stack
+ * and then executes an `iret` in order to go back to userland
+ * see x86int.h for infos related to user_ctx_t struct */
+void loadContext(user_ctx_t *ctx) {
+	asm(
+	    /* retrieve user_ctx_t * in EAX register */
+	    "mov %0, %%eax;"
+
+	    /* retrieve virtual flags from context and writes them in VIDT */
+	    /* TODO Fix this when pipflags are implemented */ 
+	    // "mov 0x4(%%eax), %%ebx;"
+	    // "mov %%exb, (0xfffffffc);"
+
+	    /* push user ss */
+	    "push %1;"
+
+	    /* push user esp */
+	    "push 0x18(%%eax);"
+
+	    /* push eflags */
+	    "push 0x8(%%eax);"
+
+	    /* push cs */
+	    "push %2;"
+
+	    /* push eip */
+	    "push (%%eax);"
+
+	    /* restore general purpose registers */
+	    /* maybe we could `popad` but it seems complicated */
+	    /* restore EDI */
+	    "mov  0xc(%%eax), %%edi;"
+
+	    /* restore ESI */
+	    "mov 0x10(%%eax), %%esi;"
+
+	    /* restore EBP */
+	    "mov 0x14(%%eax), %%ebp;"
+
+	    /* skipped ESP which was already pushed */
+
+	    /* restore EBX */
+	    "mov 0x1C(%%eax), %%ebx;"
+
+	    /* restore EDX */
+	    "mov 0x20(%%eax), %%edx;"
+
+	    /* restore ECX */
+	    "mov 0x24(%%eax), %%ecx;"
+
+	    /* restore EAX */
+	    "mov 0x28(%%eax), %%eax;"
+
+	    /* switch to userland */
+	    "iret;"
+
+	    /* output operands */
+	    :
+	    /* input operands */
+	    : "m"(ctx),
+	      "i"(USER_DATA_SEGMENT_SELECTOR | USER_RING), /* TODO Correct ? Check RPL */
+	      "i"(USER_CODE_SEGMENT_SELECTOR | USER_RING)  /* TODO Correct ? Check RPL */
+	    /* registers changed during inline assembly */
+	    :
+	);
 }

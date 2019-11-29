@@ -37,7 +37,6 @@
  */
 
 #include "port.h"
-#include "ial.h"
 #include "mal.h"
 #include "x86int.h"
 #include "debug.h"

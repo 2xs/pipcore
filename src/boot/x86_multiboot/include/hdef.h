@@ -35,11 +35,25 @@
 #define __HDEF__
 
 #include <stdint.h>
-#include "ial.h"
 
 #define HSPEC_COUNT 1
 
-struct hardware_def pshw[HSPEC_COUNT] = {
+#define GENERAL_REG(a, c)		a->regs.c
+#define OPTIONAL_REG(a, c)		a->c
+
+
+/**
+ * \struct hardware_def
+ * \brief Platform-specific hardware memory range definition
+ */
+struct hardware_def {
+	const char*	name;
+	uintptr_t	paddr_base;
+	uintptr_t	vaddr_base;
+	uintptr_t	limit;
+};
+
+static const struct hardware_def pshw[HSPEC_COUNT] = {
     { "VGAController", 0xb8000, 0xc00b8000, 0x8000 }, 
 }; 
 

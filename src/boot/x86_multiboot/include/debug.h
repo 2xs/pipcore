@@ -44,7 +44,6 @@
 #include <stdarg.h>
 #include "x86int.h"
 #include "mal.h"
-#include "ial_defines.h"
 
 /**
  * \brief Strings for debugging output.

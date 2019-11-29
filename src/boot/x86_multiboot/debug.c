@@ -41,6 +41,8 @@
 #include <stdint.h>
 #include "libc.h"
 #include <stdarg.h>
+#include "segment_selectors.h"
+#include "hdef.h"
 
 static uint32_t buffer[64]; // temporary buffer for benchmarking
 
@@ -91,7 +93,7 @@ void dumpRegs(int_ctx_t* is, uint32_t outputLevel)
 		  GENERAL_REG(is, esi),
 		  GENERAL_REG(is, ebp),
 		  OPTIONAL_REG(is, useresp));
-	if(isKernel(OPTIONAL_REG(is, cs)))
+	if(OPTIONAL_REG(is, cs) == KERNEL_CODE_SEGMENT_SELECTOR)
 	{
 		DEBUG(outputLevel, "               cs=%x, eip=%x, int=%x\n",
 			  OPTIONAL_REG(is, cs),

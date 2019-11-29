@@ -84,9 +84,6 @@ typedef union idt_entry_u idt_entry_t;
 #define INTERRUPT_GATE_TYPE 0b01110
 #define TRAP_GATE_TYPE      0b01111
 
-#define KERNEL_RING 0
-#define USER_RING   3
-
 /**
  * \struct idt_ptr_struct
  * \brief IDT pointer structure
@@ -98,5 +95,7 @@ struct idt_ptr_s
 } __attribute__((packed));
 
 typedef struct idt_ptr_s idt_ptr_t;
+
+void idt_init(void);
 
 #endif

@@ -41,7 +41,6 @@
 #include "mal.h"
 #include "debug.h"
 #include "libc.h"
-#include "ial.h"
 
 /*!	\fn void activate(uintptr_t dir)
 	\brief activates the virtual space dir

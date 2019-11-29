@@ -42,7 +42,6 @@
 
 /* This is provided by our hardware abstraction layers */
 #include "mal.h"
-#include "ial.h"
 #include "git.h"
 #include "fpinfo.h"
 
@@ -61,6 +60,9 @@
 
 /* GDT configuration */
 #include "gdt.h"
+
+/* IDT configuration */
+#include "idt.h"
 
 /* TODO Remove me once rewritten in C */
 #include "yield_c.h"
@@ -139,11 +141,11 @@ int c_main(struct multiboot *mbootPtr)
 	
 	// Install GDT & IDT
 	DEBUG(INFO, "-> Initializing GDT.\n");
-	gdtInstall();
+	gdt_init();
 	DEBUG(INFO, "-> Initializing interrupts.\n");
 
 	setKernelStack(0x300000);
-	initInterrupts();
+	idt_init();
 	
 	// Initialize free page list
 	DEBUG(INFO, "-> Initializing paging.\n");

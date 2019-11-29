@@ -205,7 +205,7 @@ void setKernelStack (uint32_t stack)
  * KERNEL_CODE_SEGMENT, and the data segment selectors to KERNEL_DATA_SEGMENT.
  * /!\ This function defines a label ! Multiple calls to this function
  * may prevent the code from compiling ! */
-static void load_gdt(void *base, uint16_t limit) {
+void load_gdt(void *base, uint16_t limit) {
 
 	struct gdt_ptr gp = {.limit = limit, .base = (uint32_t) base}; //!< Pointer to our GDT
 	asm(/* load the GDT, but our current segment selectors remain the same
@@ -238,7 +238,7 @@ static void load_gdt(void *base, uint16_t limit) {
 }
 
 /* Loads the TSS register with the TSS selector */
-static void load_tss() {
+void load_tss() {
 	asm(
 	    "mov %0, %%ax;"
 	    "ltr %%ax;"
@@ -254,10 +254,10 @@ static void load_tss() {
 
 
 /**
- * \fn void gdtInstall()
+ * \fn void gdt_init()
  * \brief Installs the GDT into the CPU
  */
-void gdtInstall(void)
+void gdt_init(void)
 {
 	/* Intel 64 and IA-32 Architecture Software Developer Manual, Volume 3A - Sec. 3.5.1
 	 * The first descriptor is not used by the GDT is not used by the processor.
@@ -269,6 +269,7 @@ void gdtInstall(void)
 	gdt[0].null_desc = 0;
 
 	/* segment descriptors */
+	/* TODO maybe we could use a single segment data segment */
 	/* Kernel code segment  */
 	set_segment_descriptor(1, 0, 0xFFFFF, SEG_CODE_EXECONLY_NONCONFORMING_TYPE, KERNEL_RING, GRANULARITY_4096);
 	/* Kernel data segment (stack) */
@@ -310,15 +311,15 @@ void gdtInstall(void)
 	set_callgate_descriptor(PIPCALL_COUNTTOMAP,      &cg_countToMap, 	PIPCALL_NARGS_COUNTTOMAP,        USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_PREPARE,         &cg_prepare, 		PIPCALL_NARGS_PREPARE,           USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_ADDVADDR,        &cg_addVAddr, 		PIPCALL_NARGS_ADDVADDR,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
-	set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	//set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_OUTADDRL,        &cg_outaddrlGlue, 	PIPCALL_NARGS_OUTADDRL,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
-	set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	//set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_REMOVEVADDR,     &cg_removeVAddr, 	PIPCALL_NARGS_REMOVEVADDR,       USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_MAPPEDINCHILD,   &cg_mappedInChild,	PIPCALL_NARGS_MAPPEDINCHILD,     USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
-	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	//set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	DEBUG(INFO, "Callgate descriptors initialized\n");
 
 	load_gdt(&gdt, (sizeof(gdt_entry_t) * GDT_N_ENTRY) - 1);
