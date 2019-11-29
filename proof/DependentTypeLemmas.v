@@ -2903,3 +2903,53 @@ apply tableSizeBigEnough.
 unfold tableSizeLowerBound in *.
 omega.
 Qed.
+
+
+Lemma indexDecOrNot :
+forall p1 p2 : index, p1 = p2 \/ p1<>p2.
+Proof.
+destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
+assert (Heq :i=i0 \/ i<> i0) by omega.
+destruct Heq as [Heq|Heq].
+subst.
+left;f_equal;apply proof_irrelevance.
+right. unfold not;intros.
+inversion H.
+subst.
+now contradict Heq.
+Qed.
+Lemma getNbLevelEqNat : 
+forall nbL, 
+Some nbL = StateLib.getNbLevel -> 
+nbLevel - 1 = nbL.
+Proof.
+intros.
+unfold StateLib.getNbLevel in *.
+destruct (gt_dec nbLevel 0).
+inversion H.
+destruct nbL.
+simpl in *;trivial.
+assert (0 < nbLevel) by apply nbLevelNotZero.
+omega.
+Qed.
+
+
+Lemma level_eq_l:
+forall x1 x2: level, l x1 = l x2 -> x1 = x2.
+Proof.
+intros. 
+destruct x1;destruct x2;simpl in *.
+subst.
+f_equal.
+apply proof_irrelevance.
+Qed.
+
+Lemma page_eq_p:
+forall x1 x2: page, p x1 =p x2 -> x1 = x2.
+Proof.
+intros. 
+destruct x1;destruct x2;simpl in *.
+subst.
+f_equal.
+apply proof_irrelevance.
+Qed.

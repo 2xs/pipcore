@@ -714,4 +714,10 @@ Definition yieldPreWritingProperties
   entryPresentFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s /\
   entryUserFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s.
 
-
+Definition PCWellFormedRootDataStruct n l table idx s idxroot:= 
+table = defaultPage \/
+(n < l /\ isPE table idx s \/
+ n >= l /\
+ (isVE table idx s /\ idxroot = sh1idx \/
+  isVA table idx s /\ idxroot = sh2idx \/ isPE table idx s /\ idxroot = PDidx)) /\
+table <> defaultPage.

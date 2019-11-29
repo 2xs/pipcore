@@ -6980,13 +6980,10 @@ apply NoDup_cons_iff in Hnodup as (Hnotin & Hnodup).
     inversion Hsh2;subst.
  apply Hn2 in Hinmmu;trivial.
  }
-
-
  rewrite Hllind in *.
  trivial.
- 
-Qed.     
-  
+Qed.
+
 Lemma getMappedPagesAddIndirectionNotSamePart  s  indirection nextIndirection  entry nbLgen  pd   vaToPrepare partition idxroot l r w e
 phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr:
 let s':= {|

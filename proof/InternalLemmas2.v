@@ -2371,36 +2371,114 @@ apply nextEntryIsPPgetSndShadow;trivial.
 Qed.
 
 
+Lemma MMUindirectionIsPE partition  pd  indirection idx vaToPrepare l s: 
+pd <> defaultPage ->
+dataStructurePdSh1Sh2asRoot PDidx s ->
+nextEntryIsPP partition PDidx pd s -> 
+In partition (getPartitions multiplexer s) ->
+( pd = indirection /\ Some l = StateLib.getNbLevel \/
+(exists (nbL : ADT.level) (stop : nat),
+   Some nbL = StateLib.getNbLevel /\
+   stop <= nbL /\
+   getIndirection pd vaToPrepare nbL stop s = Some indirection /\
+   indirection <> defaultPage /\ l = CLevel (nbL - stop))) -> 
+isPE indirection idx s.
+Proof.
+assert(Ht: True) by trivial.
+intros Hrootnotdef  Hgoal Hpp' Hpart0 Hor. 
+{ destruct Hor as [(Heq & HnbL) | Hor].
++ subst.
+assert(Heq: Some indirection = Some indirection ) by trivial.
+(*     { f_equal. apply getPdNextEntryIsPPEq with partition s;trivial.
+apply nextEntryIsPPgetPd;trivial. } *)
 
+generalize (Hgoal partition Hpart0 indirection Hpp' vaToPrepare  Ht l 0 HnbL indirection idx);
+clear Hgoal;intros Hgoal.
+simpl in *.
+generalize (Hgoal Heq);clear Hgoal;intros Hgoal.
+destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+subst.
+intuition.
+destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+intuition.
+ destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+ contradict hi.
+ apply idxPDidxSh1notEq.
+ apply idxPDidxSh2notEq.
++  
+destruct Hor as (nbL & sstop & Hnbl & Hsstop & Hind1 & Hinddef & Hli).
+generalize (Hgoal partition Hpart0 pd Hpp' vaToPrepare  Ht nbL sstop Hnbl indirection idx Hind1);  
+ clear Hgoal;intros Hgoal.
+  destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+subst.
+intuition.
+destruct Hgoal as [Hgoal | (Hll&Hgoal)].
+intuition.
+ destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
+ contradict hi.
+ apply idxPDidxSh1notEq.
+ apply idxPDidxSh2notEq. }
+Qed.
+Lemma sh1indirectionIsVE partition  pd  indirection  vaToPrepare  s: 
+pd <> defaultPage ->
+dataStructurePdSh1Sh2asRoot sh1idx s ->
+nextEntryIsPP partition sh1idx pd s -> 
+In partition (getPartitions multiplexer s) ->
+forall (nbL : ADT.level) (stop : nat),
+ Some nbL = StateLib.getNbLevel ->
+ stop <= nbL ->
+ getIndirection pd vaToPrepare nbL stop s = Some indirection ->
+ indirection <> defaultPage -> (* l = CLevel (nbL - stop) ->  *)   
+( forall idx,
+( stop < nbL /\ isPE indirection idx s \/
+stop >= nbL /\
+isVE indirection idx s)).
+Proof.
+assert(Ht: True) by trivial.
+intros Hrootnotdef  Hgoal Hpp' Hpart0 * HnbL Hstop Hind  Hdef (* Hl *).
+intros.
+generalize (Hgoal partition Hpart0 pd Hpp' vaToPrepare  Ht nbL stop HnbL indirection idx Hind);  
+clear Hgoal;intros Hgoal.
+destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
+subst.
+intuition.
+destruct Hgoal as [Hgoal | (Hll&Hgoal)].
 
+left.
+intuition.
+right.
+destruct Hgoal as [(Hi1 & hi) | [(Hi1& hi)|(HH & hi)]];trivial.
+intuition.
+contradict hi.
+symmetrynot.
+apply idxSh2idxSh1notEq.
+      contradict hi.
+symmetrynot.
+apply idxPDidxSh1notEq.
+Qed.
+Lemma readPhyEntryIsPE table idx p s: 
+StateLib.readPhyEntry table idx (memory s) = Some p ->
+isPE table idx s.
+Proof. 
+unfold isPE, StateLib.readPhyEntry in *.
+destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now contradict H.
+destruct v;try now contradict H;trivial.
+trivial.
+Qed.
+Lemma readVirEntryIsPE table idx p s: 
+StateLib.readVirEntry table idx (memory s) = Some p ->
+isVE table idx s.
+Proof. 
+unfold isVE, StateLib.readVirEntry in *.
+destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now contradict H.
+destruct v;try now contradict H;trivial.
+trivial.
+Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Lemma fstLevelIs0 :
+0 = fstLevel.
+Proof.
+unfold fstLevel.
+apply CLevelIdentity2.
+apply nbLevelNotZero.
+Qed. 

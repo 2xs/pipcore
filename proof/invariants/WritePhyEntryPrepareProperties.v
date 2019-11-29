@@ -44,174 +44,11 @@ WriteAccessible MapMMUPage InternalLemmas2 WritePhyEntryPrepare.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
  (******************************************* propagatedProperties ***************************)
 
-Definition PCWellFormedRootDataStruct n l table idx s idxroot:= 
-table = defaultPage \/
-(n < l /\ isPE table idx s \/
- n >= l /\
- (isVE table idx s /\ idxroot = sh1idx \/
-  isVA table idx s /\ idxroot = sh2idx \/ isPE table idx s /\ idxroot = PDidx)) /\
-table <> defaultPage.
+
 (************************************************************************)   
  (******************************************* InternalLemmas2 ***************************)
-       Lemma MMUindirectionIsPE partition  pd  indirection idx vaToPrepare l s: 
-      pd <> defaultPage ->
-      dataStructurePdSh1Sh2asRoot PDidx s ->
-      nextEntryIsPP partition PDidx pd s -> 
-      In partition (getPartitions multiplexer s) ->
-      ( pd = indirection /\ Some l = StateLib.getNbLevel \/
-      (exists (nbL : ADT.level) (stop : nat),
-         Some nbL = StateLib.getNbLevel /\
-         stop <= nbL /\
-         getIndirection pd vaToPrepare nbL stop s = Some indirection /\
-         indirection <> defaultPage /\ l = CLevel (nbL - stop))) -> 
-      isPE indirection idx s.
-      Proof.
-      assert(Ht: True) by trivial.
-      intros Hrootnotdef  Hgoal Hpp' Hpart0 Hor. 
-    { destruct Hor as [(Heq & HnbL) | Hor].
-      + subst.
-     assert(Heq: Some indirection = Some indirection ) by trivial.
-(*     { f_equal. apply getPdNextEntryIsPPEq with partition s;trivial.
-      apply nextEntryIsPPgetPd;trivial. } *)
       
-      generalize (Hgoal partition Hpart0 indirection Hpp' vaToPrepare  Ht l 0 HnbL indirection idx);
-      clear Hgoal;intros Hgoal.
-      simpl in *.
-      generalize (Hgoal Heq);clear Hgoal;intros Hgoal.
-      destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
-      subst.
-      intuition.
-      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
-      intuition.
-       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
-       contradict hi.
-       apply idxPDidxSh1notEq.
-       apply idxPDidxSh2notEq.
-    +  
-    destruct Hor as (nbL & sstop & Hnbl & Hsstop & Hind1 & Hinddef & Hli).
-      generalize (Hgoal partition Hpart0 pd Hpp' vaToPrepare  Ht nbL sstop Hnbl indirection idx Hind1);  
-       clear Hgoal;intros Hgoal.
-        destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
-      subst.
-      intuition.
-      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
-      intuition.
-       destruct Hgoal as [(_ & hi) | [(_ & hi)|(HH & hi)]];trivial;
-       contradict hi.
-       apply idxPDidxSh1notEq.
-       apply idxPDidxSh2notEq. }
-    Qed.
-       Lemma sh1indirectionIsVE partition  pd  indirection  vaToPrepare  s: 
-      pd <> defaultPage ->
-      dataStructurePdSh1Sh2asRoot sh1idx s ->
-      nextEntryIsPP partition sh1idx pd s -> 
-      In partition (getPartitions multiplexer s) ->
-      forall (nbL : ADT.level) (stop : nat),
-         Some nbL = StateLib.getNbLevel ->
-         stop <= nbL ->
-         getIndirection pd vaToPrepare nbL stop s = Some indirection ->
-         indirection <> defaultPage -> (* l = CLevel (nbL - stop) ->  *)   
-( forall idx,
-( stop < nbL /\ isPE indirection idx s \/
- stop >= nbL /\
- isVE indirection idx s)).
-      Proof.
-      assert(Ht: True) by trivial.
-      intros Hrootnotdef  Hgoal Hpp' Hpart0 * HnbL Hstop Hind  Hdef (* Hl *).
-      intros.
-      generalize (Hgoal partition Hpart0 pd Hpp' vaToPrepare  Ht nbL stop HnbL indirection idx Hind);  
-       clear Hgoal;intros Hgoal.
-        destruct Hgoal as [Hgoal | (Hgoal & Hnot)].
-      subst.
-      intuition.
-      destruct Hgoal as [Hgoal | (Hll&Hgoal)].
-      
-      left.
-      intuition.
-      right.
-      destruct Hgoal as [(Hi1 & hi) | [(Hi1& hi)|(HH & hi)]];trivial.
-       intuition.
-       contradict hi.
-       symmetrynot.
-       apply idxSh2idxSh1notEq.
-              contradict hi.
-       symmetrynot.
-       apply idxPDidxSh1notEq.
-Qed.
-Lemma readPhyEntryIsPE table idx p s: 
-StateLib.readPhyEntry table idx (memory s) = Some p ->
-isPE table idx s.
-Proof. 
-unfold isPE, StateLib.readPhyEntry in *.
-destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now contradict H.
-destruct v;try now contradict H;trivial.
-trivial.
-Qed.
-Lemma readVirEntryIsPE table idx p s: 
-StateLib.readVirEntry table idx (memory s) = Some p ->
-isVE table idx s.
-Proof. 
-unfold isVE, StateLib.readVirEntry in *.
-destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now contradict H.
-destruct v;try now contradict H;trivial.
-trivial.
-Qed.
 (********************************** dependentTypeLemma **********************************)
-Lemma indexDecOrNot :
-forall p1 p2 : index, p1 = p2 \/ p1<>p2.
-Proof.
-destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
-assert (Heq :i=i0 \/ i<> i0) by omega.
-destruct Heq as [Heq|Heq].
-subst.
-left;f_equal;apply proof_irrelevance.
-right. unfold not;intros.
-inversion H.
-subst.
-now contradict Heq.
-Qed.
-Lemma getNbLevelEqNat : 
-forall nbL, 
-Some nbL = StateLib.getNbLevel -> 
-nbLevel - 1 = nbL.
-Proof.
-intros.
-unfold StateLib.getNbLevel in *.
-destruct (gt_dec nbLevel 0).
-inversion H.
-destruct nbL.
-simpl in *;trivial.
-assert (0 < nbLevel) by apply nbLevelNotZero.
-omega.
-Qed.
-
-Lemma fstLevelIs0 :
-0 = fstLevel.
-Proof.
-unfold fstLevel.
-apply CLevelIdentity2.
-apply nbLevelNotZero.
-Qed. 
-
-Lemma level_eq_l:
-forall x1 x2: level, l x1 = l x2 -> x1 = x2.
-Proof.
-intros. 
-destruct x1;destruct x2;simpl in *.
-subst.
-f_equal.
-apply proof_irrelevance.
-Qed.
-
-Lemma page_eq_p:
-forall x1 x2: page, p x1 =p x2 -> x1 = x2.
-Proof.
-intros. 
-destruct x1;destruct x2;simpl in *.
-subst.
-f_equal.
-apply proof_irrelevance.
-Qed.
 
 
 (************************************************************************)   
@@ -1243,7 +1080,7 @@ insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstV
   lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1)) true ->
  lookup indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) beqPage beqIndex =
           Some (PE entry) ->
-nextEntryIsPP descChildphy PDidx pdchild s ->          
+nextEntryIsPP descChildphy PDidx pdchild s ->
 (forall parts : page,
      In parts (getPartitions multiplexer s) -> ~In nextIndirection (getAccessibleMappedPages parts s)) ->
 In descChildphy (getChildren (currentPartition s) s) ->
@@ -1421,11 +1258,8 @@ phySh2addr lpred;trivial.
            omega.
            apply CLevelIdentity2 in Hxx.
            rewrite Hx in Hxx.
-           omega.
- }
-
+           omega. }
            subst stop1.
-           
            pose proof nbLevelNotZero.
            assert(Hor: stop = nbL \/ stop < nbL) by omega.
            destruct Hor as [Hor | Hor].
@@ -1458,7 +1292,6 @@ phySh2addr lpred;trivial.
               rewrite <- beq_nat_refl.
               trivial.
               rewrite <- beq_nat_refl;trivial. }
-            
             apply getIndirectionStopSRead with root;trivial.
             omega.
             apply beq_nat_true in Htrue.
@@ -1630,7 +1463,6 @@ phySh2addr lpred;trivial.
  }
 
            subst stop1.
-           
            pose proof nbLevelNotZero.
            assert(Hor: stop = nbL \/ stop < nbL) by omega.
            destruct Hor as [Hor | Hor].
@@ -1663,7 +1495,6 @@ phySh2addr lpred;trivial.
               rewrite <- beq_nat_refl.
               trivial.
               rewrite <- beq_nat_refl;trivial. }
-            
             apply getIndirectionStopSRead with root;trivial.
             omega.
             apply beq_nat_true in Htrue.
@@ -3905,7 +3736,6 @@ case_eq (StateLib.Level.eqb level fstLevel);intros * Hfst;rewrite  Hfst in *.
      assert( sstop >= l).
  {    rewrite Hkey2 in *.
      apply IHsstop with stop p;trivial.
-     SearchAbout getIndirectionsAux NoDup.
 
      omega. }
      omega.
@@ -4620,8 +4450,6 @@ indirectionDescription s phyDescChild indirection idxroot vaToPrepare l ->
 (* isEntryPage indirection (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s -> *)
 (* (defaultPage =? indMMUToPrepare) = true -> *)
 StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage->
-  
-   
 isWellFormedMMUTables phyMMUaddr s ->
 false = StateLib.Level.eqb l fstLevel ->
 nextEntryIsPP phyDescChild PDidx pd s ->
@@ -4652,8 +4480,6 @@ nextEntryIsPP phyDescChild idxroot root s ->
 In indirection (getIndirections root s)-> 
 In indirection (getConfigPages phyDescChild s) ->
 isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s  ->
-
-(* isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA -> *)
 consistency
   {|
   currentPartition := currentPartition s;
