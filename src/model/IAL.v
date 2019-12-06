@@ -33,14 +33,17 @@ Definition readUserlandVAddr (paddr : page) (idx : index)  : LLI vaddr :=
 
 Definition FAIL_VINT := FAIL_VINT_Cons.
 Definition FAIL_CTX_SAVE_INDEX := FAIL_CTX_SAVE_INDEX_Cons.
-Definition FAIL_CTX_SAVE_ADDR := FAIL_CTX_SAVE_ADDR_Cons.
+Definition FAIL_CALLER_CONTEXT_SAVE := FAIL_CALLER_CONTEXT_SAVE_Cons.
 Definition FAIL_TARGET_VIDT := FAIL_TARGET_VIDT_Cons.
 Definition FAIL_TARGET_CTX := FAIL_TARGET_CTX_Cons.
-Definition FAIL_CALLER_VIDT := FAIL_CALLER_VIDT_Cons.
+Definition FAIL_UNAVAILABLE_CALLER_VIDT := FAIL_UNAVAILABLE_CALLER_VIDT_Cons.
 Definition FAIL_ROOT_CALLER := FAIL_ROOT_CALLER_Cons.
 Definition FAIL_INVALID_CHILD := FAIL_INVALID_CHILD_Cons.
 Definition FAIL_MASKED_INTERRUPT := FAIL_MASKED_INTERRUPT_Cons.
 Definition SUCCESS := SUCCESS_Cons.
+
+Definition loadContext (contextToLoad : contextAddr ) : LLI unit :=
+  ret tt.
 
 Definition contextSizeMinusOne := contextSize-1.
 
@@ -52,6 +55,9 @@ Definition readInterruptMask (childVidt : page) : LLI interruptMask :=
 
 Definition isInterruptMasked (intMask : interruptMask) (interrupt : vint) : LLI bool :=
   ret false.
+
+Definition vaddrToContextAddr (va : vaddr) : LLI contextAddr :=
+  ret 0.
 
 Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
           : LLI unit := ret tt.
