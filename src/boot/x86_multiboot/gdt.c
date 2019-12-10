@@ -57,15 +57,17 @@ extern void *cg_createPartition;
 extern void *cg_countToMap;
 extern void *cg_prepare;
 extern void *cg_addVAddr;
-extern void *cg_dispatchGlue;
+//extern void *cg_dispatchGlue;
 extern void *cg_timerGlue;
-extern void *cg_resume;
+//extern void *cg_resume;
 extern void *cg_removeVAddr;
 extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
-extern void *cg_yieldGlue;
+//extern void *cg_yieldGlue;
 
+/* TODO refactor to new structure fill
+ * see below */
 void set_segment_descriptor(uint32_t num, uint32_t base, uint32_t limit, unsigned char type, unsigned char dpl, unsigned char granularity) {
     gdt[num].segment_desc.present     = 0; // invalidate entry until its completion
     gdt[num].segment_desc.base_low    = (base & 0xFFFF);     // bits 15..0  of base
