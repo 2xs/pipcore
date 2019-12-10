@@ -32,7 +32,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Configuration of the x86 Global Descriptor Table and Task State Segment.
-
 %macro CG_GLUE_NOARG 1
 extern %1
 global cg_%1
@@ -93,6 +92,92 @@ cg_%1:
 	retf (4*%2)
 %endmacro
 
+
+;            Userland's stack           ;             Handler's stack
+;-------------;                         ;-------------;
+;             ;                         ;             ;  <- SS0:ESP0 in TSS
+;-------------;                         ;-------------;
+;             ;     |------------------>;      SS     ;
+;-------------;     |                   ;-------------;
+;             ;     |  |--------------->;     ESP     ;
+;-------------;-+   |  |              +-;-------------;
+;     ???     ; |   |  |              | ;     ???     ; <- EFLAGS : 1 dword
+;- 11 dwords -; |   |  |              | ;- 11 dwords -; <- CS:EIP : 2 dword
+;     ???     ; |   |  |              | ;     ???     ; <- PUSHAD : 8 dword
+;-------------; |---+--+------------->| ;-------------;
+;     arg1    ; |   |  |              | ;     arg1    ;
+;-------------; |   |  |              | ;-------------;
+;     ...     ; |   |  |              | ;     ...     ;
+;-------------; |   |  |              | ;-------------;
+;     argN    ;<-- SS:ESP before call | ;     argN    ;
+;-------------;-+                     +-;-------------;
+;     |||     ;                         ;      CS     ;
+;-----vvv-----;                         ;-------------;
+                                        ;     EIP     ;  <- SS:ESP after transfer
+                                        ;-------------;
+                                        ;     |||     ;
+                                        ;-----vvv-----;
+
+;------------------------------------------------------
+; The idea behind the below macro is to declare a call
+; gate with more arguments than those actually required
+; by the handler.
+; /!\ This leaks a part of the userland's stack on the
+; kernel stack, and is very VERY dirty /!\
+; But this allows us to use the unneeded space to put
+; an iretable struct (eflags, cs:eip) + general regs
+; TODO This is dumb, I'm committing this for posterity
+; but there are way too much copy operations from one
+; stack to the other. We might as well copy our
+; arguments higher on the stack : it's more effective
+; since it doesn't copy uselessly a big part of the 
+; userland's stack.
+; In the end you were right Étienne
+;------------------------------------------------------
+
+%macro CG_GLUE_CTX 2
+extern %1
+global cg_%1
+cg_%1:
+	; interrupts are not cleared upon call gate entry
+	; this might create a situation where an interrupt
+	; occurs in kernelland
+	cli
+	; set ESP to the first dummy argument
+	; 2 + %2 + 8 + 3 -> cs:eip + number of args + dummy pusha + 3 dummy to skip
+	; * 4    -> size of args (4 bytes)
+	add esp, (%2+13) * 4
+	; push EFLAGS, filling the last dummy argument
+	pushf
+	; set Interrupt Enable flag in EFLAGS
+	; otherwise userland would never be interrupted after `iret`
+	or [esp - 4], 0x0200
+
+	; push CS, filling the first dummy arg
+	push dword [esp - (%2+11) * 4]
+	; push EIP, filling the second dummy argument
+	push dword [esp - (%2+11) * 4]
+	; push general purpose registers (8 * 4 bytes)
+	; completing the gate_ctx_t
+	pushad
+
+	; set ESP to the top of the stack (after last arg)
+	; %2  -> number of args to skip
+	; * 4 -> size of args (4 bytes)
+	sub esp, %2 * 4
+	; push a pointer to the gate_ctx_t
+	push esp + %2 * 4
+
+	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
+	call %1
+
+	; skip pointer to the context and args
+	add esp, (%2 + 1) * 4
+	; restore the general purpose registers
+	popa
+	; we are left with the iretable structure
+	iret
+%endmacro
 
 ; These functions might trigger a call to dispatchGlue
 ; therefore they need a reference to calling context (regs + eip)
