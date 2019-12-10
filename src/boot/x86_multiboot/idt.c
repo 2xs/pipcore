@@ -618,9 +618,9 @@ void initCPU()
 	if(edx & CPUID_FEAT_EDX_PGE)
 	{
 		BOOT_DEBUG(CRITICAL, "PGE supported, enabling CR4.PGE\n");
-		__asm volatile("MOV %%CR4, %0" : "=r"(cr4));
+		asm volatile("MOV %%CR4, %0" : "=r"(cr4));
 		cr4 |= (1 << 7); /* Enable Page Global as well */
-		__asm volatile("MOV %0, %%CR4" :: "r"(cr4));
+		asm volatile("MOV %0, %%CR4" :: "r"(cr4));
 	} else {
 		BOOT_DEBUG(CRITICAL, "PGE unsupported, Global Page feature will be unavailable\n");
 	}
@@ -632,9 +632,9 @@ void initCPU()
 		pcid_enabled = 1;
 		
 		/* Enable PCID */
-		__asm volatile("MOV %%CR4, %0" : "=r"(cr4));
+		asm volatile("MOV %%CR4, %0" : "=r"(cr4));
 		cr4 |= (1 << 17);
-		__asm volatile("MOV %0, %%CR4" :: "r"(cr4));
+		asm volatile("MOV %0, %%CR4" :: "r"(cr4));
 	} else {
 		BOOT_DEBUG(CRITICAL, "PCID unsupported, Process Context Identifiers feature will be unavailable\n");
 	}
