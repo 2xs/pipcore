@@ -92,7 +92,8 @@ cg_%1:
 	retf (4*%2)
 %endmacro
 
-
+;          Stack switch from userland to kernelland through a call gate
+;
 ;            Userland's stack           ;             Handler's stack
 ;-------------;                         ;-------------;
 ;             ;                         ;             ;  <- SS0:ESP0 in TSS
@@ -101,13 +102,9 @@ cg_%1:
 ;-------------;     |                   ;-------------;
 ;             ;     |  |--------------->;     ESP     ;
 ;-------------;-+   |  |              +-;-------------;
-;     ???     ; |   |  |              | ;     ???     ; <- EFLAGS : 1 dword
-;- 11 dwords -; |   |  |              | ;- 11 dwords -; <- CS:EIP : 2 dword
-;     ???     ; |   |  |              | ;     ???     ; <- PUSHAD : 8 dword
-;-------------; |---+--+------------->| ;-------------;
 ;     arg1    ; |   |  |              | ;     arg1    ;
 ;-------------; |   |  |              | ;-------------;
-;     ...     ; |   |  |              | ;     ...     ;
+;     ...     ; |---|--|------------->| ;     ...     ;
 ;-------------; |   |  |              | ;-------------;
 ;     argN    ;<-- SS:ESP before call | ;     argN    ;
 ;-------------;-+                     +-;-------------;
@@ -119,39 +116,87 @@ cg_%1:
                                         ;-----vvv-----;
 
 ;------------------------------------------------------
-; The idea behind the below macro is to declare a call
-; gate with more arguments than those actually required
-; by the handler.
-; /!\ This leaks a part of the userland's stack on the
-; kernel stack, and is very VERY dirty /!\
-; But this allows us to use the unneeded space to put
-; an iretable struct (eflags, cs:eip) + general regs
-; TODO This is dumb, I'm committing this for posterity
-; but there are way too much copy operations from one
-; stack to the other. We might as well copy our
-; arguments higher on the stack : it's more effective
-; since it doesn't copy uselessly a big part of the 
-; userland's stack.
-; In the end you were right Étienne
+; The idea behind the below macro is to copy the call
+; gate arguments higher on the stack, in order to free
+; some space where we can place an iretable structure,
+; plus the general purpose registers.
+; We want to use `iret` because of the infamous race
+; condition where an interrupt occurs between the
+; execution of a far call and its subsequent `cli`,
+; creating a kernelland interrupt. The same race
+; condition could happen between the execution of a
+; `sti` and a `retf`, and would not occur with a `iret`
 ;------------------------------------------------------
+; see awesome ASCII art below for visual representation
+; of the kernel stack after this assembly code
+;------------------------------------------------------
+
+
+;             Handler's stack
+;-------------;
+;             ;  <- SS0:ESP0 in TSS
+;-------------;-+
+;      SS     ; |
+;-------------; |
+;     ESP     ; |
+;-------------; |
+;    eflags   ; |-- iretable structure
+;-------------; |
+;      CS     ; |
+;-------------; |
+;     EIP     ; |
+;-------------;-+
+;     ...     ; |
+;   general   ; |
+;   purpose   ; |-- 8 * 4 bytes (pusha struct)
+;  registers  ; |
+;     ...     ; |
+;-------------;-+
+;     arg1    ;
+;-------------;
+;     ...     ;
+;-------------;
+;     argn    ;  <- SS:ESP after assembly
+;-------------;
+;     |||     ;
+;-----vvv-----;
+
 
 %macro CG_GLUE_CTX 2
 extern %1
 global cg_%1
 cg_%1:
-	; interrupts are not cleared upon call gate entry
+	; interrupts are not cleared upon call gate entry.
 	; this might create a situation where an interrupt
 	; occurs in kernelland
+	; retf doesn't restore eflags either.
+	; that is why we use `iret`, in order to prevent
+	; the same problem between a `sti` and a `retf`
 	cli
-	; set ESP to the first dummy argument
-	; 2 + %2 + 8 + 3 -> cs:eip + number of args + dummy pusha + 3 dummy to skip
-	; * 4    -> size of args (4 bytes)
-	add esp, (%2+13) * 4
+
+	; first, copy the arguments higher on the stack
+
+	; set esp where the args should be copied
+	; we need 11 dword free
+	; stack top is currently at %2 + cs + eip
+	; so we add 11-(%2+2) dwords to ESP
+	sub esp, (11 - (%2 + 2)) * 4
+	; repeat for each arg + cs + eip
+	%rep (%2+2)
+		;copy the current dword (11 dword before stack top) to the stack top 
+		push dword [esp + 11 * 4]
+	%endrep
+	; our args and cs:eip are now copied farther in the stack
+
+	; setting ESP to the first argument pushed by CPU
+	; we have pushed %2 args + cs + eip and we have to leap another
+	; 11 dwords (pusha (8) + cs:eip (2) + eflags (1)) so 13 + %2 dwords
+	add esp, (%2 + 13) * 4
 	; push EFLAGS, filling the last dummy argument
 	pushf
 	; set Interrupt Enable flag in EFLAGS
 	; otherwise userland would never be interrupted after `iret`
-	or [esp - 4], 0x0200
+	or [esp], 0x0200
 
 	; push CS, filling the first dummy arg
 	push dword [esp - (%2+11) * 4]
@@ -166,7 +211,7 @@ cg_%1:
 	; * 4 -> size of args (4 bytes)
 	sub esp, %2 * 4
 	; push a pointer to the gate_ctx_t
-	push esp + %2 * 4
+	push esp + (%2 * 4)
 
 	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
 	call %1
