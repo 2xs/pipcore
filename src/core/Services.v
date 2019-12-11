@@ -933,10 +933,11 @@ Definition deletePartition (descChild : vaddr) :=
     perform phyConfigPagesListChild := getConfigTablesLinkedList phyDescChild in
     perform zero := MALInternal.Index.zero in
     perform indexone := MALInternal.Index.succ zero in
+    perform indextwo := MALInternal.Index.succ indexone in
     perform currentPD := getPd currentPart in
 
     (**  Set indirection pages as accessible and underived *)
-    perform configPagesList := putIndirectionsBack phyConfigPagesListChild indexone mappedVAddrList currentPD  currentSh1 nbL in
+    perform configPagesList := putIndirectionsBack phyConfigPagesListChild indextwo mappedVAddrList currentPD  currentSh1 nbL in
 
     (**  unmark child partition  *)
     perform ptDescChildFromCurrentSh1 := getTableAddr currentSh1 descChild nbL in
@@ -996,14 +997,15 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       (** Yep : collect this ! *)
       perform zero := MALInternal.Index.zero in
       perform fstindex := MALInternal.Index.succ zero in
+      perform twoI := MALInternal.Index.succ fstindex in
       perform ptVaToCollectFromSh1Child := getTableAddr phySh1Child vaToCollect currentLevel in  (** Get shadow 1 table *)
       perform isNull := comparePageToNull ptVaToCollectFromSh1Child in if isNull then ret false else
       perform ptVaToCollectFromSh2Child := getTableAddr phySh2Child vaToCollect currentLevel in (** Get shadow 2 table *)
       perform isNull := comparePageToNull ptVaToCollectFromSh2Child in if isNull then ret false else
       (** Parse the shadow 3 and Get virtual addresses *)
-      perform vaPtVaToCollectFromPDChild := parseConfigPagesList phyConfigPagesList fstindex ptVaToCollectFromPDChild in
-      perform vaPtVaToCollectFromSh1Child := parseConfigPagesList phyConfigPagesList fstindex ptVaToCollectFromSh1Child in
-      perform vaPtVaToCollectFromSh2Child := parseConfigPagesList phyConfigPagesList fstindex ptVaToCollectFromSh2Child in
+      perform vaPtVaToCollectFromPDChild := parseConfigPagesList phyConfigPagesList twoI ptVaToCollectFromPDChild in
+      perform vaPtVaToCollectFromSh1Child := parseConfigPagesList phyConfigPagesList twoI ptVaToCollectFromSh1Child in
+      perform vaPtVaToCollectFromSh2Child := parseConfigPagesList phyConfigPagesList twoI ptVaToCollectFromSh2Child in
       (** Now unmap this page table, get nbL - 1 *)
       perform levelPred := MALInternal.Level.pred currentLevel in
       perform nextIndFromPDChild := getTableAddr phyPDChild vaToCollect levelPred in (** Get parent table *)

@@ -169,7 +169,7 @@ storeVirtual (CVaddr [(CIndex 2); (CIndex 6); CIndex 0]) (CIndex 0)
 
 Services.prepare (CVaddr [(CIndex 2); (CIndex 0); CIndex 0]) (* child *)
                  (CVaddr [(CIndex 3); (CIndex 3); CIndex 0]) (* vaddr to prepare in the child *)
-                 (CVaddr [(CIndex 2); (CIndex 5); CIndex 0]).(* fst vaddr lent to the kernel *)
+                 (CVaddr [(CIndex 2); (CIndex 5); CIndex 0]). (* fst vaddr lent to the kernel *)
 (** prepare test : OK *)
 Eval vm_compute in prepare.
 

@@ -396,8 +396,10 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
   | S timeout1 =>
     perform zero := MALInternal.Index.zero in
     perform one := MALInternal.Index.succ zero in
+    perform two := MALInternal.Index.succ one in
     perform maxindex := getMaxIndex in
-    perform res := MALInternal.Index.eqb curIdx maxindex  in
+    perform maxindexPred := MALInternal.Index.pred maxindex in
+    perform res := MALInternal.Index.eqb curIdx maxindexPred  in
     if (res) (**  if last entry *)
     then
       (**  get the address of the next page *)
@@ -409,7 +411,7 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
       then ret buf
         (**  else : recursion on the next page *)
       else
-        putIndirectionsBackAux timeout1 next one  buf currentPD  currentSh1 l1
+        putIndirectionsBackAux timeout1 next two  buf currentPD  currentSh1 l1
     else
       perform va :=  readVirtual list curIdx in 
       perform succ := MALInternal.Index.succ curIdx in
@@ -512,12 +514,13 @@ Definition checkEmptyTable tbl idx lvl :=
 (** The [parseConfigPagesListAux] function parses the list of the partition 
     configuration tables to find a virtual address in the parent context corresponding 
     to a given physical page *)
-Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)  :=
+Fixpoint parseConfigPagesListAux timeout (sh : page) (curIdx : index) (tbl :page)  :=
   match timeout with
   | 0 => getDefaultVAddr
   | S timeout1 =>
     perform maxindex :=  getMaxIndex in (** Our last index is table size - 1, as we're indexed on zero*)
-    perform res := MALInternal.Index.eqb idxun maxindex in
+    perform maxindexPred := MALInternal.Index.pred maxindex in
+    perform res := MALInternal.Index.eqb curIdx maxindexPred in
     if (res)
     then
       perform nextIndirection :=  readPhysical sh maxindex  in (** get next table *) 
@@ -530,8 +533,8 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)
         perform un := MALInternal.Index.succ zero in
         parseConfigPagesListAux timeout1 nextIndirection un tbl (** Recursive call on the next table *)
     else
-      perform idxsucc := MALInternal.Index.succ idxun in
-      perform va := readVirtual sh idxun in
+      perform idxsucc := MALInternal.Index.succ curIdx in
+      perform va := readVirtual sh curIdx in
       perform defaultVAddr := getDefaultVAddr in
       perform cmpva :=  MALInternal.VAddr.eqbList va defaultVAddr in
       if (cmpva)
@@ -543,17 +546,23 @@ Fixpoint parseConfigPagesListAux timeout (sh : page) (idxun : index) (tbl :page)
         perform cmp :=  MALInternal.Page.eqb pad tbl in
         if cmp
         then
-          perform vaRet :=  readVirtual sh idxun  in  (** Read associated vaddr*)
+          perform vaRet :=  readVirtual sh curIdx  in  (** Read associated vaddr*)
           (** Now we have to delete this entry*)
           perform zero := MALInternal.Index.zero in
           perform curNextIdx :=  readIndex sh zero in (** Get next entry index *)
           writeIndex sh idxsucc curNextIdx ;; (** Link this *)
-          writeIndex sh zero idxun ;;
+          writeIndex sh zero curIdx ;;
+          (* update the number of available entries into this current page **)
+          perform one := MALInternal.Index.succ zero in 
+          perform nbfi := readIndex sh one in 
+          perform nbfisucc := MALInternal.Index.succ nbfi in 
+          writeIndex sh one nbfisucc ;;
+          (* initialize the virtual entry *)
           perform nullAddrV :=  getDefaultVAddr in
-          writeVirtual sh idxun nullAddrV ;; 
+          writeVirtual sh curIdx nullAddrV ;; 
           ret vaRet
         else
-          perform idxsucc := MALInternal.Index.succ idxun in
+          perform idxsucc := MALInternal.Index.succ curIdx in
           perform idxsucc11 := MALInternal.Index.succ idxsucc in
           parseConfigPagesListAux timeout1 sh idxsucc11 tbl
   end.  (** Recursive call on this table *)
