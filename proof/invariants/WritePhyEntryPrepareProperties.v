@@ -42,6 +42,7 @@ Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties 
 WriteAccessible MapMMUPage InternalLemmas2 WritePhyEntryPrepare.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
+Import ListNotations.
  (******************************************* propagatedProperties ***************************)
 
 
@@ -5913,8 +5914,8 @@ apply nextEntryIsPPgetPd;trivial.
 split;trivial.
 Qed.
 
-Lemma noDupMappedPagesListAddIndirection 
-s indirection nextIndirection idxroot  entry nbLgen  pd   vaToPrepare partition l lpred r w e
+Lemma noDupConfigPagesListAddIndirection 
+s indirection nextIndirection idxroot  entry nbLgen  root   vaToPrepare partition l lpred r w e
 phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr :
 nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
 isWellFormedFstShadow lpred phySh1addr s ->
@@ -5927,8 +5928,8 @@ indirectionDescription s partition indirection idxroot vaToPrepare l ->
 (defaultPage =? indMMUToPrepare) = true -> *)
 isWellFormedMMUTables phyMMUaddr s ->
 false = StateLib.Level.eqb l fstLevel ->
-nextEntryIsPP partition idxroot pd s ->
-In indirection (getIndirections pd s) ->
+nextEntryIsPP partition idxroot root s ->
+In indirection (getIndirections root s) ->
 StateLib.readPhyEntry indirection (StateLib.getIndexOfAddr vaToPrepare l) (memory s) = Some defaultPage -> 
 noDupPartitionTree s ->
 nextIndirection <> indirection ->
@@ -5938,8 +5939,9 @@ noDupConfigPagesList s ->
 isPresentNotDefaultIff s ->
 configTablesAreDifferent s ->
 (defaultPage =? nextIndirection) = false ->
-noDupMappedPagesList s ->
-noDupMappedPagesList
+isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s ->
+noDupConfigPagesList s ->
+noDupConfigPagesList
 {|
   currentPartition := currentPartition s;
   memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
@@ -5954,44 +5956,580 @@ noDupMappedPagesList
 Proof.
 set(s':={|currentPartition:= _ |}) in *.
 intros Hor3 Hwell1 Hlpred Hindor Hlookup Hnbl Hnewcons2 Hnewcons Hnoduptree Hi1 Hi2 Hi3 Hi4 Hlevel Hind (* Hdef *)
- Ha1 Ha2 Ha3 Ha4 Ha5 Hgoal.
+ Ha1 Ha2 Ha3 Ha4 Ha5 Hwell Hgoal.
 assert(Hpart : forall part, In part (getPartitions multiplexer s) <-> In part (getPartitions multiplexer s')).
 intros.
 unfold s'.
 eapply  getPartitionsAddIndirection;trivial;try eassumption;trivial.
-unfold noDupMappedPagesList in *.
+unfold noDupConfigPagesList in *.
 intros partx Hpartx'.
 assert(Hpartx:  In partx (getPartitions multiplexer s)).
 rewrite getPartitionsAddIndirection;trivial;try eassumption;trivial.
 clear Hpartx' Hpart.
+assert(Hkey: forall part, In part (getPartitions multiplexer s) -> 
+~In nextIndirection (getConfigPages part s)). admit.
 assert(Hparteq: partition = partx \/ partition <> partx) by apply pageDecOrNot.
 destruct Hparteq as [Hparteq|Hparteq].
 + subst partx.
   apply Hgoal in Hpartx.
   clear Hgoal.
-  assert(Heq: getMappedPages partition s = getMappedPages partition s').
-  apply getMappedPagesAddIndirectionSamePartEq with entry nbLgen  idxroot phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child
-phySh2addr pd;trivial.
-rewrite <- Heq;trivial.
-+ unfold getMappedPages.
+  assert(Hinind: In nextIndirection (getIndirections root s')) by admit.  
+  assert(Hinindnot: ~In nextIndirection (getIndirections root s)) by admit.  
+  unfold getConfigPages in *.  
+  rewrite NoDup_cons_iff in *.
+  destruct Hpartx as (Hpartx & Hnodup).
+  split.   
+  contradict Hpartx.
+  admit. 
+  unfold getConfigPagesAux.
+  unfold getConfigPagesAux in Hnodup.
+  assert(Hpd :forall part, In part (getPartitions multiplexer s) -> 
+   StateLib.getPd part (memory s) = StateLib.getPd part (memory s')).
+  { intros;symmetry;  apply getPdMapMMUPage with entry;trivial. }
+  rewrite <- Hpd;clear Hpd;trivial.
+  assert(Hpd :forall part, In part (getPartitions multiplexer s) -> 
+  StateLib.getFstShadow part (memory s) = StateLib.getFstShadow part (memory s')).  
+  { intros;symmetry;  apply getFstShadowMapMMUPage with entry;trivial. }
+  rewrite <- Hpd;clear Hpd;trivial.
+  assert(Hpd :forall part, In part (getPartitions multiplexer s) -> 
+  StateLib.getSndShadow part (memory s) = StateLib.getSndShadow part (memory s')).  
+  { intros;symmetry;  apply getSndShadowMapMMUPage with entry;trivial. }
+  rewrite <- Hpd;clear Hpd;trivial.
+  assert(Hpd :forall part, In part (getPartitions multiplexer s) -> 
+  StateLib.getConfigTablesLinkedList part (memory s) = StateLib.getConfigTablesLinkedList part (memory s')).  
+  { intros;symmetry;  apply getConfigTablesLinkedListMapMMUPage with entry;trivial. }
+  rewrite <- Hpd;clear Hpd;trivial.
+  case_eq(StateLib.getPd partition (memory s) );[intros pd Hpd | intros Hpd];rewrite Hpd in *; try constructor.
+  case_eq(StateLib.getFstShadow partition (memory s) );[intros sh1 Hsh1 | intros Hsh1];rewrite Hsh1 in *; try constructor.
+  case_eq(StateLib.getSndShadow partition (memory s) );[intros sh2 Hsh2 | intros Hsh2];rewrite Hsh2 in *; try constructor.
+  case_eq(StateLib.getConfigTablesLinkedList partition (memory s) );[intros LL HLL |intros HLL];rewrite HLL in *; try constructor.
+  rewrite NoDupSplitInclIff in *.
+  destruct Hnodup as ((Hnodup1 & Hnodup2) & Hnodup3).
+  destruct Hindor as [Hindor | Hindor].
+  - subst.
+    assert(root=pd).
+    apply getPdNextEntryIsPPEq with partition s;trivial.
+    subst.
+    repeat split.
+    * revert Hwell Hor3 Hnodup1 Hinind Hinindnot Hlevel Hi2.
+      clear.
+      unfold getIndirections.
+      revert pd.
+      intros.
+      assert (Hsplitlist : exists nbLevelIndirection  l1 l2,
+         (getIndirectionsAux pd s nbLevel = l1 ++ [indirection] ++
+          flat_map (fun p => getIndirectionsAux p s nbLevelIndirection   )
+          (getTablePages indirection tableSize s)++ l2)
+          /\
+          getIndirectionsAux pd s' nbLevel  = l1 ++ [indirection] ++
+           flat_map (fun p => getIndirectionsAux p s' nbLevelIndirection   )
+          (getTablePages indirection tableSize s')++ l2) .
+        { admit.  }
+      destruct Hsplitlist as ( nbLevelIndirection &  l11 & l22 & Hsplitlist).
+      destruct Hsplitlist as (Hsplitlist1 & Hsplitlist2).    
+      assert(HchildrenS : exists l1 l2,
+       getTablePages indirection tableSize s' = l1 ++ [nextIndirection] ++ l2 /\
+       getTablePages indirection tableSize s = l1 ++l2).
+      { admit. }
+      destruct HchildrenS as (l1 & l2 & HchildrenS & Hchildrenprev).
+      assert(Hnodupchildren : NoDup (getTablePages indirection tableSize s')) by admit.    
+      assert(Hmappednull : getTablePages nextIndirection tableSize s' = nil) by admit.
+      rewrite Hsplitlist1 in Hnodup1. (* ;clear Hsplitlist1. *)
+      rewrite Hsplitlist2. (* ;clear Hsplitlist2. *)
+      move Hsplitlist2 at top.
+      move Hsplitlist1 at top.
+      rewrite NoDupSplitInclIff.
+      rewrite NoDupSplitInclIff in Hnodup1.
+      destruct Hnodup1 as (Hnodup1 & Hnodup2).
+      destruct Hnodup1 as (Hnodup1 & Hnodup3).
+      simpl in *.
+      rewrite NoDup_cons_iff in Hnodup3.
+      destruct Hnodup3 as (Hnodup3 & Hnodup4).
+      assert(Hzero : getIndirectionsAux nextIndirection s' nbLevelIndirection  = [nextIndirection] \/
+        getIndirectionsAux nextIndirection s' nbLevelIndirection = [] ).
+      { admit. }
+      split.
+      ++ split. 
+         intuition.
+         constructor.
+         -- rewrite in_app_iff in *.
+          apply Classical_Prop.not_or_and in Hnodup3 as (Hnodup3 & Hnodup5).
+          apply Classical_Prop.and_not_or.
+          split;trivial.
+          rewrite  HchildrenS.
+          rewrite Hchildrenprev in Hnodup3.
+          rewrite flat_map_app_cons.
+          rewrite flat_map_app in Hnodup3.
+          rewrite in_app_iff in Hnodup3.
+           apply Classical_Prop.not_or_and in Hnodup3 as (Hnodup3 & Hnodup6).
+          rewrite in_app_iff.
+          apply Classical_Prop.and_not_or.
+          rewrite in_app_iff.
+          split.
+          contradict Hnodup3.
+          ** rewrite in_flat_map in *.
+             destruct Hnodup3 as (child & Hancestor1 & Hancestor2).
+             exists child;split;trivial.
+             assert(Hget : getIndirectionsAux child s nbLevelIndirection = 
+             getIndirectionsAux child s' nbLevelIndirection) by admit. 
+             trivial. 
+             rewrite Hget;trivial.
+          ** apply Classical_Prop.and_not_or.
+            split.
+            simpl.
+            rewrite app_nil_r.
+            destruct Hzero as [Hzero | Hzero]; rewrite Hzero.
+            simpl.
+            intuition.
+            intuition.
+            contradict Hnodup6.
+            rewrite in_flat_map in *.
+            destruct Hnodup6 as (child & Hancestor1 & Hancestor2).
+            exists child;split;trivial.
+            assert(Hget : getIndirectionsAux child s nbLevelIndirection = 
+               getIndirectionsAux child s' nbLevelIndirection) by admit. 
+            trivial. 
+            rewrite Hget;trivial.
+        -- rewrite NoDupSplitInclIff in *.
+destruct Hnodup4 as ((Hnodup4 & Hnodup5) & Hnodup6).
+split.
+**  split;trivial.
+rewrite HchildrenS.
+rewrite Hchildrenprev in Hnodup4.
+rewrite flat_map_app_cons.
+rewrite flat_map_app in Hnodup4.
+rewrite NoDupSplitInclIff in *.
+destruct Hnodup4 as ((Hnodup4 & Hnodup7) & Hnodup8).
+split.
+--- split.
++++
+{
+assert(Hp1 : forall a , In a l1 ->  In a (getIndirections pd s)) by admit. 
+assert(Hp2 : forall a , In a l1 -> 
+~ In indirection (getIndirectionsAux a s nbLevelIndirection)) by admit. 
+assert(Hp3 : forall a, In a l1 -> 
+In a (getTablePages indirection tableSize s)) by admit. 
+assert(Hp5 : incl l1 (getTablePages indirection tableSize s)).
+rewrite Hchildrenprev. intuition.
+assert(Hp6 : incl l1 (getTablePages indirection tableSize s')). 
+rewrite HchildrenS. intuition. 
+clear Hnodup8 HchildrenS Hchildrenprev.
+induction l1.
+simpl;trivial.
+simpl.
+apply NoDupSplitInclIff.
+simpl in Hnodup4.
+apply NoDupSplitInclIff in Hnodup4.
+split.
+split.
+assert(Ha : getIndirectionsAux a s' nbLevelIndirection =getIndirectionsAux a s nbLevelIndirection) by admit. 
+ rewrite Ha.
+ intuition.
+ apply IHl1.
+ intuition.
+ intros.
+ apply Hp1.
+ simpl.
+ right;trivial.
+ intros.
+ apply Hp2;right;trivial.
+ intros.
+ apply Hp3;right;trivial.
+ intros. (* 
+ apply Hp4;right;trivial. *)
+ unfold incl in *.
+ intros. apply Hp5. simpl. right;trivial.
+ unfold incl in *.
+ intros. apply Hp6. simpl. right;trivial.   
+ clear IHl1. 
+destruct Hnodup4 as ((Hnodup4 & Hnodup9) & Hnodup10).
+unfold disjoint in Hnodup10.
+unfold disjoint.
+intros x Hx.
+ assert(Htrue : 
+   getIndirectionsAux a s nbLevelIndirection =getIndirectionsAux a s' nbLevelIndirection
+   ) by admit.
+ rewrite <- Htrue in *. 
+  apply Hnodup10 in Hx.
+  contradict Hx.            
 
-assert(Hped: StateLib.getPd partx (memory s') = StateLib.getPd partx (memory s)).
-apply getPdMapMMUPage with entry;trivial.
-rewrite Hped.
-  case_eq(StateLib.getPd partx (memory s) );intros;trivial.
-  
-  assert(getMappedPagesAux p getAllVAddrWithOffset0 s = getMappedPagesAux p getAllVAddrWithOffset0 s').
-  apply getMappedPagesAuxAddIndirectionNotSamePart with entry nbLgen pd partition
-   idxroot phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child
-phySh2addr partx;trivial.
+{      rewrite in_flat_map in *.
+     destruct Hx as (child & Hancestor1 & Hancestor2).
+     exists child;split;trivial.
+     assert(Hget :getIndirectionsAux child s nbLevelIndirection = 
+    getIndirectionsAux child s' nbLevelIndirection).
+     { admit. }
+      trivial. 
+    rewrite Hget;trivial. } }
+    +++
+    simpl.
+rewrite app_nil_r.
+apply NoDupSplitInclIff.
+split.
+split. 
+simpl.
+destruct Hzero as [Hzero | Hzero]; rewrite Hzero.
+ constructor;intuition.
+ 
+ constructor. constructor.
+{ assert(Hp1 : forall a , In a l2 ->  In a (getIndirections pd s)) by admit. 
+assert(Hp2 : forall a , In a l2 -> 
+~ In indirection (getIndirectionsAux a s nbLevelIndirection)) by admit. 
+assert(Hp3 : forall a, In a l2 -> 
+In a (getTablePages indirection tableSize s)) by admit. 
+assert(Hp5 : incl l2 (getTablePages indirection tableSize s)).
+rewrite Hchildrenprev. intuition.
+assert(Hp6 : incl l2 (getTablePages indirection tableSize s')). 
+rewrite HchildrenS. intuition. 
+clear Hnodup8 HchildrenS Hchildrenprev.
+induction l2.
+simpl;trivial.
+simpl.
+apply NoDupSplitInclIff.
+simpl in Hnodup7.
+apply NoDupSplitInclIff in Hnodup7.
+split.
+split.
+assert(Ha : getIndirectionsAux a s' nbLevelIndirection =getIndirectionsAux a s nbLevelIndirection) by admit. 
+ rewrite Ha.
+ intuition.
+ apply IHl2.
+ intuition.
+ intros.
+ apply Hp1.
+ simpl.
+ right;trivial.
+ intros.
+ apply Hp2;right;trivial.
+ intros.
+ apply Hp3;right;trivial.
+ intros. (* 
+ apply Hp4;right;trivial. *)
+ unfold incl in *.
+ intros. apply Hp5. simpl. right;trivial.
+ unfold incl in *.
+ intros. apply Hp6. simpl. right;trivial.   
+ clear IHl2. 
+destruct Hnodup7 as ((Hnodup7 & Hnodup9) & Hnodup10).
+unfold disjoint in Hnodup10.
+unfold disjoint.
+intros x Hx.
+ assert(Htrue : 
+   getIndirectionsAux a s nbLevelIndirection =getIndirectionsAux a s' nbLevelIndirection
+   ) by admit.
+ rewrite <- Htrue in *. 
+  apply Hnodup10 in Hx.
+  contradict Hx.            
+
+{      rewrite in_flat_map in *.
+     destruct Hx as (child & Hancestor1 & Hancestor2).
+     exists child;split;trivial.
+     assert(Hget :getIndirectionsAux child s nbLevelIndirection = 
+    getIndirectionsAux child s' nbLevelIndirection).
+     { admit. }
+      trivial. 
+    rewrite Hget;trivial. } }
+ destruct Hzero as [Hzero | Hzero]; rewrite Hzero.
+unfold disjoint. 
+ simpl.
+intros x Hx.
+destruct Hx as [Hx | Hx]; try now contradict  Hx.
+   subst x.
+   clear Hzero.
+   rewrite in_flat_map.
+   unfold not;intros Hfalse.
+   destruct Hfalse as (x & Hx & Hxx).
+   contradict Hxx.
+    
+ assert(Htrue : 
+   getIndirectionsAux x s nbLevelIndirection =getIndirectionsAux x s' nbLevelIndirection
+   ) by admit.     trivial. 
+    rewrite <- Htrue;trivial.
+  assert (Hicl : incl (getIndirectionsAux x s nbLevelIndirection) (getIndirections pd s)) by admit.
+  assert (Hnotintree : ~ In nextIndirection (getIndirections pd s)) by admit.
+      contradict Hnotintree.
+      unfold incl in Hicl.
+      apply Hicl;trivial.
+      unfold disjoint.
+      intros. 
+      intuition.
+---
+
+unfold disjoint.
+intros x Hdisjoint.
+rewrite in_app_iff.
+apply Classical_Prop.and_not_or.
+
+split.
++++ 
+ simpl.
+ rewrite app_nil_r.
+ destruct Hzero as [Hzero | Hzero]; rewrite Hzero.
+ simpl.
+ apply Classical_Prop.and_not_or.
+ split;[|intuition].
+     unfold not;intros Hfalse.
+   subst x.
+  rewrite in_flat_map in Hdisjoint.
+   destruct Hdisjoint as (x & Hx & Hxx).
+   contradict Hxx.
+    
+ 
+ 
+ assert(Htrue : 
+   getIndirectionsAux x s nbLevelIndirection =getIndirectionsAux x s' nbLevelIndirection
+   ) by admit. 
+      trivial. 
+    rewrite <- Htrue;trivial.
+    assert (Hicl : incl (getIndirectionsAux x s nbLevelIndirection) (getIndirections pd s)) by admit.
+ assert (Hnotintree : ~ In nextIndirection (getIndirections pd s)) by admit.
+      contradict Hnotintree.
+      unfold incl in Hicl.
+      apply Hicl;trivial.
+      unfold disjoint.
+      intros. 
+      intuition.
++++  
+unfold disjoint in Hnodup8.
+assert(Hpre : In x (flat_map (fun p : page => getIndirectionsAux p s nbLevelIndirection) l1)). 
+rewrite in_flat_map in *.
+destruct Hdisjoint as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+   
+      trivial.
+   
+       
+    rewrite  Htrue;trivial.
+       apply Hnodup8 in Hpre.
+       contradict Hpre.
+ rewrite in_flat_map in *.
+destruct Hpre as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+ assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+
+      trivial.
+   
+       
+    rewrite  Htrue;trivial.
+    **
+     unfold disjoint.
+ unfold disjoint in Hnodup6.
+intros x Hdisjoint.
+
+rewrite HchildrenS in Hdisjoint.
+rewrite flat_map_app_cons in Hdisjoint.
+rewrite in_app_iff in Hdisjoint.
+destruct Hdisjoint as [ Hdisjoint | Hdisjoint].
+ +++
+apply Hnodup6.
+rewrite Hchildrenprev.
+rewrite flat_map_app.
+apply in_app_iff.
+left.
+rewrite in_flat_map in *.
+destruct Hdisjoint as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+ assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+      trivial.
+   
+rewrite Htrue;trivial.
+ +++ rewrite in_app_iff in Hdisjoint.
+destruct Hdisjoint as [ Hdisjoint | Hdisjoint].
+--- simpl in *.
+  rewrite app_nil_r in Hdisjoint.
+ destruct Hzero as [Hzero | Hzero]; rewrite Hzero in *.
+*** simpl in *.
 intuition.
-apply nextEntryIsPPgetPd;trivial.
-rewrite <- H0;trivial.
-apply Hgoal in Hpartx.
-unfold getMappedPages in *.
-rewrite H in Hpartx;trivial.
-constructor.
-Qed.
+subst x.
+
+
+    assert (Hicl : incl l22 (getIndirections pd s)).
+    { unfold getIndirections.
+    rewrite Hsplitlist1.
+    intuition.
+ }
+    assert (Hnotintree : ~ In nextIndirection (getIndirections pd s)) by admit.
+
+      contradict Hnotintree.
+      unfold incl in Hicl.
+      apply Hicl;trivial.
+*** now contradict Hdisjoint.
+---   apply Hnodup6.
+rewrite Hchildrenprev.
+rewrite flat_map_app.
+apply in_app_iff.
+right.
+rewrite in_flat_map in *.
+destruct Hdisjoint as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+  assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+      trivial.
+   
+rewrite Htrue;trivial.
+++
+rewrite HchildrenS. 
+      unfold disjoint.
+      intros x Hx.
+      simpl.
+  
+     
+apply Classical_Prop.and_not_or.
+
+unfold consistency in *.
+assert(Hnoduptree : NoDup (getIndirections pd s)) by admit.
+unfold getIndirections in Hnoduptree.
+rewrite  Hsplitlist1 in Hnoduptree.
+apply NoDupSplitInclIff in Hnoduptree.
+destruct Hnoduptree as ((Hnodup8 & Hnodup9) &Hnodup10).
+unfold disjoint in Hnodup10.
+split. 
+** apply Hnodup10 in Hx. clear Hnodup10.
+simpl in *.
+apply Classical_Prop.not_or_and in Hx as (Hnodup11 & Hnodup12).
+
+trivial.
+**
+rewrite in_app_iff.
+apply Classical_Prop.and_not_or.
+split;trivial.
+--
+rewrite flat_map_app_cons.
+simpl.
+
+rewrite app_nil_r.
+rewrite in_app_iff.
+apply Classical_Prop.and_not_or.
+split;trivial.  
++++ apply Hnodup10 in Hx. clear Hnodup10.
+simpl in *.
+apply Classical_Prop.not_or_and in Hx as (Hnodup11 & Hnodup12).
+
+rewrite in_app_iff in Hnodup12.
+apply Classical_Prop.not_or_and in Hnodup12 as (Hnodup12 & Hnodup13).
+rewrite Hchildrenprev in Hnodup12.
+rewrite flat_map_app in Hnodup12.
+rewrite in_app_iff in Hnodup12.
+apply Classical_Prop.not_or_and in Hnodup12 as 
+(Hnodup12 & Hnodup14).
+contradict Hnodup12.
+rewrite in_flat_map in *.
+destruct Hnodup12 as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+   assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+
+
+      trivial.
+   
+rewrite Htrue;trivial.
++++  simpl. rewrite in_app_iff.
+ apply Classical_Prop.and_not_or.
+split;trivial.
+***
+destruct Hzero as [Hzero | Hzero]; rewrite Hzero in *.
+simpl in *.
+intuition.
+subst x.
+
+
+    assert (Hicl : incl l11 (getIndirections pd s)).
+    { unfold getIndirections.
+    rewrite Hsplitlist1.
+    intuition.
+ }
+    assert (Hnotintree : ~ In nextIndirection (getIndirections pd s)) by admit.
+      contradict Hnotintree.
+      unfold incl in Hicl.
+      apply Hicl;trivial.
+ intuition.
+*** apply Hnodup10 in Hx. clear Hnodup10.
+simpl in *.
+apply Classical_Prop.not_or_and in Hx as (Hnodup11 & Hnodup12).
+
+rewrite in_app_iff in Hnodup12.
+apply Classical_Prop.not_or_and in Hnodup12 as (Hnodup12 & Hnodup13).
+rewrite Hchildrenprev in Hnodup12.
+rewrite flat_map_app in Hnodup12.
+rewrite in_app_iff in Hnodup12.
+apply Classical_Prop.not_or_and in Hnodup12 as 
+(Hnodup12 & Hnodup14).
+contradict Hnodup14.
+rewrite in_flat_map in *.
+destruct Hnodup14 as (x0 & Hx0 & Hx00).
+exists x0; split;trivial.
+    assert(Htrue : 
+   getIndirectionsAux x0 s nbLevelIndirection =getIndirectionsAux x0 s' nbLevelIndirection
+   ) by admit. 
+
+
+      trivial.
+   
+rewrite Htrue;trivial.
+-- unfold consistency in *.
+assert(Hnoduptree : NoDup (getIndirections pd s)) by admit.
+unfold getIndirections in Hnoduptree.
+rewrite  Hsplitlist1 in Hnoduptree.
+apply NoDupSplitInclIff in Hnoduptree.
+destruct Hnoduptree as (_ &Hnodup11).
+unfold disjoint in Hnodup11.
+ apply Hnodup11 in Hx. clear Hnodup11.
+simpl in *.
+apply Classical_Prop.not_or_and in Hx as (Hnodup11 & Hnodup12).
+rewrite in_app_iff in Hnodup12.
+intuition.
+
+        
+      (** ******* with induction **** 
+      induction nbLevel;simpl;intros; try now contradict Hinind.
+      apply not_or_and in Hinindnot as (Hx & Hinindnot).
+      destruct Hinind as [Hinind | Hinind];subst;try now contradict Hx.
+      apply NoDup_cons.
+      ++
+      rewrite in_flat_map.
+      apply NoDup_cons_iff in Hnodup1.
+      destruct Hnodup1 as (Hnodup1 & Hnodup2).
+      unfold not;intros Hfalse.
+      destruct Hfalse as (x0 & Hx0 & Hx00).
+      contradict Hx00.
+      rewrite in_flat_map in Hnodup1.
+      contradict Hnodup1.  
+      assert(Hor: x0 = nextIndirection \/ x0 <> nextIndirection) by apply pageDecOrNot.
+      destruct Hor as [Hor | Hor].
+      -- subst.
+      rewrite in_flat_map in Hinindnot.
+      assert(Hkeyi: (getIndirectionsAux nextIndirection s' n) = nil). admit.
+      rewrite Hkeyi in *.
+      now contradict Hnodup1.
+      -- exists x0.
+         split.
+         clear Hnodup1.
+       ** eapply getTablePagesAddIndirection;try eassumption;trivial.
+       ** unfold s' in *.
+       eapply getIndirectionsAuxAddIndirectionSameStructure;
+       try eassumption;trivial.
+       intuition.
+     ++ destruct Hi2 as [Hi2 | Hi2].
+        -- subst. admit. 
+        --  rewrite in_flat_map in Hi2.
+          destruct Hi2 as (x1 & Hx1 & Hx11).
+        assert((getTablePages pd tableSize s') = (getTablePages pd tableSize s)) by admit. 
+        rewrite H.
+        clear H.
+         admit.  *)
+     *
+        
+ 
+Admitted.
 
 
 Lemma consistencyAddIndirection
@@ -6080,6 +6618,8 @@ intuition.
 + (** currentPartitionInPartitionsList **)
  eapply currentPartitionInPartitionsListAddIndirection;trivial;try eassumption;trivial.
 + (** noDupMappedPagesList**)
+ eapply noDupMappedPagesListAddIndirection;trivial;try eassumption;trivial.
++ 
 
 Admitted.
 
