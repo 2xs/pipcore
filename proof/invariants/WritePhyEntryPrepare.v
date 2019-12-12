@@ -6703,52 +6703,21 @@ phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr part;trivial.
   apply nextEntryIsPPgetPd;trivial.
     apply nextEntryIsPPgetPd;trivial.
 Qed.
-
-Lemma getIndirectionsAddIndirectionSameStructure indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot lpred  e r w vaToPrepare x s l  pd: 
-let s' := {|
-  currentPartition := currentPartition s;
-  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
-              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |}) 
-              (memory s) beqPage beqIndex |} in 
-isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s -> 
-nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
-
-indirection <> nextIndirection ->
-x <> nextIndirection -> 
-In x (getIndirections pd s') ->
-In x (getIndirections pd s).
-Proof.
-intros *   Hwell Hindor3  Hnotind  Hkey1 Hkey2 .
-unfold getIndirections in *.
-
-revert dependent pd.
-induction nbLevel;simpl in *;trivial.
-intros;simpl in *.
-destruct Hkey2 as [Hkey2 | Hkey2].
-- left;trivial.
-- right.
-rewrite in_flat_map in *.
-destruct Hkey2 as (x0 & Hx0 & Hx0'). (* 
-destruct Hinmmu as [Ha1 | Ha1].
-subst. *)
-exists x0. 
-split.
-* assert(Hor: x0 = nextIndirection \/ x0 <> nextIndirection) by apply pageDecOrNot.
-  destruct Hor as [Hor | Hor].
-  --
-  subst.
-  clear IHn.
-  destruct n;simpl in *; try now contradict Hx0'.
-  destruct Hx0';try now contradict Hkey1.
-  rewrite in_flat_map in *.
-  destruct H as (xx & Hxx & Hxx').
-  contradict Hxx.
-  revert Hnotind Hwell Hindor3.
-  clear.
-  unfold isWellFormedMMUTables in *.
-  
+  Lemma getTablePagesAddIndirectionDefault s indirection 
+   lpred  nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child
+    phySh2addr xx e w r vaToPrepare idxroot l:
+  let s' := {|
+      currentPartition := currentPartition s;
+      memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+                  (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |})
+                  (memory s) beqPage beqIndex |} in
+  indirection <> nextIndirection ->
+isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s ->
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr
+  idxroot -> ~ In xx (getTablePages nextIndirection tableSize s').
+  Proof.
   induction tableSize;simpl in *;try auto.
-  intros.
+  intros * Hnotind Hwell Hindor3.
   case_eq(beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare l) (nextIndirection, CIndex n) beqPage beqIndex);intros * Heq.
   ++ simpl in *.
      apply beqPairsTrue in Heq.
@@ -6763,7 +6732,6 @@ split.
      simpl.
      apply and_not_or.
      split;[|auto]. 
-     
      subst.
      rewrite removeDupIdentity in H;[|auto].
      destruct Hindor3 as [(Hi1 & Hi2 & Hii3)| [(Hi1 & Hi2 & Hii3) | (Hi1 & Hi2 & Hii3)]];subst .
@@ -6811,10 +6779,23 @@ split.
          +++ unfold  StateLib.readVirtual in Hwell.
               rewrite H in Hwell.
               now contradict Hwell.
--- revert Hx0 Hor.
-clear.
+Qed.
+
+Lemma getTablePagesAddIndirection indirection nextIndirection
+e r w 
+vaToPrepare 
+s 
+l pd x0 :
+In x0
+  (getTablePages pd tableSize
+     {|
+     currentPartition := currentPartition s;
+     memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+                 (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |})
+                 (memory s) beqPage beqIndex |}) -> x0 <> nextIndirection -> In x0 (getTablePages pd tableSize s).
+Proof.                 
 induction tableSize;simpl in *;try auto.
-  intros.
+  intros Hx0 Hor.
  case_eq(beqPairs (indirection, StateLib.getIndexOfAddr vaToPrepare l) (pd, CIndex n) beqPage beqIndex);
  intros * Heq;rewrite Heq in *.
   ++ simpl in *.
@@ -6849,7 +6830,75 @@ induction tableSize;simpl in *;try auto.
      intuition. try apply IHn;trivial.
      apply beqPairsFalse in Heq.
      intuition.
+     Qed.
+Lemma getIndirectionsAuxAddIndirectionSameStructure n indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr
+ phySh2Child phySh2addr idxroot lpred  e r w vaToPrepare x s l  : 
+let s' := {|
+      currentPartition := currentPartition s;
+      memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+                  (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |})
+                  (memory s) beqPage beqIndex |} in 
+isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s ->
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child
+            phySh2addr idxroot ->
+indirection <> nextIndirection -> 
+x <> nextIndirection -> 
+forall pd : page, In x (getIndirectionsAux pd s' n) -> In x (getIndirectionsAux pd s n).
+Proof.
+induction n;simpl in *;trivial.
+intros *   Hwell Hindor3  Hnotind   Hkey1 pd Hkey2;simpl in *.
+destruct Hkey2 as [Hkey2 | Hkey2].
+- left;trivial.
+- right.
+rewrite in_flat_map in *.
+destruct Hkey2 as (x0 & Hx0 & Hx0'). (* 
+destruct Hinmmu as [Ha1 | Ha1].
+subst. *)
+exists x0. 
+split.
+* assert(Hor: x0 = nextIndirection \/ x0 <> nextIndirection) by apply pageDecOrNot.
+  destruct Hor as [Hor | Hor].
+  --
+  subst.
+  clear IHn.
+  destruct n;simpl in *; try now contradict Hx0'.
+  destruct Hx0';try now contradict Hkey1.
+  rewrite in_flat_map in *.
+  destruct H as (xx & Hxx & Hxx').
+  contradict Hxx.
+  revert Hnotind Hwell Hindor3.
+  clear.
+  unfold isWellFormedMMUTables in *.
+
+intros. eapply getTablePagesAddIndirectionDefault; try eassumption;trivial.
+-- revert Hx0 Hor.
+clear.
+     intros.
+     eapply getTablePagesAddIndirection;try eassumption;trivial.
 * apply IHn;trivial.
+Qed.
+
+Lemma getIndirectionsAddIndirectionSameStructure indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot lpred  e r w vaToPrepare x s l  pd: 
+let s' := {|
+  currentPartition := currentPartition s;
+  memory := add indirection (StateLib.getIndexOfAddr vaToPrepare l)
+              (PE {| read := r; write := w; exec := e; present := true; user := true; pa := nextIndirection |}) 
+              (memory s) beqPage beqIndex |} in 
+isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s -> 
+nextIndirectionsOR indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr idxroot ->
+
+indirection <> nextIndirection ->
+x <> nextIndirection -> 
+In x (getIndirections pd s') ->
+In x (getIndirections pd s).
+Proof.
+intros *   Hwell Hindor3  Hnotind  Hkey1 Hkey2 .
+unfold getIndirections in *.
+
+revert dependent pd.
+
+intros.
+eapply getIndirectionsAuxAddIndirectionSameStructure;try eassumption;trivial.
 Qed. 
 
  Lemma getConfigPagesAddIndirectionNotSamePage x nextIndirection partition s pdpart vaToPrepare l lpred indirection entry r w e  idxroot
