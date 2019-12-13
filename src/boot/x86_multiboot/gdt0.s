@@ -161,7 +161,22 @@ cg_%1:
 ;     |||     ;
 ;-----vvv-----;
 
-
+;-----------------------------------------------------------------------
+; According to Agner Fog on his own site https://agner.org
+; in this pdf : https://www.agner.org/optimize/calling_conventions.pdf
+; Last updated on 2019-11-28 which is less than 2 weeks old at this time
+;             OK its not "official", throw me out of a window
+;                      if you find a better source
+;-----------------------------------------------------------------------
+; Chapter 6 - Table 4
+; Scratch registers are registers that can be used for temporary storage
+; without restrictions (also called caller-save or volatile registers).
+;
+; Scratch registers for 32-bits Windows, Linux, BSD, MacOS are :
+; EAX, ECX, EDX, ST(0)-ST(7), XMM0-XMM7, YMM0-YMM7, ZMM0-ZMM7, K0-K7
+;-----------------------------------------------------------------------
+; TL;DR : we are going to use EAX ECX and EDX without saving them first
+;-----------------------------------------------------------------------
 %macro CG_GLUE_CTX 2
 extern %1
 global cg_%1
@@ -174,52 +189,68 @@ cg_%1:
 	; the same problem between a `sti` and a `retf`
 	cli
 
+	; pop eip in eax
+	pop eax
+	; pop cs in edx
+	pop edx
+
 	; first, copy the arguments higher on the stack
 
-	; set esp where the args should be copied
-	; we need 11 dword free
-	; stack top is currently at %2 + cs + eip
-	; so we add 11-(%2+2) dwords to ESP
-	sub esp, (11 - (%2 + 2)) * 4
-	; repeat for each arg + cs + eip
-	%rep (%2+2)
-		;copy the current dword (11 dword before stack top) to the stack top 
-		push dword [esp + 11 * 4]
-	%endrep
-	; our args and cs:eip are now copied farther in the stack
+	; set esp where the args should be copied + 1 dword to save esi, edi
+	; we need 3 dwords free
+	; stack top is currently at %2
+	; so we set esp to esp + 3 * 4
+	sub esp, 3 * 4
 
-	; setting ESP to the first argument pushed by CPU
-	; we have pushed %2 args + cs + eip and we have to leap another
-	; 11 dwords (pusha (8) + cs:eip (2) + eflags (1)) so 13 + %2 dwords
-	add esp, (%2 + 13) * 4
-	; push EFLAGS, filling the last dummy argument
+	; we are going to modify esi, edi and eflags
+	; those are not scratch registers so we need to
+	; save them first
+	push esi
+	push edi
+	pushfd
+
+	; clear direction flag so esi and edi are incremented with movsd
+	cld
+	; set destination before our pushes on the stack
+	lea edi, [esp + 3 * 4]
+	; set source 3 dwords higher
+	lea esi, [edi + 3 * 4]
+	; repeat for %2 args
+	mov ecx, %2
+	; copy
+	rep movsd
+
+	; restore previously saved registers
+	popfd
+	pop edi
+	pop esi
+
+	; go down the stack to replace the args we copied
+	add esp, (3 + %2) * 4
+	
+	; push EFLAGS, replacing the first argument
 	pushf
 	; set Interrupt Enable flag in EFLAGS
 	; otherwise userland would never be interrupted after `iret`
 	or [esp], 0x0200
 
-	; push CS, filling the first dummy arg
-	push dword [esp - (%2+11) * 4]
-	; push EIP, filling the second dummy argument
-	push dword [esp - (%2+11) * 4]
-	; push general purpose registers (8 * 4 bytes)
-	; completing the gate_ctx_t
-	pushad
+	; push cs
+	push edx
 
-	; set ESP to the top of the stack (after last arg)
-	; %2  -> number of args to skip
-	; * 4 -> size of args (4 bytes)
+	; push eip
+	push eax
+
+	; go back to the stack top
 	sub esp, %2 * 4
-	; push a pointer to the gate_ctx_t
-	push esp + (%2 * 4)
+
+	; push a pointer to the context
+	push esp + 4 * %2
 
 	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
 	call %1
 
 	; skip pointer to the context and args
 	add esp, (%2 + 1) * 4
-	; restore the general purpose registers
-	popa
 	; we are left with the iretable structure
 	iret
 %endmacro
