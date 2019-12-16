@@ -109,7 +109,7 @@ void spawnFirstPartition(void)
 	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
 	ctx->pipflags = 1; // TODO
-	ctx->eflags = 0;
+	ctx->eflags = 0x202; // Interrupt Flag (9) and reserved (1)
 	ctx->regs.esp = (uint32_t)usrStack;
 	ctx->regs.ebx = 0xFFFFC000; /* emulate grub behaviour: pass meminfo in ebx
        					meminfo is mapped in initMmu for now.	*/
