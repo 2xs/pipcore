@@ -58,13 +58,13 @@ extern void *cg_countToMap;
 extern void *cg_prepare;
 extern void *cg_addVAddr;
 //extern void *cg_dispatchGlue;
-extern void *cg_timerGlue;
+//extern void *cg_timerGlue;
 //extern void *cg_resume;
 extern void *cg_removeVAddr;
 extern void *cg_mappedInChild;
 extern void *cg_deletePartition;
 extern void *cg_collect;
-//extern void *cg_yieldGlue;
+extern void *cg_yieldGlue;
 
 /* TODO refactor to new structure fill
  * see below */
@@ -315,13 +315,13 @@ void gdt_init(void)
 	set_callgate_descriptor(PIPCALL_ADDVADDR,        &cg_addVAddr, 		PIPCALL_NARGS_ADDVADDR,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	//set_callgate_descriptor(PIPCALL_DISPATCH,        &cg_dispatchGlue, 	PIPCALL_NARGS_DISPATCH,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_OUTADDRL,        &cg_outaddrlGlue, 	PIPCALL_NARGS_OUTADDRL,          USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
-	set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	//set_callgate_descriptor(PIPCALL_TIMER,           &cg_timerGlue, 	PIPCALL_NARGS_TIMER,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	//set_callgate_descriptor(PIPCALL_RESUME,          &cg_resume, 		PIPCALL_NARGS_RESUME,            USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_REMOVEVADDR,     &cg_removeVAddr, 	PIPCALL_NARGS_REMOVEVADDR,       USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_MAPPEDINCHILD,   &cg_mappedInChild,	PIPCALL_NARGS_MAPPEDINCHILD,     USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_DELETEPARTITION, &cg_deletePartition,	PIPCALL_NARGS_DELETEPARTITION,   USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	set_callgate_descriptor(PIPCALL_COLLECT,         &cg_collect,		PIPCALL_NARGS_COLLECT,           USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
-	//set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
+	set_callgate_descriptor(PIPCALL_YIELD,           &cg_yieldGlue,		PIPCALL_NARGS_YIELD,             USER_RING, KERNEL_CODE_SEGMENT_SELECTOR);
 	DEBUG(INFO, "Callgate descriptors initialized\n");
 
 	load_gdt(&gdt, (sizeof(gdt_entry_t) * GDT_N_ENTRY) - 1);

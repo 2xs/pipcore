@@ -31,67 +31,6 @@
 ;  knowledge of the CeCILL license and that you accept its terms.             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Configuration of the x86 Global Descriptor Table and Task State Segment.
-%macro CG_GLUE_NOARG 1
-extern %1
-global cg_%1
-cg_%1:
-	cli
- 	call %1
-	sti
-	retf
-%endmacro
-
-; Callgate stack layout: 
-;	usereip
-;	cs
-;	args, ...
-;	useresp
-;	ss
-%macro CG_GLUE 2
-extern %1
-global cg_%1
-cg_%1:
-	cli
-; save resume eip:cs
-	pop esi
-	pop edi
-; call pip function
- 	call %1
-; restore eip:cs
-	push edi
-	push esi
-; back to userland
-	sti
-	retf (4*%2)
-%endmacro
-
-%macro CG_GLUE_CTX 2
-extern %1
-global cg_%1
-cg_%1:
-	cli
-; push user registers
-	pusha
-; useresp
-	mov eax, dword [0x20+esp+8+4*%2]
-; skip call arguments in saved esp
-	add eax, 4*%2
-; fix useresp in regs
-	mov [esp+12], eax
-; push &ctx
-	push esp
-; push callGlue arguments
-%rep %2
-	push dword [0x24+esp+8+4*(%2-1)]
-%endrep
-	call %1
-	add esp, 0x24+4*%2
-; back to userland
-	sti
-	retf (4*%2)
-%endmacro
-
 ;          Stack switch from userland to kernelland through a call gate
 ;
 ;            Userland's stack           ;             Handler's stack
@@ -116,10 +55,11 @@ cg_%1:
                                         ;-----vvv-----;
 
 ;------------------------------------------------------
-; The idea behind the below macro is to copy the call
+; The idea behind the below macros is to copy the call
 ; gate arguments higher on the stack, in order to free
 ; some space where we can place an iretable structure,
-; plus the general purpose registers.
+; and the general purpose registers in case we want a
+; context.
 ; We want to use `iret` because of the infamous race
 ; condition where an interrupt occurs between the
 ; execution of a far call and its subsequent `cli`,
@@ -127,39 +67,10 @@ cg_%1:
 ; condition could happen between the execution of a
 ; `sti` and a `retf`, and would not occur with a `iret`
 ;------------------------------------------------------
-; see awesome ASCII art below for visual representation
-; of the kernel stack after this assembly code
+; see awesome ASCII art above the assembly code for a
+; visual representation of the kernel stack before the
+; call to the C handler
 ;------------------------------------------------------
-
-
-;             Handler's stack
-;-------------;
-;             ;  <- SS0:ESP0 in TSS
-;-------------;-+
-;      SS     ; |
-;-------------; |
-;     ESP     ; |
-;-------------; |
-;    eflags   ; |-- iretable structure
-;-------------; |
-;      CS     ; |
-;-------------; |
-;     EIP     ; |
-;-------------;-+
-;     ...     ; |
-;   general   ; |
-;   purpose   ; |-- 8 * 4 bytes (pusha struct)
-;  registers  ; |
-;     ...     ; |
-;-------------;-+
-;     arg1    ;
-;-------------;
-;     ...     ;
-;-------------;
-;     argn    ;  <- SS:ESP after assembly
-;-------------;
-;     |||     ;
-;-----vvv-----;
 
 ;-----------------------------------------------------------------------
 ; According to Agner Fog on his own site https://agner.org
@@ -177,7 +88,33 @@ cg_%1:
 ;-----------------------------------------------------------------------
 ; TL;DR : we are going to use EAX ECX and EDX without saving them first
 ;-----------------------------------------------------------------------
-%macro CG_GLUE_CTX 2
+
+
+;             Handler's stack at `call` instruction
+;                          in below macro
+;-------------;
+;             ;  <- SS0:ESP0 in TSS
+;-------------;-+
+;      SS     ; |
+;-------------; |
+;     ESP     ; |
+;-------------; |
+;    eflags   ; |-- iretable structure
+;-------------; |
+;      CS     ; |
+;-------------; |
+;     EIP     ; |
+;-------------;-+
+;     arg1    ;
+;-------------;
+;     ...     ;
+;-------------;
+;     argn    ;  <- SS:ESP after assembly
+;-------------;
+;     |||     ;
+;-----vvv-----;
+
+%macro CG_GLUE 2
 extern %1
 global cg_%1
 cg_%1:
@@ -226,31 +163,132 @@ cg_%1:
 	pop esi
 
 	; go down the stack to replace the args we copied
+	; with eflags, cs, eip
 	add esp, (3 + %2) * 4
-	
 	; push EFLAGS, replacing the first argument
 	pushf
 	; set Interrupt Enable flag in EFLAGS
 	; otherwise userland would never be interrupted after `iret`
-	or [esp], 0x0200
-
+	or dword [esp], 0x0200
 	; push cs
 	push edx
-
 	; push eip
 	push eax
 
 	; go back to the stack top
 	sub esp, %2 * 4
+	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
+	call %1
 
+	; skip pointer to the context and args
+	add esp, %2 * 4
+	; we are left with the iretable structure
+	iret
+%endmacro
+
+;             Handler's stack at `call` instruction
+;                          in below macro
+;-------------;
+;             ;  <- SS0:ESP0 in TSS
+;-------------;-+
+;      SS     ; |
+;-------------; |
+;     ESP     ; |
+;-------------; |
+;    eflags   ; |-- iretable structure
+;-------------; |
+;      CS     ; |
+;-------------; |
+;     EIP     ; |
+;-------------;-+
+;   general   ; |
+;   purpose   ; |-- 8 dwords
+;  registers  ; |
+;-------------;-+
+;     arg1    ;
+;-------------;
+;     ...     ;
+;-------------;
+;     argn    ;  <- SS:ESP after assembly
+;-------------;
+;     |||     ;
+;-----vvv-----;
+
+%macro CG_GLUE_CTX 2
+extern %1
+global cg_%1
+cg_%1:
+	; interrupts are not cleared upon call gate entry.
+	; this might create a situation where an interrupt
+	; occurs in kernelland
+	; retf doesn't restore eflags either.
+	; that is why we use `iret`, in order to prevent
+	; the same problem between a `sti` and a `retf`
+	cli
+
+	; pop eip in eax
+	pop eax
+	; pop cs in edx
+	pop edx
+
+	; first, copy the arguments higher on the stack
+
+	; set esp where the args should be copied + 1 dword to save esi, edi
+	; we need 11 dwords free (eflags + cs + eip + pusha 8 dwords)
+	; stack top is currently at %2
+	; so we set esp to esp + 11 * 4
+	sub esp, 11 * 4
+
+	; we are going to modify esi, edi and eflags
+	; those are not scratch registers so we need to
+	; save them first
+	push esi
+	push edi
+	pushfd
+
+	; clear direction flag so esi and edi are incremented with movsd
+	cld
+	; set destination before our pushes on the stack
+	lea edi, [esp + 11 * 4]
+	; set source 3 dwords higher
+	lea esi, [edi + 11 * 4]
+	; repeat for %2 args
+	mov ecx, %2
+	; copy
+	rep movsd
+
+	; restore previously saved registers
+	popfd
+	pop edi
+	pop esi
+
+	; go down the stack to replace the args we copied
+	add esp, (11 + %2) * 4
+	; push EFLAGS, replacing the first argument
+	pushf
+	; set Interrupt Enable flag in EFLAGS
+	; otherwise userland would never be interrupted after `iret`
+	or dword [esp], 0x0200
+	; push cs
+	push edx
+	; push eip
+	push eax
+	; push general purpose registers (8 dwords)
+	pushad
+
+	; go back to the stack top
+	sub esp,  %2 * 4
 	; push a pointer to the context
-	push esp + 4 * %2
+	lea eax, [esp + %2 * 4]
+	push eax
 
 	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
 	call %1
 
 	; skip pointer to the context and args
 	add esp, (%2 + 1) * 4
+	; restore general purpose registers
+	popad
 	; we are left with the iretable structure
 	iret
 %endmacro
@@ -258,25 +296,23 @@ cg_%1:
 ; These functions might trigger a call to dispatchGlue
 ; therefore they need a reference to calling context (regs + eip)
 ; in order to save it if needed
-CG_GLUE_CTX outbGlue		, 2
-CG_GLUE_CTX inbGlue		, 1
-CG_GLUE_CTX outwGlue		, 2
-CG_GLUE_CTX inwGlue		, 1
-CG_GLUE_CTX outlGlue 		, 2
-CG_GLUE_CTX inlGlue 		, 1
-CG_GLUE_CTX outaddrlGlue 	, 2
-;CG_GLUE_CTX dispatchGlue	, 5
-;CG_GLUE_CTX yieldGlue		, 5
+CG_GLUE_CTX outbGlue            , 2
+CG_GLUE_CTX inbGlue             , 1
+CG_GLUE_CTX outwGlue            , 2
+CG_GLUE_CTX inwGlue             , 1
+CG_GLUE_CTX outlGlue            , 2
+CG_GLUE_CTX inlGlue             , 1
+CG_GLUE_CTX outaddrlGlue        , 2
+CG_GLUE_CTX yieldGlue           , 5
 
 ; Those ones won't trigger a fault in caller
-CG_GLUE createPartition		, 5
-CG_GLUE countToMap  		, 2
-CG_GLUE prepare 			, 4
+CG_GLUE createPartition         , 5
+CG_GLUE countToMap              , 2
+CG_GLUE prepare                 , 4
 CG_GLUE addVAddr    		, 6
-;CG_GLUE resume		    	, 2
-CG_GLUE removeVAddr 		, 2
-CG_GLUE	mappedInChild   	, 1
-CG_GLUE	deletePartition 	, 1
-CG_GLUE	collect 			, 2
+CG_GLUE removeVAddr             , 2
+CG_GLUE	mappedInChild           , 1
+CG_GLUE	deletePartition         , 1
+CG_GLUE	collect                 , 2
 
-CG_GLUE_NOARG  timerGlue
+;CG_GLUE_NOARG  timerGlue

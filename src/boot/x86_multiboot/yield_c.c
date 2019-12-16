@@ -28,6 +28,11 @@ void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake)
 
 void loadContext(user_ctx_t *ctx);
 
+
+yield_checks_t yieldGlue(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, gate_ctx_t *callerInterruptedContext);
+
+yield_checks_t checkIntLevelCont(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
+
 yield_checks_t checkCtxSaveIdxCont(vaddr_t calleePartDescVAddr, unsigned targetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
 yield_checks_t getChildPartDescCont(page_t callerPartDesc, page_t callerPageDir, vaddr_t calleePartDescVAddr, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
@@ -45,6 +50,22 @@ yield_checks_t getSourcePartVidtCont(page_t calleePartDesc, page_t calleePageDir
 yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc, page_t calleePageDir, page_t callerPageDir, page_t callerVidt, vaddr_t callerContextSaveVAddr, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext, user_ctx_t *targetContext);
 
 yield_checks_t switchContextCont(page_t callerVidt, int_mask_t flagsOnYield, page_t calleePartDesc, page_t calleePageDir, user_ctx_t *ctx);
+
+yield_checks_t yieldGlue(vaddr_t calleePartDescVAddr,
+			 uservalue_t userTargetInterrupt,
+			 uservalue_t userCallerContextSaveIndex,
+			 int_mask_t flagsOnYield,
+			 int_mask_t flagsOnWake,
+			 gate_ctx_t *gate_ctx){
+	user_ctx_t user_ctx;
+	user_ctx.regs = gate_ctx->regs;
+	user_ctx.regs.esp = gate_ctx->useresp;
+	user_ctx.eip = gate_ctx->eip;
+	user_ctx.eflags = gate_ctx->eflags;
+	user_ctx.valid = 1;
+
+	return checkIntLevelCont(calleePartDescVAddr, userTargetInterrupt, userCallerContextSaveIndex, flagsOnYield, flagsOnWake, &user_ctx);
+}
 
 yield_checks_t checkIntLevelCont(vaddr_t calleePartDescVAddr,
 				 uservalue_t userTargetInterrupt,

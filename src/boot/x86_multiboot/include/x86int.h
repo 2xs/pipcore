@@ -76,12 +76,16 @@ typedef const struct int_ctx_s
 
 /** 
  * \struct gate_stack_s
- * \brief Stack context from callgate
+ * \brief Stack context from callgate after assembly magic
  */
 typedef const struct gate_ctx_s
 {
 	pushad_regs_t regs;
 	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t useresp;
+	uint32_t ss;
 } gate_ctx_t;
 
 /**

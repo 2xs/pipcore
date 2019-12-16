@@ -153,11 +153,8 @@ uint32_t inl(uint16_t port)
 void
 faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
 {
-	/*DEBUG(WARNING, "faulting to parent, cur part is %x\n",
-		getCurPartition());
-	dispatchGlue(0, FAULT_FORBIDDEN, 0, data1, data2, ctx); */
-	DEBUG(CRITICAL, "Forbidden IO access on PIC (port %x, value %x)\n", data1, data2);
-	return;
+	DEBUG(INFO, "Userland tried to access forbidden IO port (port %x, value %x)\n", data1, data2);
+	//TODO call to yield
 }
 
 /**
