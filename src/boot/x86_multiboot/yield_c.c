@@ -309,9 +309,12 @@ void loadContext(user_ctx_t *ctx) {
 
 	    /* push eflags */
 	    "push 0x8(%%eax);"
+	    /* fix eflags to prevent potential security issues */
+	    "orl %2, (%%esp);"
+	    "andl %3, (%%esp);"
 
 	    /* push cs */
-	    "push %2;"
+	    "push %4;"
 
 	    /* push eip */
 	    "push (%%eax);"
@@ -349,6 +352,14 @@ void loadContext(user_ctx_t *ctx) {
 	    /* input operands */
 	    : "m"(ctx),
 	      "i"(USER_DATA_SEGMENT_SELECTOR | USER_RING), /* TODO Correct ? Check RPL */
+	    /* eflags related constants */
+	    /* set bit 1 : always 1
+	     * 	       9 : interrupt enable */
+	      "i"(0x202),
+	    /* unset bit 8 : trap flag
+	     * 	     12-13 : I/O privilege level
+	     *       14-32 : various system flags */
+	      "i"(0xEFF),
 	      "i"(USER_CODE_SEGMENT_SELECTOR | USER_RING)  /* TODO Correct ? Check RPL */
 	    /* registers changed during inline assembly */
 	    :
