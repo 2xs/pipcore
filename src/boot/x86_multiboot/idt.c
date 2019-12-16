@@ -82,6 +82,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	 * into a generic user_ctx_t */
 	user_ctx_t uctx;
 	uctx.regs = ctx->regs;
+	uctx.regs.esp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
@@ -104,6 +105,7 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 
 	user_ctx_t uctx;
 	uctx.regs = ctx->regs;
+	uctx.regs.esp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
@@ -127,6 +129,7 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	uctx.regs = ctx->regs;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
+	uctx.regs.esp = ctx->useresp;
 	uctx.valid = 1;
 
 	page currentPartDesc = getCurPartition();
