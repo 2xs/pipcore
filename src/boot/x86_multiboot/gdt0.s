@@ -233,11 +233,11 @@ cg_%1:
 
 	; first, copy the arguments higher on the stack
 
-	; set esp where the args should be copied + 1 dword to save esi, edi
-	; we need 11 dwords free (eflags + cs + eip + pusha 8 dwords)
-	; stack top is currently at %2
-	; so we set esp to esp + 11 * 4
-	sub esp, 11 * 4
+	; set esp where the args should be copied in order to save esi, edi
+	; we need 11 dwords free (eflags + cs + eip + pusha 8 dwords + ctx_ptr )
+	; stack top is currently at ss + esp + %2
+	; so we set esp to esp + 12 * 4
+	sub esp, 12 * 4
 
 	; we are going to modify esi, edi and eflags
 	; those are not scratch registers so we need to
@@ -249,9 +249,9 @@ cg_%1:
 	; clear direction flag so esi and edi are incremented with movsd
 	cld
 	; set destination before our pushes on the stack
-	lea edi, [esp + 11 * 4]
-	; set source 3 dwords higher
-	lea esi, [edi + 11 * 4]
+	lea edi, [esp + 3 * 4]
+	; set source 12 dwords higher
+	lea esi, [edi + 12 * 4]
 	; repeat for %2 args
 	mov ecx, %2
 	; copy
@@ -263,7 +263,7 @@ cg_%1:
 	pop esi
 
 	; go down the stack to replace the args we copied
-	add esp, (11 + %2) * 4
+	add esp, (12 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
 	; set Interrupt Enable flag in EFLAGS
@@ -275,12 +275,10 @@ cg_%1:
 	push eax
 	; push general purpose registers (8 dwords)
 	pushad
-
+	; push ctx ptr
+	push esp
 	; go back to the stack top
 	sub esp,  %2 * 4
-	; push a pointer to the context
-	lea eax, [esp + %2 * 4]
-	push eax
 
 	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
 	call %1
