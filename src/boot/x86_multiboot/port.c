@@ -167,14 +167,12 @@ faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
  */
 void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 {
-	/* if(getCurPartition() == 0x01C07000)
-		DEBUG(CRITICAL, "Port %x, Char : %c (%x)\n", port, value, value); */
 	if (!ioAccessValid(port))
 	{
 		faultToParent(port, value, ctx);
 	}
 	else{
-		outb((uint16_t)port, (uint8_t)(value&0xff));
+		outb((uint16_t)port, (uint8_t)value);
 	}
 }
 
@@ -271,8 +269,6 @@ uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 	else{
 		ret = (uint32_t)inb((uint16_t)port);
 	}
-	/* if(getCurPartition() == 0x01C07000)
-		DEBUG(CRITICAL, "INB Port %x returns %d\n", port, ret); */
 	return ret;
 }
 
