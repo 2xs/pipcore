@@ -81,6 +81,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	/* We need to convert the int_stack_s ctx 
 	 * into a generic user_ctx_t */
 	user_ctx_t uctx;
+	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
@@ -91,7 +92,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
 	page rootPageDir  = getPd(rootPartDesc);
 	//DEBUG(TRACE, "Hardware interrupt handler - Calculated root page dir : %x\n", rootPageDir);
-	int rc = getTargetPartVidtCont(rootPartDesc, rootPageDir, 0, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	int rc = getTargetPartVidtCont(rootPartDesc, rootPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
 	DEBUG(CRITICAL, "Returned from hardware interrupt, an error occurred : %d\n", rc);
 }
 
@@ -104,6 +105,7 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	DEBUG(TRACE, "Received software int n°%d\n", ctx->int_no);
 
 	user_ctx_t uctx;
+	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
@@ -114,7 +116,7 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
-	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, 0, getNbLevel(), 0, 0, &uctx);
+	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
 	DEBUG(TRACE, "Returned from software interrupt, an error occurred : %d\n", rc);
 }
 
@@ -126,6 +128,7 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	DEBUG(TRACE, "Received fault int n°%d\n", ctx->int_no);
 
 	user_ctx_t uctx;
+	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
@@ -136,7 +139,7 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Fault interrupt handler - Got current partition : %x\n", currentPartDesc);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
-	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, 0, getNbLevel(), 0, 0, &uctx);
+	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
 	DEBUG(CRITICAL, "Returned from fault interrupt, an error occurred : %d\n", rc);
 }
 
