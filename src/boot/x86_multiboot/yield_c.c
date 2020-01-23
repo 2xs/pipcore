@@ -23,7 +23,13 @@ vaddr_t readUserlandVAddr(page_t mpage, uint32_t index) {
 }
 
 void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake) {
-	return;
+	user_ctx_t *userland_save_ptr = (user_ctx_t *) ctxSaveVAddr;
+	userland_save_ptr->eip      = ctx->eip;
+	userland_save_ptr->pipflags = ctx->pipflags;
+	userland_save_ptr->eflags   = ctx->eflags;
+	userland_save_ptr->regs     = ctx->regs;
+	userland_save_ptr->valid    = 1;
+	//TODO implement flags on wake
 }
 
 void loadContext(user_ctx_t *ctx);
