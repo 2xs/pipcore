@@ -116,11 +116,10 @@ void spawnFirstPartition(void)
 	ctx->valid = 1;
 	
 	/* Write context address in vidt'0 */
-        for (unsigned i=0; i < 256; i++) {
-		writePhysical(vidtPaddr, i, (uint32_t)ctx);
-	}
+	writePhysical(vidtPaddr,  0, (uint32_t)ctx);
+	writePhysical(vidtPaddr, 32, (uint32_t)ctx);
 
-	DEBUG(INFO, "Calling switchContext !\n");
+	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
 	switchContextCont(getRootPartition(), pageDir, 0, 0, ctx);
 	for(;;);
 }
