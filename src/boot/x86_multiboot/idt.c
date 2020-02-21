@@ -84,6 +84,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
+	//uctx.regs.ebp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
@@ -92,7 +93,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
 	page rootPageDir  = getPd(rootPartDesc);
 	//DEBUG(TRACE, "Hardware interrupt handler - Calculated root page dir : %x\n", rootPageDir);
-	int rc = getTargetPartVidtCont(rootPartDesc, rootPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	int rc = getSourcePartVidtCont(rootPartDesc, rootPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
 	DEBUG(CRITICAL, "Returned from hardware interrupt, an error occurred : %d\n", rc);
 }
 
@@ -108,6 +109,7 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
+	//uctx.regs.ebp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
@@ -133,6 +135,7 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.regs.esp = ctx->useresp;
+	//uctx.regs.ebp = ctx->useresp;
 	uctx.valid = 1;
 
 	page currentPartDesc = getCurPartition();
