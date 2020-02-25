@@ -84,17 +84,33 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
-	//uctx.regs.ebp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
 
 	page rootPartDesc = getRootPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
-	page rootPageDir  = getPd(rootPartDesc);
-	//DEBUG(TRACE, "Hardware interrupt handler - Calculated root page dir : %x\n", rootPageDir);
-	int rc = getSourcePartVidtCont(rootPartDesc, rootPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
-	DEBUG(CRITICAL, "Returned from hardware interrupt, an error occurred : %d\n", rc);
+	page intPartitionPartDesc = getCurPartition();
+	//DEBUG(TRACE, "Hardware interrupt handler - Got interrupted partition : %x\n", intPartitionPartDesc);
+	page intPartitionPageDir  = getPd(intPartitionPartDesc);
+	//DEBUG(TRACE, "Hardware interrupt handler - Calculated interrupted partition page dir : %x\n", intPartitionPageDir);
+	yield_checks_t rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	switch(rc) {
+		case FAIL_UNAVAILABLE_CALLER_VIDT:
+		case FAIL_CALLER_CONTEXT_SAVE:
+			if (rc == FAIL_UNAVAILABLE_CALLER_VIDT) {
+				DEBUG(INFO, "Interrupted partition's VIDT is unavailable, can not salvage its context\n");
+			}
+			else {// (rc == CALLER_CONTEXT_SAVE)
+				DEBUG(INFO, "Interrupted partition's context save address is not valid, can not salvage its context\n");
+			}
+			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
+			getTargetPartVidtCont(rootPartDesc, intPartitionPageDir, 0, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
+			break;
+		default:
+			DEBUG(CRITICAL, "Unrecoverable error occured during while loading the root interruption handler - guru meditation\n");
+			for(;;);
+	}
 }
 
 
@@ -109,7 +125,6 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
-	//uctx.regs.ebp = ctx->useresp;
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
@@ -118,8 +133,10 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
-	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	yield_checks_t rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
 	DEBUG(TRACE, "Returned from software interrupt, an error occurred : %d\n", rc);
+	//Set return value
+	uctx.regs.eax = rc;
 }
 
 /* C handler called when faults are triggered
@@ -135,7 +152,6 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.regs.esp = ctx->useresp;
-	//uctx.regs.ebp = ctx->useresp;
 	uctx.valid = 1;
 
 	page currentPartDesc = getCurPartition();
@@ -143,7 +159,25 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
 	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
-	DEBUG(CRITICAL, "Returned from fault interrupt, an error occurred : %d\n", rc);
+	switch(rc) {
+		case FAIL_UNAVAILABLE_CALLER_VIDT:
+		case FAIL_CALLER_CONTEXT_SAVE:
+			if (rc == FAIL_UNAVAILABLE_CALLER_VIDT) {
+				DEBUG(INFO, "Faulting partition's VIDT is unavailable, can not salvage its context\n");
+			}
+			else {// (rc == CALLER_CONTEXT_SAVE)
+				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
+			}
+			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
+			getTargetPartVidtCont(getParent(currentPartDesc), currentPageDir, 0, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
+			break;
+		case FAIL_ROOT_CALLER:
+			DEBUG(CRITICAL, "Root partition faulted, guru meditation.\n");
+			for(;;);
+		default:
+			DEBUG(CRITICAL, "Some other error that should trigger a double fault occured - guru meditation for now\n");
+			for(;;);
+	}
 }
 
 /**
