@@ -49,6 +49,7 @@
 /* TODO remove me once the new service is written in Coq */
 #include "yield_c.h"
 
+#define DOUBLE_FAULT_LEVEL 8
 
 /* C handler called when interrupt linked to the PIC are triggered
  * i.e. hardware related interrupts like alarms)
@@ -87,6 +88,8 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
+
+	//TODO The next few lines of code could be written in Coq
 
 	page rootPartDesc = getRootPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
@@ -129,6 +132,8 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
 
+	// TODO The below code could be written in Coq
+
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
 	page currentPageDir  = getPd(currentPartDesc);
@@ -138,6 +143,9 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	//Set return value
 	uctx.regs.eax = rc;
 }
+
+
+void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
 /* C handler called when faults are triggered
  * e.g when trying to divide by zero 
@@ -154,11 +162,18 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	uctx.regs.esp = ctx->useresp;
 	uctx.valid = 1;
 
+	// TODO The below code could be written in Coq
+
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Fault interrupt handler - Got current partition : %x\n", currentPartDesc);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
-	int rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	propagateFault(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+}
+
+void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext)
+{
+	int rc = getParentPartDescCont(callerPartDesc, callerPageDir, targetInterrupt, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);
 	switch(rc) {
 		case FAIL_UNAVAILABLE_CALLER_VIDT:
 		case FAIL_CALLER_CONTEXT_SAVE:
@@ -169,14 +184,21 @@ void faultInterruptHandler(int_ctx_t *ctx)
 				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetPartVidtCont(getParent(currentPartDesc), currentPageDir, 0, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
+			getTargetPartVidtCont(getParent(callerPartDesc), callerPageDir, 0, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
 			break;
 		case FAIL_ROOT_CALLER:
 			DEBUG(CRITICAL, "Root partition faulted, guru meditation.\n");
 			for(;;);
+			break;
 		default:
-			DEBUG(CRITICAL, "Some other error that should trigger a double fault occured - guru meditation for now\n");
-			for(;;);
+			DEBUG(CRITICAL, "Error, parent partition can not handle the fault, propagating a double fault.\n");
+			// Be sure to handle the root case differently, as it has no parent
+			page parentPartDesc = getParent(callerPartDesc);
+			page parentPageDir  = getPd(parentPartDesc);
+			// We are still trying to save the faulting partition's context, even though it is very unlikely the partition will ever wake up again
+			// TODO is it worth a try ?
+			propagateFault(parentPartDesc, callerPageDir, DOUBLE_FAULT_LEVEL, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);
+			break;
 	}
 }
 
