@@ -199,28 +199,30 @@ yield_checks_t getTargetPartVidtCont(page_t calleePartDesc,
 	if (!(readAccessible(calleeVidtLastMMUPage, idxVidtInLastMMUPage)))
 		return FAIL_UNAVAILABLE_TARGET_VIDT;
 	page_t calleeVidt = readPhyEntry(calleeVidtLastMMUPage, idxVidtInLastMMUPage);
-	return checkIntMaskCont(calleePartDesc, calleePageDir, calleeVidt, callerPageDir, callerVidt, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
-}
-
-yield_checks_t checkIntMaskCont(page_t calleePartDesc,
-				page_t calleePageDir,
-				page_t calleeVidt,
-				page_t callerPageDir,
-				page_t callerVidt,
-				vaddr_t callerContextSaveVAddr,
-				unsigned targetInterrupt,
-				unsigned nbL,
-				unsigned idxVidtInLastMMUPage,
-				int_mask_t flagsOnYield,
-				int_mask_t flagsOnWake,
-				user_ctx_t *callerInterruptedContext)
-{
-	//check if callee accepts to recieve such interrupts
-	int_mask_t calleeInterruptMask = readInterruptMask(calleeVidt);
-	if (isInterruptMasked(calleeInterruptMask, targetInterrupt))
-		return FAIL_MASKED_INTERRUPT;
 	return getTargetPartCtxCont(calleePartDesc, calleePageDir, calleeVidt, callerPageDir, callerVidt, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
 }
+
+// check interrupt status of the target is now dropped as we decided that it should be the responsibility of the parent
+// to check if its child is ready to be resumed
+//yield_checks_t checkIntMaskCont(page_t calleePartDesc,
+//				page_t calleePageDir,
+//				page_t calleeVidt,
+//				page_t callerPageDir,
+//				page_t callerVidt,
+//				vaddr_t callerContextSaveVAddr,
+//				unsigned targetInterrupt,
+//				unsigned nbL,
+//				unsigned idxVidtInLastMMUPage,
+//				int_mask_t flagsOnYield,
+//				int_mask_t flagsOnWake,
+//				user_ctx_t *callerInterruptedContext)
+//{
+//	//check if callee accepts to recieve such interrupts
+//	int_mask_t calleeInterruptMask = readInterruptMask(calleeVidt);
+//	if (isInterruptMasked(calleeInterruptMask, targetInterrupt))
+//		return FAIL_MASKED_INTERRUPT;
+//	return getTargetPartCtxCont(calleePartDesc, calleePageDir, calleeVidt, callerPageDir, callerVidt, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
+//}
 
 yield_checks_t getTargetPartCtxCont(page_t calleePartDesc,
 				    page_t calleePageDir,
