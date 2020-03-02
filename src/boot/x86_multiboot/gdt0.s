@@ -121,9 +121,14 @@ cg_%1:
 	; interrupts are not cleared upon call gate entry.
 	; this might create a situation where an interrupt
 	; occurs in kernelland
-	; retf doesn't restore eflags either.
-	; that is why we use `iret`, in order to prevent
-	; the same problem between a `sti` and a `retf`
+	;
+	; Fortunately, this situation can be avoided on return
+	; (even if we use retf which does not restore eflags)
+	; since sti is only effective upon execution of the next
+	; instruction.
+	;
+	; The reason why we are not using a retf is to unify the
+	; different ways of calling a control flow transfer
 	cli
 
 	; pop eip in eax
@@ -164,6 +169,7 @@ cg_%1:
 
 	; go down the stack to replace the args we copied
 	; with eflags, cs, eip
+	; hopefully it doesn't mess up eflags
 	add esp, (3 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
@@ -221,9 +227,14 @@ cg_%1:
 	; interrupts are not cleared upon call gate entry.
 	; this might create a situation where an interrupt
 	; occurs in kernelland
-	; retf doesn't restore eflags either.
-	; that is why we use `iret`, in order to prevent
-	; the same problem between a `sti` and a `retf`
+	;
+	; Fortunately, this situation can be avoided on return
+	; (even if we use retf which does not restore eflags)
+	; since sti is only effective upon execution of the next
+	; instruction.
+	;
+	; The reason why we are not using a retf is to unify the
+	; different ways of calling a control flow transfer
 	cli
 
 	; pop eip in eax
@@ -263,6 +274,7 @@ cg_%1:
 	pop esi
 
 	; go down the stack to replace the args we copied
+	; hopefully it doesn't mess up eflags
 	add esp, (12 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
@@ -312,5 +324,7 @@ CG_GLUE removeVAddr             , 2
 CG_GLUE	mappedInChild           , 1
 CG_GLUE	deletePartition         , 1
 CG_GLUE	collect                 , 2
+CG_GLUE set_int_state           , 1
+CG_GLUE get_int_state           , 1
 
 ;CG_GLUE_NOARG  timerGlue

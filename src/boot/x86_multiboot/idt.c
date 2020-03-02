@@ -49,6 +49,9 @@
 /* TODO remove me once the new service is written in Coq */
 #include "yield_c.h"
 
+/* TODO possibly rewrite me in Coq too */
+#include "pip_interrupt_calls.h"
+
 #define DOUBLE_FAULT_LEVEL 8
 
 /* C handler called when interrupt linked to the PIC are triggered
@@ -85,7 +88,6 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
-	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
 
@@ -95,9 +97,11 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
 	page intPartitionPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got interrupted partition : %x\n", intPartitionPartDesc);
+	int_mask_t intPartitionIntState = get_self_int_state();
+	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupt state from interrupted partition : %d\n", intPartitionIntState);
 	page intPartitionPageDir  = getPd(intPartitionPartDesc);
-	//DEBUG(TRACE, "Hardware interrupt handler - Calculated interrupted partition page dir : %x\n", intPartitionPageDir);
-	yield_checks_t rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupted partition page dir : %x\n", intPartitionPageDir);
+	yield_checks_t rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, ctx->int_no, getNbLevel(), intPartitionIntState, intPartitionIntState, &uctx);
 	switch(rc) {
 		case FAIL_UNAVAILABLE_CALLER_VIDT:
 		case FAIL_CALLER_CONTEXT_SAVE:
@@ -128,7 +132,6 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
 	uctx.regs.esp = ctx->useresp;
-	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.valid = 1;
 
@@ -136,9 +139,11 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
+	int_mask_t currentPartitionIntState = get_self_int_state();
+	//DEBUG(TRACE, "Software interrupt handler - Retrieved interrupt state from current partition : %d\n", intPartitionIntState);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
-	yield_checks_t rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	yield_checks_t rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
 	DEBUG(TRACE, "Returned from software interrupt, an error occurred : %d\n", rc);
 	//Set return value
 	uctx.regs.eax = rc;
@@ -157,7 +162,6 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	user_ctx_t uctx;
 	uctx.eip = ctx->eip;
 	uctx.regs = ctx->regs;
-	uctx.pipflags = 0; 	// TODO : still unimplemented
 	uctx.eflags = ctx->eflags;
 	uctx.regs.esp = ctx->useresp;
 	uctx.valid = 1;
@@ -166,11 +170,14 @@ void faultInterruptHandler(int_ctx_t *ctx)
 
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Fault interrupt handler - Got current partition : %x\n", currentPartDesc);
+	int_mask_t currentPartitionIntState = get_self_int_state();
+	//DEBUG(TRACE, "Fault interrupt handler - Retrieved interrupt state from current partition : %d\n", intPartitionIntState);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
-	propagateFault(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), 0, 0, &uctx);
+	propagateFault(currentPartDesc, currentPageDir, ctx->int_no, ctx->int_no, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
 }
 
+//TODO could be written in Coq
 void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext)
 {
 	int rc = getParentPartDescCont(callerPartDesc, callerPageDir, targetInterrupt, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);

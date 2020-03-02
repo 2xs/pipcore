@@ -1,4 +1,5 @@
 #include "yield_c.h"
+#include "pip_interrupt_calls.h"
 
 
 vaddr_t getVidtVAddr() {
@@ -25,11 +26,10 @@ vaddr_t readUserlandVAddr(page_t mpage, uint32_t index) {
 void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake) {
 	user_ctx_t *userland_save_ptr = (user_ctx_t *) ctxSaveVAddr;
 	userland_save_ptr->eip      = ctx->eip;
-	userland_save_ptr->pipflags = ctx->pipflags;
+	userland_save_ptr->pipflags = flagsOnWake;
 	userland_save_ptr->eflags   = ctx->eflags;
 	userland_save_ptr->regs     = ctx->regs;
 	userland_save_ptr->valid    = 1;
-	//TODO implement flags on wake
 }
 
 void loadContext(user_ctx_t *ctx);
@@ -314,7 +314,12 @@ yield_checks_t switchContextCont (page_t calleePartDesc,
 				  page_t callerVidt,
 				  int_mask_t flagsOnYield,
 				  user_ctx_t *ctx) {
+	DEBUG(INFO, "Applying interrupt state from the parameters : %d\n", flagsOnYield);
+	set_int_state(flagsOnYield);
 	updateCurPartAndActivate(calleePartDesc, calleePageDir);
+	DEBUG(INFO, "Applying interrupt state from the restored context : %d\n", ctx->pipflags);
+	set_int_state(ctx->pipflags);
+	// TODO handle special case of the root partition that must not be STI'd by default
 	DEBUG(CRITICAL, "Loading context into registers...\n");
 	loadContext(ctx);
 	return SUCCESS;
@@ -327,11 +332,6 @@ void loadContext(user_ctx_t *ctx) {
 	asm(
 	    /* retrieve user_ctx_t * in EAX register */
 	    "mov %0, %%eax;"
-
-	    /* retrieve virtual flags from context and writes them in VIDT */
-	    /* TODO Fix this when pipflags are implemented */ 
-	    // "mov 0x4(%%eax), %%ebx;"
-	    // "mov %%exb, (0xfffffffc);"
 
 	    /* push user ss */
 	    "push %1;"
