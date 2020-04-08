@@ -47,8 +47,11 @@
 void set_int_state(uint32_t interrupt_state) {
 	uint32_t currentPartDesc = getCurPartition();
 	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
-	if (currentPartDesc == getRootPartition())
-		asm("cli");
+	if (currentPartDesc == getRootPartition()) {
+		if (interrupt_state == 0)
+			asm("cli");
+		else	asm("sti");
+	}
 	return;
 }
 
