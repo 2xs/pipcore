@@ -32,7 +32,7 @@ void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake)
 	userland_save_ptr->valid    = 1;
 }
 
-void loadContext(user_ctx_t *ctx);
+void loadContext(user_ctx_t *ctx, unsigned enforce_interrupts);
 
 
 yield_checks_t yieldGlue(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, gate_ctx_t *callerInterruptedContext);
@@ -315,38 +315,49 @@ yield_checks_t switchContextCont (page_t calleePartDesc,
 				  int_mask_t flagsOnYield,
 				  user_ctx_t *ctx) {
 	DEBUG(INFO, "Applying interrupt state from the parameters : %d\n", flagsOnYield);
-	set_int_state(flagsOnYield);
+	kernel_set_int_state(flagsOnYield);
 	updateCurPartAndActivate(calleePartDesc, calleePageDir);
 	DEBUG(INFO, "Applying interrupt state from the restored context : %d\n", ctx->pipflags);
-	set_int_state(ctx->pipflags);
-	// TODO handle special case of the root partition that must not be STI'd by default
+	kernel_set_int_state(ctx->pipflags);
+	// special case of the root partition that can choose to be CLI'd or not
+	unsigned enforce_interrupts = 1;
+	if (calleePartDesc == getRootPartition() && ctx->pipflags == 0) {
+		enforce_interrupts = 0;
+	}
 	DEBUG(CRITICAL, "Loading context into registers...\n");
-	loadContext(ctx);
+	loadContext(ctx, enforce_interrupts);
 	return SUCCESS;
 }
 
 /* copies or pushes SS, ESP, EFLAGS, CS, EIP from the given context to the stack
  * and then executes an `iret` in order to go back to userland
  * see x86int.h for infos related to user_ctx_t struct */
-void loadContext(user_ctx_t *ctx) {
+void loadContext(user_ctx_t *ctx, unsigned enforce_interrupts) {
 	asm(
 	    /* retrieve user_ctx_t * in EAX register */
 	    "mov %0, %%eax;"
+	    "mov %1, %%ecx;"
 
 	    /* push user ss */
-	    "push %1;"
+	    "push %2;"
 
 	    /* push user esp */
 	    "push 0x18(%%eax);"
 
 	    /* push eflags */
 	    "push 0x8(%%eax);"
+
 	    /* fix eflags to prevent potential security issues */
-	    "orl %2, (%%esp);"
-	    "andl %3, (%%esp);"
+	    "orl %3, (%%esp);"
+	    /* -- skip enable interrupts depending on parameter */
+	    "jcxz 1f;" /* <------+ */
+	    "orl %4, (%%esp);"/* | */
+	    "1:;" /* <-----------+ */
+
+	    "andl %5, (%%esp);"
 
 	    /* push cs */
-	    "push %4;"
+	    "push %6;"
 
 	    /* push eip */
 	    "push (%%eax);"
@@ -354,7 +365,7 @@ void loadContext(user_ctx_t *ctx) {
 	    /* restore general purpose registers */
 	    /* maybe we could `popad` but it seems complicated */
 	    /* restore EDI */
-	    "mov  0xc(%%eax), %%edi;"
+	    "mov  0xC(%%eax), %%edi;"
 
 	    /* restore ESI */
 	    "mov 0x10(%%eax), %%esi;"
@@ -383,11 +394,15 @@ void loadContext(user_ctx_t *ctx) {
 	    :
 	    /* input operands */
 	    : "m"(ctx),
+	      "m"(enforce_interrupts),
 	      "i"(USER_DATA_SEGMENT_SELECTOR | USER_RING), /* TODO Correct ? Check RPL */
 	    /* eflags related constants */
-	    /* set bit 1 : always 1
-	     * 	       9 : interrupt enable */
-	      "i"(0x202),
+	    /* set bit 1 : always 1 */
+	      "i"(0x2),
+	    /* set bit conditional :
+	     * 	       9 : interrupt enable
+	     * controlled by parameter */
+	      "i"(0x200),
 	    /* unset bit 8 : trap flag
 	     * 	     12-13 : I/O privilege level
 	     *       14-32 : various system flags */

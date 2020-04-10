@@ -61,7 +61,7 @@ typedef struct pushad_regs_s
  * \struct int_stack_s
  * \brief Stack context from interrupt/exception
  */
-typedef const struct int_ctx_s
+typedef struct int_ctx_s
 {
     pushad_regs_t regs;//!< Interrupt handler saved regs
     uint32_t int_no; //!< Interrupt number
@@ -74,11 +74,20 @@ typedef const struct int_ctx_s
     uint32_t ss; //!< Stack segment
 } int_ctx_t ;
 
+typedef struct iret_ctx_s
+{
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t useresp;
+	uint32_t ss;
+} iret_ctx_t;
+
 /** 
  * \struct gate_stack_s
  * \brief Stack context from callgate after assembly magic
  */
-typedef const struct gate_ctx_s
+typedef struct gate_ctx_s
 {
 	pushad_regs_t regs;
 	uint32_t eip;

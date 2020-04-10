@@ -108,8 +108,8 @@ void spawnFirstPartition(void)
 	// Maybe we don't need to decrement the stack pointer though
 	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
-	ctx->pipflags = 1; // TODO
-	ctx->eflags = 0x202; // Interrupt Flag (9) and reserved (1)
+	ctx->pipflags = 0; // VCLI
+	ctx->eflags = 0x2; // reserved (bit 1)
 	ctx->regs.esp = (uint32_t)usrStack;
 	ctx->regs.ebx = 0xFFFFC000; /* emulate grub behaviour: pass meminfo in ebx
        					meminfo is mapped in initMmu for now.	*/

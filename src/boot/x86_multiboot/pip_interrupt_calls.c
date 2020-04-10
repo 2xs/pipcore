@@ -37,6 +37,7 @@
 #include "Internal.h"
 #include "pip_interrupt_calls.h"
 #include "mal.h"
+#include "x86int.h"
 
 // interrupt state is located at INTERRUPT_STATE_IDX in every partition descriptor
 // Its semantic is the same as the CPU interrupt_enable flag :
@@ -51,6 +52,30 @@ void set_int_state(uint32_t interrupt_state) {
 		if (interrupt_state == 0)
 			asm("cli");
 		else	asm("sti");
+	}
+	return;
+}
+
+void kernel_set_int_state(uint32_t interrupt_state) {
+	uint32_t currentPartDesc = getCurPartition();
+	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
+	return;
+}
+
+void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
+	uint32_t currentPartDesc = getCurPartition();
+	if !(currentPartDesc == getRootPartition()
+	&& readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
+		ctx->eflags |= 0x200; // enable interrupts
+	}
+	return;
+}
+
+void fix_eflags_iret_ctx(iret_ctx_t *ctx) {
+	uint32_t currentPartDesc = getCurPartition();
+	if !(currentPartDesc == getRootPartition()
+	&& readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
+		ctx->eflags |= 0x200; // enable interrupts
 	}
 	return;
 }

@@ -114,6 +114,7 @@
 ;     |||     ;
 ;-----vvv-----;
 
+extern fix_eflags_iret_ctx
 %macro CG_GLUE 2
 extern %1
 global cg_%1
@@ -173,9 +174,6 @@ cg_%1:
 	add esp, (3 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
-	; set Interrupt Enable flag in EFLAGS
-	; otherwise userland would never be interrupted after `iret`
-	or dword [esp], 0x0200
 	; push cs
 	push edx
 	; push eip
@@ -183,7 +181,9 @@ cg_%1:
 
 	; go back to the stack top
 	sub esp, %2 * 4
-	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
+	; fix eflags
+	call fix_eflags_iret_ctx
+	; call C handler (arg1, ..., arg%2, iret_ctx_t *)
 	call %1
 
 	; skip pointer to the context and args
@@ -220,6 +220,7 @@ cg_%1:
 ;     |||     ;
 ;-----vvv-----;
 
+extern fix_eflags_gate_ctx
 %macro CG_GLUE_CTX 2
 extern %1
 global cg_%1
@@ -278,9 +279,6 @@ cg_%1:
 	add esp, (12 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
-	; set Interrupt Enable flag in EFLAGS
-	; otherwise userland would never be interrupted after `iret`
-	or dword [esp], 0x0200
 	; push cs
 	push edx
 	; push eip
@@ -292,6 +290,7 @@ cg_%1:
 	; go back to the stack top
 	sub esp,  %2 * 4
 
+	call fix_eflags_gate_ctx
 	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
 	call %1
 

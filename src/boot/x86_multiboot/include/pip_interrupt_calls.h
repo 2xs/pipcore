@@ -35,12 +35,16 @@
 #define PIP_INTERRUPT_CALLS
 
 #include <stdint.h>
+#include "x86int.h"
 
 // One reserved keyword at index 12 for PID, taking the next one
 #define INTERRUPT_STATE_IDX 13
 #define CLI_SAVE_INDEX 48
 #define STI_SAVE_INDEX 49
 
+void fix_eflags_gate_ctx(gate_ctx_t *ctx);
+void fix_eflags_iret_ctx(iret_ctx_t *ctx);
+void kernel_set_int_state(uint32_t interrupt_mask);
 void set_int_state(uint32_t interrupt_mask);
 uint32_t get_int_state(uint32_t child_vaddr);
 uint32_t get_self_int_state();
