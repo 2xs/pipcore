@@ -185,7 +185,7 @@ void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8
  */
 void initFreePageList(uintptr_t base, uintptr_t length)
 {
-    extern uint32_t end;
+    extern uint32_t __end;
     uint32_t sizeToMap;
     uint32_t mappingBegin;
 
@@ -326,7 +326,7 @@ void initMmu()
 
     /* Map the kernel space */
     uint32_t curAddr = 0;
-    extern uint32_t end;
+    extern uint32_t __end;
 
     /* Map kernel, stack up to root partition */
     while(curAddr <= (uint32_t)(/* &end */ /* RAM_END */0x700000))
@@ -337,7 +337,7 @@ void initMmu()
 	
 	/* Map root partition in userland */
 	curAddr = 0x700000;
-	while(curAddr <= (uint32_t)(&end /* RAM_END */ /* 0xFFFFE000 */))
+	while(curAddr <= (uint32_t)(&__end /* RAM_END */ /* 0xFFFFE000 */))
 	{
 		mapPageWrapper(kernelDirectory, curAddr, curAddr, 1);
 		curAddr += PAGE_SIZE;
@@ -379,7 +379,7 @@ void initMmu()
 	}
 	
 	/* Map a linear memory space using page allocator \o/ */
-	curAddr = (uint32_t)&end;
+	curAddr = (uint32_t)&__end;
 	uint32_t pg;
 	
     /* Map first partition info as user-accessible */
@@ -466,7 +466,7 @@ void initMmu()
 	}
 	
 	/* Fix first partition info */
-	fpinfo->membegin = (uint32_t)&end;
+	fpinfo->membegin = (uint32_t)&__end;
 	fpinfo->memend = curAddr;
 	fpinfo->magic = FPINFO_MAGIC;
 	strcpy(fpinfo->revision, GIT_REVISION);
