@@ -48,7 +48,7 @@
  */
 #define PAGE_SIZE 4096
 
-uint32_t *firstFreePage; //!< First free available page.
+extern uint32_t *firstFreePage; //!< First free available page.
 
 void initFreePageList(uintptr_t base, uintptr_t length);
 uint32_t* allocPage();
