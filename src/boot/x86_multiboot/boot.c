@@ -64,7 +64,7 @@
 /* IDT configuration */
 #include "idt.h"
 
-/* TODO Remove me once rewritten in C */
+/* TODO Remove me once rewritten in Coq */
 #include "yield_c.h"
 
 /**
