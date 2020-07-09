@@ -64,8 +64,8 @@ void kernel_set_int_state(uint32_t interrupt_state) {
 
 void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
 	uint32_t currentPartDesc = getCurPartition();
-	if (!(currentPartDesc == getRootPartition()
-	&& readPhysical(currentPartDesc, INTERRUPT_STATE_IDX))) {
+	if (currentPartDesc != getRootPartition()
+	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
 		ctx->eflags |= 0x200; // enable interrupts
 	}
 	return;
@@ -73,8 +73,8 @@ void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
 
 void fix_eflags_iret_ctx(iret_ctx_t *ctx) {
 	uint32_t currentPartDesc = getCurPartition();
-	if (!(currentPartDesc == getRootPartition()
-	&& readPhysical(currentPartDesc, INTERRUPT_STATE_IDX))) {
+	if (currentPartDesc != getRootPartition()
+	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
 		ctx->eflags |= 0x200; // enable interrupts
 	}
 	return;
