@@ -176,6 +176,7 @@ void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned target
 void faultInterruptHandler(int_ctx_t *ctx)
 {
 	DEBUG(TRACE, "Received fault int n°%d\n", ctx->int_no);
+	DEBUG(TRACE, "Error code is : %x\n", ctx->err_code);
 
 	user_ctx_t uctx;
 	uctx.eip = ctx->eip;
