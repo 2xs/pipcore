@@ -35,7 +35,7 @@ void writeContext(user_ctx_t *ctx, vaddr_t ctxSaveVAddr, int_mask_t flagsOnWake)
 void loadContext(user_ctx_t *ctx, unsigned enforce_interrupts);
 
 
-yield_checks_t yieldGlue(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, gate_ctx_t *callerInterruptedContext);
+yield_checks_t yieldGlue(gate_ctx_t *callerInterruptedContext, vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake);
 
 yield_checks_t checkIntLevelCont(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
@@ -57,12 +57,12 @@ yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc, page_t calleePageDir
 
 yield_checks_t switchContextCont(page_t callerVidt, int_mask_t flagsOnYield, page_t calleePartDesc, page_t calleePageDir, user_ctx_t *ctx);
 
-yield_checks_t yieldGlue(vaddr_t calleePartDescVAddr,
+yield_checks_t yieldGlue(gate_ctx_t *gate_ctx,
+			 vaddr_t calleePartDescVAddr,
 			 uservalue_t userTargetInterrupt,
 			 uservalue_t userCallerContextSaveIndex,
 			 int_mask_t flagsOnYield,
-			 int_mask_t flagsOnWake,
-			 gate_ctx_t *gate_ctx){
+			 int_mask_t flagsOnWake){
 	user_ctx_t user_ctx;
 	user_ctx.regs = gate_ctx->regs;
 	user_ctx.regs.esp = gate_ctx->useresp;

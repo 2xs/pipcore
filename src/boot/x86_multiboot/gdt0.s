@@ -41,11 +41,11 @@
 ;-------------;     |                   ;-------------;
 ;             ;     |  |--------------->;     ESP     ;
 ;-------------;-+   |  |              +-;-------------;
-;     arg1    ; |   |  |              | ;     arg1    ;
+;     argn    ; |   |  |              | ;     argn    ;
 ;-------------; |   |  |              | ;-------------;
 ;     ...     ; |---|--|------------->| ;     ...     ;
 ;-------------; |   |  |              | ;-------------;
-;     argN    ;<-- SS:ESP before call | ;     argN    ;
+;     arg1    ;<-- SS:ESP before call | ;     arg1    ;
 ;-------------;-+                     +-;-------------;
 ;     |||     ;                         ;      CS     ;
 ;-----vvv-----;                         ;-------------;
@@ -60,12 +60,8 @@
 ; some space where we can place an iretable structure,
 ; and the general purpose registers in case we want a
 ; context.
-; We want to use `iret` because of the infamous race
-; condition where an interrupt occurs between the
-; execution of a far call and its subsequent `cli`,
-; creating a kernelland interrupt. The same race
-; condition could happen between the execution of a
-; `sti` and a `retf`, and would not occur with a `iret`
+; We want to use `iret` in order to unify different system
+; calls (TODO that's not a valid reason)
 ;------------------------------------------------------
 ; see awesome ASCII art above the assembly code for a
 ; visual representation of the kernel stack before the
@@ -105,11 +101,11 @@
 ;-------------; |
 ;     EIP     ; |
 ;-------------;-+
-;     arg1    ;
+;     argn    ;
 ;-------------;
 ;     ...     ;
 ;-------------;
-;     argn    ;  <- SS:ESP after assembly
+;     arg1    ;  <- SS:ESP after assembly
 ;-------------;
 ;     |||     ;
 ;-----vvv-----;
@@ -181,9 +177,23 @@ cg_%1:
 
 	; go back to the stack top
 	sub esp, %2 * 4
+
+	; push a pointer to the iret_ctx_t
+	lea eax, [esp + %2 * 4]
+	push eax
+
 	; fix eflags
 	call fix_eflags_iret_ctx
-	; call C handler (arg1, ..., arg%2, iret_ctx_t *)
+
+	; clean clobbered registers
+	xor eax, eax
+	xor ecx, ecx
+	xor edx, edx
+
+	; go back to the args top
+	add esp, 1 * 4
+
+	; call C handler (arg1, ..., arg%2)
 	call %1
 
 	; skip pointer to the context and args
@@ -211,12 +221,14 @@ cg_%1:
 ;   purpose   ; |-- 8 dwords
 ;  registers  ; |
 ;-------------;-+
-;     arg1    ;
+;     argN    ;
 ;-------------;
 ;     ...     ;
 ;-------------;
-;     argn    ;  <- SS:ESP after assembly
-;-------------;
+;     arg1    ;  <- SS:ESP after assembly
+;-------------;-+
+;    ctx_ptr  ; |-- pointer to gate_ctx_t
+;-------------;-+
 ;     |||     ;
 ;-----vvv-----;
 
@@ -246,10 +258,10 @@ cg_%1:
 	; first, copy the arguments higher on the stack
 
 	; set esp where the args should be copied in order to save esi, edi
-	; we need 11 dwords free (eflags + cs + eip + pusha 8 dwords + ctx_ptr )
+	; we need 11 dwords free (eflags + cs + eip + pusha 8 dwords )
 	; stack top is currently at ss + esp + %2
-	; so we set esp to esp + 12 * 4
-	sub esp, 12 * 4
+	; so we set esp to esp + 11 * 4
+	sub esp, 11 * 4
 
 	; we are going to modify esi, edi and eflags
 	; those are not scratch registers so we need to
@@ -262,8 +274,8 @@ cg_%1:
 	cld
 	; set destination before our pushes on the stack
 	lea edi, [esp + 3 * 4]
-	; set source 12 dwords higher
-	lea esi, [edi + 12 * 4]
+	; set source 11 dwords higher
+	lea esi, [edi + 11 * 4]
 	; repeat for %2 args
 	mov ecx, %2
 	; copy
@@ -276,26 +288,47 @@ cg_%1:
 
 	; go down the stack to replace the args we copied
 	; hopefully it doesn't mess up eflags
-	add esp, (12 + %2) * 4
+	add esp, (11 + %2) * 4
 	; push EFLAGS, replacing the first argument
 	pushf
 	; push cs
 	push edx
 	; push eip
 	push eax
+	; clean cloberred registers
+	; in case we trigger a context change
+	xor eax, eax
+	xor ecx, ecx
+	xor edx, edx
 	; push general purpose registers (8 dwords)
 	pushad
-	; push ctx ptr
-	push esp
+
+	; save the context pointer into EAX
+	mov eax, esp
+
 	; go back to the stack top
 	sub esp,  %2 * 4
 
+	; push the context pointer
+	push eax
+
+	; enforce interrupts if needed
 	call fix_eflags_gate_ctx
-	; call C handler (arg1, ..., arg%2, gate_ctx_t *)
+	; call C handler (gate_ctx_t *, arg1, ..., arg%2)
 	call %1
 
 	; skip pointer to the context and args
-	add esp, (%2 + 1) * 4
+	; and jump to the general purpose registers to save
+	; called function return values
+	add esp, (%2 + 1 + 8) * 4
+	; we save the return values on top of the previous values
+	; explicitly push EAX ECX EDX (as per linux calling conventions)
+	push eax
+	push ecx
+	push edx
+	; jump to the top of the general purpose registers
+	; (skip EBX ESP EBP ESI EDI)
+	sub esp, 5 * 4
 	; restore general purpose registers
 	popad
 	; we are left with the iretable structure

@@ -158,14 +158,14 @@ faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
 }
 
 /**
- * \fn void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+ * \fn void outbGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
  * \brief Glue function for outb callgate
  * \param port Target IO port
  * \param value The value to write
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outbGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
 {
 	if (!ioAccessValid(port))
 	{
@@ -177,14 +177,14 @@ void outbGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 }
 
 /**
- * \fn void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+ * \fn void outwGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
  * \brief Glue function for outw callgate
  * \param port Target IO port
  * \param value The value to write
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outwGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
 {
 	if (!ioAccessValid(port))
 	{
@@ -196,14 +196,14 @@ void outwGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 }
 
 /**
- * \fn void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+ * \fn void outlGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
  * \brief Glue function for outl callgate
  * \param port Target IO port
  * \param value The value to write
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outlGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
 {
 	if (!ioAccessValid(port))
 	{
@@ -215,14 +215,14 @@ void outlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 }
 
 /**
- * \fn void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+ * \fn void outaddrlGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
  * \brief Glue function for outaddrl callgate
  * \param port Target IO port
  * \param value The value to write
  * \param ctx Interrupted context
  * \note Trigger a fault in parent partition if not authorized
  */
-void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
+void outaddrlGlue(gate_ctx_t *ctx, uint32_t port, uint32_t value)
 {
 	/* Convert vaddr to paddr */
 	uintptr_t vad = (uintptr_t)value;
@@ -251,14 +251,14 @@ void outaddrlGlue(uint32_t port, uint32_t value, gate_ctx_t *ctx)
 }
 
 /**
- * \fn uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
+ * \fn uint32_t inbGlue(gate_ctx_t *ctx, uint32_t port)
  * \brief Glue function for inb callgate
  * \param port Target IO port
  * \param ctx Interrupted context
  * \return IO port read value
  * \note Trigger a fault in parent partition if not authorized
  */
-uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
+uint32_t inbGlue(gate_ctx_t *ctx, uint32_t port)
 {
 	uint32_t ret = 0;
 	
@@ -273,14 +273,14 @@ uint32_t inbGlue(uint32_t port, gate_ctx_t *ctx)
 }
 
 /**
- * \fn uint32_t inwGlue(uint32_t port, gate_ctx_t *ctx)
+ * \fn uint32_t inwGlue(gate_ctx_t *ctx, uint32_t port)
  * \brief Glue function for inw callgate
  * \param port Target IO port
  * \param ctx Interrupted context
  * \return IO port read value
  * \note Trigger a fault in parent partition if not authorized
  */
-uint32_t inwGlue(uint32_t port, gate_ctx_t *ctx)
+uint32_t inwGlue(gate_ctx_t *ctx, uint32_t port)
 {
 	uint32_t ret = 0;
 
@@ -296,14 +296,14 @@ uint32_t inwGlue(uint32_t port, gate_ctx_t *ctx)
 }
 
 /**
- * \fn uint32_t inlGlue(uint32_t port, gate_ctx_t *ctx)
+ * \fn uint32_t inlGlue(gate_ctx_t *ctx, uint32_t port)
  * \brief Glue function for inl callgate
  * \param port Target IO port
  * \param ctx Interrupted context
  * \return IO port read value
  * \note Trigger a fault in parent partition if not authorized
  */
-uint32_t inlGlue(uint32_t port, gate_ctx_t *ctx)
+uint32_t inlGlue(gate_ctx_t *ctx, uint32_t port)
 {
 	uint32_t ret = 0;
 
