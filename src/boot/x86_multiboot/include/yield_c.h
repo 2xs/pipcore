@@ -26,7 +26,7 @@ typedef enum yield_checks_e {
 
 vaddr_t getVidtVAddr();
 
-#define contextSizeMinusOne sizeof(user_ctx_t)
+#define contextSizeMinusOne sizeof(user_ctx_t)-4
 
 yield_checks_t checkIntLevelCont(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
