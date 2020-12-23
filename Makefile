@@ -101,7 +101,6 @@ COBJ+=$(TARGET_DIR)/multiplexer.o
 COBJ:=$(patsubst %,$(TARGET_DIR)/%, $(notdir $(COBJ)))
 AOBJ:=$(patsubst %,$(TARGET_DIR)/%, $(notdir $(AOBJ)))
 
-GITREV_H := $(SRC_DIR)/boot/$(TARGET)/include/git.h
 LINKSCRIPT := $(SRC_DIR)/boot/$(TARGET)/link.ld
 
 # Includes
@@ -112,20 +111,15 @@ CFLAGS+=-I$(SRC_DIR)/IAL/$(TARGET)
 CFLAGS+=-I$(SRC_DIR)/boot/$(TARGET)/include
 CFLAGS+=-I$(TARGET_DIR)/
 CFLAGS+=-DLOGLEVEL=$(LOGLEVEL)
+CFLAGS+=-DGIT_REVISION='"$(shell git rev-parse @)"'
 
 all: $(TARGET_DIR)/$(KERNEL_ELF) proofs doc
 
 kernel: $(TARGET_DIR)/$(KERNEL_ELF)
 
-$(TARGET_DIR)/$(KERNEL_ELF): $(GITREV_H) $(TARGET_DIR) $(LINKSCRIPT) makefile.dep extract \
+$(TARGET_DIR)/$(KERNEL_ELF): $(TARGET_DIR) $(LINKSCRIPT) makefile.dep extract \
 			     $(COBJ) $(AOBJ)
 	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
-
-gitinfo:
-	printf "#ifndef __GIT__\n#define __GIT__\n#define GIT_REVISION \"`git rev-parse HEAD`\"\n#endif" > $(GITREV_H)
-
-# Depend on a PHONY to force it being rebuilt
-$(GITREV_H): gitinfo
 
 linker: $(LINKSCRIPT)
 

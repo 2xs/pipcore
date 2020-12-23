@@ -43,7 +43,6 @@
 #include "mal.h"
 #include "structures.h"
 #include "fpinfo.h"
-#include "git.h"
 #include <libc.h>
 #include "galileo-support.h"
 

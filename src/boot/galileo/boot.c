@@ -43,7 +43,6 @@
 /* This is provided by our hardware abstraction layers */
 #include "mal.h"
 #include "ial.h"
-#include "git.h"
 #include "fpinfo.h"
 
 /* Some debugging output if PIPDEBUG is set */

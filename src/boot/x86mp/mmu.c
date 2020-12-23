@@ -43,7 +43,6 @@
 #include "mal.h"
 #include "structures.h"
 #include "fpinfo.h"
-#include "git.h"
 #include "hdef.h"
 #include "mp.h"
 #include <libc.h>
