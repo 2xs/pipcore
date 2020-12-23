@@ -141,36 +141,21 @@ src/model/Extraction.vo $(JSONS): src/model/Extraction.v
 
 extract: $(EXTRACTEDCSOURCES)
 
+DIGGERFLAGS := -m Hardware -M coq_LLI
+DIGGERFLAGS += -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt
+DIGGERFLAGS += -m MALInternal -d :MALInternal.json
+DIGGERFLAGS += -m MAL -d :MAL.json
+DIGGERFLAGS += -m ADT -m Nat
+DIGGERFLAGS += -q maldefines.h
+
 $(TARGET_DIR)/Internal.c: Internal.json $(DIGGER) $(TARGET_DIR)
-	$(DIGGER) -m Hardware -M coq_LLI                                  \
-	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-	    -m MALInternal -d :MALInternal.json                           \
-	    -m MAL -d :MAL.json                                           \
-	    -m ADT -m Nat                                                 \
-	    -q maldefines.h                                               \
-	    --ignore coq_N                                                \
-	    $< -o $@
+	$(DIGGER) $(DIGGERFLAGS) --ignore coq_N $< -o $@
 
 $(TARGET_DIR)/Internal.h: Internal.json $(DIGGER) $(TARGET_DIR)
-	$(DIGGER) -m Hardware -M coq_LLI                                  \
-	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-	    -m MALInternal -d :MALInternal.json                           \
-	    -m MAL -d :MAL.json                                           \
-	    -m ADT -m Nat                                                 \
-	    -q maldefines.h                                               \
-	    --ignore coq_N                                                \
-	    --header                                                      \
-	    $< -o $@
+	$(DIGGER) $(DIGGERFLAGS) --ignore coq_N --header $< -o $@
 
 $(TARGET_DIR)/Services.c: Services.json $(DIGGER) $(TARGET_DIR)/Internal.h
-	$(DIGGER) -m Hardware -M coq_LLI                                  \
-	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-	    -m MALInternal -d :MALInternal.json                           \
-	    -m MAL -d :MAL.json                                           \
-	    -m ADT -m Nat                                                 \
-	    -m Internal -d :Internal.json                                 \
-	    -q maldefines.h -q Internal.h                                 \
-	    $< -o $@
+	$(DIGGER) $(DIGGERFLAGS) -m Internal -d :Internal.json -q Internal.h $< -o $@
 
 proofs: $(VOBJECTS)
 
