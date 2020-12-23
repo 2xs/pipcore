@@ -75,7 +75,7 @@ VSOURCES=$(VCODESOURCES) $(VPROOFSOURCES)
 VOBJECTS=$(VSOURCES:.v=.vo)
 
 # JSON files extracted from Coq
-JSONS=Internal.json Services.json ServicesHandler.json
+JSONS=Internal.json Services.json
 EXTRACTEDCSOURCES=$(addprefix $(TARGET_DIR)/, $(JSONS:.json=.c))
 
 # Coq options
@@ -169,25 +169,6 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -q maldefines.h -q Internal.h                                 \
 	    Services.json                                                 \
 	      > $(TARGET_DIR)/Services.c
-	$(DIGGER) -m Hardware -M coq_LLI                                  \
-	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-	    -m MALInternal -d :MALInternal.json                           \
-	    -m MAL -d :MAL.json                                           \
-	    -m ADT -m Nat                                                 \
-	    -m Internal -d :Internal.json                                 \
-	    -q maldefines.h -q Internal.h                                 \
-		--header													  \
-	    Services.json                                                 \
-	      -o $(TARGET_DIR)/Services.h
-	$(DIGGER) -m Hardware -M coq_LLI                                  \
-	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
-	    -m MALInternal -d :MALInternal.json                           \
-	    -m MAL -d :MAL.json                                           \
-	    -m ADT -m Nat                                                 \
-	    -q maldefines.h -q Services.h                                 \
-	    --ignore coq_N                                                \
-	    ServicesHandler.json                                          \
-	     | $(SED) -e "s/Services_//g" > $(TARGET_DIR)/ServicesHandler.c	
 
 proofs: $(VOBJECTS)
 
