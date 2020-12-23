@@ -97,9 +97,9 @@ Inductive result (A : Type) : Type :=
 (* | hlt : result A *)
 | undef : nat -> state-> result A.
 
-Implicit Arguments val [ A ].
-(* Implicit Arguments hlt [ A ]. *)
-Implicit Arguments undef [ A ]. 
+Arguments val [ A ].
+(* Arguments hlt [ A ]. *)
+Arguments undef [ A ]. 
 
 
 Definition LLI (A :Type) : Type := state -> result (A * state).
