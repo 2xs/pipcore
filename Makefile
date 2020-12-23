@@ -117,8 +117,7 @@ all: $(TARGET_DIR)/$(KERNEL_ELF) proofs doc
 
 kernel: $(TARGET_DIR)/$(KERNEL_ELF)
 
-$(TARGET_DIR)/$(KERNEL_ELF): $(TARGET_DIR) $(LINKSCRIPT) makefile.dep extract \
-			     $(COBJ) $(AOBJ)
+$(TARGET_DIR)/$(KERNEL_ELF): $(TARGET_DIR) $(LINKSCRIPT) makefile.dep $(COBJ) $(AOBJ)
 	$(LD) $(AOBJ) $(COBJ) $(LDFLAGS) -T$(SRC_DIR)/boot/$(TARGET)/link.ld -o $@
 
 linker: $(LINKSCRIPT)
