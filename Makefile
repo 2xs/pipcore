@@ -136,12 +136,12 @@ $(DIGGER):
 	make -C $(DIGGER_DIR)
 
 # Extract C code from Coq source
-$(JSONS): src/model/Extraction.vo
-
-src/model/Extraction.vo: src/model/Extraction.v
+src/model/Extraction.vo $(JSONS): src/model/Extraction.v
 	$(COQC) $(COQOPTS) -w all $<
 
-extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
+extract: $(EXTRACTEDCSOURCES)
+
+$(TARGET_DIR)/Internal.c: Internal.json $(DIGGER) $(TARGET_DIR)
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
 	    -m MALInternal -d :MALInternal.json                           \
@@ -149,8 +149,9 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -m ADT -m Nat                                                 \
 	    -q maldefines.h                                               \
 	    --ignore coq_N                                                \
-	    Internal.json                                                 \
-	      > $(TARGET_DIR)/Internal.c
+	    $< -o $@
+
+$(TARGET_DIR)/Internal.h: Internal.json $(DIGGER) $(TARGET_DIR)
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
 	    -m MALInternal -d :MALInternal.json                           \
@@ -159,7 +160,9 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -q maldefines.h                                               \
 	    --ignore coq_N                                                \
 	    --header                                                      \
-	    Internal.json -o $(TARGET_DIR)/Internal.h
+	    $< -o $@
+
+$(TARGET_DIR)/Services.c: Services.json $(DIGGER) $(TARGET_DIR)/Internal.h
 	$(DIGGER) -m Hardware -M coq_LLI                                  \
 	    -m Datatypes -r Coq_true:true -r Coq_false:false -r Coq_tt:tt \
 	    -m MALInternal -d :MALInternal.json                           \
@@ -167,8 +170,7 @@ extract: $(DIGGER) $(TARGET_DIR) $(JSONS)
 	    -m ADT -m Nat                                                 \
 	    -m Internal -d :Internal.json                                 \
 	    -q maldefines.h -q Internal.h                                 \
-	    Services.json                                                 \
-	      > $(TARGET_DIR)/Services.c
+	    $< -o $@
 
 proofs: $(VOBJECTS)
 
