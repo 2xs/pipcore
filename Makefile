@@ -36,7 +36,7 @@ KERNEL_ADDR=0x100000
 PARTITION_ADDR=0x700000
 STACK_ADDR=0x300000
 TARGET=x86_multiboot
-PARTITION=minimal
+PARTITION=nullpartition
 
 LOGLEVEL=TRACE
 
@@ -200,7 +200,15 @@ $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
 	$(AS) $(ASFLAGS) -o $@ $(TARGET_DIR)/multiplexer.s
 
 $(TARGET_DIR)/$(PARTITION).bin:
-	cp $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)/$(PARTITION).bin $@
+	if test "$(PARTITION)" = nullpartition; then                                        \
+		echo "Warning: using a dummy empty root partition to build Pip" ;           \
+		echo "  You should create a real partition and run" ;                       \
+		echo "    make PARTITION=YourPartition ..." ;                               \
+		echo "  to get a useful kernel image" ;                                     \
+		touch $@ ;                                                                  \
+	else                                                                                \
+		cp $(SRC_DIR)/partitions/$(ARCHITECTURE)/$(PARTITION)/$(PARTITION).bin $@ ; \
+	fi
 
 gdb:
 	gdb $(GDBARGS)
