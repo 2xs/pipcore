@@ -128,9 +128,8 @@ $(LINKSCRIPT): $(LINKSCRIPT).template
 	       -e "s/__KERNEL_STACK_ADDR__/$(STACK_ADDR)/g"           \
 	       $< > $@
 
-# Use GCC to generate rules, convert multi-lines rules to single lines, remove empty lines and use $(BUILD_DIR) as target
 makefile.dep:
-	$(CC) $(CFLAGS) -MM $(CSOURCES) | perl -pe 's/(\\[\r\n]+)//' | awk 'NF > 0' | $(SED) "s|^|$(TARGET_DIR)/|g" > $@
+	$(CC) $(CFLAGS) -MM -MG $(CSOURCES) | $(SED) -e '/:/s|^|$(TARGET_DIR)/|' -e 's|Internal.h|$(TARGET_DIR)\/Internal.h|g' > $@
 
 $(DIGGER):
 	make -C $(DIGGER_DIR)
