@@ -183,9 +183,11 @@ $(TARGET_DIR)/%.o: $(SRC_DIR)/IAL/$(TARGET)/%.s
 	$(AS) $(ASFLAGS) $< -o $@
 
 # Implicit rules for Coq source files
-$(addsuffix .d,$(VSOURCES)): %.v.d: %.v
-	@echo COQDEP "$<"
-	@$(COQDEP) $(COQOPTS) "$<" > "$@" || ( RV=$$?; rm -f "$@"; exit $${RV} )
+$(addsuffix .d,$(filter-out src/model/Extraction.v,$(VSOURCES))): %.v.d: %.v
+	$(COQDEP) $(COQOPTS) "$<" > "$@"
+
+src/model/Extraction.v.d: src/model/Extraction.v
+	$(COQDEP) $(COQOPTS) "$<" | $(SED) 's/Extraction.vo/Extraction.vo Internal.json Services.json/' > "$@"
 
 %.vo: %.v
 	$(COQC) $(COQOPTS) $<
