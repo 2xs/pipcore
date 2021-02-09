@@ -20,6 +20,9 @@ makefile.autocoq
 *.crashcoqide
 \#*\#
 *.vio
+*.vos
+*.vok
+*lia.cache
 
 # Misc
 *.json
