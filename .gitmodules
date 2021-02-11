@@ -1,6 +1,7 @@
 [submodule "tools/digger"]
 	path = tools/digger
 	url = https://github.com/2xs/digger
+	ignore = dirty
 [submodule "tools/dec"]
 	path = tools/dec
 	url = https://github.com/2xs/dec
