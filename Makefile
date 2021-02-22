@@ -149,7 +149,7 @@ DIGGERFLAGS += -m ADT -m Nat
 DIGGERFLAGS += -q maldefines.h
 
 $(TARGET_DIR)/Internal.c: Internal.json $(DIGGER) $(TARGET_DIR)
-	$(DIGGER) $(DIGGERFLAGS) --ignore coq_N $< -o $@
+	$(DIGGER) $(DIGGERFLAGS) --ignore coq_N -q yield_c.h $< -o $@
 
 $(TARGET_DIR)/Internal.h: Internal.json $(DIGGER) $(TARGET_DIR)
 	$(DIGGER) $(DIGGERFLAGS) --ignore coq_N --header $< -o $@
