@@ -135,6 +135,7 @@ typedef uint32_t preLevel;
 /* boolVAddr */
 typedef uint32_t boolvaddr;
 
+/* FIXME */
 #define maxFreeLL() ((tableSize / 2) - 2)
 
 #endif

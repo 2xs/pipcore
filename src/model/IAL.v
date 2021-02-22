@@ -23,13 +23,14 @@ Program Definition userValueToIndex (userIndex : userValue) : LLI index :=
     ret (Build_index userIndex _ )
   else undefined 85.
 
-Definition readUserlandVAddr (paddr : page) (idx : index)  : LLI vaddr :=
+(* Use readVirtualUser *)
+(* Definition readUserlandVAddr (paddr : page) (idx : index)  : LLI vaddr :=
   perform s := get in
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
   match entry with
   | Some (VA a) => ret a
   | _ => ret defaultVAddr
-  end.
+  end. *)
 
 Definition FAIL_VINT := FAIL_VINT_Cons.
 Definition FAIL_CTX_SAVE_INDEX := FAIL_CTX_SAVE_INDEX_Cons.

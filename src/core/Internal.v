@@ -862,7 +862,7 @@ perform vidtVaddr := getVidtVAddr in
 perform vidtIsAccessible := isVAddrAccessible vidtVaddr pageDirectory in
 ret vidtIsAccessible.
 
-Definition getContextEndAddr (contextAddr : vaddr) : LLI vaddr :=
+(* Definition getContextEndAddr (contextAddr : vaddr) : LLI vaddr :=
   perform contextEndAddr := getNthVAddrFrom contextAddr contextSizeMinusOne in
-  ret contextEndAddr.
+  ret contextEndAddr. *)
 

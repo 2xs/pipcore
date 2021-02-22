@@ -294,6 +294,8 @@ Definition getPd partition :=
   perform idxPD := getPDidx in
   perform idx := MALInternal.Index.succ idxPD in
   readPhysical partition idx.
+
+(* TODO use uservalues *)
 Definition readVirtualUser paddr idx : LLI vaddr :=
   perform s := get in
   let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
