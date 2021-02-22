@@ -503,3 +503,9 @@ void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t ad
     writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
     return;
 }
+
+/* Combines a boolean and a virtual address (boolean on the least significant bit) */
+uint32_t prepareType(int b, uint32_t vaddr)
+{
+    return (vaddr & ~1) | (b ? 1 : 0);
+}

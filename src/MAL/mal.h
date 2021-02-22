@@ -122,4 +122,6 @@ void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr,
 void writeKPhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute); //!< Write a physical entry with all the possible flags we might need
 uint32_t extractPreIndex(uint32_t vaddr, uint32_t index);
 
+uint32_t prepareType(int b, uint32_t vaddr);
+
 #endif

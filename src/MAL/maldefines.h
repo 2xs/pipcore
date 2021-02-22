@@ -131,6 +131,9 @@ typedef uint32_t preLevel;
 #define maxprelevel (nbLevel - 1)
 #define coq_N   1000
 
+/* boolVAddr */
+typedef uint32_t boolvaddr;
+
 #define maxFreeLL() ((tableSize / 2) - 2)
 
 #endif
