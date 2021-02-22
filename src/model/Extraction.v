@@ -35,16 +35,30 @@
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
 Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
-Require Import Extraction.
-
+Require Extraction.
 Extraction Language JSON.
 
 (** Coq standard library *)
-(* Tell Coq to extract those names verbatim, instead of using if-then-else *)
-Extract Inlined Constant andb => "andb".
-Extract Inlined Constant orb => "orb".
+Extract Inductive unit => "()" [ "()" ].
+Extract Inductive bool => "Bool" [ "True" "False" ].
+Extract Inlined Constant ret => "return".
+Extract Inlined Constant negb => "not".
+Extract Inlined Constant andb => "(&&)".
+Extract Inlined Constant bind => "(>>=)".
+Extract Inlined Constant orb => "(||)".
+Extract Inductive nat => Int [ "0" "succ" ]. (* only for recursion bound *) 
+
+(** Types and functions used by Services and Internal *)
+Extract Inductive index => "index" [ "index"]. 
+Extract Inductive page => "page" [ "page"].
+Extract Inductive vaddr => "vaddr" [ "vaddr"].
+Extract Inductive Pentry => "Pentry" [ "Pentry"].
+Extract Inductive Ventry => "Ventry" [ "Ventry"].
+Extract Inductive level => "level" [ "level"].
+Extract Inductive count => "Count" [ "Count"].
 
 (** EXTRACTION *)
+Extraction Library IAL.
 Extraction Library MALInternal. 
 Extraction Library MAL.
 Extraction Library Internal .

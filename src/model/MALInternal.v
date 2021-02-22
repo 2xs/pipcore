@@ -41,7 +41,9 @@ Require Import List Arith Omega.
 (** Define some constants *)
 (** default values *)
 Definition defaultIndex := CIndex 0.
-Definition defaultVAddr := CVaddr (repeat (CIndex 0) nbLevel).
+Definition defaultVAddr := CVaddr (repeat (CIndex 0) (nbLevel+1)).
+Definition lastVAddr := CVaddr (repeat (CIndex (tableSize - 1)) (nbLevel+1)).
+Definition vidtVAddr := CVaddr ((repeat (CIndex (tableSize - 1)) (nbLevel))++((CIndex 0)::nil)).
 Definition defaultPage := CPage 0.
 
 (** Define first level number *)
@@ -68,6 +70,8 @@ Definition PPRidx := CIndex 10. (* parent (virtual address is null) *)
 (** Define getter for each constant *)
 Definition getDefaultVAddr :=  ret defaultVAddr.
 Definition getDefaultPage := ret defaultPage.
+Definition getVidtVAddr := ret vidtVAddr.
+Definition getLastVAddr := ret lastVAddr.
 Definition getKidx : LLI index:= ret Kidx.
 Definition getPRidx : LLI index:= ret PRidx.
 Definition getPDidx : LLI index:= ret PDidx.
@@ -89,6 +93,7 @@ Definition ltb (a b : index) : LLI bool := ret (a <? b).
 Definition gtb (a b : index) : LLI bool := ret (b <? a).
 Definition eqb (a b : index) : LLI bool := ret (a =? b). 
 Program Definition zero : LLI index:= ret (Build_index 0 _).
+Definition const3 := ret (CIndex 3).
 Next Obligation.
 assert (tableSize > 14).
 apply tableSizeBigEnough.
@@ -115,8 +120,8 @@ then
 else  undefined 28.
 (* Next Obligation.
   omega.
-  Qed.
-  *)
+Qed.
+ *)
 End Index. 
 
 Module Page.
@@ -164,10 +169,13 @@ Program Definition zero : LLI count :=  ret (Build_count 0 _).
 Next Obligation.
 omega.
 Qed.
+Definition eqb (a b : count) : LLI bool := ret (b =? a).
+
 Program Definition succ (n : count) : LLI count :=
 let isucc := n+1 in
 if le_dec isucc ((3*nbLevel) + 1)
 then
   ret (Build_count isucc _ )
 else  undefined 34.
+
 End Count.

@@ -178,6 +178,7 @@ Definition readIndex  (paddr : page) (idx : index) : LLI index:=
   let entry := lookup paddr idx s.(memory) beqPage beqIndex in
   match entry with
   | Some (I e) =>  ret e
+  | Some (VA _) => undefined 240
   | Some _ => undefined 24
   | None => undefined 23
   end.
@@ -204,6 +205,31 @@ Qed.
 
 (* END NOT SIMULATION *)
 
+(** The 'maxFreeLL' function returns the maximum number of entrie (phy/vaddr) into LL table
+*) 
+Program Definition maxFreeLL : LLI index := 
+ret (Build_index ((Coq.Init.Nat.div2 tableSize) - 2) _).
+Next Obligation.
+assert (tableSize > tableSizeLowerBound) by apply tableSizeBigEnough.
+(* BEGIN SIMULATION
+unfold tableSizeLowerBound in *.
+omega.
+Qed.
+   END SIMULATION *)
+
+(* BEGIN NOT SIMULATION *)
+
+assert (tableSize > 0).
+unfold tableSizeLowerBound in *.
+omega.
+assert(Hkey : Init.Nat.div2 tableSize < tableSize). 
+apply NPeano.Nat.lt_div2; trivial.
+omega.
+Qed.
+(* END NOT SIMULATION *)
+
+
+
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
   ret ( nth ((length va) - (l + 2)) va defaultIndex ).
@@ -218,6 +244,9 @@ Next Obligation.
 omega.
 Qed.
 (* END NOT SIMULATION *)
+
+Definition prepareType (val1 : bool) (val2 : vaddr) : LLI boolvaddr :=
+ret (Build_boolvaddr val1 val2).
 
 (** The 'getCurPartition' function returns the current Partition from the current state *)
 Definition getCurPartition : LLI page:=
@@ -265,7 +294,14 @@ Definition getPd partition :=
   perform idxPD := getPDidx in
   perform idx := MALInternal.Index.succ idxPD in
   readPhysical partition idx.
-
+Definition readVirtualUser paddr idx : LLI vaddr :=
+  perform s := get in
+  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  match entry with
+  | Some (VA a) => ret a
+  | Some _ => getDefaultVAddr
+  | None => getDefaultVAddr
+  end.
 (** The 'fetchVirtual' function translates the given virtual address to physical address in the 
     current partition and read the value stored into the physical address. This value is a 
     virtual address  *)
@@ -276,7 +312,7 @@ Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
   perform optionphyPage := translate currentPD va nbL in
   match optionphyPage with 
   | None => getDefaultVAddr
-  | Some phyPage => readVirtual phyPage idx
+  | Some phyPage => readVirtualUser phyPage idx
   end.
   
 (** The 'storeVirtual' function translates the given virtual address to physical address in the 
@@ -290,3 +326,4 @@ Definition storeVirtual (va : vaddr) (idx : index) (vaToStore : vaddr) : LLI uni
   | None => ret tt
   | Some phyPage => writeVirtual phyPage idx vaToStore
   end.
+

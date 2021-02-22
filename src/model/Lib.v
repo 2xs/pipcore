@@ -31,8 +31,9 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import List NPeano Omega Coq.Logic.Classical_Prop Bool.
+Require Import List NPeano Omega Coq.Logic.Classical_Prop Bool Model.ADT Coq.Program.Tactics.
 Import List.ListNotations.
+
 
 (** * Summary 
     This file contains required functions to manipulate an association list *) 
@@ -60,3 +61,116 @@ Fixpoint removeDup {A B C: Type} (k : A) (i : B) (assoc : list ((A * B)*C) )(eqA
 
 Definition add {A B C: Type} (k : A) (i : B) (v : C) (assoc : list ((A * B)*C) ) (eqA : A -> A -> bool) (eqB : B -> B -> bool)  :=
   (k,i,v) :: removeDup k i assoc eqA eqB.
+
+Program Fixpoint getNextVaddrAux (indexList : list index) : bool * (list index) :=
+match indexList with
+| nil   =>  (true, nil)
+| h::t  =>  if (fst (getNextVaddrAux t)) then
+              if (Nat.eq_dec (h+1) tableSize) then
+                (true, (Build_index 0 _)::(snd (getNextVaddrAux t)))
+              else
+                (false, (Build_index (h+1) _::(snd (getNextVaddrAux t))))
+            else
+                (false, (Build_index h _::(snd (getNextVaddrAux t))))
+end.
+
+Next Obligation.
+destruct tableSizeBigEnough.
+unfold tableSizeLowerBound.
+apply neq_0_lt.
+trivial.
+unfold tableSizeLowerBound in g.
+apply Nat.lt_0_succ.
+Qed.
+
+Next Obligation.
+assert(i h < tableSize) by (apply (ADT.Hi h)).
+destruct h.
+simpl in *.
+omega.
+Qed.
+
+Next Obligation.
+apply (ADT.Hi h).
+Qed.
+
+Definition getNextVaddr (va : vaddr) : vaddr :=
+CVaddr (snd (getNextVaddrAux va)).
+
+Fixpoint getNthVAddrFromAux (start : vaddr) (range : nat) : vaddr :=
+match range with
+| 0   => start
+| S n => getNthVAddrFromAux (getNextVaddr start) n
+end.
+
+
+Obligation Tactic := idtac.
+
+Program Fixpoint firstVAddrGreaterThanSecondAux (firstIndexList secondIndexList : list index)
+(HlenVAddr   : length firstIndexList = length secondIndexList)
+: bool :=
+match (firstIndexList, secondIndexList) with
+| (nil, nil) => true
+| (hf::tf, hs::ts) => let hs_le_hf := Nat.leb hs hf in
+                      if (hs_le_hf) then
+                        true
+                      else
+                      let differentHeads := negb (Nat.eqb hf hs) in
+                      if (differentHeads) then
+                        false
+                      else
+                        firstVAddrGreaterThanSecondAux tf ts _
+| (_,_) => False_rect _ _
+end.
+
+Next Obligation.
+cbn.
+intros firstIndexList secondIndexList HlenVAddr hf tf hs ts [=Hfirst Hsecond].
+subst.
+injection HlenVAddr.
+trivial.
+Qed.
+
+Next Obligation.
+cbn.
+intros firstIndexList secondIndexList HlenVAddr someIndexList someIndexList2.
+case_eq someIndexList.
+- case_eq someIndexList2.
+  * intros.
+    destruct H1.
+    contradict H2.
+    reflexivity.
+  * intros.
+    injection Heq_anonymous.
+    intros.
+    subst.
+    contradict HlenVAddr.
+    unfold length.
+    trivial.
+- case_eq someIndexList2.
+  * intros.
+    injection Heq_anonymous.
+    intros.
+    subst.
+    contradict HlenVAddr.
+    unfold length.
+    apply Nat.neq_succ_0.
+  * intros.
+    destruct H1.
+    apply (H1 i0 l0 i l).
+    trivial.
+Qed.
+
+Next Obligation.
+cbn.
+intros.
+split; intros; unfold not; intro; inversion H1.
+Qed.
+
+Next Obligation.
+cbn.
+intros.
+split; intros; unfold not; intro; inversion H1.
+Qed.
+
+Obligation Tactic := program_simpl.
