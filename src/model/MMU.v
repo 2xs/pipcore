@@ -36,7 +36,7 @@
      virtual memory addresses to physical addresses *)
 
 Require Import Model.ADT Model.Hardware Model.Lib Model.MALInternal .
-Require Import Arith Bool NPeano List Omega.
+Require Import Arith Bool NPeano List.
 (** The 'comparePageToNull' returns true if the given page is equal to the fixed
     default page (null) *) 
 Definition comparePageToNull (p :page) : LLI bool :=

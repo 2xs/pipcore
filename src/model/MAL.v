@@ -36,7 +36,7 @@
     write data into physical memory  *)
 Require Export Model.MALInternal. 
 Require Import Model.ADT Model.Hardware Model.Lib Model.MMU.
-Require Import Arith Bool NPeano List Omega.
+Require Import Arith Bool NPeano List Lia.
 
 (** Memory access : read and write functions for each data type "vaddr", "page", 
     "index", "Count", "level", "bool" (control flags) *)
@@ -200,7 +200,7 @@ else undefined 36.
 (* BEGIN NOT SIMULATION *)
 
 Next Obligation.
-omega.
+lia.
 Qed.
 
 (* END NOT SIMULATION *)
@@ -221,10 +221,10 @@ Qed.
 
 assert (tableSize > 0).
 unfold tableSizeLowerBound in *.
-omega.
+lia.
 assert(Hkey : Init.Nat.div2 tableSize < tableSize). 
 apply NPeano.Nat.lt_div2; trivial.
-omega.
+lia.
 Qed.
 (* END NOT SIMULATION *)
 
@@ -241,7 +241,7 @@ then
   ret (Build_level (nbLevel -1) _ ) else undefined 35.
 (* BEGIN NOT SIMULATION *)
 Next Obligation.
-omega.
+lia.
 Qed.
 (* END NOT SIMULATION *)
 

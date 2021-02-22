@@ -36,7 +36,7 @@
     and the module definition of each abstract data type in which we define required
     monadic functions  *)
 Require Import Model.ADT Model.Hardware Model.Lib. 
-Require Import List Arith Omega.
+Require Import List Arith Lia.
 
 (** Define some constants *)
 (** default values *)
@@ -97,7 +97,7 @@ Definition const3 := ret (CIndex 3).
 Next Obligation.
 assert (tableSize > 14).
 apply tableSizeBigEnough.
-omega.
+lia.
 Qed.
 
 Program Definition pred (n : index) : LLI index :=
@@ -108,7 +108,7 @@ then
   ret ( Build_index ipred _)
 else  undefined 27.
 Next Obligation.
-omega.
+lia.
 Qed.
 
 Program Definition succ (n : index) : LLI index :=
@@ -136,7 +136,7 @@ then
   ret (Build_level ipred _ )
 else  undefined 30.
 Next Obligation.
-destruct n;simpl;omega.
+destruct n;simpl;lia.
 Qed.
 
 Program Definition succ (n : level) : LLI level :=
@@ -162,12 +162,12 @@ destruct a; simpl.
 (* BEGIN SIMULATION
   unfold nbLevel in Hl.
    END SIMULATION *)
-omega.
+lia.
 Qed.
 Definition geb (a b : count) : LLI bool := ret (b <=? a).
 Program Definition zero : LLI count :=  ret (Build_count 0 _).
 Next Obligation.
-omega.
+lia.
 Qed.
 Definition eqb (a b : count) : LLI bool := ret (b =? a).
 

@@ -31,7 +31,7 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import List NPeano Omega Coq.Logic.Classical_Prop Bool Model.ADT Coq.Program.Tactics.
+Require Import List PeanoNat Lt Lia Coq.Logic.Classical_Prop Bool Model.ADT Coq.Program.Tactics.
 Import List.ListNotations.
 
 
@@ -87,7 +87,7 @@ Next Obligation.
 assert(i h < tableSize) by (apply (ADT.Hi h)).
 destruct h.
 simpl in *.
-omega.
+lia.
 Qed.
 
 Next Obligation.

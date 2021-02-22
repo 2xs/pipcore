@@ -33,7 +33,7 @@
 
 (**  * Summary 
       The Abstraction Data Type : In this file we define types used by memory Services *)
-Require Import List Bool Arith Omega. 
+Require Import List Bool Arith.
 Import List.ListNotations.
 
 (* BEGIN SIMULATION
