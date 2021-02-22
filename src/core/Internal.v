@@ -582,7 +582,7 @@ readIndex sh3 oneI.
 Fixpoint checkEnoughEntriesLLAux timeout (LL : page) (* the table *)
  : LLI page:= 
 match timeout with
- | 0 => ret defaultPage
+ | 0 => getDefaultPage
  | S timeout1 =>
   perform threeI := MALInternal.Index.const3 in
   (* this entry contains the number of available entries *)
@@ -596,7 +596,7 @@ match timeout with
    perform nextLL :=  readPhysical LL maxidx in
    perform isNull := comparePageToNull nextLL in 
    if isNull 
-   then ret defaultPage (* No available pages *)
+   then getDefaultPage (* No available pages *)
    else
     checkEnoughEntriesLLAux timeout1 nextLL
 end.
@@ -606,7 +606,7 @@ checkEnoughEntriesLLAux nbPage lasttable.
 
 Fixpoint checkEnoughEntriesLLToPrepareAllAux timeout fstLLtable nbL :=
 match timeout with
- | 0 => ret defaultPage
+ | 0 => getDefaultPage
  | S timeout1 =>
     perform islevel0 := Level.eqb nbL fstLevel in
     if islevel0 
@@ -614,7 +614,7 @@ match timeout with
     else 
       perform nextLLtable := checkEnoughEntriesLinkedList fstLLtable  in 
       perform isNull := comparePageToNull nextLLtable in 
-      if (isNull) then   ret defaultPage
+      if (isNull) then   getDefaultPage
       else 
         perform nbLpred := MALInternal.Level.pred nbL in 
         checkEnoughEntriesLLToPrepareAllAux timeout1 nextLLtable nbLpred
