@@ -1120,7 +1120,7 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
     else ret false
   else ret false.
 
-
+(* 
 
 Definition switchContextCont (calleePartDesc : page)
                              (calleePageDir  : page)
@@ -1532,4 +1532,4 @@ Definition checkIntLevelCont (calleePartDescVAddr : vaddr)
 				              userCallerContextSaveIndex
 				              flagsOnYield
 				              flagsOnWake
-				              callerInterruptedContext.
+				              callerInterruptedContext. *)
