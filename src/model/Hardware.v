@@ -161,9 +161,11 @@ match m s with
    |undef _ _=> None 
    | val (_, s') => Some s'
    end. 
- 
+
+Declare Scope state_scope.
+
 Notation "'perform' x ':=' m 'in' e" := (bind m (fun x => e))
-  (at level 60, x ident, m at level 200, e at level 60, format "'[v' '[' 'perform'  x  ':='  m  'in' ']' '/' '[' e ']' ']'") : state_scope.
+  (at level 60, x name, m at level 200, e at level 60, format "'[v' '[' 'perform'  x  ':='  m  'in' ']' '/' '[' e ']' ']'") : state_scope.
 
 Notation "m1 ;; m2" := (bind m1 (fun _ => m2)) (at level 60, right associativity) : state_scope.
 
