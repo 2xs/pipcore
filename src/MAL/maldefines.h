@@ -61,6 +61,8 @@ typedef uintptr_t vaddr;
 #define VAddr_eqbList   addressEquals
 #define beqVAddr        addressEquals
 
+extern uint32_t getVidtVAddr(void);
+
 /* Index */
 typedef uint32_t index;
 
@@ -77,6 +79,7 @@ typedef uint32_t index;
 #define Index_pred sub
 #define Index_eqb  eqb
 #define Index_zero zero
+#define Index_const3() 3
 #define Index_geb  geb
 #define Index_gtb  gtb
 #define Index_leb  leb
@@ -127,5 +130,7 @@ typedef uint32_t preLevel;
 #define succNbLevel (nbLevel + 1)
 #define maxprelevel (nbLevel - 1)
 #define coq_N   1000
+
+#define maxFreeLL() ((tableSize / 2) - 2)
 
 #endif
