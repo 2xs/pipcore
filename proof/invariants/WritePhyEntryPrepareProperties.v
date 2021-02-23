@@ -6618,8 +6618,8 @@ intuition.
 + (** currentPartitionInPartitionsList **)
  eapply currentPartitionInPartitionsListAddIndirection;trivial;try eassumption;trivial.
 + (** noDupMappedPagesList**)
- eapply noDupMappedPagesListAddIndirection;trivial;try eassumption;trivial.
-+ 
+ (* eapply noDupMappedPagesListAddIndirection;trivial;try eassumption;trivial.
++  *)
 
 Admitted.
 
