@@ -887,9 +887,9 @@ Qed.
 
 Lemma updateCurPartAndActivate (partDesc pageDir : page)
 (P : unit -> state -> Prop) :
-{{fun s => P tt {|
+{{ fun s => P tt {|
   currentPartition := partDesc;
-  memory := memory s |}}}
+  memory := memory s |} }}
 updateCurPartAndActivate partDesc pageDir
 {{P}}.
 Proof.
