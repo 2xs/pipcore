@@ -2179,8 +2179,6 @@ intros * Hnotnull Hnodup Hn0  Hind .
 case_eq (StateLib.Level.eqb l fstLevel);intros * Hl0;rewrite Hl0 in *.
 - inversion Hind;subst.
 apply IHn with p va l;trivial.
-SearchAbout getIndirectionsAux NoDup.
-
 apply noDupPreviousMMULevels with (S(n + m));trivial.
 omega. omega.
 destruct n;simpl;trivial.
