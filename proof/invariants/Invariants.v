@@ -1250,6 +1250,7 @@ simpl.
 trivial.
 Qed.
 
+(*
 Lemma readUserlandVAddr  (paddr : page) ( idx : index) (P : state -> Prop) :
 {{fun s => P s}}
 readUserlandVAddr paddr idx
@@ -1262,6 +1263,7 @@ intros.
 case_eq (lookup paddr idx (memory s) beqPage beqIndex); intros; try assumption.
 case_eq v; intros; assumption.
 Qed.
+*)
 
 Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : state -> Prop) :
 {{fun s => P s}}

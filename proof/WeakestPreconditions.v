@@ -812,6 +812,7 @@ Proof.
 apply ret.
 Qed.
 
+(*
 Lemma readUserlandVAddr (paddr : page) ( idx : index) (P : vaddr -> state -> Prop):
 {{fun s => 
   match (lookup paddr idx s.(memory) beqPage beqIndex) with
@@ -841,6 +842,7 @@ eapply bindRev.
     intuition ; eapply ret ; subst; trivial.
   + intros v. eapply weaken. eapply ret. intuition subst. assumption.
 Qed.
+*)
 
 Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : vaddr -> state -> Prop):
 {{fun s => P (getNthVAddrFromAux va n) s}}
