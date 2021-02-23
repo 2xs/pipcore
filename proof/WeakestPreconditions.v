@@ -34,7 +34,7 @@
 (** * Summary  
     In this file we formalize and prove the weakest precondition of the 
     MAL and MALInternal functions *)
-Require Import Model.ADT Model.Hardware Model.MAL Model.Lib 
+Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Model.IAL
 Omega List StateLib.
 Lemma ret  (A : Type) (a : A) (P : A -> state -> Prop) : {{ P a }} ret a {{ P }}.
 Proof.
@@ -223,6 +223,23 @@ unfold tableSize in *.
    END SIMULATION *)
 omega.
 Qed.
+Lemma pred  (idx : index) (P: index -> state -> Prop) :
+{{ fun s : state => idx > 0 /\ forall Hi : idx - 1 < tableSize,  
+                   P {| i := idx -1; Hi := Hi |} s }} MALInternal.Index.pred idx {{ P }}.
+Proof.
+unfold MALInternal.Index.pred.
+destruct idx.
+simpl.
+case_eq ( gt_dec i 0) .
+intros.
+eapply weaken.
+eapply ret .
+intros. intuition.
+intros. eapply weaken.
+eapply undefined .
+simpl. intros.
+omega.
+Qed.
 End Index.
 
 Module Level.
@@ -364,6 +381,45 @@ eapply bind .
        rewrite Hpage in Hpage'.
        subst. inversion Hpage'.
   - eapply weaken. eapply get . intuition.  
+Qed.
+
+Lemma readVirtualUser  table idx  (P : vaddr -> state -> Prop) :
+{{fun  s => match lookup table idx s.(memory) beqPage beqIndex with 
+| Some ( VA a) => P a s
+| _ => P defaultVAddr s 
+end  }} MAL.readVirtualUser table idx {{P}}.
+Proof.
+unfold readVirtualUser.
+eapply bind .
+  - intro s. simpl. 
+    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+     + intros v Hpage.
+       instantiate (1:= fun s s0 => s=s0 /\match lookup table idx s.(memory) beqPage beqIndex with 
+                    | Some ( VA entry) => P entry s
+                    | _ => P defaultVAddr s 
+                    end ).
+      case_eq v; intros;subst;
+      subst;eapply weaken.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H& H0);subst;rewrite Hpage in H0;trivial.
+    + intros. eapply weaken.
+      try eapply ret ;simpl.
+      intros s0 H0; destruct H0 as (H0& H1);subst;rewrite H in H1;trivial.
+ - eapply weaken. eapply get . intuition.  
 Qed.
 
 Lemma writePhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> state -> Prop) :
@@ -551,35 +607,24 @@ intros s.
 simpl.
 case_eq (lookup table idx s.(memory) beqPage beqIndex).
 - intros v Hentry.
-
-  case_eq v; [| intros;
- simpl;
- eapply weaken;
-try eapply modify ;
-intros; simpl;
-destruct H0 as  (Hs &ve & Htrue & Hp);
-inversion Htrue;subst;
-assumption | | |];
-  
-    intros;
-    eapply weaken;
-    try eapply undefined ;simpl;
-    intros;simpl in *;
-    intuition;
-    subst;
-    destruct H2 as (v &Hv & Hp);
-    inversion Hv;
-    intros.
- - intros;
-    eapply weaken;
-    try eapply undefined ;simpl;
-    intros;simpl in *;
-    intuition;
-    subst;
-    destruct H2 as (v &Hv & Hp);
-    inversion Hv;
-    intros.
-    Qed.
+  simpl in *.
+  case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
+  subst;
+  cbn; intros;   
+  try destruct H as (Hs & x & H1 & Hp); subst;
+  try rewrite H1 in Hentry; inversion Hentry; subst; try now contradict H1.
+  try eapply modify.
+  simpl. inversion H1. subst. assumption.
+- intros;
+  eapply weaken;
+  try eapply undefined ;simpl;
+  intros;simpl in *;
+  intuition;
+  subst;
+  destruct H2 as (v &Hv & Hp);
+  inversion Hv;
+  intros.
+Qed.
     
 Lemma readAccessible  table idx (P : bool -> state -> Prop) : 
 {{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
@@ -613,12 +658,12 @@ Lemma getNbLevel  (P : level -> state -> Prop) :
 {{fun s => nbLevel > 0  /\ (forall H, P {|
            l := nbLevel -1;
            Hl := MAL.getNbLevel_obligation_1 H
-           |}  s) }} 
+           |}  s) }}
 MAL.getNbLevel 
 {{P}}.
 Proof.
 unfold MAL.getNbLevel.
-eapply weaken. 
+eapply weaken.
 - instantiate (1:= fun s => nbLevel > 0 /\ forall H , P {|
            l := nbLevel-1;
            Hl := MAL.getNbLevel_obligation_1 H|}  s) .
@@ -677,6 +722,31 @@ eapply bind .
   - eapply weaken.
    eapply get . intuition.
 Qed.
+Lemma readIndex  table idx  (P : index -> state -> Prop) :
+{{fun  s => exists ivalue : index, lookup table idx s.(memory) beqPage beqIndex = Some ( I ivalue) /\ 
+             P ivalue s }} MAL.readIndex table idx {{P}}.
+Proof.
+unfold   MAL.readIndex.
+eapply bind .
+  - intro s. simpl. 
+    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+     + intros v Hpage.
+       instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
+         lookup table idx s.(memory) beqPage beqIndex = Some (I entry) /\ P entry s).
+       simpl.
+       case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
+       intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
+       try rewrite Hpage in Hpage';
+       subst;try inversion Hpage'.
+       unfold Hardware.ret.
+       eassumption.  
+       intuition.
+     + intros Hpage; eapply weaken; try eapply undefined ;simpl.
+       intros s0 H0.  destruct H0 as (Hs & p1 & Hpage' & Hret) .
+       rewrite Hpage in Hpage'.
+       subst. inversion Hpage'.
+  - eapply weaken. eapply get . intuition.  
+Qed.
 
 Lemma activate (partitionDescriptor : page) (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
@@ -687,5 +757,148 @@ unfold activate.
 eapply weaken.
 eapply modify .
 intros. simpl.
-assumption.  
+assumption.
+Qed.
+
+Lemma checkIndexPropertyLTB (userIndex : userValue) (P : bool -> state -> Prop) :
+{{fun s => P (Nat.ltb userIndex tableSize) s }} checkIndexPropertyLTB userIndex {{P}}.
+Proof.
+unfold checkIndexPropertyLTB.
+eapply weaken.
+eapply ret.
+trivial.
+Qed.
+
+Lemma userValueToIndex (userIndex : userValue) (P : index -> state -> Prop) :
+{{fun s => userIndex < tableSize /\ P (CIndex userIndex) s}}
+  userValueToIndex userIndex
+{{P}}.
+Proof.
+unfold userValueToIndex.
+case_eq (lt_dec userIndex tableSize).
+- intro HUI_lt_TS.
+  intro.
+  unfold IAL.userValueToIndex_obligation_1.
+  eapply weaken.
+  eapply ret.
+  intros.
+  unfold CIndex in H0.
+  rewrite H in H0.
+  destruct H0.
+  trivial.
+- intro.
+  intro.
+  eapply weaken.
+  eapply undefined.
+  intros.
+  destruct H0.
+  contradict H0.
+  assumption.
+Qed.
+
+Lemma readInterruptMask (calleeVidt : page) (P : interruptMask -> state -> Prop) :
+{{ fun s => P int_mask_d s}}
+readInterruptMask calleeVidt
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma isInterruptMasked (interruptMask : interruptMask) (targetInterrupt : index) (P : bool -> state -> Prop) :
+{{fun s => P false s}}
+isInterruptMasked interruptMask targetInterrupt
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma readUserlandVAddr (paddr : page) ( idx : index) (P : vaddr -> state -> Prop):
+{{fun s => 
+  match (lookup paddr idx s.(memory) beqPage beqIndex) with
+  | Some (VA a) => P a s
+  | _ => P defaultVAddr s
+  end}}
+readUserlandVAddr paddr idx
+{{P}}.
+Proof.
+unfold readUserlandVAddr.
+eapply bindRev.
+- eapply weaken. eapply get.
+  intros s HP; simpl.
+  pattern s in HP.
+  match type of HP with 
+  | ?HT s => instantiate (1 := fun s s' => HT s /\ s = s')
+  end.
+  simpl.
+  split.
+  apply HP.
+  trivial.
+- simpl.
+  intros.
+  case_eq (lookup paddr idx a.(memory) beqPage beqIndex).
+  + intros v Hpage.
+    case_eq v; intros; subst; eapply weaken;
+    intuition ; eapply ret ; subst; trivial.
+  + intros v. eapply weaken. eapply ret. intuition subst. assumption.
+Qed.
+
+Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : vaddr -> state -> Prop):
+{{fun s => P (getNthVAddrFromAux va n) s}}
+IAL.getNthVAddrFrom va n
+{{P}}.
+Proof.
+unfold IAL.getNthVAddrFrom.
+eapply weaken.
+eapply ret.
+intros.
+assumption.
+Qed.
+
+Lemma firstVAddrGreaterThanSecond (first second : vaddr) (P : bool -> state -> Prop):
+{{fun s => P (firstVAddrGreaterThanSecondAux first second (IAL.firstVAddrGreaterThanSecond_obligation_1 first second)) s}}
+firstVAddrGreaterThanSecond first second
+{{P}}.
+Proof.
+unfold firstVAddrGreaterThanSecond.
+eapply weaken.
+eapply ret.
+trivial.
+Qed.
+
+Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+writeContext callingContextAddr contextSaveAddr flagsOnWake
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma setInterruptMask (vidt : page) (mask : interruptMask)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+setInterruptMask vidt mask
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma updateCurPartAndActivate (partDesc pageDir : page)
+(P : unit -> state -> Prop) :
+{{fun s => P tt {|
+  currentPartition := partDesc;
+  memory := memory s |}}}
+updateCurPartAndActivate partDesc pageDir
+{{P}}.
+Proof.
+unfold updateCurPartAndActivate.
+eapply bindRev.
+eapply weaken.
+apply activate.
+intros.
+cbn.
+apply H.
+intro a.
+case a.
+eapply ret.
 Qed.

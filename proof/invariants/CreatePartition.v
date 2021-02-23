@@ -176,6 +176,16 @@ eapply WP.bindRev.
           intuition          subst. trivial. 
           }
       intro currentPD. simpl. 
+(* (** getNbLevel **)      
+      eapply WP.bindRev.
+      { eapply WP.weaken.
+        eapply Invariants.getNbLevel.
+        simpl.
+        intros.
+        try repeat rewrite and_assoc in H.
+        pattern s in H.
+        eapply H.
+        }  intro level.  *)  
 (** getTableAddr **)
       eapply WP.bindRev.
       eapply WP.weaken. 
@@ -219,10 +229,10 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. 
       left. 
       split;trivial.
@@ -230,7 +240,7 @@ eapply WP.bindRev.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot' ptRefChild PDidx currentPart descChild s /\   ptRefChild = defaultPage) \/
@@ -252,7 +262,7 @@ eapply WP.bindRev.
      - assumption.  } 
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -344,17 +354,16 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
-
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;trivial.
            intro ptPDChild. simpl. 
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( (getTableAddrRoot'  ptPDChild PDidx currentPart pdChild s /\    ptPDChild = defaultPage) \/
@@ -380,7 +389,7 @@ eapply WP.bindRev.
     assert (HP := conj H0 H).
 
         pattern s in HP.
-        eapply HP.      
+        eapply HP. }     
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -475,18 +484,17 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
-
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
      intro ptSh1Child. simpl.
 
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert(( getTableAddrRoot' ptSh1Child PDidx currentPart shadow1 s /\  ptSh1Child = defaultPage) \/
@@ -508,7 +516,7 @@ eapply WP.bindRev.
        
        assert (HP := conj H0 H).
        pattern s in HP.
-       eapply HP.   
+       eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -600,16 +608,16 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptSh2Child. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert( ( getTableAddrRoot' ptSh2Child PDidx currentPart shadow2 s /\ ptSh2Child = defaultPage) \/
@@ -630,7 +638,7 @@ eapply WP.bindRev.
        assumption. }
        assert (HP := conj H0 H).
        pattern s in HP.
-       eapply HP.  
+       eapply HP. } 
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -720,17 +728,16 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | now contradict Hrootpd | 
-       subst ; assumption| now contradict Hrootpd| now contradict Hrootpd ]  |now contradict Hrootpd] | now contradict Hrootpd].
-
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptConfigPagesList. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
        assert( ( getTableAddrRoot' ptConfigPagesList PDidx currentPart list s /\ ptConfigPagesList = defaultPage) \/
@@ -750,7 +757,7 @@ eapply WP.bindRev.
        assumption. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -863,20 +870,19 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      split.     
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-       now contradict Hrootpd | 
-       subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-       |now contradict Hrootpd] | now contradict Hrootpd].
+      split.
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptRefChildFromSh1.
       simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' ptRefChildFromSh1 sh1idx currentPart descChild s /\ ptRefChildFromSh1 = defaultPage) \/
@@ -895,7 +901,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP. 
+    eapply HP. }
 (** comparePageToNull **) 
       eapply WP.bindRev.
       eapply Invariants.comparePageToNull.
@@ -966,19 +972,18 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      split.     
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-       now contradict Hrootpd | 
-       subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-       |now contradict Hrootpd] | now contradict Hrootpd].
+      split.
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptPDChildSh1. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
           
@@ -999,7 +1004,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1072,19 +1077,18 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      split.     
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-       now contradict Hrootpd | 
-       subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-       |now contradict Hrootpd] | now contradict Hrootpd].
+      split.
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro ptSh1ChildFromSh1. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' ptSh1ChildFromSh1 sh1idx currentPart shadow1 s /\  ptSh1ChildFromSh1 = defaultPage) \/
@@ -1103,7 +1107,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1177,19 +1181,18 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      split.     
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-       now contradict Hrootpd | 
-       subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-       |now contradict Hrootpd] | now contradict Hrootpd].
+      split.
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro childSh2. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert (  (getTableAddrRoot' childSh2 sh1idx currentPart shadow2 s /\ childSh2 = defaultPage) \/
@@ -1208,7 +1211,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq. }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1284,19 +1287,18 @@ eapply WP.bindRev.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      split.     
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-       [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-       as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hrootpd | 
-       now contradict Hrootpd | 
-       subst;assumption | now contradict Hrootpd| now contradict Hrootpd ]  
-       |now contradict Hrootpd] | now contradict Hrootpd].
+      split.
+      unfold nextEntryIsPP in *. 
+      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct v ; try now contradict Hrootpd.
+      subst; assumption.
       subst. left. split;intuition.
       intro childListSh1. simpl.
  (** simplify the new precondition **)     
       eapply WP.weaken.
       intros.
-      Focus 2.
+      2: {
       intros.
       destruct H as (H0 & H1).
       assert ( (getTableAddrRoot' childListSh1 sh1idx currentPart list s /\ childListSh1 = defaultPage) \/
@@ -1315,7 +1317,7 @@ eapply WP.bindRev.
           symmetrynot. apply idxPDidxSh1notEq.  }
     assert (HP := conj H0 H).
     pattern s in HP.
-    eapply HP.
+    eapply HP. }
 (** comparePageToNull **) 
 
       eapply WP.bindRev.
@@ -1967,7 +1969,7 @@ eapply WP.bindRev.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply initPEntryTablePropagateProperties1.
-    eapply initPEntryTableNewProperty.
+    eapply initPEntryTableNewPropertyL.
     { intros. simpl.
       split. split.
        repeat rewrite  and_assoc in H0.
@@ -1978,6 +1980,8 @@ eapply WP.bindRev.
       intros.
       assert (zero = CIndex 0) as Hzero.
       intuition.
+      unfold initPEntryTablePreconditionToProveNewProperty.
+      intros.
       subst.
       unfold CIndex in H1.
       case_eq (lt_dec 0 tableSize).
@@ -2058,7 +2062,8 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    split.
    {
   repeat rewrite and_assoc.
-   unfold propagatedProperties in *.   
+   unfold propagatedProperties in *. 
+   unfold isWellFormedMMUTables in *.  
    assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
    {unfold consistency in *. 
    intuition. 
@@ -2068,6 +2073,7 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    try repeat split;trivial; try (  
     apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition). }
    intuition.
+   unfold isWellFormedMMUTables.
    intros.
    unfold StateLib.readPhyEntry, StateLib.readPresent  in *.
    cbn.
@@ -2118,9 +2124,9 @@ intros [].
      (forall idx : index,
       StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\ 
       StateLib.readPresent phyPDChild idx (memory s) = Some false)).
-      Focus 2.
+      2: {
       simpl;
-      intuition.  
+      intuition.  }
       eapply WP.bindRev.
     eapply preAndPost.
     eapply WP.weaken.
@@ -2381,43 +2387,57 @@ intros [].
     destruct Hlegit as (H1 & _ & H2 & _ & H3 & _ & H4 & _ & H5 & _ ).
     subst.
     apply H0.
-    left. intuition.
-    split.
-    left;intuition.
-    split.
-    intros.
-    assert (zero = CIndex 0) as Hzero.
-    intuition.
-    subst. (* 
-    left; trivial.
-    assert (zero = CIndex 0) as Hzero.
     intuition.
     subst.
-    split; intros. *)
-    unfold CIndex in H3.
-    case_eq (lt_dec 0 tableSize).
-    intros.
-    rewrite H4 in H3.
-    simpl in *. omega.
-    intros.
-    contradict H4.
+    unfold CIndex.
+    case_eq(lt_dec 0 tableSize);intros.
+    simpl.
+    unfold Nat.Even.
+    exists 0.
+    omega.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     omega.
     intros.
-    intuition; subst.
-    unfold CIndex in H2.
+    assert(Nat.Even zero).
+    { intuition. subst.
+    unfold CIndex.
+    case_eq(lt_dec 0 tableSize);intros.
+    simpl.
+    unfold Nat.Even.
+    exists 0.
+    omega.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega. }
+    split;trivial.
+    split;intros;intuition;subst.
+    intuition.
+    subst.
+    unfold CIndex in H5.
     case_eq (lt_dec 0 tableSize).
     intros.
-    rewrite H3 in H2.
+    rewrite H6 in H5.
     simpl in *. omega.
     intros.
-    contradict H.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     omega.
+    
+    unfold CIndex in H5.
+    case_eq (lt_dec 0 tableSize).
+    intros.
+    rewrite H6 in H5.
+    simpl in *. omega.
+    intros.
+    assert (tableSize > tableSizeLowerBound).
+    apply tableSizeBigEnough.
+    unfold tableSizeLowerBound in *.
+    omega.
+    
     intros [].
     simpl.
 (** getDefaultVAddr **)
@@ -3512,7 +3532,9 @@ apply idxPPRsuccNotEqidxSh2;trivial.
     split.
    unfold propagatedProperties in *.
    eassumption.
-   eapply H1.
+   unfold newPropagatedProperties.
+    assert( initConfigPagesListPostCondition phyConfigPagesList s) as (Hi1 & Hi2 & Hi3 & Hi4) by intuition.
+   intuition; try eassumption;subst;trivial.
  intros [].
  (**  writeVirEntry **)
     eapply bindRev.
@@ -3587,15 +3609,17 @@ verticalSharing s /\
 consistency s).
 simpl.
 
-unfold propagatedProperties in *.
+(* unfold propagatedProperties in *.
 unfold newPropagatedProperties in *. 
+unfold initConfigPagesListPostCondition in *. *)
     apply createPartitionPostcondition with 
-    zero nullv idxPR idxPD idxSH1 idxSH2 idxSH3 idxPPR pdChild
+    (* (CIndex 0) nullv PRidx PDidx sh1idx sh2idx sh3idx PPRidx *) pdChild
 currentPart currentPD level ptRefChild descChild ptPDChild idxPDChild ptSh1Child shadow1 idxSh1 ptSh2Child
 shadow2 idxSh2 ptConfigPagesList idxConfigPagesList currentShadow1 derivedRefChild ptPDChildSh1 ptSh1ChildFromSh1
-childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition.
+childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition;subst;trivial.
 
-    intros []. 
+(* subst.
+ *)    intros []. 
    eapply WP.weaken. eapply WP.ret .
    simpl. intuition.
  - intros HNotlegit. 
@@ -3606,4 +3630,4 @@ childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList
       simpl. intuition.
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
-      Qed. 
+Qed. 

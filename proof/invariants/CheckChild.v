@@ -107,10 +107,10 @@ destruct Htmp as (_ & _ & Hroot).
 destruct Hroot as (pg & Hroot & Hnotnull).
 clear Hdesc.
 unfold nextEntryIsPP in *. 
-destruct (Index.succ sh1idx); [ | now contradict Hroot].
-destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict Hroot | now contradict Hroot | 
-subst ; assumption| now contradict Hroot | now contradict Hroot ]  |now contradict Hroot] .
+destruct (StateLib.Index.succ sh1idx); try now contradict Hroot.
+destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hroot.
+destruct v ; try now contradict Hroot.
+subst; assumption.
 left.
 split;trivial.
 intuition.
@@ -118,7 +118,7 @@ simpl.
 intros ptsh1.
 eapply WP.weaken.
 intros.
-Focus 2.
+2:{
 intros.
 destruct H as (H0 & H1).
 assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
@@ -159,7 +159,7 @@ assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
           omega. apply tableSizeBigEnough. omega. }
 assert (HP := conj H0 H).
 pattern s in HP.
-eapply HP.
+eapply HP. }
 (** comparePageToNull  **)
 eapply bindRev.
 eapply weaken.
@@ -436,18 +436,16 @@ Proof.
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
   split. 
-   unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx);
-   [destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex)
-   as [v |]; [ destruct v as [ p |v|p|v|ii] ; [ now contradict H0 | 
-   now contradict H0 | 
-   subst;assumption | now contradict H0| now contradict H0 ]  
-   |now contradict H0] | now contradict H0].
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx); try now contradict H0.
+  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); try now contradict H0.
+  destruct v ; try now contradict H0.
+  subst; assumption.
   subst. left. split;intuition.
   intro ptRefChild. simpl.
 (** simplify the new precondition **)     
   eapply WP.weaken.
   intros.
-  Focus 2.
+  2:{
   intros.
   destruct H as (H0 & H1).
   assert ( (getTableAddrRoot' ptRefChild sh1idx currentPart descChild s /\ ptRefChild = defaultPage) \/
@@ -467,7 +465,7 @@ Proof.
         symmetrynot. apply idxPDidxSh1notEq.  }
   assert (HP := conj H0 H).
   pattern s in HP.
-  eapply HP.
+  eapply HP. }
 (** comparePageToNull **) 
   eapply WP.bindRev.
   eapply Invariants.comparePageToNull.
@@ -511,5 +509,72 @@ right.
 split. trivial.
 exists currentShadow1,idxRefChild, ptRefChild.
 intuition.
-left. intuition. }      
-Qed. 
+left. intuition. }
+Qed.
+
+
+Lemma childInPartTree (childPartDesc parentPartDesc parentPageDir childLastMMUPage : page)
+                      (s : state)
+                      (nbL : level)
+                      (childPartDescVAddr : vaddr)
+                      (idxChildPartDesc : index) :
+ Some nbL = StateLib.getNbLevel
+ -> nextEntryIsPP parentPartDesc PDidx parentPageDir s
+ -> currentPartition s = parentPartDesc
+ -> isPE childLastMMUPage (StateLib.getIndexOfAddr childPartDescVAddr fstLevel) s
+ -> getTableAddrRoot childLastMMUPage PDidx parentPartDesc childPartDescVAddr s
+ -> defaultPage <> childLastMMUPage
+ -> StateLib.getIndexOfAddr childPartDescVAddr fstLevel = idxChildPartDesc
+ -> isEntryPage childLastMMUPage idxChildPartDesc childPartDesc s
+ -> entryPresentFlag childLastMMUPage idxChildPartDesc true s
+ -> true = StateLib.checkChild parentPartDesc nbL s childPartDescVAddr
+ -> consistency s
+ -> In childPartDesc (getPartitions multiplexer s).
+Proof.
+intros Hlevel HnextEntryIsPP HparentPartDescIsCurrent HisPE HgetTableAddrRoot.
+intros HchildLastMMUPageNotDef HidxChildPartDesc HisEntryPage HentryPresentFlag.
+intros HcheckChild Hconsistency.
+assert(Hchildren : In childPartDesc (getChildren (currentPartition s) s)).
+{ unfold getChildren.
+  rewrite <- Hlevel.
+  assert(Hcurpd : StateLib.getPd parentPartDesc (memory s) = Some parentPageDir).
+  { apply nextEntryIsPPgetPd.
+    intuition. }
+  subst parentPartDesc.
+  rewrite Hcurpd.
+  unfold getMappedPagesAux.
+  rewrite filterOptionInIff.
+  unfold getMappedPagesOption.
+  rewrite in_map_iff.
+  assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
+  StateLib.checkVAddrsEqualityWOOffset nbLevel childPartDescVAddr va1 ( CLevel (nbLevel -1) ) = true )
+  by apply AllVAddrWithOffset0.
+  destruct Heqvars as (va1 & Hva1 & Hva11).  
+  exists va1.  split;trivial.
+  assert(Hnewgoal : getMappedPage parentPageDir s childPartDescVAddr = SomePage childPartDesc).
+  {  apply getMappedPageGetTableRoot with childLastMMUPage (currentPartition s); trivial.
+     { intros. split; subst; trivial. }
+     { apply Nat.eqb_neq. rewrite pageEqNatEqEquiv. trivial. }
+     { subst. trivial. }
+     { subst. trivial. }
+  }
+  rewrite <- Hnewgoal.
+  symmetry.
+  apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
+  apply getNbLevelEqOption.
+  unfold getPdsVAddr.
+  apply filter_In.
+  split;trivial.
+  assert(Hnewgoal : StateLib.checkChild (currentPartition s) nbL s childPartDescVAddr = true).
+  { rewrite HcheckChild; trivial. }
+  { rewrite <- Hnewgoal. apply checkChildEq. symmetry. apply Hlevel.
+    rewrite checkVAddrsEqualityWOOffsetPermut.
+    rewrite <- Hva11. f_equal.
+    assert(Hlvl : StateLib.getNbLevel = Some (CLevel (nbLevel - 1))) by apply getNbLevelEqOption. 
+    rewrite  Hlvl in *.
+    inversion Hlevel;trivial.
+  }
+}
+unfold consistency in Hconsistency.
+apply childrenPartitionInPartitionList with (currentPartition s); intuition.
+Qed.

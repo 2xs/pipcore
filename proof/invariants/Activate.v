@@ -199,10 +199,10 @@ destruct( StateLib.getPd partition (memory s)); intros; trivial.
 apply getAccessibleMappedPagesAuxUpdateCurrentPartition.
 Qed.
 
-Lemma getTrdShadowsUpdateCurrentPartition  s:
+Lemma getLLPagesUpdateCurrentPartition  s:
 forall phyVA p2 : page,
-getTrdShadows p2 s (nbPage+1) = 
-getTrdShadows p2 {| currentPartition := phyVA; memory := memory s |} (nbPage+1).
+getLLPages p2 s (nbPage+1) = 
+getLLPages p2 {| currentPartition := phyVA; memory := memory s |} (nbPage+1).
 Proof.
 induction nbPage; simpl; trivial.
 intros.
@@ -230,7 +230,7 @@ rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
 do 3 f_equal. 
 clear p partition p0 p1.
 revert phyVA p2.
-apply getTrdShadowsUpdateCurrentPartition. 
+apply getLLPagesUpdateCurrentPartition. 
 Qed.
 
 Lemma getUsedPagesUpdateCurrentDescriptor s phyVA child1:
@@ -370,8 +370,7 @@ case_eq (StateLib.Index.succ PDidx);intros;
 rewrite H in HnextEntryIsPP;  [ | now contradict HnextEntryIsPP].
 case_eq (lookup partition i (memory s) beqPage beqIndex); intros; 
 rewrite H0 in HnextEntryIsPP; [ | now contradict HnextEntryIsPP].
-destruct v as [ p |v|p|v|ii] ; [ now contradict HnextEntryIsPP | now contradict HnextEntryIsPP | 
-subst | now contradict HnextEntryIsPP | now contradict HnextEntryIsPP ].
+destruct v ; try now contradict HnextEntryIsPP.
 assert(Heqvars : exists va1, In va1 getAllVAddrWithOffset0 /\ 
 StateLib.checkVAddrsEqualityWOOffset nbLevel descChild va1 ( CLevel (nbLevel -1) ) = true )
 by apply AllVAddrWithOffset0.
@@ -419,14 +418,15 @@ unfold isEntryPage in *.
 unfold StateLib.readPresent. 
 case_eq (lookup ptpd (StateLib.getIndexOfAddr descChild fstLevel) 
              (memory s) beqPage beqIndex); intros; rewrite H2 in *; [| now contradict HphyVA].
-destruct v as [ p0 |v|p0|v|ii] ; [ subst |now contradict HphyVA | now contradict HphyVA | 
- now contradict HphyVA | now contradict HphyVA ].
+destruct v ; try now contradict HphyVA.
 unfold entryPresentFlag in *.
 rewrite H2 in Hpresent.
 rewrite <- Hpresent.
 unfold StateLib.readPhyEntry.
 rewrite Hnotnull.
-rewrite H2;trivial. }
+rewrite H2;trivial.
+subst; trivial.
+}
 rewrite <- H2.
 symmetry.
 apply getMappedPageEq with (CLevel (nbLevel - 1)) ;trivial.
@@ -560,7 +560,7 @@ trivial.
 Qed.
 
 Lemma isDerivedUpdateCurrentPartition parent va phyVA s :
-isDerived parent va s -> 
+isDerived parent va s = 
 isDerived parent va  {| currentPartition := phyVA; memory := memory s |}.
 Proof.
 unfold isDerived.
@@ -569,7 +569,8 @@ simpl in *.
 destruct (getFstShadow parent (memory s) );try now contradict H.
 rewrite <- getVirtualAddressSh1UpdateCurrentPartition with p phyVA va s;
 trivial.
-Qed.   
+reflexivity.
+Qed.
 
 Lemma physicalPageNotDerivedUpdateCurrentPartition phyVA s :
 physicalPageNotDerived s ->
@@ -584,7 +585,7 @@ rewrite <- getPartitionsUpdateCurrentDescriptor in *.
 apply H with  parent va pdParent child pdChild vaInChild ;trivial.
 unfold not;intros.
 apply H2.
-apply isDerivedUpdateCurrentPartition;trivial.
+rewrite <- isDerivedUpdateCurrentPartition;trivial.
 Qed.
 
 Lemma activateChild descChild vaNotNulll currPart
@@ -649,7 +650,7 @@ split.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
-    rewrite <- getTrdShadowsUpdateCurrentPartition.
+    rewrite <- getLLPagesUpdateCurrentPartition.
     simpl in *. 
     apply H1; trivial.
   - split.
@@ -710,7 +711,7 @@ split.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
-          rewrite <- getTrdShadowsUpdateCurrentPartition;trivial. }
+          rewrite <- getLLPagesUpdateCurrentPartition;trivial. }
           rewrite <- Heq.
           apply Hnodup;trivial.
           rewrite getPartitionsUpdateCurrentDescriptor with s phyVA multiplexer; trivial.
@@ -776,7 +777,7 @@ split.
           unfold wellFormedShadows in *.
           intros. 
           assert(Hgoal : exists indirection2 : page, getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial. 
@@ -785,7 +786,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal :exists indirection2 , getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.            
@@ -889,7 +890,7 @@ split.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
-    rewrite <- getTrdShadowsUpdateCurrentPartition.
+    rewrite <- getLLPagesUpdateCurrentPartition.
     apply H1; trivial.
   - split.  unfold verticalSharing in *. intros.
     rewrite <- getUsedPagesUpdateCurrentDescriptor with s parent child.
@@ -943,7 +944,7 @@ split.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
-          rewrite <- getTrdShadowsUpdateCurrentPartition;trivial. }
+          rewrite <- getLLPagesUpdateCurrentPartition;trivial. }
           rewrite <- Heq.
           apply Hnodup;trivial.
           rewrite getPartitionsUpdateCurrentDescriptor with s parent multiplexer; trivial.
@@ -1009,7 +1010,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal : exists indirection2 : page,getIndirection structroot va nbL stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = false).
+                  (defaultPage =? indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
@@ -1066,4 +1067,662 @@ split.
           rewrite <- getPartitionsUpdateCurrentDescriptor in *;trivial.
           rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.
             }
+Qed.
+
+
+Lemma getIndirectionActivate (newCurrentPartition : page) (va : vaddr) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (stop : nat) (pageDir : page) (l : level),
+getIndirection pageDir va l stop s = getIndirection pageDir va l stop s'.
+Proof.
+intro.
+induction stop;simpl;trivial.
+intros.
+case (StateLib.Level.eqb l fstLevel); trivial.
+case (StateLib.readPhyEntry pageDir (StateLib.getIndexOfAddr va l) (memory s)); trivial.
+intros.
+case (defaultPage =? p); trivial.
+case (StateLib.Level.pred l); trivial.
+Qed.
+
+
+Lemma getMappedPagesActivate (newCurrentPartition : page) (somePartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+getMappedPages somePartition s = getMappedPages somePartition s'.
+Proof.
+intro.
+unfold getMappedPages.
+simpl.
+case_eq (StateLib.getPd somePartition (memory s)); trivial.
+intros.
+apply getMappedPagesAuxUpdateCurrentPartition.
+Qed.
+
+Lemma getLLPagesActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (somePage : page),
+getLLPages somePage s (nbPage + 1) = getLLPages somePage s' (nbPage + 1).
+Proof.
+intro.
+induction (nbPage + 1).
+trivial.
+intro.
+simpl.
+case StateLib.getMaxIndex; trivial.
+intro.
+case (StateLib.readPhysical somePage i (memory s)); trivial.
+intro.
+case (p =? defaultPage); trivial.
+rewrite IHn.
+reflexivity.
+Qed.
+
+Lemma getTablePagesActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (somePage : page),
+getTablePages somePage tableSize s = getTablePages somePage tableSize s'.
+Proof.
+intro.
+induction tableSize.
+trivial.
+simpl.
+intro somePage.
+rewrite <- IHn.
+trivial.
+Qed.
+
+Lemma getIndirectionsActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall somePage, getIndirections somePage s = getIndirections somePage s'.
+Proof.
+intro.
+unfold getIndirections.
+induction nbLevel; trivial.
+simpl.
+intro somePage.
+f_equal.
+unfold s'.
+rewrite <- getTablePagesActivate.
+fold s'.
+induction (getTablePages somePage tableSize s); trivial.
+simpl.
+rewrite <- IHn.
+rewrite <- IHl.
+reflexivity.
+Qed.
+
+Lemma getConfigPagesActivate (newCurrentPartition : page) (somePartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+getConfigPages somePartition s = getConfigPages somePartition s'.
+Proof.
+intro.
+unfold getConfigPages.
+f_equal.
+unfold getConfigPagesAux.
+simpl.
+case (StateLib.getPd somePartition (memory s)); trivial; intro.
+case (getFstShadow somePartition (memory s)); trivial; intro.
+case (getSndShadow somePartition (memory s)); trivial; intro.
+case (getConfigTablesLinkedList somePartition (memory s)); trivial; intro.
+unfold s'.
+rewrite <- (getIndirectionsActivate newCurrentPartition s).
+rewrite <- (getIndirectionsActivate newCurrentPartition s).
+rewrite <- (getIndirectionsActivate newCurrentPartition s).
+rewrite <- (getLLPagesActivate newCurrentPartition s).
+reflexivity.
+Qed.
+
+Lemma getUsedPagesActivate (newCurrentPartition : page) (somePartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+getUsedPages somePartition s =
+getUsedPages somePartition s'.
+Proof.
+intro s'.
+unfold getUsedPages.
+f_equal.
+apply getConfigPagesActivate.
+apply getMappedPagesActivate.
+Qed.
+
+Lemma getPdActivate  (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (partDesc : page),
+StateLib.getPd partDesc (memory s) = StateLib.getPd partDesc (memory s').
+Proof.
+intro.
+unfold StateLib.getPd.
+simpl.
+trivial.
+Qed.
+
+
+Lemma getChildrenActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (partDesc : page),
+getChildren partDesc s = getChildren partDesc s'.
+Proof.
+intro.
+intro.
+unfold getChildren.
+case (StateLib.getNbLevel); trivial; intro.
+pose proof getMappedPagesAuxUpdateCurrentPartition.
+unfold s'.
+rewrite <- getPdActivate with newCurrentPartition s partDesc.
+case (StateLib.getPd partDesc (memory s)); trivial.
+intro.
+rewrite <- getPdsVAddrUpdateCurrentPartition.
+apply H.
+Qed.
+
+Lemma partitionTreeRemains (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (root : page),
+getPartitions root s = getPartitions root s'.
+Proof.
+intro.
+unfold getPartitions.
+induction (nbPage + 1); trivial.
+cbn.
+f_equal.
+unfold s'.
+intro.
+rewrite <- getChildrenActivate with newCurrentPartition s root.
+fold s'.
+f_equal.
+induction (getChildren root s); simpl; trivial.
+rewrite <- IHn.
+f_equal.
+apply IHl.
+Qed.
+
+Lemma InPartDescGetChildrenActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (partDesc childPartDesc : page),
+In childPartDesc (getChildren partDesc s) = In childPartDesc (getChildren partDesc s').
+Proof.
+intro.
+intros.
+f_equal.
+apply getChildrenActivate.
+Qed.
+
+Lemma partitionsInPartitionTreeActivate (newCurrentPartition : page) (s : state) :
+let s' := {| currentPartition := newCurrentPartition; memory := memory s |} in
+forall (partDesc : page),
+In partDesc (getPartitions multiplexer s) = In partDesc (getPartitions multiplexer s').
+Proof.
+intro.
+intros.
+f_equal.
+apply partitionTreeRemains.
+Qed.
+
+
+Lemma partitionsIsolationActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+partitionsIsolation s -> partitionsIsolation s'.
+Proof.
+intros.
+unfold partitionsIsolation in *.
+intros.
+unfold s' in *.
+rewrite <- getUsedPagesActivate with partDesc child1 s.
+rewrite <- getUsedPagesActivate with partDesc child2 s.
+apply H with parent.
+rewrite <- partitionTreeRemains in H0; assumption.
+rewrite <- InPartDescGetChildrenActivate in H1.
+assumption.
+rewrite <- InPartDescGetChildrenActivate in H2.
+assumption.
+assumption.
+Qed.
+
+Lemma kernelDataIsolationActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+kernelDataIsolation s -> kernelDataIsolation s'.
+Proof.
+intro.
+unfold kernelDataIsolation.
+intros.
+unfold s' in *.
+rewrite <- getConfigPagesActivate.
+rewrite <- getAccessibleMappedPagesUpdateCurrentPartition.
+apply H.
+rewrite <- partitionTreeRemains in H0.
+assumption.
+rewrite <- partitionTreeRemains in H1.
+assumption.
+Qed.
+
+Lemma verticalSharingActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+verticalSharing s -> verticalSharing s'.
+Proof.
+intro.
+unfold verticalSharing.
+intros.
+unfold s' in *.
+rewrite <- getMappedPagesActivate.
+rewrite <- getUsedPagesActivate.
+apply H.
+rewrite <- partitionTreeRemains in H0.
+assumption.
+rewrite <- InPartDescGetChildrenActivate in H1.
+assumption.
+Qed.
+
+Lemma nextEntryIsPPActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (partition entry : page) (idxroot : index),
+nextEntryIsPP partition idxroot entry s =
+nextEntryIsPP partition idxroot entry s'.
+Proof.
+intros.
+unfold nextEntryIsPP in *.
+cbn.
+reflexivity.
+Qed.
+
+Lemma isVAActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (p : page) (idx : index),
+isVA p idx s = isVA p idx s'.
+Proof.
+intros.
+unfold isVA in *.
+simpl.
+reflexivity.
+Qed.
+
+Lemma isVEActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (p : page) (idx : index),
+isVE p idx s = isVE p idx s'.
+Proof.
+intros.
+unfold isVE in *.
+simpl.
+reflexivity.
+Qed.
+
+Lemma isPEActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (p : page) (idx : index),
+isPE p idx s = isPE p idx s'.
+Proof.
+intros.
+unfold isPE in *.
+simpl.
+reflexivity.
+Qed.
+
+Lemma getAncestorsActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (partition : page),
+getAncestors partition s = getAncestors partition s'.
+Proof.
+intro.
+unfold getAncestors.
+simpl.
+trivial.
+Qed.
+
+Lemma partitionDescriptorEntryActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+partitionDescriptorEntry s -> partitionDescriptorEntry s'.
+Proof.
+intro.
+unfold partitionDescriptorEntry.
+intros.
+destruct H with partition idxroot.
+unfold s' in *.
+- rewrite <- partitionTreeRemains in H0. assumption.
+- apply H1.
+- split.
+  apply H2.
+  destruct H3.
+  split.
+  unfold s' in *. rewrite <- isVAActivate.
+  assumption.
+  destruct H4.
+  exists x. destruct H4. split. unfold s'. rewrite <- nextEntryIsPPActivate.
+  apply H4.
+  apply H5.
+Qed.
+
+Lemma dataStructurePdSh1Sh2asRootActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall idx : index,
+dataStructurePdSh1Sh2asRoot idx s -> dataStructurePdSh1Sh2asRoot idx s'.
+Proof.
+intro.
+unfold dataStructurePdSh1Sh2asRoot.
+intros.
+destruct H with partition entry va level stop indirection idx0.
+- rewrite partitionTreeRemains with partDesc s multiplexer.
+  fold s'. assumption.
+- unfold s' in *.
+  rewrite <- nextEntryIsPPActivate with partDesc s partition entry idx in H1.
+  fold s'. assumption.
+- trivial.
+- assumption.
+- unfold s' in *. rewrite <- getIndirectionActivate in H4.
+  assumption.
+- left. assumption.
+- right. unfold s'.
+  rewrite <- isPEActivate.
+  rewrite <- isVAActivate.
+  rewrite <- isVEActivate.
+  assumption.
+Qed.
+
+Lemma currentPartitionInPartitionsListActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+currentPartitionInPartitionsList s /\ In partDesc (getPartitions multiplexer s)
+-> currentPartitionInPartitionsList s'.
+Proof.
+intro.
+intro.
+destruct H.
+unfold currentPartitionInPartitionsList.
+simpl.
+unfold s'.
+rewrite <- partitionTreeRemains with partDesc s multiplexer.
+assumption.
+Qed.
+
+Lemma noDupMappedPagesListActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+noDupMappedPagesList s -> noDupMappedPagesList s'.
+Proof.
+intro.
+unfold noDupMappedPagesList.
+intros.
+unfold s' in *.
+rewrite <- getMappedPagesActivate.
+apply H.
+rewrite <- partitionTreeRemains in H0.
+assumption.
+Qed.
+
+Lemma noDupConfigPagesListActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+noDupConfigPagesList s -> noDupConfigPagesList s'.
+Proof.
+intro.
+unfold noDupConfigPagesList.
+intros.
+unfold s' in *.
+rewrite <- getConfigPagesActivate.
+apply H.
+rewrite <- partitionTreeRemains in H0.
+assumption.
+Qed.
+
+Lemma parentInPartitionListActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+parentInPartitionList s -> parentInPartitionList s'.
+Proof.
+intros.
+unfold parentInPartitionList in *.
+intros.
+unfold s' in *.
+rewrite <- partitionTreeRemains.
+apply H with partition.
+rewrite <- partitionTreeRemains in H0.
+assumption.
+rewrite <- nextEntryIsPPActivate with partDesc s partition parent PPRidx in H1.
+assumption.
+Qed.
+
+Lemma accessibleVAIsNotPartitionDescriptorActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+accessibleVAIsNotPartitionDescriptor s -> accessibleVAIsNotPartitionDescriptor s'.
+Proof.
+intros.
+unfold accessibleVAIsNotPartitionDescriptor in *.
+intros.
+unfold s' in *.
+cbn in *.
+rewrite getPDFlagUpdateCurrentPartition with sh1 va partDesc s.
+apply (H partition va pd sh1 page).
+- rewrite <- partitionTreeRemains in H0; assumption.
+- assumption.
+- assumption.
+- rewrite <- getAccessibleMappedPageUpdateCurrentPartition in H3; assumption.
+Qed.
+
+Lemma accessibleChildPageIsAccessibleIntoParentActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+accessibleChildPageIsAccessibleIntoParent s -> accessibleChildPageIsAccessibleIntoParent s'.
+Proof.
+intros.
+unfold accessibleChildPageIsAccessibleIntoParent in *.
+intros.
+unfold s' in *.
+cbn in *.
+rewrite isAccessibleMappedPageInParentUpdateCurrentPartition.
+apply (H partition va pd accessiblePage).
+- rewrite <- partitionTreeRemains in H0; assumption.
+- assumption.
+- rewrite <- getAccessibleMappedPageUpdateCurrentPartition in H2; assumption.
+Qed.
+
+Lemma noCycleInPartitionTreeActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+noCycleInPartitionTree s -> noCycleInPartitionTree s'.
+Proof.
+unfold noCycleInPartitionTree in *.
+intros.
+apply H.
+rewrite <- partitionTreeRemains in H0; assumption.
+rewrite <- getAncestorsActivate in H1; assumption.
+Qed.
+
+Lemma configTablesAreDifferentActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+configTablesAreDifferent s -> configTablesAreDifferent s'.
+Proof.
+intros.
+unfold configTablesAreDifferent in *.
+intros.
+unfold s' in *.
+rewrite <- getConfigPagesActivate.
+rewrite <- getConfigPagesActivate.
+apply H.
+rewrite <- partitionTreeRemains in H0; assumption.
+rewrite <- partitionTreeRemains in H1; assumption.
+assumption.
+Qed.
+
+Lemma isChildActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+isChild s -> isChild s'.
+Proof.
+unfold isChild.
+intros.
+rewrite <- getChildrenActivate.
+apply H.
+rewrite <- partitionTreeRemains in H0; assumption.
+simpl in H1; assumption.
+Qed.
+
+Lemma physicalPageNotDerivedActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+physicalPageNotDerived s -> physicalPageNotDerived s'.
+Proof.
+unfold physicalPageNotDerived.
+intros.
+eapply (H parent va pdParent pageParent).
+rewrite <- partitionTreeRemains in H0; assumption.
+rewrite <- getPdActivate in H1; assumption.
+rewrite <- isDerivedUpdateCurrentPartition in H2; assumption.
+rewrite <- getMappedPageUpdateCurrentPartition in H3; assumption.
+rewrite <- getChildrenActivate in H4; apply H4.
+cbn in H5; apply H5.
+rewrite <- getMappedPageUpdateCurrentPartition in H6; apply H6.
+Qed.
+
+Lemma isParentActivate  (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+isParent s -> isParent s'.
+Proof.
+unfold isParent.
+intros.
+cbn.
+apply H.
+rewrite <- partitionTreeRemains in H0; assumption.
+rewrite <- getChildrenActivate in H1; assumption.
+Qed.
+
+Lemma noDupPartitionTreeActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+noDupPartitionTree s -> noDupPartitionTree s'.
+Proof.
+unfold noDupPartitionTree.
+intros.
+rewrite <- partitionTreeRemains; assumption.
+Qed.
+
+Lemma wellFormedFstShadowActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+wellFormedFstShadow s -> wellFormedFstShadow s'.
+Proof.
+intro.
+unfold wellFormedFstShadow.
+intros.
+unfold s' in *.
+rewrite <- getVirtualAddressSh1UpdateCurrentPartition.
+destruct H with partition va pg pd sh1.
+rewrite <- partitionTreeRemains in H0; assumption.
+cbn in H1; assumption.
+cbn in H2; assumption.
+rewrite <- getMappedPageUpdateCurrentPartition in H3; assumption.
+exists x; assumption.
+Qed.
+
+Lemma wellFormedSndShadowActivate  (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+wellFormedSndShadow s -> wellFormedSndShadow s'.
+Proof.
+unfold wellFormedSndShadow.
+cbn.
+intros.
+rewrite getVirtualAddressSh2UpdateCurrentPartition with sh2 partDesc va s.
+apply H with partition pg pd.
+rewrite <- partitionTreeRemains in H0; assumption.
+assumption.
+assumption.
+assumption.
+rewrite <- getMappedPageUpdateCurrentPartition in H4; assumption.
+Qed.
+
+Lemma wellFormedShadowsActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+forall (idx : index),
+wellFormedShadows idx s -> wellFormedShadows idx s'.
+Proof.
+unfold wellFormedShadows.
+cbn.
+intros.
+rewrite <- getIndirectionActivate.
+apply H with partition pdroot indirection1.
+rewrite <- partitionTreeRemains in H0; assumption.
+assumption.
+rewrite <- nextEntryIsPPActivate in H2; assumption.
+assumption.
+rewrite <- getIndirectionActivate in H4; assumption.
+assumption.
+Qed.
+
+Lemma wellFormedFstShadowIfNoneActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+wellFormedFstShadowIfNone s -> wellFormedFstShadowIfNone s'.
+Proof.
+unfold wellFormedFstShadowIfNone.
+cbn.
+intros.
+rewrite getPDFlagUpdateCurrentPartition.
+rewrite <- getVirtualAddressSh1UpdateCurrentPartition.
+apply H with partition pd.
+rewrite <- partitionTreeRemains in H0; assumption.
+assumption.
+assumption.
+rewrite <- getMappedPageUpdateCurrentPartition in H3; assumption.
+Qed.
+
+Lemma wellFormedFstShadowIfDefaultValuesActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+wellFormedFstShadowIfDefaultValues s -> wellFormedFstShadowIfDefaultValues s'.
+Proof.
+unfold wellFormedFstShadowIfDefaultValues.
+cbn.
+intros.
+rewrite getPDFlagUpdateCurrentPartition. 
+rewrite <- getVirtualAddressSh1UpdateCurrentPartition.
+apply H with partition pd.
+rewrite <- partitionTreeRemains in H0; assumption.
+assumption.
+assumption.
+rewrite <- getMappedPageUpdateCurrentPartition in H3; assumption.
+Qed.
+
+Lemma consistencyActivate (partDesc : page) (s : state) :
+let s' := {| currentPartition := partDesc; memory := memory s |} in
+consistency s /\ In partDesc (getPartitions multiplexer s) /\ partDesc <> defaultPage -> consistency s'.
+Proof.
+intro.
+unfold consistency.
+intros.
+intuition.
+- apply partitionDescriptorEntryActivate; assumption.
+- apply dataStructurePdSh1Sh2asRootActivate; assumption.
+- apply dataStructurePdSh1Sh2asRootActivate; assumption.
+- apply dataStructurePdSh1Sh2asRootActivate; assumption.
+- apply currentPartitionInPartitionsListActivate; split; assumption.
+- apply noDupMappedPagesListActivate; assumption.
+- apply noDupConfigPagesListActivate; assumption.
+- apply parentInPartitionListActivate; assumption.
+- apply accessibleVAIsNotPartitionDescriptorActivate; assumption.
+- apply accessibleChildPageIsAccessibleIntoParentActivate; assumption.
+- apply noCycleInPartitionTreeActivate; assumption.
+- apply configTablesAreDifferentActivate; assumption.
+- apply isChildActivate; assumption.
+- apply physicalPageNotDerivedActivate; assumption.
+- apply isParentActivate; assumption.
+- apply noDupPartitionTreeActivate; assumption.
+- apply wellFormedFstShadowActivate; assumption.
+- apply wellFormedSndShadowActivate; assumption.
+- apply wellFormedShadowsActivate; assumption.
+- apply wellFormedShadowsActivate; assumption.
+- apply wellFormedFstShadowIfNoneActivate; assumption.
+- apply wellFormedFstShadowIfDefaultValuesActivate; assumption.
+Qed.
+
+Lemma activatePartition (partDesc : page) :
+{{fun s => partitionsIsolation s /\
+           kernelDataIsolation s /\
+           verticalSharing s /\
+           consistency s /\
+
+           In partDesc (getPartitions multiplexer s) /\
+           partDesc <> defaultPage
+}}
+activate partDesc
+{{fun _ s' => partitionsIsolation s' /\
+            kernelDataIsolation s' /\
+            verticalSharing s' /\
+            consistency s'
+}}.
+Proof.
+eapply weaken.
+apply WP.activate.
+cbn.
+intros.
+set (s' := {| currentPartition := _ |}).
+intuition.
+- apply partitionsIsolationActivate; assumption.
+- apply kernelDataIsolationActivate; assumption.
+- apply verticalSharingActivate; assumption.
+- apply consistencyActivate; split; [assumption | split; assumption].
 Qed.

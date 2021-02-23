@@ -35,7 +35,7 @@
     We prove that this PIP service preserves the isolation property *)
 Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas PropagatedProperties
+Model.MAL Lib InternalLemmas InternalLemmas2 DependentTypeLemmas PropagatedProperties
 Classical_Prop.
  Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
  Import List.ListNotations.
@@ -1956,26 +1956,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
    Qed.
-Lemma getPDFlagGetPdsVAddr' sh1Childphy vaChild phyDescChild level s:
- nextEntryIsPP phyDescChild sh1idx sh1Childphy s -> 
-  getPDFlag sh1Childphy vaChild s = false -> 
-  StateLib.getNbLevel = Some level -> 
-  getFstShadow phyDescChild (memory s) = Some sh1Childphy -> 
-  ~ In vaChild (getPdsVAddr phyDescChild level getAllVAddr s).
-Proof.
-unfold getPDFlag.
-unfold getPdsVAddr.
-rewrite filter_In.
-intros Hpp Hpdflag Hlevel Hsh1 .
-apply or_not_and.
-right.
-unfold not;intros.
-unfold checkChild in *.
-rewrite Hlevel in *.
-rewrite Hsh1 in *.
-rewrite Hpdflag in *.
-now contradict H. 
-Qed.
+
 Lemma getChildrenMapMMUPage1 s ptVaChildpd idxvaChild phyVaChild r w e  pdChildphy currentPart
 presentvaChild vaChild phyDescChild level entry:
   wellFormedFstShadowIfNone s -> wellFormedFstShadowIfDefaultValues s->  
@@ -5477,11 +5458,11 @@ getIndirections root s = getIndirections root {|
   split;trivial.
   right;trivial.
   Qed.
-Lemma getTrdShadowsMapMMUPage s phyVaChild ptVaChildpd idxvaChild r w e entry: 
+Lemma getLLPagesMapMMUPage s phyVaChild ptVaChildpd idxvaChild r w e entry: 
 forall root : page,
-~ In ptVaChildpd (getTrdShadows root s (nbPage + 1) ) ->
+~ In ptVaChildpd (getLLPages root s (nbPage + 1) ) ->
 lookup ptVaChildpd idxvaChild (memory s) beqPage beqIndex = Some (PE entry) ->
-getTrdShadows root s (nbPage + 1)  = getTrdShadows root  {|
+getLLPages root s (nbPage + 1)  = getLLPages root  {|
       currentPartition := currentPartition s;
       memory := add ptVaChildpd idxvaChild
                   (PE
@@ -5708,7 +5689,7 @@ do 3 f_equal.
 revert H3 Hlookup.
 clear.
 intros. 
-apply getTrdShadowsMapMMUPage with entry;trivial.
+apply getLLPagesMapMMUPage with entry;trivial.
 do 2 right;trivial.
 right;left;trivial.
 left;trivial. 
@@ -6814,7 +6795,7 @@ apply getNbLevelLe in Hlevel;trivial.
 apply pdPartNotNull with phyDescChild s;trivial.
 unfold consistency in *.
 intuition.
-apply getTrdShadowsMapMMUPage with entry;trivial.
+apply getLLPagesMapMMUPage with entry;trivial.
 assert(Hconfigpt : In ptVaChildpd (getConfigPages phyDescChild s)). 
 { apply isConfigTable  with vaChild;trivial.
 unfold consistency in *.
@@ -6822,7 +6803,7 @@ intuition.
 intros. subst. split;trivial. }
 assert (Hnodup2: noDupConfigPagesList s) by (unfold consistency in *;intuition).
  unfold noDupConfigPagesList in *. 
-assert(Hdisjoint: disjoint (getIndirections pdChildphy s) (getTrdShadows ll s (nbPage + 1))). 
+assert(Hdisjoint: disjoint (getIndirections pdChildphy s) (getLLPages ll s (nbPage + 1))). 
 { (*   apply Hnodup2 in Hpart. *)
 unfold getConfigPages in *.
 (* apply NoDup_cons_iff in Hpart as(_ & Hpart). *)
@@ -9297,14 +9278,10 @@ destruct Hor3 as [Hor3| Hor3].
   - (** phyDescChild = child **) 
     subst child.
     assert(Htrue : parent <> phyDescChild).
-    { assert(Hparent : StateLib.getParent phyDescChild (memory s) = Some parent)by
-      (apply Hisparent;trivial).
-      assert (Hisances : In parent (getAncestors phyDescChild s)) by(
-      unfold getAncestors;destruct nbPage;simpl;rewrite Hparent;simpl
-      ;left;trivial).
-      assert(Hnocycle : noCycleInPartitionTree s) by 
+    { assert(Hnocycle : noCycleInPartitionTree s) by 
       (unfold consistency in *; intuition).
-      apply Hnocycle;trivial. }
+      apply childIsNotParent with s;trivial.
+      unfold consistency in *; intuition. }
     assert(Hmap : getMappedPages parent s = getMappedPages parent s').
     { apply getMappedPagesMapMMUPage with phyDescChild vaChild
       entry level;trivial.
@@ -12619,7 +12596,7 @@ intros.
 rewrite negb_true_iff in *;subst.
 unfold wellFormedShadows in *.
 move Hcons at bottom.
-intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va Hind Hnotnull.
+intros partition Hpart pd Hpd structroot Hpp nbL stop Hlevel ind1 va b Hind Hnotnull.
 assert(Hpds : forall part, StateLib.getPd part (memory s') =
 StateLib.getPd part (memory s)).
 { intros. apply getPdMapMMUPage with entry;trivial. }
@@ -12647,7 +12624,7 @@ symmetry;trivial.
    left;trivial.
 assert(Hnewgoal : exists indirection2 : page,
   getIndirection structroot va nbL stop s = Some indirection2 /\
-  (defaultPage =? indirection2) = false).
+  (defaultPage =? indirection2) = b).
 { move Hcons at bottom. apply Hcons with partition pd ind1;trivial. } 
 destruct Hnewgoal as (ind2 & Hind2 & Hdef).
 exists ind2;split;trivial.

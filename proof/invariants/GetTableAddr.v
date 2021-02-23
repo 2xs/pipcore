@@ -120,8 +120,8 @@ induction n; simpl.
        rewrite H0.
        destruct(lookup currentPart i (memory s) beqPage beqIndex);
        [| now contradict H1]. 
-       destruct v;[now contradict Hcurpd |now contradict Hcurpd | subst;trivial | 
-       now contradict Hcurpd |now contradict Hcurpd ]. 
+       destruct v; try now contradict Hcurpd.
+       subst ; trivial. 
        intros.
        unfold StateLib.Level.eqb.
        assert (0 < nbLevel). apply nbLevelNotZero.
@@ -157,8 +157,8 @@ induction n; simpl.
         destruct (StateLib.Index.succ idxroot); [| now contradict H0]. 
        destruct (lookup currentPart i (memory s) beqPage beqIndex);
        [| now contradict H0]. 
-       destruct v;[now contradict Hcurpd |now contradict Hcurpd | subst;trivial | 
-       now contradict Hcurpd |now contradict Hcurpd ].
+       destruct v; try now contradict Hcurpd.
+       subst ; trivial.
        destruct Hind.
        destruct Hfstlevel.
        {
@@ -531,10 +531,8 @@ induction n; simpl.
             rename H3 into H2.  
             unfold isEntryPage in H2.
             case_eq (lookup indirection (StateLib.getIndexOfAddr va l)  (memory s) beqPage beqIndex);
-            [intros v H0 | intros H0];rewrite H0 in H2;  
-            [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict H2 | 
-                            now contradict H2| now contradict H2| now contradict H2 ] | now contradict H2] .
-            subst.
+            [intros v H0 | intros H0];rewrite H0 in H2; try now contradict H2.
+            destruct v ; try now contradict H2. subst.
              
             apply getIndirectionStop1   with (StateLib.getIndexOfAddr va l) ; try assumption.
             symmetry; assumption.
@@ -568,9 +566,8 @@ induction n; simpl.
             unfold isEntryPage in H3.
             
             case_eq (lookup indirection (StateLib.getIndexOfAddr va (CLevel (nbL - stop)))  
-            (memory s) beqPage beqIndex); [intros v H0 | intros H0]; rewrite H0 in H3; 
-            [ destruct v as [ p |v|p|v|i]; [ trivial | now contradict H3 | 
-                            now contradict H3| now contradict H3| now contradict H3] | now contradict H3] .
+            (memory s) beqPage beqIndex); [intros v H0 | intros H0]; rewrite H0 in H3; try now contradict H3. 
+            destruct v ; try now contradict H3.
             subst.
             apply getIndirectionProp with (StateLib.getIndexOfAddr va (CLevel (nbL - stop))) indirection;trivial.
             rename H1 into Hnotfstlevel.

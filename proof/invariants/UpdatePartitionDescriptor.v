@@ -38,6 +38,54 @@ Invariants StateLib Model.Hardware Model.ADT Model.MAL
 DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties UpdateMappedPageContent.
 Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
 
+Lemma initConfigPagesListPostConditionUpdateMappedPageContent phyConfigPagesList s table1 PRidxsucc  x:
+initConfigPagesListPostCondition phyConfigPagesList s ->
+table1 <> phyConfigPagesList ->
+     initConfigPagesListPostCondition phyConfigPagesList
+{|
+currentPartition := currentPartition s;
+memory := add table1 PRidxsucc x (memory s) beqPage beqIndex |}.
+Proof.
+intro Hgoal.
+intros.
+unfold initConfigPagesListPostCondition in *.
+split.
+assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
+by intuition.
+rewrite <- Htable.
+apply readPhysicalUpdateMappedPageData; trivial.  split.
+intros.
+simpl.
+assert (Htable : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (memory s) = Some defaultVAddr)
+by intuition.
+rewrite <- Htable.
+apply readVirtualUpdateMappedPageData; trivial.
+split.
+intros idx Ha1 Ha2 Ha3.
+assert (Htable : (forall idx : index,
+          Nat.Odd idx ->
+          idx > CIndex 1 ->
+          idx < CIndex (tableSize - 2) ->
+          exists idxValue : index,
+           StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue))
+by intuition.
+generalize (Htable idx Ha1 Ha2 Ha3 );clear Htable;intros Htable.
+destruct Htable as (idxValue & Htable).
+exists idxValue;simpl.
+rewrite <- Htable.
+apply readIndexUpdateMappedPageData; trivial.
+assert(Htable : (forall idx : index,
+          Nat.Even idx ->
+          idx > CIndex 1 ->
+          idx < CIndex (tableSize - 2) ->
+          StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) ) by intuition.
+intros.
+simpl.
+rewrite <-Htable with idx;trivial.
+apply readVirtualUpdateMappedPageData; trivial.
+Qed.
+
+
 Lemma updatePartitionDescriptorPropagatedProperties 
 
 (idxroot : index) table1 idxVa1 pt1 va1  value1 value2 zero nullv presentConfigPagesList 
@@ -73,12 +121,7 @@ presentConfigPagesList = true /\ presentSh1 = true /\ presentSh2 = true ->
     (forall idx : index,
      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
-    StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
-    (forall idx : index,
-     idx <> CIndex (tableSize - 1) ->
-     Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
-    (forall idx : index,
-     Nat.Even idx -> exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+initConfigPagesListPostCondition phyConfigPagesList s /\
     nullv = defaultVAddr /\ idxPR = PRidx /\ idxPD = PDidx /\ idxSH1 = sh1idx /\ idxSH2 = sh2idx /\ idxSH3 = sh3idx) /\
    idxPPR = PPRidx  /\
    (forall partition : page,
@@ -123,12 +166,7 @@ Internal.updatePartitionDescriptor table1 idxroot value1 value2
     (forall idx : index,
      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
      StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
-    StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
-    (forall idx : index,
-     idx <> CIndex (tableSize - 1) ->
-     Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
-    (forall idx : index,
-     Nat.Even idx -> exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
+    initConfigPagesListPostCondition phyConfigPagesList s   /\
     nullv = defaultVAddr /\ idxPR = PRidx /\ idxPD = PDidx /\ idxSH1 = sh1idx /\ idxSH2 = sh2idx /\ idxSH3 = sh3idx) /\
    idxPPR = PPRidx   }}.
 Proof.
@@ -295,27 +333,9 @@ eapply bindRev.
     apply readPhyEntryUpdateMappedPageData; trivial.
     symmetry.
     apply readPresentUpdateMappedPageData;trivial.
-    split. 
-   assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
-    by intuition.
-    { rewrite <- Htable.
-      apply readPhysicalUpdateMappedPageData; trivial.
- }  split.
-    intros.
-       assert (Htable : StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr)
-    by intuition.
-    { rewrite <- Htable.
-      apply readVirtualUpdateMappedPageData; trivial. }
-      split.
-      intros.
-     assert (Htable : exists idxValue : index, 
-     StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-    by intuition.
-    destruct Htable as (idxValue & Htable).
-    exists idxValue.
-    { rewrite <- Htable.
-      apply readIndexUpdateMappedPageData; trivial.
-      } 
+    split.
+    intuition.
+    apply initConfigPagesListPostConditionUpdateMappedPageContent;trivial.
     assert(Htableroot1 : forall idx : index,
       StateLib.getIndexOfAddr va1 fstLevel = idx ->
       isPE pt1 idx s /\ getTableAddrRoot pt1 PDidx (currentPartition s) va1 s) by intuition.
@@ -496,29 +516,11 @@ eapply bindRev.
     apply readPhyEntryUpdateMappedPageData; trivial.
     symmetry.
     apply readPresentUpdateMappedPageData;trivial.
-    split. 
-   assert (Htable : StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage)
-    by intuition.
-    { rewrite <- Htable.
-      apply readPhysicalUpdateMappedPageData; trivial.
- }  split.
-    intros.
-       assert (Htable : StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr)
-    by intuition.
-    { rewrite <- Htable.
-      apply readVirtualUpdateMappedPageData; trivial. }
-      split.
-      intros.
-     assert (Htable : exists idxValue : index, 
-     StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue)
-    by intuition.
-    destruct Htable as (idxValue & Htable).
-    exists idxValue.
-    { rewrite <- Htable.
-      apply readIndexUpdateMappedPageData; trivial.
-      }
+    split.
+    intuition.
+    apply initConfigPagesListPostConditionUpdateMappedPageContent;trivial.
       intuition.
-      intuition. 
+      intuition.  
 Qed. 
 
 

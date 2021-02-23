@@ -49,6 +49,18 @@ match lt_dec isucc tableSize with
     Some {| i := isucc; Hi := MALInternal.Index.succ_obligation_1 n x |}
 | right _ => None
 end.
+
+Program Definition pred (n : index) : option index := 
+if gt_dec n 0 then
+let ipred := n-1 in 
+Some (Build_index ipred _ )
+else  None.
+Next Obligation.
+destruct n.
+simpl.
+omega.
+Qed.
+
 End Index. 
 
 Module Page. 
@@ -356,14 +368,14 @@ end.
 (** The [geTrdShadows] returns physical pages used to keep informations about 
     configuration pages 
 *)
-Fixpoint getTrdShadows (sh3 : page) s bound :=
+Fixpoint getLLPages (sh3 : page) s bound :=
 match bound with 
 |0 => []
 |S bound1 => match getMaxIndex with 
             |None => []
             |Some maxindex =>  match readPhysical sh3 maxindex s.(memory) with 
                                 |None => [sh3]
-                                |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getTrdShadows addr s bound1
+                                |Some addr => if addr =? defaultPage then [sh3] else sh3 :: getLLPages addr s bound1
                                end
            end
 end.
@@ -481,7 +493,7 @@ match getPd partition s.(memory),
 | Some pd , Some sh1, Some sh2 , Some sh3  => (getIndirections pd s)++
                          (getIndirections sh1 s)++
                          (getIndirections sh2 s )++
-                         (getTrdShadows sh3 s (nbPage+1))
+                         (getLLPages sh3 s (nbPage+1))
 |_,_,_,_ => []
 end.
 
@@ -611,6 +623,7 @@ Definition isPP' table idx pg s: Prop :=
              |_ => False
 end.
 
+
 (** The [nextEntryIsPP] proposition reutrns True if the entry at position [idx+1]
     into the given physical page [table] is type of [PP] and physical page stored into 
     this entry is equal to a given physical page [pg] *)
@@ -678,6 +691,13 @@ Definition isVA' table idx v1 s:=
  | _ => False
  end.
 
+(** The [isVAUser] specifies the value of v1 *)
+Definition isVAUser table idx v1 s:=
+ match lookup table idx (memory s) beqPage beqIndex with 
+ | Some (VA entry)  => entry = v1
+ | _ => defaultVAddr = v1
+ end.
+
 (** The [isEntryPage] proposition reutrns True if the entry at position [idx]
     into the given page [table] is type of [PE] and physical page stored into this entry 
     is equal to a given physical page [page1]*)
@@ -686,7 +706,26 @@ Definition isEntryPage table idx page1 s:=
  | Some (PE entry)  => entry.(pa) = page1
  | _ => False
  end.
+
+(** The [isIndexValue] proposition reutrns True if the entry at position [idx]
+    into the given page [table] is type of [I] and the index stored into this memory location 
+    is equal to a given index value [vindex]*)
+Definition isIndexValue table idx vindex s:=
+ match lookup table idx (memory s) beqPage beqIndex with 
+ | Some (I value)  =>  value = vindex
+ | _ => False
+ end.
  
+(** The [isI] proposition reutrns True if the entry at position [idx]
+    into the given page [table] is type of [I] *)
+Definition isI table idx s: Prop := 
+match lookup table idx s.(memory) beqPage beqIndex with 
+             |Some (I _) => True
+             |_ => False
+end. 
+
+
+
 (** The [getTableAddrRoot'] proposition returns True if the given physical page [table]
 is a configuration table into different structures (pd, shadow1 or shadow2). This table should be associated to the 
 given virtual address [va]  *)

@@ -35,7 +35,7 @@
     This file contains required lemmas to prove the [writeAccessible] invariant *)
 Require Import Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware Model.ADT DependentTypeLemmas
-GetTableAddr Model.MAL Model.Lib Lib InternalLemmas.
+GetTableAddr Model.MAL Model.Lib Lib InternalLemmas PropagatedProperties.
 Require Import Coq.Logic.ProofIrrelevance Omega List.
 Import List.ListNotations.
 
@@ -1048,12 +1048,12 @@ case_eq(beqPairs (table, idx) (p, CIndex size) beqPage beqIndex);intros Hpairs.
            beqPage beqIndex = lookup  p (CIndex size) (memory s) beqPage beqIndex) as Hmemory.
    { apply removeDupIdentity. subst.  intuition. }
   rewrite  Hmemory. 
-  destruct (lookup p (CIndex size) (memory s) beqPage beqIndex); [ 
-  destruct v;  [
-  destruct (pa p0 =? defaultPage ); trivial | | | | ];
-  generalize (IHsize p table idx H);clear IHsize; intros IHsize;
-  rewrite IHsize;trivial | generalize (IHsize p table idx );clear IHsize; intros IHsize;
+  destruct (lookup p (CIndex size) (memory s) beqPage beqIndex); [
+  | generalize (IHsize p table idx );clear IHsize; intros IHsize;
   apply IHsize;trivial ].
+  destruct v; try (destruct (pa p0 =? defaultPage ); assumption);
+  generalize (IHsize p table idx H);clear IHsize; intros IHsize;
+  rewrite IHsize;trivial .
 Qed.
 
 Lemma getIndirectionsUpdateUserFlag l table idx entry flag s  level: 
@@ -1101,7 +1101,7 @@ intros. f_equal.
 
 Lemma getConfigTablesLinkedListsUpdateUserFlag s sh3 flag table idx entry :
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
-getTrdShadows sh3
+getLLPages sh3
   {|
   currentPartition := currentPartition s;
   memory := add table idx
@@ -1113,7 +1113,7 @@ getTrdShadows sh3
                  present := present entry;
                  user := flag;
                  pa := pa entry |}) (memory s) beqPage beqIndex |} (nbPage+1) =
-getTrdShadows sh3 s (nbPage+1).
+getLLPages sh3 s (nbPage+1).
 Proof.
 revert sh3.
 induction (nbPage+1);trivial.
@@ -1218,6 +1218,34 @@ apply getIndirectionsUpdateUserFlag ; trivial.
 rewrite Hind; clear Hind.
 unfold s'.
 rewrite getConfigTablesLinkedListsUpdateUserFlag; trivial.
+Qed.
+
+Lemma initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag userPage
+ s entry flag table idx : 
+let s':= {|
+  currentPartition := currentPartition s;
+  memory := add table idx
+              (PE
+                 {|
+                 read := read entry;
+                 write := write entry;
+                 exec := exec entry;
+                 present := present entry;
+                 user := flag;
+                 pa := pa entry |}) (memory s) beqPage beqIndex |}  in
+lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
+initPEntryTablePreconditionToPropagatePrepareProperties s userPage -> 
+initPEntryTablePreconditionToPropagatePrepareProperties s' userPage.
+Proof.
+intros s' Hlookup (Hconf & Hfalse).
+unfold initPEntryTablePreconditionToPropagatePrepareProperties in *.
+split;trivial.
+intros part Hpart.
+unfold s' in Hpart.
+rewrite getPartitionsUpdateUserFlag in Hpart;trivial.
+unfold s'.
+rewrite getConfigPagesUpdateUserFlag;trivial.
+apply Hconf;trivial.
 Qed.
 
 Lemma getMappedPagesUpdateUserFlag partition s entry flag table idx : 
@@ -1756,7 +1784,38 @@ case_eq (beqPairs (table1, idx1) (table2, idx2) beqPage beqIndex ); intros Hpair
 { apply removeDupIdentity. subst.  intuition. }
   rewrite Hmemory. assumption. }
 Qed.
- 
+
+Lemma isVAUserUpdateUserFlag table1 table2 idx1 idx2 flag entry s va: 
+lookup table1 idx1 (memory s) beqPage beqIndex =
+Some (PE entry) -> 
+isVAUser table2 idx2 va s ->
+isVAUser table2 idx2 va
+{|
+currentPartition := currentPartition s;
+memory := add table1 idx1
+(PE
+ {|
+ read := read entry;
+ write := write entry;
+ exec := exec entry;
+ present := present entry;
+ user := flag;
+ pa := pa entry |}) (memory s) beqPage beqIndex |}. 
+Proof.
+intros Hlookup Hve.
+unfold isVAUser in *.
+cbn in *.
+case_eq (beqPairs (table1, idx1) (table2, idx2) beqPage beqIndex ); intros Hpairs.
+{  apply beqPairsTrue in Hpairs.
+  destruct Hpairs as (Htable & Hidx).
+   subst. rewrite Hlookup in Hve. trivial. }
+{ apply beqPairsFalse in Hpairs.
+  assert (lookup  table2 idx2  (removeDup table1 idx1 (memory s) beqPage beqIndex)
+  beqPage beqIndex = lookup  table2 idx2 (memory s) beqPage beqIndex) as Hmemory.
+{ apply removeDupIdentity. subst.  intuition. }
+  rewrite Hmemory. assumption. }
+Qed.
+
 Lemma isEntryVAUpdateUserFlag  table1 idx1 table2 idx2 derived entry flag s : 
 lookup table1 idx1 (memory s) beqPage beqIndex =
 Some (PE entry) -> 
@@ -2413,7 +2472,7 @@ apply Hispart1 with partition pd page ;trivial.
 Qed.
 
 
-Lemma getVirtualAddressSh2UpdateUserFlag p va entry table vatable s:
+Lemma getVirtualAddressSh2UpdateUserFlag p va entry table vatable s flag:
 lookup table (StateLib.getIndexOfAddr vatable fstLevel) 
 (memory s) beqPage beqIndex = Some (PE entry) -> 
 getVirtualAddressSh2 p s va =
@@ -2427,7 +2486,7 @@ getVirtualAddressSh2 p
                    write := write entry;
                    exec := exec entry;
                    present := present entry;
-                   user := false;
+                   user := flag;
                    pa := pa entry |}) (memory s) beqPage beqIndex |} va.
 Proof.
 unfold getVirtualAddressSh2.
@@ -3457,6 +3516,7 @@ rewrite getFstShadowUpdateUserFlag;trivial.
 destruct (StateLib.getFstShadow parent (memory s) ); try now contradict H0.
 rewrite <- getVirtualAddressSh1UpdateUserFlag with p table idx va entry s flag;trivial.
 Qed.
+
 Lemma physicalPageNotDerivedUpdateUserFlag entry table idx s flag :
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
 physicalPageNotDerived s -> 
