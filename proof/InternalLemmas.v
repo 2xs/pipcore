@@ -7841,7 +7841,7 @@ assert(va = va0).
          omega.
          f_equal.
          generalize(H 0);clear H;intros H.
-         simpl in .
+         simpl in *.
          subst.
          simpl in *.
          symmetry.
