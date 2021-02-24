@@ -680,8 +680,6 @@ Definition prepareAux (descChild : vaddr) (phyDescChild pd : page) (phySh1Child 
               addresses which will be used as configuration tables into the 
               child partion; fstVA is the header of this linkList)
 
-    <<needNewConfigPagesList>> The boolean value
-
 Before starting configuration we should verifiy that  <<descChild>> is a child partition
   *)
 Definition prepare (descChild : vaddr)  (va : vaddr) (fstVA : vaddr): LLI boolvaddr :=
