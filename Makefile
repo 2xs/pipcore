@@ -201,7 +201,7 @@ $(TARGET_DIR)/multiplexer.o: $(TARGET_DIR)/$(PARTITION).bin
 	$(AS) $(ASFLAGS) -o $@ $(TARGET_DIR)/multiplexer.s
 
 $(TARGET_DIR)/$(PARTITION).bin:
-	if test "$(PARTITION)" = nullpartition; then                                        \
+	@if test "$(PARTITION)" = nullpartition; then                                        \
 		echo "Warning: using a dummy empty root partition to build Pip" ;           \
 		echo "  You should create a real partition and run" ;                       \
 		echo "    make PARTITION=YourPartition ..." ;                               \
