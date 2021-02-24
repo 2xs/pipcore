@@ -136,7 +136,7 @@ $(DIGGER):
 
 # Extract C code from Coq source
 src/model/Extraction.vo $(JSONS): src/model/Extraction.v
-	$(COQC) $(COQOPTS) -w all $<
+	$(COQC) $(COQOPTS) -w all -w -extraction $<
 
 extract: $(EXTRACTEDCSOURCES)
 
