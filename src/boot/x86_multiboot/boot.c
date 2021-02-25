@@ -66,6 +66,8 @@
 /* TODO Remove me once rewritten in Coq */
 #include "yield_c.h"
 
+#define STACK_TOP_ADDR 0XFFFFE000
+
 /**
  * \brief Virtual address at which to load the multiplexer.
  */
@@ -96,20 +98,17 @@ void spawnFirstPartition(void)
 
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 
-	// Prepare kernel stack for multiplexer
-	usrStack = (void*)0xFFFFE000;
-
 	// Find virtual interrupt vector for partition
 	pt = readPhysicalNoFlags((uintptr_t)pageDir, getTableSize() - 1);
 	vidtPaddr = readPhysicalNoFlags(pt, getTableSize() - 1);
 
 	// Build initial execution context of multiplexer (architecture dependent)
-	// Maybe we don't need to decrement the stack pointer though
-	usrStack = ctx = (user_ctx_t *)(usrStack - sizeof(*ctx));
+	ctx = (user_ctx_t *)(STACK_TOP_ADDR + PAGE_SIZE - sizeof(*ctx));
 	ctx->eip = (uint32_t) __multiplexer;
 	ctx->pipflags = 0; // VCLI
 	ctx->eflags = 0x2; // reserved (bit 1)
-	ctx->regs.esp = (uint32_t)usrStack;
+	// ctx is the top of the stack
+	ctx->regs.esp = (uint32_t)ctx;
 	ctx->regs.ebx = 0xFFFFC000; /* emulate grub behaviour: pass meminfo in ebx
        					meminfo is mapped in initMmu for now.	*/
 	ctx->valid = 1;
