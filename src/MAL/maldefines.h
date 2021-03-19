@@ -130,7 +130,7 @@ typedef uint32_t preLevel;
 #define preVaddrToVaddr(x) x
 #define succNbLevel (nbLevel + 1)
 #define maxprelevel (nbLevel - 1)
-#define coq_N   1000
+#define coq_N 1024
 
 /* boolVAddr */
 typedef uint32_t boolvaddr;
