@@ -390,7 +390,7 @@ writeIndex LL zero nextFreeIndex.
 (** The [putIndirectionsBack] marks as accessible and underived all virtual 
     addresses used for partition configuration except those stored into the
     partition descriptor *)
-Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  currentSh1 l1 :=
+Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  currentSh1 l1 listVAddrInParent :=
   match timeout with
   | 0 => getDefaultVAddr
   | S timeout1 =>
@@ -402,8 +402,15 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
     perform res := MALInternal.Index.eqb curIdx maxindexPred  in
     if (res) (**  if last entry *)
     then
+      (** set the list page underived and accessible now that we're done handling it *)
+      (** TODO should we purge it ? *)
+      setUnderived listVAddrInParent currentSh1 l1 ;;
+      setAccessible listVAddrInParent currentPD l1 true;;
+      perform currentPart := getCurPartition in
+      writeAccessibleRec listVAddrInParent currentPart true;;
       (**  get the address of the next page *)
-      perform next :=  readPhysical list maxindex in 
+      perform next :=  readPhysical list maxindex in
+      perform nextVAddrInParent := readVirtual list maxindexPred in
       perform null :=  getDefaultPage in
       perform cmp :=  MALInternal.Page.eqb next null in
       if cmp (**  no more pages ? *)
@@ -411,7 +418,7 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
       then ret buf
         (**  else : recursion on the next page *)
       else
-        putIndirectionsBackAux timeout1 next two  buf currentPD  currentSh1 l1
+        putIndirectionsBackAux timeout1 next two  buf currentPD  currentSh1 l1 nextVAddrInParent
     else
       perform va :=  readVirtual list curIdx in 
       perform succ := MALInternal.Index.succ curIdx in
@@ -420,7 +427,7 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
       perform cmp2 :=  MALInternal.VAddr.eqbList va null in
       if cmp2 (**  not a virtual address ? *)
       (**  recursion on the next index  *)
-      then putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1
+      then putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1 listVAddrInParent
       else (**  else : there is a virtual address *)
         (**  recursion on the next index *)
         (**  Insert page into the linked list*)
@@ -430,35 +437,39 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
         perform currentPart := getCurPartition in 
         writeAccessibleRec  va currentPart true;;
         (**  Recursive call, using va as our new link head *)
-        putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1
+        putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1 listVAddrInParent
   end.
 
 (** The [putIndirectionsBack] fixes the timeout value of the [putIndirectionsBackAux] *)
-Definition putIndirectionsBack list (curIdx : index) buf currentPD  currentSh1 l1  :=
-  putIndirectionsBackAux N list curIdx buf currentPD  currentSh1 l1 .
+Definition putIndirectionsBack list (curIdx : index) buf currentPD  currentSh1 l1 listVAddrInParent :=
+  putIndirectionsBackAux N list curIdx buf currentPD  currentSh1 l1 listVAddrInParent.
 
 (** The [putShadowsBackAux] marks as accessible and underived virtual addresses 
-    stored into the partition descriptor table *)
+    stored into the partition descriptor table, except LinkedList pages.
+    Note: the LinkedList pages were marked as accessible and underived in putIndirectionsBack *)
 Fixpoint putShadowsBackAux timeout (phyRefPart : page) (pos : index) (currentPD  currentSh1 : page)
   (l1 : level) (buf : vaddr) :=
   match timeout with
   | 0 => ret tt
-  | S timeout1 => 
-    perform va :=  readVirtual phyRefPart pos in
-    setUnderived va currentSh1 l1;;
-    setAccessible va currentPD l1 true;;
-    perform currentPart := getCurPartition in 
-    writeAccessibleRec  va currentPart true;;
-    perform zero := MALInternal.Index.zero in
-    (* storeVirtual va zero buf ;; *)
+  | S timeout1 =>
+    (** check if we reached the LinkedList index *)
     perform idxSh3 := getSh3idx in
     perform isEqIdx := MALInternal.Index.eqb pos idxSh3 in 
     if isEqIdx
+    (** no need to "free" it, the whole list was freed during putIndirectionsBack *)
     then ret tt
     else
+      perform va :=  readVirtual phyRefPart pos in
+      setUnderived va currentSh1 l1;;
+      setAccessible va currentPD l1 true;;
+      perform currentPart := getCurPartition in
+      writeAccessibleRec  va currentPart true;;
+      (* perform zero := MALInternal.Index.zero in *)
+      (* storeVirtual va zero buf ;; *)
+
       perform succ := MALInternal.Index.succ pos in
       perform succ11 := MALInternal.Index.succ succ in
-      putShadowsBackAux timeout1 phyRefPart succ11 currentPD  currentSh1 l1 buf
+      putShadowsBackAux timeout1 phyRefPart succ11 currentPD currentSh1 l1 buf
   end.
 
 (** The [putShadowsBack] fixes the timeout value of [putShadowsBackAux] *)

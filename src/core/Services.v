@@ -929,13 +929,14 @@ Definition deletePartition (descChild : vaddr) :=
 
     (**  Get the configuration pages list of the child  *)
     perform phyConfigPagesListChild := getConfigTablesLinkedList phyDescChild in
+    perform vaConfigPagesListChild := getConfigTablesLinkedListVaddr phyDescChild in
     perform zero := MALInternal.Index.zero in
     perform indexone := MALInternal.Index.succ zero in
     perform indextwo := MALInternal.Index.succ indexone in
     perform currentPD := getPd currentPart in
 
     (**  Set indirection pages as accessible and underived *)
-    perform configPagesList := putIndirectionsBack phyConfigPagesListChild indextwo mappedVAddrList currentPD  currentSh1 nbL in
+    perform configPagesList := putIndirectionsBack phyConfigPagesListChild indextwo mappedVAddrList currentPD  currentSh1 nbL vaConfigPagesListChild in
 
     (**  unmark child partition  *)
     perform ptDescChildFromCurrentSh1 := getTableAddr currentSh1 descChild nbL in
