@@ -37,7 +37,7 @@ Require Import Core.Internal Isolation Consistency WeakestPreconditions Invarian
 Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas 
 UpdateMappedPageContent Model.Lib InternalLemmas PropagatedProperties
 InitPEntryTable InitVAddrTable.
-Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
+Require Import Coq.Logic.ProofIrrelevance Lia Model.MAL List Bool EqNat.
 
 
 
@@ -111,7 +111,7 @@ eapply WP.bindRev.
     symmetry in Hi.
     apply levelEqBEqNatFalse in Hi.
     subst.
-    omega.
+    lia.
     instantiate(1:= fun _ s => false = StateLib.Level.eqb nbL fstLevel).
     eapply weaken.
     eapply initPEntryTablePreservesProp. 
@@ -125,7 +125,7 @@ eapply WP.bindRev.
     symmetry in H1.
     apply levelEqBEqNatFalse in H1.
     unfold not;intros;subst.
-    omega.
+    lia.
     destruct H0.
     assumption.    
 Qed.
@@ -162,7 +162,7 @@ table phyPDChild
   (forall partition : page,
   In partition (getPartitions multiplexer s) ->
   partition = table \/ In table (getConfigPagesAux partition s) -> False) /\ 
-  (defaultPage =? table) = false 
+  (Nat.eqb defaultPage table) = false 
 }} 
 
 initSndShadow table  nbL curidx 
@@ -241,8 +241,8 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\
  zero = CIndex 0) /\
       
-      (defaultPage =? table1) = false /\
-      (defaultPage =? table2) = false /\
+      (Nat.eqb defaultPage table1) = false /\
+      (Nat.eqb defaultPage table2) = false /\
        nextEntryIsPP partition PDidx currentPD s /\
       In partition (getPartitions multiplexer s) /\
               
@@ -254,7 +254,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
    (forall partition : page,
     In partition (getPartitions multiplexer s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (defaultPage =? phyPage1) = false) /\ 
+   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
        StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
@@ -332,8 +332,8 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\
  zero = CIndex 0) /\
       
-      (defaultPage =? table1) = false /\
-      (defaultPage =? table2) = false /\
+      (Nat.eqb defaultPage table1) = false /\
+      (Nat.eqb defaultPage table2) = false /\
        nextEntryIsPP partition PDidx currentPD s /\
       In partition (getPartitions multiplexer s) /\
               
@@ -351,7 +351,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
    (forall partition : page,
     In partition (getPartitions multiplexer s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (defaultPage =? phyPage1) = false) /\ 
+   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
        StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\

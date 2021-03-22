@@ -36,21 +36,21 @@
 Require Import Core.Internal Isolation Consistency WeakestPreconditions Invariants.
 Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas Model.Lib
 PropagatedProperties  UpdateMappedPageContent  InternalLemmas WriteIndex InsertEntryIntoLL.
-Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
+Require Import Coq.Logic.ProofIrrelevance Lia Model.MAL List Bool Compare_dec EqNat.
 Definition writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s:=
 
-   ((((Nat.Even curidx /\
+   ((((PeanoNat.Nat.Even curidx /\
        (forall idx : index,
         idx > CIndex 1 ->
         idx < CIndex (tableSize - 2) ->
-        Nat.Odd idx ->
+        PeanoNat.Nat.Odd idx ->
         idx < curidx ->
         exists idxValue : index,
           StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\
        (forall idx : index,
         idx > CIndex 1 ->
         idx < CIndex (tableSize - 2) ->
-        Nat.Even idx ->
+        PeanoNat.Nat.Even idx ->
         idx < curidx ->
         StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
        zero = CIndex 0 /\
@@ -136,7 +136,7 @@ assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (me
 + assert(Hi: forall idx : index,
     idx > CIndex 1 ->
     idx < CIndex (tableSize - 2) ->
-    Nat.Odd idx ->
+    PeanoNat.Nat.Odd idx ->
     idx < curidx ->
     exists idxValue : index,
       StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) by trivial.
@@ -149,7 +149,7 @@ subst.
 assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
 unfold StateLib.Index.geb in Hii.
 apply leb_complete in Hii.
-omega.
+lia.
 destruct Hix as (idxvalue & Hidxv).
 exists idxvalue.
 rewrite <- Hidxv.
@@ -157,11 +157,11 @@ symmetry.
 apply readIndexUpdateLLIndex.
 right.
 unfold not;intros;subst.
-omega.
+lia.
 + assert(forall idx : index,
      idx > CIndex 1 ->
      idx < CIndex (tableSize - 2) ->
-     Nat.Even idx ->
+     PeanoNat.Nat.Even idx ->
      idx < curidx ->
      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) as Hi by trivial.
    rewrite <- Hi with idx;trivial.
@@ -173,7 +173,7 @@ subst.
 assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
 unfold StateLib.Index.geb in Hii.
 apply leb_complete in Hii.
-omega.
+lia.
 Admitted.
 
 Lemma writeIndexFFI  phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI:
@@ -206,7 +206,7 @@ intuition;subst;simpl in *.
 + assert(Hi: forall idx : index,
     idx > CIndex 1 ->
     idx < CIndex (tableSize - 2) ->
-    Nat.Odd idx ->
+    PeanoNat.Nat.Odd idx ->
     idx < curidx ->
     exists idxValue : index,
       StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) by trivial.
@@ -227,11 +227,11 @@ apply readIndexUpdateLLIndex.
 right.
 unfold not;intros;subst.
 apply DependentTypeLemmas.index0Ltfalse with (CIndex 1).
-omega.
+lia.
 + assert(forall idx : index,
      idx > CIndex 1 ->
      idx < CIndex (tableSize - 2) ->
-     Nat.Even idx ->
+     PeanoNat.Nat.Even idx ->
      idx < curidx ->
      StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) as Hi by trivial.
    rewrite <- Hi with idx;trivial.
@@ -251,16 +251,16 @@ assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (me
 Admitted.
 
 Lemma initConfigPagesListNewProperty phyConfigPagesList (curidx : index):
-{{ fun s : state => ((* curidx = (CIndex 0) \/ *) (* curidx = (CIndex 1) \/ *) Nat.Even curidx) /\ 
-                  (forall idx : index, idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> Nat.Odd idx -> idx < curidx ->
+{{ fun s : state => ((* curidx = (CIndex 0) \/ *) (* curidx = (CIndex 1) \/ *) PeanoNat.Nat.Even curidx) /\ 
+                  (forall idx : index, idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> PeanoNat.Nat.Odd idx -> idx < curidx ->
                   exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
-                 (forall idx : index,  idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> Nat.Even idx -> idx < curidx -> 
+                 (forall idx : index,  idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> PeanoNat.Nat.Even idx -> idx < curidx -> 
                  StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr)}}
   Internal.initConfigPagesList phyConfigPagesList curidx 
 {{ fun _ s  => initConfigPagesListPostCondition phyConfigPagesList s }}.
 Proof.
 unfold initConfigPagesList.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert phyConfigPagesList curidx.
 generalize tableSize at 1 5. 
@@ -271,7 +271,7 @@ induction n.  simpl.
   simpl in *.
   clear H.
   contradict Hi.
-  omega.
+  lia.
 + intros. simpl.
 (** Index.zero **)
   eapply WP.bindRev.
@@ -476,7 +476,7 @@ induction n.  simpl.
   apply tableSizeBigEnough.
   unfold tableSizeLowerBound in *.
   assert(CIndex (tableSize - 1) <> (CIndex (tableSize - 2)) ). 
-  apply indexEqFalse;try omega. 
+  apply indexEqFalse;try lia. 
   assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 1))) (phyConfigPagesList, (CIndex (tableSize - 2))) beqPage beqIndex=
   false).
   { apply beqPairsFalse.
@@ -577,23 +577,23 @@ induction n.  simpl.
   apply indexEqbTrue in Hcur0;subst.
   assert(n +oneI >= tableSize).
   unfold StateLib.Index.succ in Hone.
-  case_eq(lt_dec (CIndex 0 + 1) tableSize);intros;try omega;
+  case_eq(lt_dec (CIndex 0 + 1) tableSize);intros;try lia;
   rewrite H in *.
   inversion Hone.
   simpl.
   simpl in *.
-  omega.
+  lia.
   now contradict Hone.
   unfold StateLib.Index.succ in Htwo.
-  case_eq(lt_dec (oneI + 1) tableSize);intros;try omega;
+  case_eq(lt_dec (oneI + 1) tableSize);intros;try lia;
   rewrite H0 in *;simpl in *.
   inversion Htwo.
   simpl in *.
-  omega.
+  lia.
   now contradict Htwo.
   split.
   (** Nat.even two **)
-  assert(Hodd: Nat.Odd oneI).
+  assert(Hodd: PeanoNat.Nat.Odd oneI).
   { intuition;subst.
    apply indexSEqbZeroOdd with (CIndex 0); trivial.
    unfold StateLib.Index.eqb.
@@ -704,9 +704,9 @@ induction n.  simpl.
     subst.
     unfold CIndex in Hgeb.
     case_eq(lt_dec (tableSize - 2) tableSize);intros; rewrite H in *;simpl in *.
-    omega.
+    lia.
     assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-    omega. }
+    lia. }
   trivial.
   intros Scuridx.
   simpl.
@@ -737,9 +737,9 @@ induction n.  simpl.
   case_eq(lt_dec (curidx + 1) tableSize);intros Hi Hii;rewrite Hii in *;simpl in *;try now contradict Hscuridx.
   inversion Hscuridx;clear Hscuridx.
   simpl in *.
-  omega.
+  lia.
   assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-  omega. }
+  lia. }
   repeat rewrite and_assoc in H.
   intros SScuridx.
    simpl.
@@ -764,8 +764,8 @@ induction n.  simpl.
 (*    intuition.
    subst.
    
-   assert (Hoddcuridx : Nat.Odd curidx).
-   { assert (curidx = CIndex 0 \/ Nat.Odd curidx) by intuition.
+   assert (Hoddcuridx : PeanoNat.Nat.Odd curidx).
+   { assert (curidx = CIndex 0 \/ PeanoNat.Nat.Odd curidx) by intuition.
     
       assert (false = StateLib.Index.eqb curidx zero) by intuition.
       assert(zero = CIndex 0) by intuition.
@@ -886,7 +886,7 @@ subst.
    clear H2.
    destruct curidx.
    simpl in *; subst.
-   omega.
+   lia.
    destruct H as ((Hor & Hodd & Heven & Hzero & Hmax & Hnoteqmax & Hgeb & 
              Heqbzero & Hnullv & Hreadv & HiIndex & Hnextidx) & Hreadi).
    subst.
@@ -906,17 +906,17 @@ subst.
       case_eq(lt_dec (curidx + 1) tableSize);intros Hi Hii;rewrite Hii in *;simpl in *;try now contradict Hscuridx.
       inversion HiIndex;clear HiIndex.
       simpl in *.
-      omega.
+      lia.
       assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-      omega.
+      lia.
       assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-      omega;trivial.
+      lia;trivial.
     * apply SuccEvenOdd with curidx;trivial.
       unfold StateLib.Index.succ in *.
       case_eq (lt_dec (curidx + 1) tableSize) ;intros; rewrite H in *; try now contradict Hidxsucc1.
       inversion HiIndex; clear HiIndex.
       simpl in *.
-      omega.
+      lia.
       now contradict HiIndex. }
     split;
     intros.
@@ -972,7 +972,7 @@ presentRefChild = true  /\ presentPDChild = true  /\
    (forall idx : index,
     StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false)  /\ 
-   (Nat.Even curidx)
+   (PeanoNat.Nat.Even curidx)
     }} 
 
   Internal.initConfigPagesList phyConfigPagesList curidx 
@@ -1007,7 +1007,7 @@ presentRefChild = true  /\ presentPDChild = true  /\
 Proof.
 unfold initConfigPagesList.
 intros Hlegit.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert phyConfigPagesList curidx.
 generalize tableSize at 1 3. 
@@ -1018,7 +1018,7 @@ induction n.  simpl.
   simpl in *.
   clear H.
   contradict Hi.
-  omega.
+  lia.
 + intros. simpl.
 (** Index.zero **)
   eapply WP.bindRev.
@@ -1572,22 +1572,22 @@ case_eq eqbZero;intros HfstEntry.
   apply indexEqbTrue in Hcur0;subst.
   assert(n +oneI >= tableSize).
   unfold StateLib.Index.succ in Hone.
-  case_eq(lt_dec (CIndex 0 + 1) tableSize);intros;try omega;
+  case_eq(lt_dec (CIndex 0 + 1) tableSize);intros;try lia;
   rewrite H in *.
   inversion Hone.
   simpl.
   simpl in *.
-  omega.
+  lia.
   now contradict Hone.
   unfold StateLib.Index.succ in Htwo.
-  case_eq(lt_dec (oneI + 1) tableSize);intros;try omega;
+  case_eq(lt_dec (oneI + 1) tableSize);intros;try lia;
   rewrite H0 in *;simpl in *.
   inversion Htwo.
   simpl in *.
-  omega.
+  lia.
   now contradict Htwo.
   intuition.
-assert(Hodd: Nat.Odd oneI).
+assert(Hodd: PeanoNat.Nat.Odd oneI).
   { intuition;subst.
    apply indexSEqbZeroOdd with (CIndex 0); trivial.
    unfold StateLib.Index.eqb.
@@ -1752,9 +1752,9 @@ assert(Hodd: Nat.Odd oneI).
     subst.
     unfold CIndex in Hgeb.
     case_eq(lt_dec (tableSize - 2) tableSize);intros; rewrite H in *;simpl in *.
-    omega.
+    lia.
     assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-    omega. }
+    lia. }
   trivial.
   intros Scuridx.
   simpl.
@@ -1785,12 +1785,12 @@ assert(Hodd: Nat.Odd oneI).
   case_eq(lt_dec (curidx + 1) tableSize);intros Hi Hii;rewrite Hii in *;simpl in *;try now contradict Hscuridx.
   inversion Hxx;clear Hxx.
   simpl in *.
-  omega.
+  lia.
   assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-  omega.
+  lia.
   
   assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-  omega. }
+  lia. }
   repeat rewrite and_assoc in H.
   intros SScuridx.
    simpl.
@@ -1914,7 +1914,7 @@ eapply bindRev.
    clear H2.
    destruct curidx.
    simpl in *; subst.
-   omega.
+   lia.
    split.
    intuition.
    destruct H as (_ & _ & _ & _ & _ &  _ & _ & _ & _ & Hodd & Heven & Hzero & Hmax & Hnoteqmax & Hgeb & 
@@ -1939,18 +1939,18 @@ eapply bindRev.
       case_eq(lt_dec (Scuridx + 1) tableSize);intros;rewrite H0 in *.
       inversion H1.
       subst.
-      omega.
+      lia.
       
       simpl in *.
       now contradict H1.
       now contradict Hreadv.
       assert (tableSizeLowerBound < tableSize) by apply tableSizeBigEnough.
-      omega.
+      lia.
     * apply SuccEvenOdd with curidx;trivial.
       unfold StateLib.Index.succ in *.
       case_eq (lt_dec (curidx + 1) tableSize) ;intros; rewrite H in *; try now contradict Hidxsucc1.
       inversion HiIndex; clear HiIndex.
       simpl in *.
-      omega.
+      lia.
       now contradict HiIndex.
 Qed.

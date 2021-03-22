@@ -36,7 +36,7 @@ Consistency WeakestPreconditions Invariants StateLib Model.Lib
  Model.MAL GetTableAddr InternalLemmas DependentTypeLemmas  UpdateShadow2Structure 
 UpdateShadow1Structure 
  PropagatedProperties MapMMUPage InternalLemmas2.
-Require Import Omega Bool List.
+Require Import Bool List EqNat.
 
 (** * Summary 
     This file contains the invariant of [addVaddr]. 
@@ -239,7 +239,7 @@ simpl.
   destruct H as (((Ha1 & Ha2) & Ha3) & Ha4).
   assert (Hnewget : isVE ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) s /\
        getTableAddrRoot ptDescChild sh1idx currentPart descChild s /\ 
-       (defaultPage =? ptDescChild) = false).
+       (Nat.eqb defaultPage ptDescChild) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -372,7 +372,7 @@ eapply Invariants.getIndexOfAddr.
   assert (Hnewget : isVE ptVaInCurPart (
   StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) s /\
        getTableAddrRoot ptVaInCurPart sh1idx currentPart vaInCurrentPartition s /\ 
-       (defaultPage =? ptVaInCurPart) = false).
+       (Nat.eqb defaultPage ptVaInCurPart) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -511,7 +511,7 @@ eapply WP.bindRev.
   StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) s /\
        getTableAddrRoot ptVaInCurPartpd PDidx currentPart
          vaInCurrentPartition s /\ 
-       (defaultPage =? ptVaInCurPartpd) = false).
+       (Nat.eqb defaultPage ptVaInCurPartpd) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -623,7 +623,7 @@ eapply Invariants.getIndexOfAddr.
   assert (Hnewget : isPE ptDescChildpd 
   (StateLib.getIndexOfAddr descChild fstLevel) s /\
        getTableAddrRoot ptDescChildpd PDidx currentPart descChild s /\ 
-       (defaultPage =? ptDescChildpd) = false).
+       (Nat.eqb defaultPage ptDescChildpd) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -783,7 +783,7 @@ eapply Invariants.getIndexOfAddr.
   assert (Hnewget : isPE ptVaChildpd 
   (StateLib.getIndexOfAddr vaChild fstLevel) s /\
        getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s /\ 
-       (defaultPage =? ptVaChildpd) = false).
+       (Nat.eqb defaultPage ptVaChildpd) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.

@@ -36,7 +36,7 @@
 Require Import Model.ADT Model.Hardware Core.Services Isolation 
 Consistency Invariants WeakestPreconditions Model.Lib StateLib 
 Model.MAL DependentTypeLemmas InternalLemmas Lib.
-Require Import Omega Bool  Coq.Logic.ProofIrrelevance List Classical_Prop.
+Require Import Lia Bool  Coq.Logic.ProofIrrelevance List Classical_Prop Compare_dec EqNat.
 Import List.ListNotations.
 
 Lemma getTablePagesUpdateCurrentPartition s rootStructure phyVA: 
@@ -75,7 +75,7 @@ induction (nbLevel - 1);simpl; trivial.
 intros.
 destruct ( StateLib.Level.eqb l fstLevel); trivial.
 destruct (StateLib.readPhyEntry p (StateLib.getIndexOfAddr a l) (memory s)); trivial.
-destruct ( defaultPage =? p0) ;trivial.
+destruct (Nat.eqb defaultPage p0) ;trivial.
 destruct (StateLib.Level.pred l ); trivial.
 Qed.
 
@@ -88,7 +88,7 @@ induction stop;simpl; trivial.
 intros.
 destruct ( StateLib.Level.eqb l fstLevel); trivial.
 destruct (StateLib.readPhyEntry p (StateLib.getIndexOfAddr a l) (memory s)); trivial.
-destruct ( defaultPage =? p0) ;trivial.
+destruct (Nat.eqb defaultPage p0) ;trivial.
 destruct (StateLib.Level.pred l ); trivial.
 Qed. 
 
@@ -208,7 +208,7 @@ induction nbPage; simpl; trivial.
 intros.
 destruct ( StateLib.getMaxIndex ); trivial.
 destruct (StateLib.readPhysical p2 i (memory s)); trivial.
-destruct (p =? defaultPage ); trivial.
+destruct (Nat.eqb p defaultPage); trivial.
 f_equal.
 apply IHn.
 Qed.
@@ -310,7 +310,7 @@ rewrite H in H4.  assumption.
 case_eq(StateLib.readPhyEntry entry
 (StateLib.getIndexOfAddr va level) (memory s) ); intros;
 rewrite H0 in H4. 
-case_eq (defaultPage =? p); intros;
+case_eq (Nat.eqb defaultPage p); intros;
 rewrite H1 in H4; try assumption.
 case_eq (StateLib.Level.pred level);
 intros; rewrite H3 in H4.
@@ -331,7 +331,7 @@ unfold getAllPages.
 rewrite map_length.
 rewrite seq_length. trivial.
 apply NoDup_incl_length with page listPartitions getAllPages in H.
-omega.
+lia.
 unfold incl.
 intros.
 apply AllPagesAll.
@@ -351,7 +351,7 @@ Qed.
 
 Lemma VAisChild phyVA partition nbL pd descChild (ptpd : page) s: 
 Some nbL = StateLib.getNbLevel -> 
-(defaultPage =? ptpd) = false -> 
+(Nat.eqb defaultPage ptpd) = false -> 
 nextEntryIsPP partition PDidx pd s -> 
 true = checkChild partition nbL s descChild ->
 getTableAddrRoot ptpd PDidx partition descChild s -> 
@@ -403,7 +403,7 @@ rewrite <- Hnbl1 in Hnbl.
 inversion Hnbl.
 subst.
 assert (getIndirection p descChild nbl1 (nbLevel - 1) s = Some ptpd) as Hstopgt.
-{ apply getIndirectionStopLevelGT2 with (nbl1 + 1); try omega.
+{ apply getIndirectionStopLevelGT2 with (nbl1 + 1); try lia.
   unfold StateLib.getNbLevel in Hnbl1.
   case_eq(gt_dec nbLevel 0); intros.
   rewrite H2 in Hnbl1.
@@ -411,7 +411,7 @@ assert (getIndirection p descChild nbl1 (nbLevel - 1) s = Some ptpd) as Hstopgt.
   simpl in *.
   trivial.
   assert (0 < nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   assumption. }
 rewrite Hstopgt. 
 unfold isEntryPage in *.
@@ -601,7 +601,7 @@ root isMultiplexer nbL  ptpd lastIndex phyVA pd:
         ptpd <> defaultPage /\
         (forall idx : index,
          StateLib.getIndexOfAddr descChild fstLevel = idx -> isPE ptpd idx s))) /\
-      (defaultPage =? ptpd) = false) /\
+      (Nat.eqb defaultPage ptpd) = false) /\
      StateLib.getIndexOfAddr descChild fstLevel = lastIndex) /\
     isEntryPage ptpd lastIndex phyVA s) /\ entryPresentFlag ptpd lastIndex true s   }} activate phyVA {{ fun _ (s : state) =>
                        partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
@@ -777,7 +777,7 @@ split.
           unfold wellFormedShadows in *.
           intros. 
           assert(Hgoal : exists indirection2 : page, getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = b).
+                  (Nat.eqb defaultPage indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial. 
@@ -786,7 +786,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal :exists indirection2 , getIndirection structroot va nbL0 stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = b).
+                  (Nat.eqb defaultPage indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.            
@@ -1010,7 +1010,7 @@ split.
           unfold wellFormedShadows in *.
           intros.
           assert(Hgoal : exists indirection2 : page,getIndirection structroot va nbL stop s = Some indirection2 /\
-                  (defaultPage =? indirection2) = b).
+                  (Nat.eqb defaultPage indirection2) = b).
           apply Hwell with partition pdroot indirection1;trivial.
           rewrite <- getPartitionsUpdateCurrentDescriptor in * ;trivial.
            rewrite <- getIndirectionUpdateCurrentPartition1 in *;trivial.
@@ -1081,7 +1081,7 @@ intros.
 case (StateLib.Level.eqb l fstLevel); trivial.
 case (StateLib.readPhyEntry pageDir (StateLib.getIndexOfAddr va l) (memory s)); trivial.
 intros.
-case (defaultPage =? p); trivial.
+case (Nat.eqb defaultPage p); trivial.
 case (StateLib.Level.pred l); trivial.
 Qed.
 
@@ -1112,7 +1112,7 @@ case StateLib.getMaxIndex; trivial.
 intro.
 case (StateLib.readPhysical somePage i (memory s)); trivial.
 intro.
-case (p =? defaultPage); trivial.
+case (Nat.eqb p defaultPage); trivial.
 rewrite IHn.
 reflexivity.
 Qed.

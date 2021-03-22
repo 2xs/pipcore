@@ -37,12 +37,12 @@ Require Import Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr WriteAccessible WritePhyEntry 
 PropagatedProperties WriteAccessibleRec
-InitConfigPagesList InitPEntryTable    
- UpdateMappedPageContent   
+InitConfigPagesList InitPEntryTable
+ UpdateMappedPageContent
 UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure
 InitFstShadow InitSndShadow   UpdatePDFlagTrue.
- Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
-      Lemma andPreAndPost :  
+ Require Import Lia Bool  Coq.Logic.ProofIrrelevance List EqNat Compare_dec.
+      Lemma andPreAndPost :
  forall (A : Type) (P: state -> Prop) 
  (Q1 Q2  :  state -> Prop) (m : LLI A),
 {{fun s => P s /\ Q1 s}} m {{fun _ => Q1}} -> 
@@ -65,7 +65,7 @@ Lemma levelDecOrNot :
       forall p1 p2 : level, p1 <> p2 \/ p1 = p2. 
 Proof.
 destruct p1;simpl in *;subst;destruct p2;simpl in *;subst.
-assert (Heq :l<>l0 \/ l = l0) by abstract omega.
+assert (Heq :l<>l0 \/ l = l0) by abstract lia.
 destruct Heq as [Heq|Heq].
 
 left. unfold not;intros.
@@ -1381,7 +1381,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (defaultPage =? phyPDChild) = false).
+    assert(Hnotnull : (Nat.eqb defaultPage phyPDChild) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptPDChild idxPDChild presentPDChild s) by intuition.
@@ -1424,7 +1424,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (defaultPage =? phySh1Child) = false).
+    assert(Hnotnull : (Nat.eqb defaultPage phySh1Child) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptSh1Child idxSh1 presentSh1 s) by intuition.
@@ -1466,7 +1466,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (defaultPage =? phySh2Child) = false).
+    assert(Hnotnull : (Nat.eqb defaultPage phySh2Child) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptSh2Child idxSh2 presentSh2 s) by intuition.
@@ -1508,7 +1508,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-     assert(Hnotnull : (defaultPage =? phyConfigPagesList) = false).
+     assert(Hnotnull : (Nat.eqb defaultPage phyConfigPagesList) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptConfigPagesList idxConfigPagesList presentConfigPagesList s) by intuition.
@@ -1987,13 +1987,13 @@ eapply WP.bindRev.
       case_eq (lt_dec 0 tableSize).
       intros.
       rewrite H2 in H1.
-      simpl in *. omega.
+      simpl in *. lia.
       intros.
       contradict H2.
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
       unfold tableSizeLowerBound in *.
-      omega. }
+      lia. }
     intros resinittablepd.
     simpl.
     (** getKidx **)
@@ -2152,13 +2152,13 @@ intros [].
       case_eq (lt_dec 0 tableSize).
       intros.
       rewrite H2 in H1.
-      simpl in *. omega.
+      simpl in *. lia.
       intros.
       contradict H2.
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
       unfold tableSizeLowerBound in *.
-      omega.
+      lia.
       right.
       split;trivial.
       intros.
@@ -2166,13 +2166,13 @@ intros [].
       case_eq (lt_dec 0 tableSize).
       intros.
       rewrite H2 in H1.
-      simpl in *. omega.
+      simpl in *. lia.
       intros.
       contradict H2.
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
       unfold tableSizeLowerBound in *.
-      omega.
+      lia.
        }
     eapply weaken.
     eapply initFstShadowPropagateProperties2.
@@ -2249,13 +2249,13 @@ intros [].
             case_eq (lt_dec 0 tableSize).
             intros.
             rewrite H2 in H1.
-            simpl in *. omega.
+            simpl in *. lia.
             intros.
             contradict H2.
             assert (tableSize > tableSizeLowerBound).
             apply tableSizeBigEnough.
             unfold tableSizeLowerBound in *.
-            omega.
+            lia.
             right.
             split;trivial.
             intros.
@@ -2263,13 +2263,13 @@ intros [].
             case_eq (lt_dec 0 tableSize).
             intros.
             rewrite H2 in H1.
-            simpl in *. omega.
+            simpl in *. lia.
             intros.
             contradict H2.
             assert (tableSize > tableSizeLowerBound).
             apply tableSizeBigEnough.
             unfold tableSizeLowerBound in *.
-            omega.
+            lia.
              }
         - eapply weaken.
           eapply initSndShadowPropagateProperties3.
@@ -2392,26 +2392,26 @@ intros [].
     unfold CIndex.
     case_eq(lt_dec 0 tableSize);intros.
     simpl.
-    unfold Nat.Even.
+    unfold PeanoNat.Nat.Even.
     exists 0.
-    omega.
+    lia.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega.
+    lia.
     intros.
-    assert(Nat.Even zero).
+    assert(PeanoNat.Nat.Even zero).
     { intuition. subst.
     unfold CIndex.
     case_eq(lt_dec 0 tableSize);intros.
     simpl.
-    unfold Nat.Even.
+    unfold PeanoNat.Nat.Even.
     exists 0.
-    omega.
+    lia.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega. }
+    lia. }
     split;trivial.
     split;intros;intuition;subst.
     intuition.
@@ -2420,23 +2420,23 @@ intros [].
     case_eq (lt_dec 0 tableSize).
     intros.
     rewrite H6 in H5.
-    simpl in *. omega.
+    simpl in *. lia.
     intros.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega.
+    lia.
     
     unfold CIndex in H5.
     case_eq (lt_dec 0 tableSize).
     intros.
     rewrite H6 in H5.
-    simpl in *. omega.
+    simpl in *. lia.
     intros.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega.
+    lia.
     
     intros [].
     simpl.
@@ -2668,14 +2668,14 @@ intros [].
       apply idxPRidxPDNotEq. }
     now contradict Hnoteq.
     subst.
-    apply idxPRsucNotEqidxPD.  abstract omega.
+    apply idxPRsucNotEqidxPD.  abstract lia.
     
     assert(Hnoteq : idxPR <> idxPD).
     
     { subst.  apply  idxPRidxPDNotEq. }
     subst.
 
-    apply idxPDsucNotEqidxPR;trivial. abstract omega.
+    apply idxPDsucNotEqidxPR;trivial. abstract lia.
     simpl.
     intros [].
 (** updatePartitionDescriptor : add the page directory into the partition descriptor *)
@@ -2781,12 +2781,12 @@ eapply WP.bindRev.
     { subst. apply idxPDidxSh1notEq.  }
     now contradict Hnoteq.
     subst.
-    apply idxPDsucNotEqidxSh1; abstract omega.
+    apply idxPDsucNotEqidxSh1; abstract lia.
     assert(Hnoteq : idxPR <> idxPD).
     {  subst. apply idxPRidxPDNotEq. }
     subst.
 
-    apply idxSh1succNotEqidxPD. abstract omega.
+    apply idxSh1succNotEqidxPD. abstract lia.
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -2820,7 +2820,7 @@ eapply WP.bindRev.
     { subst.  apply idxPRidxSh1NotEq. }
     now contradict Hnoteq.
     subst.
-    apply idxPRsuccNotEqidxSh1.  abstract omega.
+    apply idxPRsuccNotEqidxSh1.  abstract lia.
      
     assert(Hnoteq : idxPR <> idxSH1).
     { subst. apply idxPRidxSh1NotEq. }

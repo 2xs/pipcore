@@ -36,7 +36,7 @@
 Require Import Core.Internal Isolation Consistency WeakestPreconditions Invariants.
 Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas 
 UpdateMappedPageContent Model.Lib InternalLemmas PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega Model.MAL List Bool.
+Require Import Coq.Logic.ProofIrrelevance Lia Model.MAL List Bool EqNat Compare_dec Lt.
 
 
 
@@ -73,7 +73,7 @@ table phyPDChild
   (forall partition : page,
   In partition (getPartitions multiplexer s) ->
   partition = table \/ In table (getConfigPagesAux partition s) -> False) /\ 
-  (defaultPage =? table) = false 
+  (Nat.eqb defaultPage table) = false 
 }} 
 
 initVAddrTable table  curidx 
@@ -101,7 +101,7 @@ initVAddrTable table  curidx
 Proof.
 unfold initVAddrTable.
 unfold initVAddrTableAux.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -185,7 +185,7 @@ induction n.  simpl.
      + unfold consistency in *. intuition. 
      + unfold getPartitions.
        destruct nbPage;simpl;left;trivial.
-     + assert(Hfalse : (defaultPage =? table) = false) by trivial.
+     + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
        apply beq_nat_false in Hfalse.
        unfold not; intros.
        apply Hfalse.
@@ -226,7 +226,7 @@ induction n.  simpl.
    assert (tableSize > tableSizeLowerBound).
    apply tableSizeBigEnough.
    unfold tableSizeLowerBound in *.
-   omega.
+   lia.
    intros idxsucc.
 (** recursion **)
    simpl.
@@ -241,7 +241,7 @@ induction n.  simpl.
    inversion H0.
    destruct idxsucc, curidx.
    simpl in *.
-   omega.
+   lia.
    now contradict H0. 
    intuition. }
 (** not the last entry **)       
@@ -294,7 +294,7 @@ induction n.  simpl.
        apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition. 
        + unfold getPartitions.
          destruct nbPage;simpl;left;trivial.
-       + assert(Hfalse : (defaultPage =? table) = false) by trivial.
+       + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
          apply beq_nat_false in Hfalse.
          unfold not; intros.
          apply Hfalse.
@@ -348,8 +348,8 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\
  zero = CIndex 0) /\
       
-      (defaultPage =? table1) = false /\
-      (defaultPage =? table2) = false /\
+      (Nat.eqb defaultPage table1) = false /\
+      (Nat.eqb defaultPage table2) = false /\
        nextEntryIsPP partition PDidx currentPD s /\
       In partition (getPartitions multiplexer s) /\
    (forall idx : index, StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\
@@ -357,7 +357,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
    (forall partition : page,
     In partition (getPartitions multiplexer s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (defaultPage =? phyPage1) = false) /\ 
+   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
        StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
@@ -383,7 +383,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
 Proof.
 unfold initVAddrTable.
 unfold initVAddrTableAux.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -392,7 +392,7 @@ induction n.  simpl.
   eapply WP.ret. simpl. intros.
   destruct curidx.
   simpl in *.
-  omega.
+  lia.
 + intros. simpl. 
 (** getMaxIndex *)
   eapply WP.bindRev.
@@ -472,7 +472,7 @@ induction n.  simpl.
       apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (defaultPage =? phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -584,7 +584,7 @@ induction n.  simpl.
      assert (tableSize > tableSizeLowerBound).
      apply tableSizeBigEnough.
      unfold tableSizeLowerBound in *.
-     omega.
+     lia.
      intros idxsucc.
 (** recursion **)
      simpl.
@@ -599,7 +599,7 @@ induction n.  simpl.
      inversion H0.
      destruct idxsucc, curidx.
      simpl in *.
-     omega.
+     lia.
      now contradict H0. 
      intuition. }
   (** not the last entry **)       
@@ -660,7 +660,7 @@ induction n.  simpl.
       apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (defaultPage =? phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -778,8 +778,8 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\
  zero = CIndex 0) /\
       
-      (defaultPage =? table1) = false /\
-      (defaultPage =? table2) = false /\
+      (Nat.eqb defaultPage table1) = false /\
+      (Nat.eqb defaultPage table2) = false /\
        nextEntryIsPP partition PDidx currentPD s /\
       In partition (getPartitions multiplexer s) /\
    
@@ -798,7 +798,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
    (forall partition : page,
     In partition (getPartitions multiplexer s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (defaultPage =? phyPage1) = false) /\ 
+   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
        StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
@@ -826,7 +826,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
 Proof.
 unfold initVAddrTable.
 unfold initVAddrTableAux.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -915,7 +915,7 @@ induction n.  simpl.
       apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (defaultPage =? phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -1042,7 +1042,7 @@ induction n.  simpl.
      assert (tableSize > tableSizeLowerBound).
      apply tableSizeBigEnough.
      unfold tableSizeLowerBound in *.
-     omega.
+     lia.
      intros idxsucc.
 (** recursion **)
      simpl.
@@ -1057,7 +1057,7 @@ induction n.  simpl.
      inversion H0.
      destruct idxsucc, curidx.
      simpl in *.
-     omega.
+     lia.
      now contradict H0. 
      intuition. }
   (** not the last entry **)       
@@ -1118,7 +1118,7 @@ induction n.  simpl.
       apply getPartitionsUpdateMappedPageData ; trivial. + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (defaultPage =? phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -1238,7 +1238,7 @@ Lemma initVAddrTablePreservesProp table (nbL : level)(curidx : index) v:
 Proof.
 unfold initVAddrTable.
 unfold initVAddrTableAux.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -1319,7 +1319,7 @@ induction n.  simpl.
    assert (tableSize > tableSizeLowerBound).
    apply tableSizeBigEnough.
    unfold tableSizeLowerBound in *.
-   omega.
+   lia.
    intros idxsucc.
 (** recursion **)
    simpl.
@@ -1334,7 +1334,7 @@ induction n.  simpl.
    inversion H0.
    destruct idxsucc, curidx.
    simpl in *.
-   omega.
+   lia.
    now contradict H0. 
    intuition. }
 (** not the last entry **)       
@@ -1394,7 +1394,7 @@ propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable 
 /\ StateLib.Level.pred l = Some lpred  }}.
 Proof.
 unfold initVAddrTable.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert table curidx.
 generalize tableSize at 1 3. 
@@ -1403,7 +1403,7 @@ induction n.  simpl.
   eapply WP.ret. simpl. intros.
   destruct curidx.
   simpl in *.
-  omega.
+  lia.
 + intros. simpl. 
 (** getMaxIndex *)
   eapply WP.bindRev.
@@ -1514,7 +1514,7 @@ induction n.  simpl.
   assert (tableSize > tableSizeLowerBound).
   apply tableSizeBigEnough.
   unfold tableSizeLowerBound in *.
-  omega.
+  lia.
   intros idxsucc.
   (** recursion **)
   simpl.
@@ -1529,7 +1529,7 @@ induction n.  simpl.
   inversion H0.
   destruct idxsucc, curidx.
   simpl in *.
-  omega.
+  lia.
   now contradict H0.
   intuition. (** PROVE PRECONDITION *) 
 (** not the last entry **)       
@@ -1598,7 +1598,7 @@ initVAddrTable table curidx
 Proof.
 unfold initVAddrTable, initVAddrTablePreconditionToProveNewProperty, PropagatedProperties.initVAddrTableNewProperty .
 unfold initPEntryTableAux.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert table curidx.
 generalize tableSize at 1 3. 
@@ -1607,7 +1607,7 @@ induction n.  simpl.
   eapply WP.ret. simpl. intros.
   destruct curidx.
   simpl in *.
-  omega.
+  lia.
 + intros. simpl. 
 (** getMaxIndex *)
   eapply WP.bindRev.
@@ -1703,7 +1703,7 @@ induction n.  simpl.
    assert (tableSize > tableSizeLowerBound).
    apply tableSizeBigEnough.
    unfold tableSizeLowerBound in *.
-   omega.
+   lia.
    intros idxsucc.
 (** recursion **)
    simpl.
@@ -1718,7 +1718,7 @@ induction n.  simpl.
    inversion H0.
    destruct idxsucc, curidx.
    simpl in *.
-   omega.
+   lia.
    now contradict H0.
    intros idx Hidx.
    simpl.
@@ -1812,7 +1812,7 @@ induction n.  simpl.
       case_eq (lt_dec (tableSize - 1) tableSize).
       intros. simpl in *.
       assert (i <= tableSize -1).
-      omega.
+      lia.
       apply NPeano.Nat.le_lteq in H2.
       destruct H2.
       left. assumption. right.
@@ -1821,7 +1821,7 @@ induction n.  simpl.
       apply proof_irrelevance.
       subst. reflexivity.
       intros.
-      omega. }
+      lia. }
     destruct H1.
     destruct Hsucc.
     subst.
@@ -1854,7 +1854,7 @@ initVAddrTable phyPage1 curidx
 Proof.
 unfold isWellFormedMMUTables.
 unfold initVAddrTable.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -1863,7 +1863,7 @@ induction n.  simpl.
   eapply WP.ret. simpl. intros.
   destruct curidx.
   simpl in *.
-  omega.
+  lia.
 + intros. simpl. 
 (** getMaxIndex *)
   eapply WP.bindRev.
@@ -1965,7 +1965,7 @@ induction n.  simpl.
      assert (tableSize > tableSizeLowerBound).
      apply tableSizeBigEnough.
      unfold tableSizeLowerBound in *.
-     omega.
+     lia.
      intros idxsucc.
 (** recursion **)
      simpl.
@@ -1980,7 +1980,7 @@ induction n.  simpl.
      inversion H0.
      destruct idxsucc, curidx.
      simpl in *.
-     omega.
+     lia.
      now contradict H0. 
      intuition. }
   (** not the last entry **)       
@@ -2053,7 +2053,7 @@ initVAddrTable phyPage1 curidx
 {{fun _ s =>  isWellFormedFstShadow  lpred phyPage2  s  }}.
 Proof.
 unfold initVAddrTable.
-assert(Hsize : tableSize + curidx >= tableSize) by omega.
+assert(Hsize : tableSize + curidx >= tableSize) by lia.
 revert Hsize.
 revert curidx.
 generalize tableSize at 1 3. 
@@ -2171,7 +2171,7 @@ induction n.  simpl.
      assert (tableSize > tableSizeLowerBound).
      apply tableSizeBigEnough.
      unfold tableSizeLowerBound in *.
-     omega.
+     lia.
      intros idxsucc.
 (** recursion **)
      simpl.
@@ -2186,7 +2186,7 @@ induction n.  simpl.
      inversion H0.
      destruct idxsucc, curidx.
      simpl in *.
-     omega.
+     lia.
      now contradict H0. 
      intuition. }
   (** not the last entry **)       
