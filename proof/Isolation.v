@@ -35,9 +35,9 @@
     This file contains the formalization of interesting properties that we need 
     to prove *)
 Require Import List StateLib Model.ADT Model.Hardware Lib Model.Lib Model.MAL.
-Import List.ListNotations. 
+Import List.ListNotations.
 
-(** THE VERTICAL SHARING PROPERTY: 
+(** THE VERTICAL SHARING PROPERTY:
     All child used pages (configuration tables and mapped pages) are mapped into 
     the parent partition  *)
 Definition verticalSharing s : Prop := 

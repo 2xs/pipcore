@@ -33,8 +33,8 @@
 
 (** * Summary 
       This file contains some generic lemmas used by invariants **)
-Require Import List Omega Coq.Logic.Classical_Prop Model.Lib.
-Import List.ListNotations.
+Require Import List Coq.Logic.Classical_Prop Model.Lib.
+Import List.ListNotations Lia.
 
 Lemma NoDupSplit (A: Type) :
 forall l l': list A , 
@@ -306,12 +306,12 @@ NoDup l' ->
 In b l.
 Proof.
 induction l';simpl;intros.
-+ omega.
++ lia.
 + destruct H2;subst;destruct H4;subst.
   - now contradict H1.
   - destruct l. simpl in *.
     * assert(length l' = 0).
-      omega.
+      lia.
       apply length_zero_iff_nil in H4.
       subst.
       now contradict H2.
@@ -413,7 +413,7 @@ induction l';simpl;intros.
     destruct l.
     { simpl in *.
       assert(length l' = 0).
-      omega.
+      lia.
       apply length_zero_iff_nil in H0.
       subst.
       now contradict H2. }
@@ -539,7 +539,7 @@ induction l';simpl;intros.
     * destruct l.
       simpl in *. 
       assert(length l' = 0).
-      omega.
+      lia.
       apply length_zero_iff_nil in H9.
       subst.
       now contradict H2.
@@ -637,7 +637,7 @@ Qed.
  unfold not;intros.
  rewrite <- H0 in H.
  simpl in *.
- omega.
+ lia.
  Qed.
  
 Lemma app_cons_not (A : Type) :
@@ -650,8 +650,8 @@ Proof.
  assert(length ( l1 ++ [a] ++ l2) =1+ length (l1 ++ l2)).
  do 3 rewrite app_length.
  simpl.
- omega.
+ lia.
  contradict H0.
  apply length_diff.
- omega.
+ lia.
 Qed. 

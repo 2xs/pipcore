@@ -37,7 +37,7 @@
 for each one we summarize the description of its definition *)
 Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Lib Isolation 
 StateLib.
-Require Import  Omega List Coq.Logic.ProofIrrelevance.
+Require Import List Coq.Logic.ProofIrrelevance.
 Import List.ListNotations.
 
 (** ** The [dataStructurePdSh1Sh2asRoot] property defines the type of different values 
@@ -81,27 +81,27 @@ exists vainparent, getVirtualAddressSh1 sh1 s va = Some vainparent.
 Definition wellFormedSndShadow (s : state) :=
 forall partition,
 In partition (getPartitions multiplexer s) -> 
-partition <> multiplexer -> 
+partition <> multiplexer ->
 forall va pg pd sh2,
-StateLib.getPd partition (memory s) = Some pd -> 
+StateLib.getPd partition (memory s) = Some pd ->
 StateLib.getSndShadow partition (memory s) = Some sh2 ->
-getMappedPage pd s va= SomePage pg ->       
+getMappedPage pd s va= SomePage pg ->
 exists vainparent, getVirtualAddressSh2 sh2 s va = Some vainparent /\
-beqVAddr defaultVAddr vainparent = false . 
+beqVAddr defaultVAddr vainparent = false .
 
 Definition wellFormedShadows (idxroot : index) (s : state) :=
-forall (partition : page),  
-In partition (getPartitions multiplexer s) -> 
-forall pdroot , 
-StateLib.getPd partition (memory s) = Some pdroot -> 
-forall structroot, nextEntryIsPP partition idxroot structroot s ->  
-forall nbL stop , Some nbL = getNbLevel -> 
-forall indirection1  va b, 
+forall (partition : page),
+In partition (getPartitions multiplexer s) ->
+forall pdroot ,
+StateLib.getPd partition (memory s) = Some pdroot ->
+forall structroot, nextEntryIsPP partition idxroot structroot s ->
+forall nbL stop , Some nbL = getNbLevel ->
+forall indirection1  va b,
 getIndirection pdroot va nbL stop s = Some indirection1 ->
-(defaultPage =? indirection1) = b -> 
-(exists indirection2, 
-getIndirection structroot va nbL stop s = Some indirection2 /\ 
-(defaultPage =? indirection2) = b).  
+(Nat.eqb defaultPage indirection1) = b ->
+(exists indirection2,
+getIndirection structroot va nbL stop s = Some indirection2 /\
+(Nat.eqb defaultPage indirection2) = b).
 
 (* Definition fstShadowWellFormed (s : state) :=
 forall (partition : page),  

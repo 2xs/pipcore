@@ -35,7 +35,7 @@
     In this file we formalize and prove the weakest precondition of the 
     MAL and MALInternal functions *)
 Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Model.IAL
-Omega List StateLib.
+Lia List StateLib Compare_dec.
 Lemma ret  (A : Type) (a : A) (P : A -> state -> Prop) : {{ P a }} ret a {{ P }}.
 Proof.
 intros s H; trivial.
@@ -221,7 +221,7 @@ destruct n.
 (* BEGIN SIMULATION
 unfold tableSize in *.
    END SIMULATION *)
-omega.
+lia.
 Qed.
 Lemma pred  (idx : index) (P: index -> state -> Prop) :
 {{ fun s : state => idx > 0 /\ forall Hi : idx - 1 < tableSize,  
@@ -238,7 +238,7 @@ intros. intuition.
 intros. eapply weaken.
 eapply undefined .
 simpl. intros.
-omega.
+lia.
 Qed.
 End Index.
 
@@ -258,7 +258,7 @@ intros. intuition.
 intros. eapply weaken.
 eapply undefined .
 simpl. intros.
-omega.
+lia.
 Qed.
 
 Lemma gtb  level1 level2 (P : bool -> state -> Prop):

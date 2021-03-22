@@ -34,7 +34,7 @@
 (** * Summary 
     This file contains required functions to define properties about a given state *) 
 Require Import Model.ADT Model.Hardware Model.Lib Model.MAL Bool.
-Require Import ProofIrrelevance  Coq.Program.Equality Arith List Omega.
+Require Import ProofIrrelevance  Coq.Program.Equality Arith List Lia.
 Import List.ListNotations.
 Module Index.
 Definition geb (a b : index) : bool := b <=? a.
@@ -58,7 +58,7 @@ else  None.
 Next Obligation.
 destruct n.
 simpl.
-omega.
+lia.
 Qed.
 
 End Index. 
@@ -78,7 +78,7 @@ else  None.
 Next Obligation.
 destruct n.
 simpl.
-omega.
+lia.
 Qed.
 End Level. 
 

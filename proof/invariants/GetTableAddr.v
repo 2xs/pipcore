@@ -37,7 +37,7 @@
 Require Import Isolation Consistency WeakestPreconditions List 
 Core.Internal Invariants Model.MAL StateLib Model.Hardware 
 Model.ADT DependentTypeLemmas Model.Lib InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Omega.
+Require Import Coq.Logic.ProofIrrelevance Lia Compare_dec Lt EqNat.
 
 Lemma getTableAddr  (indirection : page) (va : vaddr) (l : level) P currentPart idxroot: 
 {{fun s => P s /\ consistency s /\ In currentPart (getPartitions multiplexer s) /\
@@ -63,16 +63,16 @@ getTableAddr indirection va l
  }}.
 Proof.
 unfold Internal.getTableAddr.
-assert(Hsize : nbLevel   <= nbLevel) by omega.
+assert(Hsize : nbLevel   <= nbLevel) by lia.
 assert (Hlevel : l < nbLevel).
-destruct l. simpl;omega.
+destruct l. simpl;lia.
 revert Hsize Hlevel.
 revert indirection l.
 generalize nbLevel at 1 3 4.
 induction n; simpl.
 + intros. destruct l.
   simpl in *.
-  omega.  
+  lia.  
 + intros.
   eapply WP.bindRev.
   eapply WP.weaken.
@@ -114,7 +114,7 @@ induction n; simpl.
         unfold nextEntryIsPP in H, Hcurpd.
         destruct (StateLib.Index.succ idxroot); [| now contradict H1].
         unfold StateLib.Level.eqb. 
-       assert ({| l := 0; Hl := ADT.CLevel_obligation_1 0 l0 |} =? fstLevel = true).
+       assert (Nat.eqb ({| l := 0; Hl := ADT.CLevel_obligation_1 0 l0 |}) fstLevel = true).
        apply NPeano.Nat.eqb_eq. simpl. 
        unfold fstLevel. unfold CLevel. rewrite H2. simpl. trivial.
        rewrite H0.
@@ -166,13 +166,13 @@ induction n; simpl.
        case_eq(lt_dec stop nbLevel);intros.
        
        rewrite H1 in H0.
-       inversion H0. omega.
-        omega. }
-        { omega. }
+       inversion H0. lia.
+        lia. }
+        { lia. }
         { rewrite H in Hnotnull.
        
           apply getIndirectionStopLevelGT with l.
-          simpl. omega. simpl. omega. assumption. }
+          simpl. lia. simpl. lia. assumption. }
      
        split.
         destruct Hindirection as  (nbL & stop & Hl & Hind & Hnotnull& Hstop & Hstople).
@@ -265,10 +265,10 @@ induction n; simpl.
         inversion H4. simpl.
         destruct l.
         inversion H7. 
-        split; trivial. simpl in *. subst.   omega.
+        split; trivial. simpl in *. subst.   lia.
         
          assert (nbLevel > 0) by apply nbLevelNotZero.
-        omega. 
+        lia. 
         subst.
         destruct H.
         destruct H.
@@ -282,7 +282,7 @@ induction n; simpl.
         subst.
         unfold isEntryPage in *.
         assert (nbLevel > 0) by apply nbLevelNotZero.
-        (*   assert ((nbLevel -1) +1 = nbLevel) by omega.
+        (*   assert ((nbLevel -1) +1 = nbLevel) by lia.
         rewrite <- H0.
         destruct (nbLevel - 1) .
         simpl.
@@ -305,7 +305,7 @@ induction n; simpl.
         inversion H6.
         subst. assumption.
         assert (nbLevel > 0) by apply nbLevelNotZero.
-        omega.    
+        lia.    
         destruct (nbLevel - 1) .
         simpl.
         now contradict H3.
@@ -360,9 +360,9 @@ induction n; simpl.
         f_equal.
         f_equal.
         apply proof_irrelevance.
-        omega.
+        lia.
         assert (nbLevel > 0) by apply nbLevelNotZero.
-        omega.
+        lia.
         exists (nbLevel -1).
         apply and_assoc.
         split.
@@ -380,31 +380,31 @@ induction n; simpl.
         unfold CLevel in H7.
         case_eq (lt_dec (nbLevel - 1 - x1) nbLevel ); intros; rewrite H10 in *.
         simpl in H7.
-        omega.
-        omega.
+        lia.
+        lia.
         assert (nbLevel > 0) by apply nbLevelNotZero.
-        omega. 
-          omega.
+        lia. 
+          lia.
           assert (nbLevel > 0) by apply nbLevelNotZero.
-        omega.
+        lia.
         assert (x1 < x0).
         apply level_gt.
         destruct x0.
-        simpl in *. omega. assumption.
+        simpl in *. lia. assumption.
         clear H2.
         
         assert (getIndirection p va x0 (x1+1) s = Some (pa p0)).
 
         apply  getIndirectionProp with (getIndexOfAddr va (CLevel (x0 - x1)))indirection;
-        try omega; try trivial.
+        try lia; try trivial.
         clear H8 H0.
         apply getIndirectionNbLevelEq with (x1+1).
-        omega.
+        lia.
         unfold CLevel.
         case_eq (lt_dec (nbLevel - 1) nbLevel); intros.
         simpl; trivial.
         assert (0 < nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         assert (x0 =  (CLevel (nbLevel - 1))).
 
         unfold getNbLevel in *.
@@ -419,11 +419,11 @@ induction n; simpl.
         f_equal.
         apply proof_irrelevance.
         assert (0 < nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         assert (0 < nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         subst.
-        omega.
+        lia.
         assert (x0 = (CLevel (nbLevel - 1))).
         unfold getNbLevel in *.
         case_eq (  gt_dec nbLevel 0 ); intros; rewrite H0 in *.
@@ -437,9 +437,9 @@ induction n; simpl.
         f_equal.
         apply proof_irrelevance.
         assert (0 < nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         assert (0 < nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite <- H0.
         rewrite H2.
         f_equal.
@@ -485,11 +485,11 @@ induction n; simpl.
         intros. subst.
         rewrite H0 in Hnotfstlevel.
         simpl in *.
-        omega.
+        lia.
         intros.
         assert (0 < nbLevel).
         apply nbLevelNotZero.
-        omega.
+        lia.
         intro levelpred. 
         simpl in *. 
         (** next step **)
@@ -526,7 +526,7 @@ induction n; simpl.
             symmetry in H1.
             rename H1 into Hnotfstlevel. 
             apply levelEqBEqNatFalse0 in Hnotfstlevel.
-            destruct l. omega.
+            destruct l. lia.
             split.
             rename H3 into H2.  
             unfold isEntryPage in H2.
@@ -558,9 +558,9 @@ induction n; simpl.
             assert(nbL - stop < nbLevel).
             destruct nbL.
             simpl in *.
-            omega.
+            lia.
             apply level_gt in Hnotfstlevel.
-            omega. assumption.
+            lia. assumption.
             split.  
             subst.
             unfold isEntryPage in H3.
@@ -577,7 +577,7 @@ induction n; simpl.
             case_eq (lt_dec (nbL - stop) nbLevel).
            intros l Hstop.
            rewrite Hstop in Hnotfstlevel.
-           simpl in *. omega.
+           simpl in *. lia.
            intros n0 Hfalse.
            rewrite Hfalse  in Hnotfstlevel.
            unfold StateLib.getNbLevel in Hnbl.
@@ -587,7 +587,7 @@ induction n; simpl.
            inversion Hnbl. clear Hnbl. subst.
            simpl in *.
            contradict Hfalse.
-           omega.
+           lia.
            intros.
            rewrite H1 in Hnbl.
            simpl in *.
@@ -607,7 +607,7 @@ induction n; simpl.
              intros. contradict H.
              unfold aux in *. cbn.
              destruct nbL.
-             simpl in *. omega.       }
+             simpl in *. lia.       }
              
            rewrite H.
            apply levelPredMinus1 ;trivial. symmetry; assumption. 
@@ -633,10 +633,10 @@ induction n; simpl.
       assert (0 < nbLevel) by apply nbLevelNotZero.
       apply levelEqBEqNatFalse0 in H1.
       simpl in *.
-      omega.
+      lia.
       destruct l.
       simpl in *.
-      omega.
+      lia.
     * assert ( false = Level.eqb l fstLevel) by intuition.
       destruct H.
       clear IHn.
@@ -656,9 +656,9 @@ induction n; simpl.
       assert (0 < nbLevel) by apply nbLevelNotZero.
       apply levelEqBEqNatFalse0 in H1.
       simpl in *.
-      omega.
+      lia.
       destruct l.
       simpl in *.
-      omega. }
+      lia. }
 Qed.
            

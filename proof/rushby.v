@@ -1,6 +1,6 @@
 Require Import Model.ADT Model.Hardware Core.Services Model.MMU Model.MAL List 
-StateLib Model.Lib Isolation InternalLemmas Classical_Prop Omega Consistency
-DependentTypeLemmas Core.Internal GetTableAddr Invariants.
+StateLib Model.Lib Isolation InternalLemmas Classical_Prop Lia Consistency
+DependentTypeLemmas Core.Internal GetTableAddr Invariants EqNat.
 
 (* Definition writeUser (partition: page) (va : vaddr) (v : page) s:=
  match  StateLib.getPd partition (memory s), StateLib.getNbLevel  with 
@@ -498,7 +498,7 @@ case_eq b;intros;subst.
 (*      clear Htable. *)
      rewrite comparePageToNullEq in Hv1.
      assert(Hcompinv : {{fun s => s = s1 }} Internal.comparePageToNull table 
-        {{fun (isnull : bool) (s : state) => s=s1 /\ (defaultPage =? table) = isnull }}). 
+        {{fun (isnull : bool) (s : state) => s=s1 /\ (Nat.eqb defaultPage table) = isnull }}). 
      apply comparePageToNull. 
      unfold hoareTriple in *.
      generalize(Hcompinv s1);clear Hcompinv;intros Hcompinv.
@@ -862,7 +862,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
     now contradict Hclose.
     apply IHn with parent partition2;trivial.
     assert (In currentPart (getPartitionAux multiplexer s (n + 2))).
-    replace (n + 2) with (S n +1) by omega.
+    replace (n + 2) with (S n +1) by lia.
     simpl;right;trivial.
     apply getPartitionAuxMinus1 with currentPart;trivial.
     unfold getPartitions. destruct nbPage;simpl;left;trivial. }
@@ -952,7 +952,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
         revert partition2 closestAnc.
         generalize(currentPartition s) as currentPart.
         unfold closestAncestor.
-        assert(Hnbpage : nbPage <= nbPage) by omega.
+        assert(Hnbpage : nbPage <= nbPage) by lia.
         revert Hnbpage.
         generalize nbPage at 1 3.
         induction n;simpl;intros.
@@ -969,7 +969,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
           - case_eq(in_dec pageDec partition2 (getPartitionAux parent s (nbPage + 1)));
             intros i Hi; rewrite Hi in *.
             * inversion Hclose;subst. trivial.
-            * apply IHn with parent;trivial. omega.           
+            * apply IHn with parent;trivial. lia.           
               unfold parentInPartitionList in *.
               apply Hparentintree with currentPart;trivial.
               apply nextEntryIsPPgetParent;trivial.
@@ -1013,7 +1013,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
             now contradict Hfalse.
          ** assert(Hsub1 : In (currentPartition s)
             (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
-          { replace (nbPage +1) with (1 + nbPage) in * by omega.
+          { replace (nbPage +1) with (1 + nbPage) in * by lia.
             simpl in *.
             apply Classical_Prop.not_or_and in Hisolated2 as (_ & Hin).  
             destruct  Hinsubtree1 as [Hsub1 | Hsub1]; subst.
@@ -1022,7 +1022,7 @@ assert(Hnotmult2 : partition2 <> multiplexer).
             destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
             now contradict Heqclose. trivial. }
           assert(Hsub2 : In partition2 (flat_map (fun p : page => getPartitionAux p s nbPage) (getChildren closestAnc s))).
-          { replace (nbPage +1) with (1 + nbPage) in * by omega.
+          { replace (nbPage +1) with (1 + nbPage) in * by lia.
             simpl in *.
             apply Classical_Prop.not_or_and in Hisolated2 as (_ & Hin).  
             destruct  Hinsubtree2 as [Hsub2 | Hsub2]; subst.
@@ -1074,12 +1074,12 @@ assert(Hnotmult2 : partition2 <> multiplexer).
           destruct nbPage.
           simpl in *. intuition.
           simpl.
-          replace    (n - 0 + 1) with (S n) by omega.
+          replace    (n - 0 + 1) with (S n) by lia.
           trivial. }
           destruct nbPage.
           simpl in *. intuition.
           simpl.
-          replace    (n - 0 + 1) with (S n) by omega.
+          replace    (n - 0 + 1) with (S n) by lia.
           trivial.
           unfold Lib.disjoint in *.
           intros.
@@ -1139,12 +1139,12 @@ assert(Hnotmult2 : partition2 <> multiplexer).
            destruct nbPage.
            simpl in *. intuition.
            simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
+           replace    (n - 0 + 1) with (S n) by lia.
            trivial.
            destruct nbPage.
            simpl in *. intuition.
            simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
+           replace    (n - 0 + 1) with (S n) by lia.
           trivial.
           unfold Lib.disjoint in *.
           unfold incl in Hincl2.
@@ -1194,7 +1194,7 @@ assert(In p0 (getUsedPages partition2 s) ).
            generalize(currentPartition s) as currentPart.
            unfold closestAncestor.
            unfold getAncestors.
-           assert(Hnbpage : nbPage <= nbPage) by omega.
+           assert(Hnbpage : nbPage <= nbPage) by lia.
            revert Hnbpage.
            generalize nbPage at 1  3 5 . 
            induction n.
@@ -1223,7 +1223,7 @@ assert(In p0 (getUsedPages partition2 s) ).
          assert(Hii :  incl (getUsedPages currentPart s) (getMappedPages child2 s)). 
           apply verticalSharingRec2 with n; trivial.
           apply childrenPartitionInPartitionList with closestAnc;trivial.
-          replace (n+1) with (1+n) by omega.
+          replace (n+1) with (1+n) by lia.
           simpl.
           right;trivial.
            assert(Hmap : In currentPart (getMappedPages child2 s)).
@@ -1275,8 +1275,8 @@ assert(In p0 (getUsedPages partition2 s) ).
            apply IHn;trivial.
            unfold closestAncestorAux.
             apply IHn with  child2; trivial.
-(*            * omega. *)
-           * omega. 
+(*            * lia. *)
+           * lia. 
 (*            * unfold parentInPartitionList in *. 
              apply Hparentintree with currentPart;trivial.
              apply nextEntryIsPPgetParent;trivial.  *)  
@@ -1316,7 +1316,7 @@ assert(In p0 (getUsedPages partition2 s) ).
            destruct nbPage.
            simpl in *. intuition.
            simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
+           replace    (n - 0 + 1) with (S n) by lia.
            trivial.
             assert(Hincl2:  incl (getMappedPages partition2 s) (getMappedPages child2 s)).
            apply verticalSharingRec with (nbPage-1);trivial.
@@ -1327,12 +1327,12 @@ assert(In p0 (getUsedPages partition2 s) ).
            destruct nbPage.
            simpl in *. intuition.
            simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
+           replace    (n - 0 + 1) with (S n) by lia.
            trivial.
            destruct nbPage.
            simpl in *. intuition.
            simpl.
-           replace    (n - 0 + 1) with (S n) by omega.
+           replace    (n - 0 + 1) with (S n) by lia.
            trivial.
            assert(Hdisjoint : Lib.disjoint (getUsedPages child1 s) (getUsedPages child2 s)).
 {           unfold partitionsIsolation in *.

@@ -34,7 +34,7 @@
 (**  * Summary 
     In this file we formalize and prove all invariants of the MAL and MALInternal functions *)
 Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal  Isolation Consistency Model.Lib StateLib Model.IAL DependentTypeLemmas List Bool .
-Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
+Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat.
 
 Require WeakestPreconditions.
 
@@ -186,7 +186,7 @@ unfold CIndex.
 case_eq (lt_dec 0 tableSize).
 intros. f_equal. apply proof_irrelevance.
 intuition. assert (tableSize > tableSizeLowerBound). apply tableSizeBigEnough.
-unfold  tableSizeLowerBound in * . contradict H1. omega.
+unfold  tableSizeLowerBound in * . contradict H1. lia.
 Qed.
 
 Lemma succ (idx : index ) P :
@@ -321,7 +321,7 @@ intuition.
 assert (tableSize > tableSizeLowerBound).
 apply tableSizeBigEnough.
 unfold  tableSizeLowerBound in * .
-contradict H0. omega.
+contradict H0. lia.
 Qed.
 
 
@@ -408,7 +408,7 @@ apply beqPairsFalse in H.
       unfold beqPairs in *. cbn in *.
       
       rewrite NPeano.Nat.eqb_sym.
-      replace (i0 =? i1) with (i1 =? i0). assumption.
+      replace (Nat.eqb i0 i1) with (Nat.eqb i1 i0). assumption.
       rewrite NPeano.Nat.eqb_sym . trivial. }
       rewrite H3. assumption.
     * intros. rewrite H1 in H0.
@@ -449,7 +449,7 @@ Qed.
 
 Lemma comparePageToNull (page1 : page) (P : state -> Prop): 
 {{fun s => P s }} Internal.comparePageToNull page1 
-{{fun (isnull : bool) (s : state) => P s /\ (defaultPage =? page1) = isnull }}. 
+{{fun (isnull : bool) (s : state) => P s /\ (Nat.eqb defaultPage page1) = isnull }}. 
 Proof.
 unfold Internal.comparePageToNull.
 eapply WP.bindRev.
@@ -591,9 +591,9 @@ eapply WP.bindRev.
   induction va0. simpl. trivial.
   simpl. 
   unfold beqIndex.
-  case_eq( a =?  a); intros.
+  case_eq(Nat.eqb a a); intros.
   apply IHva0.
-  apply beq_nat_false in H0. omega.
+  apply beq_nat_false in H0. lia.
 + intro nullva. simpl.
   unfold MALInternal.VAddr.eqbList. simpl.
   eapply WP.weaken. eapply WP.ret . intros. 
@@ -988,7 +988,7 @@ Qed.
 
 Lemma checkKernelMap  (va: vaddr) (P : state -> Prop): 
 {{fun s => P s }} checkKernelMap va 
-{{fun isk s => P s /\ (Kidx =? (nth (length va - (nbLevel - 1 + 2)) va defaultIndex) ) = isk}}.
+{{fun isk s => P s /\ (Nat.eqb Kidx (nth (length va - (nbLevel - 1 + 2)) va defaultIndex) ) = isk}}.
 Proof.
 unfold checkKernelMap.
 eapply WP.bindRev.
