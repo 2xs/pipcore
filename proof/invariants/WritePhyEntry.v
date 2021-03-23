@@ -36,7 +36,7 @@
 Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible .
- Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
+ Require Import Bool Coq.Logic.ProofIrrelevance List EqNat.
  
 
 
@@ -74,19 +74,16 @@ false =
 checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
 false = checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
 false = checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
-(Kidx =? nth (length descChild - (nbLevel - 1 + 2)) descChild
-defaultIndex) = false /\
-(Kidx =?
-nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex) =
-false /\
-(Kidx =?
-nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex) =
-false /\
-(Kidx =?
-nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex) =
-false /\
-(Kidx =? nth (length listparam - (nbLevel - 1 + 2)) listparam defaultIndex) =
-false /\
+(Nat.eqb Kidx (nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex))
+= false /\
+(Nat.eqb Kidx (nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex))
+= false /\
+(Nat.eqb Kidx (nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex))
+= false /\
+(Nat.eqb Kidx (nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex))
+= false /\
+(Nat.eqb Kidx (nth (length listparam - (nbLevel - 1 + 2)) listparam defaultIndex))
+= false /\
 beqVAddr defaultVAddr pdChild = false /\
 beqVAddr defaultVAddr shadow1 = false /\
 beqVAddr defaultVAddr shadow2 = false /\
@@ -97,7 +94,7 @@ nextEntryIsPP currentPart PDidx currentPD s /\
 StateLib.getIndexOfAddr descChild fstLevel = idx ->
 isPE ptRefChild idx s /\
 getTableAddrRoot ptRefChild PDidx currentPart descChild s) /\
-(defaultPage =? ptRefChild) = false /\
+(Nat.eqb defaultPage ptRefChild) = false /\
 StateLib.getIndexOfAddr descChild fstLevel = idxRefChild /\
 entryPresentFlag ptRefChild idxRefChild presentRefChild s /\
 entryUserFlag ptRefChild idxRefChild accessibleChild s /\
@@ -105,7 +102,7 @@ entryUserFlag ptRefChild idxRefChild accessibleChild s /\
 StateLib.getIndexOfAddr pdChild fstLevel = idx ->
 isPE ptPDChild idx s /\
 getTableAddrRoot ptPDChild PDidx currentPart pdChild s) /\
-(defaultPage =? ptPDChild) = false /\
+(Nat.eqb defaultPage ptPDChild) = false /\
 StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild /\
 entryPresentFlag ptPDChild idxPDChild presentPDChild s /\
 entryUserFlag ptPDChild idxPDChild true s /\
@@ -113,7 +110,7 @@ entryUserFlag ptPDChild idxPDChild true s /\
 StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
 isPE ptSh1Child idx s /\
 getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) /\
-(defaultPage =? ptSh1Child) = false /\
+(Nat.eqb defaultPage ptSh1Child) = false /\
 StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1 /\
 entryPresentFlag ptSh1Child idxSh1 presentSh1 s /\
 entryUserFlag ptSh1Child idxSh1 accessibleSh1 s /\
@@ -121,7 +118,7 @@ entryUserFlag ptSh1Child idxSh1 accessibleSh1 s /\
 StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
 isPE ptSh2Child idx s /\
 getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) /\
-(defaultPage =? ptSh2Child) = false /\
+(Nat.eqb defaultPage ptSh2Child) = false /\
 StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2 /\
 entryPresentFlag ptSh2Child idxSh2 presentSh2 s /\
 entryUserFlag ptSh2Child idxSh2 accessibleSh2 s /\
@@ -129,7 +126,7 @@ entryUserFlag ptSh2Child idxSh2 accessibleSh2 s /\
 StateLib.getIndexOfAddr listparam fstLevel = idx ->
 isPE ptConfigPagesList idx s /\
 getTableAddrRoot ptConfigPagesList PDidx currentPart listparam s) /\
-(defaultPage =? ptConfigPagesList) = false /\
+(Nat.eqb defaultPage ptConfigPagesList) = false /\
 StateLib.getIndexOfAddr listparam fstLevel = idxConfigPagesList /\
 entryPresentFlag ptConfigPagesList idxConfigPagesList
 presentConfigPagesList s /\
@@ -139,7 +136,7 @@ nextEntryIsPP currentPart sh1idx currentShadow1 s /\
 StateLib.getIndexOfAddr descChild fstLevel = idx ->
 isVE ptRefChildFromSh1 idx s /\
 getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) /\
-(defaultPage =? ptRefChildFromSh1) = false /\
+(Nat.eqb defaultPage ptRefChildFromSh1) = false /\
 (exists va : vaddr,
 isEntryVA ptRefChildFromSh1 idxRefChild va s /\
 beqVAddr defaultVAddr va = derivedRefChild) /\
@@ -147,7 +144,7 @@ beqVAddr defaultVAddr va = derivedRefChild) /\
 StateLib.getIndexOfAddr pdChild fstLevel = idx ->
 isVE ptPDChildSh1 idx s /\
 getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) /\
-(defaultPage =? ptPDChildSh1) = false /\
+(Nat.eqb defaultPage ptPDChildSh1) = false /\
 (exists va : vaddr,
 isEntryVA ptPDChildSh1 idxPDChild va s /\
 beqVAddr defaultVAddr va = derivedPDChild) /\
@@ -155,37 +152,37 @@ beqVAddr defaultVAddr va = derivedPDChild) /\
 StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
 isVE ptSh1ChildFromSh1 idx s /\
 getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) /\
-(defaultPage =? ptSh1ChildFromSh1) = false /\
+(Nat.eqb defaultPage ptSh1ChildFromSh1) = false /\
 (exists va : vaddr,
 isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\
 beqVAddr defaultVAddr va = derivedSh1Child) /\
 (forall idx : index,
 StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
 isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) /\
-(defaultPage =? childSh2) = false /\
+(Nat.eqb defaultPage childSh2) = false /\
 (exists va : vaddr,
 isEntryVA childSh2 idxSh2 va s /\ beqVAddr defaultVAddr va = derivedSh2Child) /\
 (forall idx : index,
 StateLib.getIndexOfAddr listparam fstLevel = idx ->
 isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 sh1idx currentPart listparam s) /\
-(defaultPage =? childListSh1) = false /\
+(Nat.eqb defaultPage childListSh1) = false /\
 (exists va : vaddr,
 isEntryVA childListSh1 idxConfigPagesList va s /\
 beqVAddr defaultVAddr va = derivedRefChildListSh1) /\
-isEntryPage ptPDChild idxPDChild phyPDChild s /\ (defaultPage =? phyPDChild) = false /\
+isEntryPage ptPDChild idxPDChild phyPDChild s /\ (Nat.eqb defaultPage phyPDChild) = false /\
 (forall partition : page,
 In partition (getPartitions multiplexer s) ->
 ~ (partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s))) /\
-isEntryPage ptSh1Child idxSh1 phySh1Child s /\ (defaultPage =? phySh1Child) = false /\
+isEntryPage ptSh1Child idxSh1 phySh1Child s /\ (Nat.eqb defaultPage phySh1Child) = false /\
 (forall partition : page,
 In partition (getPartitions multiplexer s) ->
 ~ (partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s))) /\
-isEntryPage ptSh2Child idxSh2 phySh2Child s /\ (defaultPage =? phySh2Child) = false /\
+isEntryPage ptSh2Child idxSh2 phySh2Child s /\ (Nat.eqb defaultPage phySh2Child) = false /\
 (forall partition : page,
 In partition (getPartitions multiplexer s) ->
 ~ (partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s))) /\
 isEntryPage ptConfigPagesList idxConfigPagesList phyConfigPagesList s /\
-(defaultPage =? phyConfigPagesList) = false /\
+(Nat.eqb defaultPage phyConfigPagesList) = false /\
 (forall partition : page,
 In partition (getPartitions multiplexer s) ->
 ~ (partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s))) /\
@@ -207,11 +204,11 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
        false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
        false = checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
        false = checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
-       (Kidx =? nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex) = false /\
-       (Kidx =? nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex) = false /\
-       (Kidx =? nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex) = false /\
-       (Kidx =? nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex) = false /\
-       (Kidx =? nth (length listparam - (nbLevel - 1 + 2)) listparam defaultIndex) = false /\
+       (Nat.eqb Kidx (nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex)) = false /\
+       (Nat.eqb Kidx (nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex)) = false /\
+       (Nat.eqb Kidx (nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex)) = false /\
+       (Nat.eqb Kidx (nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex)) = false /\
+       (Nat.eqb Kidx (nth (length listparam - (nbLevel - 1 + 2)) listparam defaultIndex)) = false /\
        beqVAddr defaultVAddr pdChild = false /\
        beqVAddr defaultVAddr shadow1 = false /\
        beqVAddr defaultVAddr shadow2 = false /\
@@ -221,34 +218,34 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
        (forall idx : index,
         StateLib.getIndexOfAddr descChild fstLevel = idx ->
         isPE ptRefChild idx s /\ getTableAddrRoot ptRefChild PDidx currentPart descChild s) /\
-       (defaultPage =? ptRefChild) = false /\
+       (Nat.eqb defaultPage ptRefChild) = false /\
        StateLib.getIndexOfAddr descChild fstLevel = idxRefChild /\
        entryPresentFlag ptRefChild idxRefChild presentRefChild s /\
        entryUserFlag ptRefChild idxRefChild accessibleChild s /\
        (forall idx : index,
         StateLib.getIndexOfAddr pdChild fstLevel = idx ->
         isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s) /\
-       (defaultPage =? ptPDChild) = false /\
+       (Nat.eqb defaultPage ptPDChild) = false /\
        StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild /\
        entryPresentFlag ptPDChild idxPDChild presentPDChild s) /\
       (forall idx : index,
        StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
        isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) /\
-      (defaultPage =? ptSh1Child) = false /\
+      (Nat.eqb defaultPage ptSh1Child) = false /\
       StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1 /\
       entryPresentFlag ptSh1Child idxSh1 presentSh1 s /\
       entryUserFlag ptSh1Child idxSh1 accessibleSh1 s /\
       (forall idx : index,
        StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
        isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) /\
-      (defaultPage =? ptSh2Child) = false /\
+      (Nat.eqb defaultPage ptSh2Child) = false /\
       StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2 /\
       entryPresentFlag ptSh2Child idxSh2 presentSh2 s /\
       entryUserFlag ptSh2Child idxSh2 accessibleSh2 s /\
       (forall idx : index,
        StateLib.getIndexOfAddr listparam fstLevel = idx ->
        isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart listparam s) /\
-      (defaultPage =? ptConfigPagesList) = false /\
+      (Nat.eqb defaultPage ptConfigPagesList) = false /\
       StateLib.getIndexOfAddr listparam fstLevel = idxConfigPagesList /\
       entryPresentFlag ptConfigPagesList idxConfigPagesList presentConfigPagesList s /\
       entryUserFlag ptConfigPagesList idxConfigPagesList accessibleList s /\
@@ -256,52 +253,52 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       (forall idx : index,
        StateLib.getIndexOfAddr descChild fstLevel = idx ->
        isVE ptRefChildFromSh1 idx s /\ getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) /\
-      (defaultPage =? ptRefChildFromSh1) = false /\
+      (Nat.eqb defaultPage ptRefChildFromSh1) = false /\
       (exists va : vaddr,
          isEntryVA ptRefChildFromSh1 idxRefChild va s /\ beqVAddr defaultVAddr va = derivedRefChild) /\
       (forall idx : index,
        StateLib.getIndexOfAddr pdChild fstLevel = idx ->
        isVE ptPDChildSh1 idx s /\ getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) /\
-      (defaultPage =? ptPDChildSh1) = false /\
+      (Nat.eqb defaultPage ptPDChildSh1) = false /\
       (exists va : vaddr, isEntryVA ptPDChildSh1 idxPDChild va s /\ beqVAddr defaultVAddr va = derivedPDChild) /\
       (forall idx : index,
        StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
        isVE ptSh1ChildFromSh1 idx s /\ getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) /\
-      (defaultPage =? ptSh1ChildFromSh1) = false /\
+      (Nat.eqb defaultPage ptSh1ChildFromSh1) = false /\
       (exists va : vaddr, isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) /\
       (forall idx : index,
        StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
        isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) /\
-      (defaultPage =? childSh2) = false /\
+      (Nat.eqb defaultPage childSh2) = false /\
       (exists va : vaddr, isEntryVA childSh2 idxSh2 va s /\ beqVAddr defaultVAddr va = derivedSh2Child) /\
       (forall idx : index,
        StateLib.getIndexOfAddr listparam fstLevel = idx ->
        isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 sh1idx currentPart listparam s) /\
-      (defaultPage =? childListSh1) = false /\
+      (Nat.eqb defaultPage childListSh1) = false /\
       (exists va : vaddr,
          isEntryVA childListSh1 idxConfigPagesList va s /\ beqVAddr defaultVAddr va = derivedRefChildListSh1) /\
       isEntryPage ptPDChild idxPDChild phyPDChild s /\
-      (defaultPage =? phyPDChild) = false /\
+      (Nat.eqb defaultPage phyPDChild) = false /\
       (forall partition : page,
        In partition (getPartitions multiplexer s) ->
        ~ (partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s))) /\
       isEntryPage ptSh1Child idxSh1 phySh1Child s /\
-      (defaultPage =? phySh1Child) = false /\
+      (Nat.eqb defaultPage phySh1Child) = false /\
       (forall partition : page,
        In partition (getPartitions multiplexer s) ->
        ~ (partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s))) /\
       isEntryPage ptSh2Child idxSh2 phySh2Child s /\
-      (defaultPage =? phySh2Child) = false /\
+      (Nat.eqb defaultPage phySh2Child) = false /\
       (forall partition : page,
        In partition (getPartitions multiplexer s) ->
        ~ (partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s))) /\
       isEntryPage ptConfigPagesList idxConfigPagesList phyConfigPagesList s /\
-      (defaultPage =? phyConfigPagesList) = false /\
+      (Nat.eqb defaultPage phyConfigPagesList) = false /\
       (forall partition : page,
        In partition (getPartitions multiplexer s) ->
        ~ (partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s)))) /\
      isEntryPage ptRefChild idxRefChild phyDescChild s) /\
-    (defaultPage =? phyDescChild) = false /\
+    (Nat.eqb defaultPage phyDescChild) = false /\
     (forall partition : page,
      In partition (getPartitions multiplexer s) -> ~ In phyDescChild (getConfigPages partition s)) /\
     isPartitionFalse ptSh1ChildFromSh1 idxSh1 s /\
@@ -327,7 +324,7 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply H1 in H2. intuition. }      
     destruct Hlookup as (entry & Hlookup).
     exists entry ; split;trivial.
-    assert(Hphynotnull : (defaultPage =? phyDescChild) = false).
+    assert(Hphynotnull : (Nat.eqb defaultPage phyDescChild) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptRefChild idxRefChild presentRefChild s) by intuition.
@@ -373,8 +370,8 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply isAccessibleMappedPage with ptPDChild;trivial. }
     apply getPDFlagReadPDflag with currentShadow1 pdChild currentPart;trivial.
     intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptPDChildSh1) = false) by trivial.
+    apply PeanoNat.Nat.eqb_neq.
+    assert(Hfalsepge : (Nat.eqb defaultPage ptPDChildSh1) = false) by trivial.
     apply beq_nat_false in Hfalsepge.
     unfold not;intros Hfalse'.
     rewrite Hfalse' in Hfalsepge.    
@@ -401,8 +398,8 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply isAccessibleMappedPage2 with (currentPartition s) ptSh1Child;intuition. }
     apply getPDFlagReadPDflag with currentShadow1 shadow1 currentPart;trivial.
     intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptSh1ChildFromSh1) = false) by trivial.
+    apply PeanoNat.Nat.eqb_neq.
+    assert(Hfalsepge : (Nat.eqb defaultPage ptSh1ChildFromSh1) = false) by trivial.
     apply beq_nat_false in Hfalsepge.
     unfold not;intros Hfalse'.
     rewrite Hfalse' in Hfalsepge.    
@@ -429,8 +426,8 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply isAccessibleMappedPage2 with (currentPartition s) ptSh2Child;intuition. }
     apply getPDFlagReadPDflag with currentShadow1 shadow2 currentPart;trivial.
     intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? childSh2) = false) by trivial.
+    apply PeanoNat.Nat.eqb_neq.
+    assert(Hfalsepge : (Nat.eqb defaultPage childSh2) = false) by trivial.
     apply beq_nat_false in Hfalsepge.
     unfold not;intros Hfalse'.
     rewrite Hfalse' in Hfalsepge.    
@@ -457,8 +454,8 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply isAccessibleMappedPage2 with (currentPartition s) ptConfigPagesList;intuition. }
     apply getPDFlagReadPDflag with currentShadow1 listparam currentPart;trivial.
     intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? childListSh1) = false) by trivial.
+    apply PeanoNat.Nat.eqb_neq.
+    assert(Hfalsepge : (Nat.eqb defaultPage childListSh1) = false) by trivial.
     apply beq_nat_false in Hfalsepge.
     unfold not;intros Hfalse'.
     rewrite Hfalse' in Hfalsepge.    
@@ -485,8 +482,8 @@ isEntryPage ptRefChild idxRefChild phyDescChild s }}
       apply isAccessibleMappedPage2 with (currentPartition s) ptRefChild;intuition. }
     apply getPDFlagReadPDflag with currentShadow1 descChild currentPart;trivial.
     intuition.  
-    apply Nat.eqb_neq.
-    assert(Hfalsepge : (defaultPage =? ptRefChildFromSh1) = false) by trivial.
+    apply PeanoNat.Nat.eqb_neq.
+    assert(Hfalsepge : (Nat.eqb defaultPage ptRefChildFromSh1) = false) by trivial.
     apply beq_nat_false in Hfalsepge.
     unfold not;intros Hfalse'.
     rewrite Hfalse' in Hfalsepge.    

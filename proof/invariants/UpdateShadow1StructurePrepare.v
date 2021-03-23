@@ -39,7 +39,7 @@ Require Import Model.ADT Core.Internal Isolation Consistency WeakestPrecondition
 Invariants StateLib Model.Hardware  Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateMappedPageContent
 UpdateShadow1Structure.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
+Require Import Coq.Logic.ProofIrrelevance List Bool. 
 
 (************************************To MOVE******************************************)
 
@@ -93,17 +93,17 @@ set (s':= {|currentPartition:= _ |}) in *.
 intros Hor Hispart Hprops.
 unfold propagatedPropertiesPrepare, indirectionDescriptionAll, 
 initPEntryTablePreconditionToPropagatePreparePropertiesAll, isPartitionFalseAll in *.  
-assert((defaultPage =? ptMMU) = false 
+assert((Nat.eqb defaultPage ptMMU) = false 
         /\ entryPresentFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s
         (* /\ entryUserFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s *)
         /\ isEntryPage ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) pg s
         /\ isPE ptMMU idx s
         /\ getTableAddrRoot ptMMU PDidx (currentPartition s) vaValue s
-        /\ (defaultPage =? ptSh1 ) = false
+        /\ (Nat.eqb defaultPage ptSh1) = false
         /\ isVE ptSh1 idx s
         /\ StateLib.getIndexOfAddr vaValue fstLevel = idx
         /\ beqVAddr defaultVAddr vaValue = false
-        /\ (defaultPage =? ptSh1) = false
+        /\ (Nat.eqb defaultPage ptSh1) = false
         /\ getTableAddrRoot ptSh1 sh1idx (currentPartition s) vaValue s 
         /\ isPartitionFalse ptSh1 idx s 
         

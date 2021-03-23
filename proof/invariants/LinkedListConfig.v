@@ -36,7 +36,7 @@
 Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal 
 Isolation Consistency Model.Lib StateLib  WeakestPreconditions
 DependentTypeLemmas List Bool Invariants InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Omega  Setoid.
+Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat.
 (**********************************TO MOVE*********************************)
 
 (*%%%%%%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%%%%%%%%%%%%%%%*)
@@ -186,13 +186,13 @@ subst;trivial.
 Qed.
 
 Definition checkEnoughEntriesLinkedListPC s (lasttable LLtable: page):=
-((defaultPage =? lasttable) = false -> (In lasttable (getLLPages LLtable s (nbPage + 1)) /\ (exists NbFI, isIndexValue lasttable (CIndex 1) NbFI s /\ NbFI >= (CIndex 3)))).
+((Nat.eqb defaultPage lasttable) = false -> (In lasttable (getLLPages LLtable s (nbPage + 1)) /\ (exists NbFI, isIndexValue lasttable (CIndex 1) NbFI s /\ NbFI >= (CIndex 3)))).
 Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
 {{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ checkEnoughEntriesLinkedListPC s lasttable LLtable  }}.
 Proof.
 unfold checkEnoughEntriesLinkedList, checkEnoughEntriesLinkedListPC.
 revert LLtable.
-assert(Htrue: nbPage <= nbPage) by omega.
+assert(Htrue: nbPage <= nbPage) by lia.
 revert Htrue.
 generalize nbPage  at 1 3 4 .
 induction n;simpl;intros.
@@ -202,7 +202,7 @@ simpl.
 intros;trivial.
 split;trivial.
 intros  Hfalse.
-rewrite Nat.eqb_refl in Hfalse.
+rewrite PeanoNat.Nat.eqb_refl in Hfalse.
 intuition.
 eapply bindRev.
 (** Index.const3 **)
@@ -244,12 +244,12 @@ case_eq(gt_dec tableSize 0);intros;simpl.
 eexists.
 f_equal.
 pose proof tableSizeBigEnough.
-omega. }
+lia. }
 destruct Hmaxidx as (maxidx & Hmaxidx).
 destruct nbPage;simpl;
 rewrite Hmaxidx;
 destruct ( StateLib.readPhysical LLtable maxidx (memory s));simpl;trivial;try left;trivial;
-destruct (p =? defaultPage);simpl;left;trivial.
+destruct (Nat.eqb p defaultPage);simpl;left;trivial.
 subst.
 assert(Hcons: isI LLtable (CIndex 1) s) by admit. (** Consistency not found : LLconfiguration1 *) 
 unfold isI, isIndexValue in *.
@@ -270,7 +270,7 @@ contradict H1.
 symmetrynot.
 apply not_true_iff_false.
 apply NPeano.Nat.leb_nle.
-omega.
+lia.
 (** getMaxIndex *)
 eapply WP.bindRev.
 eapply WP.weaken.
@@ -308,7 +308,7 @@ rewrite <-beq_nat_refl in *.
 intuition.
 unfold hoareTriple in *;intros.
 intuition.
-assert(Hi:  n <= nbPage) by omega.
+assert(Hi:  n <= nbPage) by lia.
 generalize(IHn Hi nextLLtable s H);clear IHn; intros IHn.
 case_eq(checkEnoughEntriesLLAux n nextLLtable s); [intros x Hx|intros x Hn Hx] ;
 rewrite Hx in *;trivial.
@@ -325,8 +325,8 @@ subst.
 unfold CIndex.
 case_eq(lt_dec (tableSize - 1) tableSize);intros;simpl;f_equal.
 apply proof_irrelevance.
-omega.
-omega. }
+lia.
+lia. }
 rewrite Hmaxidx.
 subst.
 assert(Hread:StateLib.readPhysical LLtable (CIndex (tableSize - 1)) (memory s0)  = Some nextLLtable).
@@ -335,8 +335,8 @@ assert(s=s0).
 apply checkEnoughEntriesLLAuxStateEq with n nextLLtable p;trivial.
 subst;trivial.
 rewrite Hread.
-rewrite Nat.eqb_sym.
-assert(Hnotdef:(defaultPage =? nextLLtable) = false) by trivial.
+rewrite PeanoNat.Nat.eqb_sym.
+assert(Hnotdef:(Nat.eqb defaultPage nextLLtable) = false) by trivial.
 rewrite Hnotdef.
 simpl.
 right;trivial.

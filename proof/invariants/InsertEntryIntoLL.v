@@ -38,7 +38,7 @@ Require Import Model.ADT Core.Internal Isolation Consistency WeakestPrecondition
 Invariants StateLib Model.Hardware  Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateShadow2Structure
 IWritePhysical WriteIndex.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool.
+Require Import Coq.Logic.ProofIrrelevance Lia List Bool Compare_dec EqNat.
 (************************** TO MOVE ******************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
 
@@ -54,7 +54,7 @@ pose proof tableSizeBigEnough.
 case_eq(gt_dec tableSize 0);intros;simpl.
 eexists.
 f_equal.
-omega.
+lia.
 Qed. 
 (*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*)
 (* %%%%%%%%%%%%%%%%%%%%%%DependentTypeLemmas %%%%%%%%%%%%%%%%%%%*)
@@ -89,14 +89,14 @@ s).
 rewrite Hind.
 case_eq (getIndirection sh2 va l (nbLevel - 1) s );
 [ intros tbl Htbl | intros Htbl]; trivial.
-case_eq (defaultPage =? tbl);trivial.
+case_eq (Nat.eqb defaultPage tbl);trivial.
 intros Htblnotnul.
 simpl.
 assert(HinconfigSh2: In tbl (getIndirections sh2 s)).
 { unfold getIndirections.
   assert(nbLevel>0) by apply nbLevelNotZero.
-  replace nbLevel with ((nbLevel-1) + 1) by omega.
-  apply getIndirectionInGetIndirections1 with va l;trivial; try omega. 
+  replace nbLevel with ((nbLevel-1) + 1) by lia.
+  apply getIndirectionInGetIndirections1 with va l;trivial; try lia. 
   apply beq_nat_false in Htblnotnul.
   contradict Htblnotnul.
   rewrite pageEqNatEqEquiv;symmetry;trivial.
@@ -191,7 +191,7 @@ s).
 rewrite Hind.
 case_eq (getIndirection  sh2 va level (nbLevel - 1) s );
 [ intros tbl Htbl | intros Htbl]; trivial.
-case_eq (defaultPage =? tbl);trivial.
+case_eq (Nat.eqb defaultPage tbl);trivial.
 intros Htblnotnul.
 simpl.
 apply readVirtualUpdateSh2;trivial.
@@ -964,7 +964,7 @@ apply insertEntryIntoLLPCUpdateLLIndex with entry minFI;trivial.
   right.
   pose proof tableSizeBigEnough.
   unfold tableSizeLowerBound in *.
-  apply indexEqFalse;try omega. }
+  apply indexEqFalse;try lia. }
 apply isIndexValueSameUpdateLLIndex ;trivial.
 apply isVA'UpdateLLIndex with entry;trivial.
 apply isPP'UpdateLLIndex with entry;trivial.
@@ -1044,9 +1044,9 @@ case_eq(lt_dec (minFI - 1) tableSize);intros;simpl.
 unfold CIndex in *.
 case_eq(lt_dec (newNbFI - 1) tableSize);intros;rewrite H0 in *.
 simpl in *.
-omega.
-destruct minFI;simpl in *;omega.
-destruct minFI;simpl in *;omega.
+lia.
+destruct minFI;simpl in *;lia.
+destruct minFI;simpl in *;lia.
 Qed.                                             
 
 Lemma insertEntryIntoLLHT  ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare 
@@ -1085,7 +1085,7 @@ replace ( {| i := 0; Hi := MALInternal.Index.zero_obligation_1 |}) with (CIndex 
     assert(tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega. }
+    lia. }
 (**  readIndex **)
 eapply bindRev.
 eapply weaken.

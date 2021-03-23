@@ -37,7 +37,7 @@
 Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware  Model.MAL Model.ADT
 DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
+Require Import Coq.Logic.ProofIrrelevance Lia List Bool Compare_dec EqNat.
 
 Lemma getConfigTablesLinkedListUpdateSh2 partition (vaInParent : vaddr) 
 table idx (s : state) entry :
@@ -279,7 +279,7 @@ assert(HreadPhyEnt :  StateLib.readPhysical sh3 i
 apply readPhysicalUpdateSh2 with entry;trivial.
 rewrite HreadPhyEnt.
 destruct (StateLib.readPhysical sh3 i (memory s));trivial.
-destruct (p =? defaultPage) ;trivial.
+destruct (Nat.eqb p defaultPage) ;trivial.
 f_equal.
 apply IHn; trivial.
 Qed. 
@@ -363,7 +363,7 @@ induction  stop.
    } 
   rewrite HreadPhyEnt.
   destruct (StateLib.readPhyEntry sh1 (StateLib.getIndexOfAddr va nbL) (memory s) );trivial.
-  destruct (defaultPage =? p);trivial.
+  destruct (Nat.eqb defaultPage p);trivial.
   destruct ( StateLib.Level.pred nbL );trivial.
 Qed.
 
@@ -491,7 +491,7 @@ getIndirection root va l (nbLevel - 1) s).
 apply getIndirectionUpdateSh2 with entry;trivial.
 rewrite Hind.  
 destruct(getIndirection root va l (nbLevel - 1)  s); intros; trivial.
-destruct(defaultPage =? p);trivial.
+destruct(Nat.eqb defaultPage p);trivial.
  assert(Hpresent :    StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
   (memory s) = StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (VA vaInCurrentPartition) (memory s) beqPage beqIndex) ).
@@ -527,7 +527,7 @@ getIndirection root va l (nbLevel - 1) s).
 apply getIndirectionUpdateSh2 with entry;trivial.
 rewrite Hind.  
 destruct(getIndirection root va l (nbLevel - 1)  s); intros; trivial.
-destruct(defaultPage =? p);trivial.
+destruct(Nat.eqb defaultPage p);trivial.
  assert(Hpresent :    StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
   (memory s) = StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (VA vaInCurrentPartition) (memory s) beqPage beqIndex) ).
@@ -669,7 +669,7 @@ assert(Hind : getIndirection p va l (nbLevel - 1)
 apply getIndirectionUpdateSh2 with entry;trivial.
 rewrite Hind.
 destruct (getIndirection p va l (nbLevel - 1) s );trivial.
-destruct (p0 =? defaultPage);trivial.
+destruct (Nat.eqb p0 defaultPage);trivial.
 assert(Hpdflag :  StateLib.readPDflag p0 (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (VA vaInCurrentPartition) (memory s) beqPage beqIndex) =
    StateLib.readPDflag p0 (StateLib.getIndexOfAddr va fstLevel) (memory s)). 
@@ -1110,27 +1110,27 @@ assert(Hidx : idxroot < tableSize - 1 ).
   unfold PDidx.
   unfold CIndex.
   case_eq( lt_dec 2 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
   unfold sh1idx.
   unfold CIndex.
   case_eq( lt_dec 4 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
    unfold sh2idx.
   unfold CIndex.
   case_eq( lt_dec 6 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
    unfold sh3idx.
   unfold CIndex.
   case_eq( lt_dec 8 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
   unfold PPRidx.
   unfold CIndex.
   case_eq( lt_dec 10 tableSize );intros;
-  simpl;omega.    
+  simpl;lia.    
   unfold PRidx.
   unfold CIndex.
   case_eq( lt_dec 0 tableSize );intros;
-  simpl;omega. }
+  simpl;lia. }
 assert(Hparts : getPartitions multiplexer s = getPartitions multiplexer s').
 apply getPartitionsUpdateSh2 with entry;trivial.
 rewrite <- Hparts in *;trivial. clear Hparts.
@@ -1339,7 +1339,7 @@ assert(Hind : getIndirection sh1 va l (nbLevel - 1)
 apply getIndirectionUpdateSh2 with entry;trivial.
 rewrite Hind.
 destruct (getIndirection  sh1 va l (nbLevel - 1) s );trivial.
-destruct (p =? defaultPage);trivial.
+destruct (Nat.eqb p defaultPage);trivial.
 assert(Hpdflag :  StateLib.readPDflag p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (VA vaInCurrentPartition) (memory s) beqPage beqIndex) =
    StateLib.readPDflag p (StateLib.getIndexOfAddr va fstLevel) (memory s)). 
@@ -1477,10 +1477,10 @@ subst.
       unfold CLevel.
       case_eq ( lt_dec 0 nbLevel );intros.
       simpl.
-      omega.
+      lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
-      destruct level;simpl; omega. }
+      lia.
+      destruct level;simpl; lia. }
   rewrite Hlastidx in *. 
   assert(Htrue : getAccessibleMappedPage pdChildphy s va = NonePage).
   { apply getAccessibleMappedPageNotPresent with ptVaChildpd phyDescChild;intuition.
@@ -1544,7 +1544,7 @@ subst.
     rewrite Hind.
     case_eq (getIndirection  sh2Childphy va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl. 
     assert(Hdiff : tbl <> ptVaChildsh2 \/ 
@@ -1576,7 +1576,7 @@ subst.
   left;split;trivial.
   apply beq_nat_false in Htblnotnul.
   unfold not; intros Htmp;subst;now contradict Htblnotnul.
-  assert(Hnotnull : (defaultPage =? ptVaChildsh2) = false) by intuition.
+  assert(Hnotnull : (Nat.eqb defaultPage ptVaChildsh2) = false) by intuition.
   apply beq_nat_false in Hnotnull.
   unfold not; intros Htmp;subst;now contradict Hnotnull.
   apply getIndirectionStopLevelGT  with (nbLevel - 1) ;trivial.
@@ -1586,9 +1586,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   subst.
   assert(getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
    isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s)
@@ -1607,9 +1607,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
  } }
  move Hlookup at bottom.
  clear Hind .
@@ -1681,7 +1681,7 @@ trivial.
     rewrite Hind.
     case_eq (getIndirection  sh2 va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl.
     apply readVirtualUpdateSh2;trivial.
@@ -1945,7 +1945,7 @@ s).
 rewrite Hind.
 case_eq (getIndirection  p va l  (nbLevel - 1) s );
 [ intros tbl Htbl | intros Htbl]; trivial.
-case_eq (defaultPage =? tbl);trivial.
+case_eq (Nat.eqb defaultPage tbl);trivial.
 intros Htblnotnul.
 simpl.
 symmetry.
@@ -2346,10 +2346,10 @@ subst.
       unfold CLevel.
       case_eq ( lt_dec 0 nbLevel );intros.
       simpl.
-      omega.
+      lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
-      destruct level;simpl; omega. }
+      lia.
+      destruct level;simpl; lia. }
   rewrite Hlastidx in *. 
   assert(Htrue : getMappedPage pdChildphy s va = SomeDefault).
   {  apply getMappedPageNotPresent with ptVaChildpd phyDescChild;intuition.
@@ -2415,7 +2415,7 @@ subst.
     rewrite Hind.
     case_eq (getIndirection  sh2Childphy va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl. 
     assert(Hdiff : tbl <> ptVaChildsh2 \/ 
@@ -2447,7 +2447,7 @@ subst.
   left;split;trivial.
   apply beq_nat_false in Htblnotnul.
   unfold not; intros Htmp;subst;now contradict Htblnotnul.
-  assert(Hnotnull : (defaultPage =? ptVaChildsh2) = false) by intuition.
+  assert(Hnotnull : (Nat.eqb defaultPage ptVaChildsh2) = false) by intuition.
   apply beq_nat_false in Hnotnull.
   unfold not; intros Htmp;subst;now contradict Hnotnull.
   apply getIndirectionStopLevelGT  with (nbLevel - 1) ;trivial.
@@ -2457,9 +2457,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   subst.
   assert(getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
    isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s)
@@ -2478,9 +2478,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
  }
  move Hlookup at bottom.
  clear Hind .
@@ -2512,7 +2512,7 @@ trivial.
     rewrite Hind.
     case_eq (getIndirection  sh2 va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl.
     apply readVirtualUpdateSh2;trivial.
@@ -2610,7 +2610,7 @@ assert(Hind : forall root, getIndirection root va nbL stop
     { intros. apply getIndirectionUpdateSh2 with entry;trivial. }
 assert(Hgoal :  exists indirection2 : page,
       getIndirection structroot va nbL stop s = Some indirection2 /\
-      (defaultPage =? indirection2) = b). 
+      (Nat.eqb defaultPage indirection2) = b). 
 { apply H with partition pdroot indirection1;trivial.
   rewrite <- Hind;trivial. }
 destruct Hgoal as (indirection2 & Hind1 & Hindnotnul).
@@ -2937,7 +2937,7 @@ subst.
     rewrite Hind.
     case_eq (getIndirection  sh2Childphy va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl. 
     assert(Hdiff : tbl <> ptVaChildsh2 \/ 
@@ -2969,7 +2969,7 @@ subst.
   left;split;trivial.
   apply beq_nat_false in Htblnotnul.
   unfold not; intros Htmp;subst;now contradict Htblnotnul.
-  assert(Hnotnull : (defaultPage =? ptVaChildsh2) = false) by intuition.
+  assert(Hnotnull : (Nat.eqb defaultPage ptVaChildsh2) = false) by intuition.
   apply beq_nat_false in Hnotnull.
   unfold not; intros Htmp;subst;now contradict Hnotnull.
   apply getIndirectionStopLevelGT  with (nbLevel - 1) ;trivial.
@@ -2979,9 +2979,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   subst.
   assert(getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
    isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s)
@@ -3000,9 +3000,9 @@ subst.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
  } }
  move Hlookup at bottom.
  clear Hind .
@@ -3060,7 +3060,7 @@ trivial.
     rewrite Hind.
     case_eq (getIndirection  sh2 va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl.
     apply readVirtualUpdateSh2;trivial.
@@ -3218,10 +3218,10 @@ destruct Hor as [Hor | Hor].
       unfold CLevel.
       case_eq ( lt_dec 0 nbLevel );intros.
       simpl.
-      omega.
+      lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
-      destruct level;simpl; omega. }
+      lia.
+      destruct level;simpl; lia. }
   rewrite Hlastidx in *.  *)
   assert(Htrue : getMappedPage pdChildphy s vaChild = SomeDefault).
   {  apply getMappedPageNotPresent with ptVaChildpd phyDescChild;intuition.
@@ -3249,7 +3249,7 @@ destruct Hor as [Hor | Hor].
     rewrite Hind.
     case_eq (getIndirection  sh2Childphy va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl. 
     assert(Hdiff : tbl <> ptVaChildsh2 \/ 
@@ -3279,7 +3279,7 @@ destruct Hor as [Hor | Hor].
   left;split;trivial.
   apply beq_nat_false in Htblnotnul.
   unfold not; intros Htmp;subst;now contradict Htblnotnul.
-  assert(Hnotnull : (defaultPage =? ptVaChildsh2) = false) by intuition.
+  assert(Hnotnull : (Nat.eqb defaultPage ptVaChildsh2) = false) by intuition.
   apply beq_nat_false in Hnotnull.
   unfold not; intros Htmp;subst;now contradict Hnotnull.
   apply getIndirectionStopLevelGT  with (nbLevel - 1) ;trivial.
@@ -3289,9 +3289,9 @@ destruct Hor as [Hor | Hor].
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   subst.
   assert(getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
    isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s)
@@ -3310,9 +3310,9 @@ destruct Hor as [Hor | Hor].
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel);intros Hl Hli .
   simpl.
-  omega.
+  lia.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
  }
  move Hlookup at bottom.
  clear Hind .
@@ -3339,7 +3339,7 @@ trivial.
     rewrite Hind.
     case_eq (getIndirection  sh2 va level (nbLevel - 1) s );
     [ intros tbl Htbl | intros Htbl]; trivial.
-    case_eq (defaultPage =? tbl);trivial.
+    case_eq (Nat.eqb defaultPage tbl);trivial.
     intros Htblnotnul.
     simpl.
     apply readVirtualUpdateSh2;trivial.

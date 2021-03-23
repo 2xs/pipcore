@@ -36,7 +36,7 @@
 Require Import Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware Model.ADT Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties UpdateMappedPageContent.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
+Require Import Coq.Logic.ProofIrrelevance List Bool EqNat.
 
 Lemma initConfigPagesListPostConditionUpdateMappedPageContent phyConfigPagesList s table1 PRidxsucc  x:
 initConfigPagesListPostCondition phyConfigPagesList s ->
@@ -63,7 +63,7 @@ apply readVirtualUpdateMappedPageData; trivial.
 split.
 intros idx Ha1 Ha2 Ha3.
 assert (Htable : (forall idx : index,
-          Nat.Odd idx ->
+          PeanoNat.Nat.Odd idx ->
           idx > CIndex 1 ->
           idx < CIndex (tableSize - 2) ->
           exists idxValue : index,
@@ -75,7 +75,7 @@ exists idxValue;simpl.
 rewrite <- Htable.
 apply readIndexUpdateMappedPageData; trivial.
 assert(Htable : (forall idx : index,
-          Nat.Even idx ->
+          PeanoNat.Nat.Even idx ->
           idx > CIndex 1 ->
           idx < CIndex (tableSize - 2) ->
           StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) ) by intuition.
@@ -127,7 +127,7 @@ initConfigPagesListPostCondition phyConfigPagesList s /\
    (forall partition : page,
           In partition (getPartitions multiplexer s) ->
           partition = table1 \/ In table1 (getConfigPagesAux partition s) ->False) /\ 
-   (defaultPage =? table1) = false /\
+   (Nat.eqb defaultPage table1) = false /\
    isEntryPage pt1 idxVa1 table1 s /\
    StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
    (forall idx : index,
@@ -139,7 +139,7 @@ initConfigPagesListPostCondition phyConfigPagesList s /\
   false = checkVAddrsEqualityWOOffset nbLevel va1 shadow2 level /\
   false = checkVAddrsEqualityWOOffset nbLevel va1 list level /\
   nextEntryIsPP (currentPartition s) PDidx currentPD s /\
-  (defaultPage =? pt1) = false /\
+  (Nat.eqb defaultPage pt1) = false /\
   idxroot < tableSize - 1 }} 
 
 Internal.updatePartitionDescriptor table1 idxroot value1 value2 
@@ -210,7 +210,7 @@ eapply bindRev.
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
       + intuition.
-      + assert(Hfalse : (defaultPage =? table1) = false) by intuition.
+      + assert(Hfalse : (Nat.eqb defaultPage table1) = false) by intuition.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.

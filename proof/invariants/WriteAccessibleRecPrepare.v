@@ -37,7 +37,7 @@ Require Import Core.Internal Isolation Consistency WeakestPreconditions StateLib
 Model.Hardware Model.ADT Invariants  DependentTypeLemmas
 GetTableAddr Model.MAL Model.MALInternal Model.Lib Lib InternalLemmas WriteAccessible WriteAccessibleFalse
 PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega List.
+Require Import Coq.Logic.ProofIrrelevance Lia List EqNat.
 Import List.ListNotations.
 (************************* MOVE into InternalLemmas ****************************)
 
@@ -180,7 +180,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -556,7 +556,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -980,7 +980,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -1359,7 +1359,7 @@ case_eq isMultiplexer.
   intros;trivial.
   simpl.
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
-  assert(Hptsh2NotNulltrue : (defaultPage =? ptsh2) = false ).
+  assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ).
   { assert(Hwellformed :wellFormedShadows sh2idx s) by (unfold consistency in *;intuition).
     unfold wellFormedShadows in Hwellformed.
     assert(Hpde : partitionDescriptorEntry s) by (unfold consistency in *;intuition).
@@ -1370,10 +1370,10 @@ case_eq isMultiplexer.
     assert(Hmult : multiplexer = MALInternal.multiplexer ) by intuition.
     subst.
     assert(Htrue : getIndirection sh2 va L (nbLevel -1) s = Some ptsh2 /\
-              (defaultPage =? ptsh2) = false).
+              (Nat.eqb defaultPage ptsh2) = false).
     { assert(Hexist : exists indirection2 : page,
                 getIndirection sh2 va L (nbLevel - 1) s = Some indirection2 /\
-                (defaultPage =? indirection2) = false). 
+                (Nat.eqb defaultPage indirection2) = false). 
       { apply Hwellformed with descParent pdparent pt;trivial. 
         + intuition.      
         + assert( false = StateLib.Page.eqb descParent multiplexer) as Hnotmul by 
@@ -1396,7 +1396,7 @@ case_eq isMultiplexer.
        assert(getIndirection sh2 va L (nbLevel - 1) s = Some ptsh2).
         { assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage \/
                 isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s) /\
-               (defaultPage =? ptsh2) = true
+               (Nat.eqb defaultPage ptsh2) = true
               /\ nextEntryIsPP descParent sh2idx sh2 s) as (Hor & Hx & Hxx) by intuition.
           assert(Hlevel  : Some L = StateLib.getNbLevel )by intuition.
           clear H0.
@@ -1433,7 +1433,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -1511,7 +1511,7 @@ case_eq isMultiplexer.
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
   subst.
   simpl;intros.
-  assert(Hptsh2NotNulltrue : (defaultPage =? ptsh2) = false ) by intuition.
+  assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ) by intuition.
   assert(Hfalse : true = StateLib.VAddr.eqbList defaultV vaInAncestor) by intuition.
   assert(Htrue :  false = StateLib.VAddr.eqbList defaultV vaInAncestor).
   { assert(Hwellformed1 : wellFormedSndShadow s ).
@@ -1629,7 +1629,7 @@ case_eq isMultiplexer.
 (*   split. intuition. *)
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
   assert(Ha3:Some L = StateLib.getNbLevel ) by intuition.
-  assert(Htrue : (defaultPage =? ptvaInAncestor) = false).
+  assert(Htrue : (Nat.eqb defaultPage ptvaInAncestor) = false).
   { assert(Ha17:isAccessibleMappedPageInParent descParent va phypage s = true) by intuition.
     unfold isAccessibleMappedPageInParent in Ha17.
     assert (  Hsh2 : nextEntryIsPP descParent sh2idx sh2 s) by intuition.
@@ -1671,7 +1671,7 @@ case_eq isMultiplexer.
       case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
       [intros pt1 Hpt1 | intros Hpt1]; 
       rewrite Hpt1 in *; try now contradict Hp.
-      case_eq(defaultPage =? pt1);intros Hisnull;
+      case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
       rewrite Hisnull in *;try now contradict Hp.
       clear Hp.
       apply getNbLevelEq in HnbL.
@@ -1709,7 +1709,7 @@ case_eq isMultiplexer.
       case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
       [intros pt1 Hpt1 | intros Hpt1]; 
       rewrite Hpt1 in *; try now contradict Hp.
-      case_eq(defaultPage =? pt1);intros Hisnull;
+      case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
       rewrite Hisnull in *;try now contradict Hp.
       clear Hp.
       apply getNbLevelEq in HnbL.
@@ -1717,7 +1717,7 @@ case_eq isMultiplexer.
       assert(Hindeq : getIndirection pdAncestor vaInAncestor 
       (CLevel (nbLevel - 1)) (nbLevel - 1)s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (CLevel (nbLevel - 1) + 1); 
-      try omega;trivial.
+      try lia;trivial.
       apply nbLevelEq.
       rewrite Hindeq in *.
       inversion Hpt1.
@@ -2063,7 +2063,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }

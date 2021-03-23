@@ -37,7 +37,7 @@ Require Import  Model.ADT Model.Hardware Core.Services Isolation
 Consistency Invariants WeakestPreconditions Model.Lib StateLib
 Model.MAL Lib InternalLemmas InternalLemmas2 DependentTypeLemmas PropagatedProperties
 Classical_Prop.
- Require Import Omega Bool  Coq.Logic.ProofIrrelevance List.
+ Require Import Lia Bool  Coq.Logic.ProofIrrelevance List EqNat Compare_dec Minus.
  Import List.ListNotations.
 
 Lemma getPdMapMMUPage ( partition : page) entry s table idx phyVaChild r w e:
@@ -554,7 +554,7 @@ Qed.
    Lemma getIndirectionMapMMUPage1 s a (phyVaChild ptVaChildpd pd:page) e r w idxvaChild  entry level :  
    (forall (stop : nat) (tbl : page),
  getIndirection pd a level stop s = Some tbl ->
- (defaultPage =? tbl) = false -> tbl <> ptVaChildpd) ->
+ (Nat.eqb defaultPage tbl) = false -> tbl <> ptVaChildpd) ->
 lookup ptVaChildpd idxvaChild (memory s) beqPage beqIndex = Some (PE entry) ->
 pd <> defaultPage ->
 getIndirection pd a level (nbLevel - 1) s =
@@ -603,7 +603,7 @@ getIndirection pd a level (nbLevel - 1) {|
     f_equal. apply  proof_irrelevance.
     rewrite H0.
     case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a level) (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred level );intros;trivial.
     apply IHn;trivial.
     intros.
@@ -622,7 +622,7 @@ getIndirection pd a level (nbLevel - 1) {|
    Lemma getIndirectionMapMMUPage11 s a (phyVaChild ptVaChildpd pd:page) e r w idxvaChild  entry level stop1:  
    (forall (stop : nat) (tbl : page),
  getIndirection pd a level stop s = Some tbl ->
- (defaultPage =? tbl) = false -> tbl <> ptVaChildpd) ->
+ (Nat.eqb defaultPage tbl) = false -> tbl <> ptVaChildpd) ->
 lookup ptVaChildpd idxvaChild (memory s) beqPage beqIndex = Some (PE entry) ->
 pd <> defaultPage ->
 getIndirection pd a level stop1 s =
@@ -671,7 +671,7 @@ getIndirection pd a level stop1 {|
     f_equal. apply  proof_irrelevance.
     rewrite H0.
     case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr a level) (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred level );intros;trivial.
     apply IHstop1;trivial.
     intros.
@@ -698,7 +698,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -797,7 +797,7 @@ apply getIndirectionMapMMUPage1 with entry;trivial.
   destruct Hpdchild as (nbL & HnbL & stop1 & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stop1;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -807,7 +807,7 @@ apply getIndirectionMapMMUPage1 with entry;trivial.
   unfold getIndirections.
   apply getIndirectionInGetIndirections with a level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H0.
   unfold not;intros;subst.
   now contradict H0.
@@ -833,7 +833,7 @@ apply getIndirectionMapMMUPage1 with entry;trivial.
   apply inGetIndirectionsAuxInConfigPagesSh1 with sh1;trivial.
   apply getIndirectionInGetIndirections with a level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H0.
   unfold not;intros;subst.
   now contradict H0.
@@ -852,7 +852,7 @@ apply getIndirectionMapMMUPage1 with entry;trivial.
   destruct Hpdchild as (nbL & HnbL & stop1 & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stop1;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -897,7 +897,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -1062,7 +1062,7 @@ StateLib.readPhyEntry ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
 lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
   beqPage beqIndex = Some (PE entry) ->
 getIndirection pdChildphy vaChild nbL (nbL + 1) s = Some ptVaChildpd ->
- (defaultPage =? ptVaChildpd) = false  -> 
+ (Nat.eqb defaultPage ptVaChildpd) = false  -> 
 getIndirection pdChildphy vaChild nbL (nbL + 1) {|
       currentPartition := currentPartition s;
       memory := add ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
@@ -1083,7 +1083,7 @@ getIndirection pdChildphy vaChild nbL (nbL + 1) {|
   - case_eq( StateLib.readPhyEntry pdChildphy
             (StateLib.getIndexOfAddr vaChild nbL0) (memory s));intros.
   * rewrite H0 in *. 
-  case_eq(defaultPage =? p);intros.
+  case_eq(Nat.eqb defaultPage p);intros.
   rewrite H1 in *.
   apply beq_nat_false in H. 
   inversion Hind1;subst.
@@ -1166,7 +1166,7 @@ StateLib.readPhyEntry ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
 lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
   beqPage beqIndex = Some (PE entry) ->
 getIndirection pdChildphy vaChild nbL stop s = Some ptVaChildpd ->
- (defaultPage =? ptVaChildpd) = false  -> 
+ (Nat.eqb defaultPage ptVaChildpd) = false  -> 
 getIndirection pdChildphy vaChild nbL stop {|
       currentPartition := currentPartition s;
       memory := add ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
@@ -1187,7 +1187,7 @@ getIndirection pdChildphy vaChild nbL stop {|
   - case_eq( StateLib.readPhyEntry pdChildphy
             (StateLib.getIndexOfAddr vaChild nbL0) (memory s));intros.
   * rewrite H0 in *. 
-  case_eq(defaultPage =? p);intros.
+  case_eq(Nat.eqb defaultPage p);intros.
   rewrite H1 in *.
   apply beq_nat_false in H. 
   inversion Hind1;subst.
@@ -1302,7 +1302,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -1318,7 +1318,7 @@ Hpdchild Hpdchildnotnull Hindchild  H.
 { assert(forall stop tbl,
     stop < level  -> 
     getIndirection pdChildphy va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ). 
     { assert(Hnodup : NoDup (getIndirections pdChildphy s)).
       { apply noDupConfigPagesListNoDupGetIndirections with phyDescChild PDidx;trivial.
@@ -1332,7 +1332,7 @@ Hpdchild Hpdchildnotnull Hindchild  H.
       assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (stop+1))). 
       { assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))). 
     {  assert(0<nbLevel) by apply nbLevelNotZero.
-      assert(nbLevel - 1 + 1 = nbLevel) by omega.
+      assert(nbLevel - 1 + 1 = nbLevel) by lia.
     
  
  assert(Hprevious : exists prevtab,
@@ -1353,8 +1353,8 @@ Some ptVaChildpd).
     rewrite H5 in *.
     simpl in *.
     
-    omega.
-    omega. } 
+    lia.
+    lia. } 
 
   
   assert(Htpp : 0 < nbLevel -1).
@@ -1367,34 +1367,34 @@ Some ptVaChildpd).
     rewrite H5 in *.
     simpl in *.
     
-    omega.
-    omega.
+    lia.
+    lia.
     
      } 
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition. 
   revert Hstooo Htpp Hnotdef.
   clear. 
-  replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
+  replace (nbLevel -2) with (nbLevel -1 -1) by lia.  
   revert pdChildphy level ptVaChildpd.
   induction (nbLevel-1);simpl.
   intros.
-  omega.
+  lia.
   intros. 
   case_eq(StateLib.Level.eqb level fstLevel);intros;
   rewrite H in *.
   apply levelEqBEqNatTrue0 in H. 
-  omega.
+  lia.
    case_eq(StateLib.readPhyEntry pdChildphy
                 (StateLib.getIndexOfAddr vaChild level) (memory s));intros;
     rewrite H0 in *;try now contradict Hindchild.
-    case_eq(defaultPage =? p);intros;rewrite H1 in *.
+    case_eq(Nat.eqb defaultPage p);intros;rewrite H1 in *.
     apply beq_nat_false in Hdefaut.
     inversion Hindchild.
     subst.
     now contradict Hdefaut.
     case_eq(StateLib.Level.pred level );intros;rewrite H2 in *.
-    + replace (n-0) with n by omega.
-    assert(Hooo : n = 0 \/ 0 < n) by omega.
+    + replace (n-0) with n by lia.
+    assert(Hooo : n = 0 \/ 0 < n) by lia.
     destruct Hooo.
     *
     subst. 
@@ -1414,10 +1414,10 @@ Some ptVaChildpd).
    unfold CLevel.
     case_eq( lt_dec (level - 1) nbLevel );intros.
     simpl.
-    omega.
+    lia.
     destruct level.
     simpl in *.
-    omega.
+    lia.
     trivial.
     assert(Hi1 : p <> defaultPage).
     apply beq_nat_false in H1.
@@ -1429,7 +1429,7 @@ Some ptVaChildpd).
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
        intros.
-       assert(Hs :S(n-1) = n) by omega.
+       assert(Hs :S(n-1) = n) by lia.
        rewrite <- Hs.
        simpl.
        rewrite H.
@@ -1446,10 +1446,10 @@ rewrite H2.
 unfold CLevel.
 case_eq(lt_dec (level - 1) nbLevel);intros. 
 simpl. 
-omega.
+lia.
 destruct level. 
 simpl in *.
-omega.
+lia.
 trivial.
 + assert(Hnotnone : StateLib.Level.pred level <> None).
 apply levelPredNone;trivial. now contradict Hnotnone.  }
@@ -1457,11 +1457,11 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
        apply getIndirectionInGetIndirections2 with prevtab vaChild level;
       simpl; subst;
       trivial.
-      omega.
+      lia.
       simpl.
       rewrite <- Hprevtable.
       f_equal.
-      omega.
+      lia.
       rewrite H4. 
       unfold getIndirections in *;trivial.
 
@@ -1473,9 +1473,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros;
       rewrite H6 in *.
       simpl in *.
-      omega.
-      omega.
-      omega. *)
+      lia.
+      lia.
+      lia. *)
       apply beq_nat_false in Hdefaut.
       unfold not;intros;subst.
       now contradict Hdefaut. 
@@ -1487,8 +1487,8 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel. 
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros. 
       simpl. 
-      omega.
-      omega.
+      lia.
+      lia.
       
       
       }
@@ -1502,9 +1502,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel in H0.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       rewrite H3 in *. 
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       unfold incl in *. 
       apply Hincl;trivial.
       }
@@ -1515,7 +1515,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       assert(level < nbLevel).
       apply getNbLevelLt;trivial.
       
-      omega.
+      lia.
       apply beq_nat_false in H2.
       unfold not;intros;subst. 
       now contradict H2.  }
@@ -1568,7 +1568,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     rewrite H1.
     case_eq( StateLib.readPhyEntry pdChildphy (StateLib.getIndexOfAddr va l)
     (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred l );intros;trivial.
     apply IHn;trivial.
     intros.
@@ -1580,10 +1580,10 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    case_eq(lt_dec (l - 1) nbLevel);intros.
    rewrite H8 in *. 
    simpl in *.
-   omega.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    simpl.
     rewrite H4.
     rewrite H.
@@ -1604,15 +1604,15 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    simpl in *. 
    case_eq(lt_dec n nbLevel);intros. 
    simpl.
-   omega.
-   omega.
+   lia.
+   lia.
    case_eq(lt_dec n nbLevel);intros. 
    simpl.
-   omega.
-   omega.
+   lia.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
    Qed. 
@@ -1642,7 +1642,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -1658,7 +1658,7 @@ Hpdchild Hpdchildnotnull Hindchild  H.
 { assert(forall stop tbl,
     stop < level  -> 
     getIndirection pdChildphy va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ). 
     { assert(Hnodup : NoDup (getIndirections pdChildphy s)).
       { apply noDupConfigPagesListNoDupGetIndirections with phyDescChild PDidx;trivial.
@@ -1672,7 +1672,7 @@ Hpdchild Hpdchildnotnull Hindchild  H.
       assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (stop+1))). 
       { assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))). 
     {  assert(0<nbLevel) by apply nbLevelNotZero.
-      assert(nbLevel - 1 + 1 = nbLevel) by omega.
+      assert(nbLevel - 1 + 1 = nbLevel) by lia.
     
  
  assert(Hprevious : exists prevtab,
@@ -1693,8 +1693,8 @@ Some ptVaChildpd).
     rewrite H5 in *.
     simpl in *.
     
-    omega.
-    omega. } 
+    lia.
+    lia. } 
 
   
   assert(Htpp : 0 < nbLevel -1).
@@ -1707,34 +1707,34 @@ Some ptVaChildpd).
     rewrite H5 in *.
     simpl in *.
     
-    omega.
-    omega.
+    lia.
+    lia.
     
      } 
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition. 
   revert Hstooo Htpp Hnotdef.
   clear. 
-  replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
+  replace (nbLevel -2) with (nbLevel -1 -1) by lia.  
   revert pdChildphy level ptVaChildpd.
   induction (nbLevel-1);simpl.
   intros.
-  omega.
+  lia.
   intros. 
   case_eq(StateLib.Level.eqb level fstLevel);intros;
   rewrite H in *.
   apply levelEqBEqNatTrue0 in H. 
-  omega.
+  lia.
    case_eq(StateLib.readPhyEntry pdChildphy
                 (StateLib.getIndexOfAddr vaChild level) (memory s));intros;
     rewrite H0 in *;try now contradict Hindchild.
-    case_eq(defaultPage =? p);intros;rewrite H1 in *.
+    case_eq(Nat.eqb defaultPage p);intros;rewrite H1 in *.
     apply beq_nat_false in Hdefaut.
     inversion Hindchild.
     subst.
     now contradict Hdefaut.
     case_eq(StateLib.Level.pred level );intros;rewrite H2 in *.
-    + replace (n-0) with n by omega.
-    assert(Hooo : n = 0 \/ 0 < n) by omega.
+    + replace (n-0) with n by lia.
+    assert(Hooo : n = 0 \/ 0 < n) by lia.
     destruct Hooo.
     *
     subst. 
@@ -1754,10 +1754,10 @@ Some ptVaChildpd).
    unfold CLevel.
     case_eq( lt_dec (level - 1) nbLevel );intros.
     simpl.
-    omega.
+    lia.
     destruct level.
     simpl in *.
-    omega.
+    lia.
     trivial.
     assert(Hi1 : p <> defaultPage).
     apply beq_nat_false in H1.
@@ -1769,7 +1769,7 @@ Some ptVaChildpd).
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
        intros.
-       assert(Hs :S(n-1) = n) by omega.
+       assert(Hs :S(n-1) = n) by lia.
        rewrite <- Hs.
        simpl.
        rewrite H.
@@ -1786,10 +1786,10 @@ rewrite H2.
 unfold CLevel.
 case_eq(lt_dec (level - 1) nbLevel);intros. 
 simpl. 
-omega.
+lia.
 destruct level. 
 simpl in *.
-omega.
+lia.
 trivial.
 + assert(Hnotnone : StateLib.Level.pred level <> None).
 apply levelPredNone;trivial. now contradict Hnotnone.  }
@@ -1797,11 +1797,11 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
        apply getIndirectionInGetIndirections2 with prevtab vaChild level;
       simpl; subst;
       trivial.
-      omega.
+      lia.
       simpl.
       rewrite <- Hprevtable.
       f_equal.
-      omega.
+      lia.
       rewrite H4. 
       unfold getIndirections in *;trivial.
 
@@ -1813,9 +1813,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros;
       rewrite H6 in *.
       simpl in *.
-      omega.
-      omega.
-      omega. *)
+      lia.
+      lia.
+      lia. *)
       apply beq_nat_false in Hdefaut.
       unfold not;intros;subst.
       now contradict Hdefaut. 
@@ -1827,8 +1827,8 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel. 
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros. 
       simpl. 
-      omega.
-      omega.
+      lia.
+      lia.
       
       
       }
@@ -1842,9 +1842,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel in H0.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       rewrite H3 in *. 
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       unfold incl in *. 
       apply Hincl;trivial.
       }
@@ -1855,7 +1855,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       assert(level < nbLevel).
       apply getNbLevelLt;trivial.
       
-      omega.
+      lia.
       apply beq_nat_false in H2.
       unfold not;intros;subst. 
       now contradict H2.  }
@@ -1908,7 +1908,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     rewrite H1.
     case_eq( StateLib.readPhyEntry pdChildphy (StateLib.getIndexOfAddr va l)
     (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred l );intros;trivial.
     apply IHn;trivial.
     intros.
@@ -1920,10 +1920,10 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    case_eq(lt_dec (l - 1) nbLevel);intros.
    rewrite H8 in *. 
    simpl in *.
-   omega.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    simpl.
     rewrite H4.
     rewrite H.
@@ -1944,15 +1944,15 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    simpl in *. 
    case_eq(lt_dec n nbLevel);intros. 
    simpl.
-   omega.
-   omega.
+   lia.
+   lia.
    case_eq(lt_dec n nbLevel);intros. 
    simpl.
-   omega.
-   omega.
+   lia.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
    Qed.
@@ -1972,7 +1972,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -2163,7 +2163,7 @@ apply getIndirectionMapMMUPage2
 with  currentPart
 presentvaChild vaChild phyDescChild entry;trivial.
   rewrite H0.
-   case_eq(defaultPage =? p);intros;trivial.  
+   case_eq(Nat.eqb defaultPage p);intros;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr va fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -2234,11 +2234,11 @@ rewrite <- Hmapva.
   { intros.
     apply getIndirectionInGetIndirections with va level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.  
+    lia.  
   unfold partitionDescriptorEntry in *. 
   assert(Hexist : (exists entry : page,
           nextEntryIsPP part PDidx entry s /\ entry <> defaultPage)).
@@ -2266,7 +2266,7 @@ subst;trivial.
 subst;trivial.
 assert(Hmykey : forall stop tbl,
     getIndirection pd va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ).
 { intros. 
   unfold not;intros.
@@ -2329,7 +2329,7 @@ revert Hmykey Hlookup Hpdnotnull.
     f_equal. apply  proof_irrelevance.
     rewrite H0.
     case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level) (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred level );intros;trivial.
     apply IHn;trivial.
     intros.
@@ -2346,7 +2346,7 @@ revert Hmykey Hlookup Hpdnotnull.
      subst. now contradict H2.  }
 rewrite <- Hmykey3.
  case_eq( getIndirection pd va level (nbLevel - 1) s);intros. 
- case_eq( defaultPage =? p);intros;trivial.
+ case_eq(Nat.eqb defaultPage p);intros;trivial.
  assert(Hpres :StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s) =
  StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s')).
  simpl. 
@@ -2380,7 +2380,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -2571,7 +2571,7 @@ apply getIndirectionMapMMUPage2
 with  currentPart
 presentvaChild vaChild phyDescChild entry;trivial.
   rewrite H0.
-   case_eq(defaultPage =? p);intros;trivial.  
+   case_eq(Nat.eqb defaultPage p);intros;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr va fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -2641,11 +2641,11 @@ rewrite <- Hmapva.
   { intros.
     apply getIndirectionInGetIndirections with va level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.  
+    lia.  
   unfold partitionDescriptorEntry in *. 
   assert(Hexist : (exists entry : page,
           nextEntryIsPP part PDidx entry s /\ entry <> defaultPage)).
@@ -2673,7 +2673,7 @@ subst;trivial.
 subst;trivial.
 assert(Hmykey : forall stop tbl,
     getIndirection pd va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ).
 { intros. 
   unfold not;intros.
@@ -2736,7 +2736,7 @@ revert Hmykey Hlookup Hpdnotnull.
     f_equal. apply  proof_irrelevance.
     rewrite H0.
     case_eq(StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va level) (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred level );intros;trivial.
     apply IHn;trivial.
     intros.
@@ -2753,7 +2753,7 @@ revert Hmykey Hlookup Hpdnotnull.
      subst. now contradict H2.  }
 rewrite <- Hmykey3.
  case_eq( getIndirection pd va level (nbLevel - 1) s);intros. 
- case_eq( defaultPage =? p);intros;trivial.
+ case_eq(Nat.eqb defaultPage p);intros;trivial.
  assert(Hpres :StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s) =
  StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel) (memory s')).
  simpl. 
@@ -2797,7 +2797,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getMappedPage pdChildphy s vax = SomePage x.
@@ -2827,7 +2827,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -2856,7 +2856,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -2926,7 +2926,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getMappedPage pdChildphy s vax = NonePage.
@@ -2956,7 +2956,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -2985,7 +2985,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -3054,7 +3054,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getMappedPage pdChildphy s vax = SomeDefault.
@@ -3084,7 +3084,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -3113,7 +3113,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -3183,7 +3183,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getMappedPage pdChildphy s' vax = NonePage.
@@ -3213,7 +3213,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -3242,7 +3242,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -3310,7 +3310,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getMappedPage pdChildphy s' vax = SomeDefault.
@@ -3340,7 +3340,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -3369,7 +3369,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -3437,7 +3437,7 @@ In phyDescChild (getPartitions multiplexer s)->
      StateLib.getIndexOfAddr vaChild fstLevel = idx ->
      isPE ptVaChildpd idx s /\
      getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s)->
- (defaultPage =? ptVaChildpd) = false->
+ (Nat.eqb defaultPage ptVaChildpd) = false->
 
  phyDescChild <> part -> 
  In part (getPartitions multiplexer s)      ->               
@@ -3481,10 +3481,10 @@ f_equal.
   { intros.
     apply getIndirectionInGetIndirections with a level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.  
+    lia.  
   unfold partitionDescriptorEntry in *.
 
   assert(Hexist : (exists entry : page,
@@ -3516,7 +3516,7 @@ subst;trivial.
 subst;trivial. *)
 assert(Hmykey : forall stop tbl,
     getIndirection pd a level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ).
 { intros. 
   unfold not;intros.
@@ -3525,7 +3525,7 @@ assert(Hmykey : forall stop tbl,
   unfold not in Hmykey2.
   apply Hmykey2 with ptVaChildpd;trivial.
   apply Hi with stop;trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   apply beq_nat_false in Hdefaut.
   intuition.
   subst.
@@ -3551,7 +3551,7 @@ revert Hmykey Hlookup Hpdnotnull.
      apply getIndirectionMapMMUPage1 with entry;trivial. }
 rewrite <- Hmykey3.
  case_eq( getIndirection pd a level (nbLevel - 1) s);intros. 
- case_eq( defaultPage =? p);intros;trivial.
+ case_eq(Nat.eqb defaultPage p);intros;trivial.
  assert(Hpres :StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s) =
  StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s')).
  simpl. 
@@ -3597,7 +3597,7 @@ In phyDescChild (getPartitions multiplexer s)->
      StateLib.getIndexOfAddr vaChild fstLevel = idx ->
      isPE ptVaChildpd idx s /\
      getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s)->
- (defaultPage =? ptVaChildpd) = false->
+ (Nat.eqb defaultPage ptVaChildpd) = false->
 
  phyDescChild <> part -> 
  In part (getPartitions multiplexer s)      ->  
@@ -3622,10 +3622,10 @@ In phyDescChild (getPartitions multiplexer s)->
   { intros.
     apply getIndirectionInGetIndirections with a level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.  
+    lia.  
   unfold partitionDescriptorEntry in *.
 
   assert(Hexist : (exists entry : page,
@@ -3657,7 +3657,7 @@ subst;trivial.
 subst;trivial. *)
 assert(Hmykey : forall stop tbl,
     getIndirection pd a level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ).
 { intros. 
   unfold not;intros.
@@ -3666,7 +3666,7 @@ assert(Hmykey : forall stop tbl,
   unfold not in Hmykey2.
   apply Hmykey2 with ptVaChildpd;trivial.
   apply Hi with stop;trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   apply beq_nat_false in Hdefaut.
   intuition.
   subst.
@@ -3692,7 +3692,7 @@ revert Hmykey Hlookup Hpdnotnull.
      apply getIndirectionMapMMUPage1 with entry;trivial. }
 rewrite <- Hmykey3.
  case_eq( getIndirection pd a level (nbLevel - 1) s);intros. 
- case_eq( defaultPage =? p);intros;trivial.
+ case_eq(Nat.eqb defaultPage p);intros;trivial.
  assert(Hpres :StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s) =
  StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s')).
  simpl. 
@@ -3741,7 +3741,7 @@ In phyVaChild (getAccessibleMappedPages currentPart s) ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 pdChildphy <> defaultPage-> 
 getIndirection pdChildphy vaChild level (nbLevel - 1) s = Some ptVaChildpd -> 
   getMappedPage pdChildphy s' vax = SomePage x.
@@ -3760,7 +3760,7 @@ getIndirection pdChildphy vaChild level (nbLevel - 1) s = Some ptVaChildpd ->
 false vaChild phyDescChild entry;trivial.
 symmetry ;trivial. }
 rewrite Hind'.
-case_eq(defaultPage =? ind);intros Hdef;rewrite Hdef in *.
+case_eq(Nat.eqb defaultPage ind);intros Hdef;rewrite Hdef in *.
 now contradict Hmap.
 case_eq(StateLib.readPresent ind (StateLib.getIndexOfAddr vax fstLevel)
            (memory s));[intros ispres Hispres | intros Hispres];
@@ -3838,7 +3838,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -3863,7 +3863,7 @@ destruct Hor as [Hor | Hor].
 { assert(forall stop tbl,
     stop < level  -> 
     getIndirection pd va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ). 
     {  destruct Hidxroot as [Hidxroot | Hidxroot].
  * subst.
@@ -3880,7 +3880,7 @@ destruct Hor as [Hor | Hor].
       assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (stop+1))). 
       { assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))). 
     {  assert(0<nbLevel) by apply nbLevelNotZero.
-      assert(nbLevel - 1 + 1 = nbLevel) by omega.
+      assert(nbLevel - 1 + 1 = nbLevel) by lia.
     
  
  assert(Hprevious : exists prevtab,
@@ -3901,8 +3901,8 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega. } 
+    lia.
+    lia. } 
 
   
   assert(Htpp : 0 < nbLevel -1).
@@ -3915,34 +3915,34 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega.
+    lia.
+    lia.
     
      } 
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition. 
   revert Hstooo Htpp Hnotdef.
   clear. 
-  replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
+  replace (nbLevel -2) with (nbLevel -1 -1) by lia.  
   revert pdChildphy level ptVaChildpd.
   induction (nbLevel-1);simpl.
   intros.
-  omega.
+  lia.
   intros. 
   case_eq(StateLib.Level.eqb level fstLevel);intros;
   rewrite H in *.
   apply levelEqBEqNatTrue0 in H. 
-  omega.
+  lia.
    case_eq(StateLib.readPhyEntry pdChildphy
                 (StateLib.getIndexOfAddr vaChild level) (memory s));intros;
     rewrite H0 in *;try now contradict Hindchild.
-    case_eq(defaultPage =? p);intros;rewrite H1 in *.
+    case_eq(Nat.eqb defaultPage p);intros;rewrite H1 in *.
     apply beq_nat_false in Hdefaut.
     inversion Hindchild.
     subst.
     now contradict Hdefaut.
     case_eq(StateLib.Level.pred level );intros;rewrite H2 in *.
-    + replace (n-0) with n by omega.
-    assert(Hooo : n = 0 \/ 0 < n) by omega.
+    + replace (n-0) with n by lia.
+    assert(Hooo : n = 0 \/ 0 < n) by lia.
     destruct Hooo.
     *
     subst. 
@@ -3962,10 +3962,10 @@ Some ptVaChildpd).
    unfold CLevel.
     case_eq( lt_dec (level - 1) nbLevel );intros.
     simpl.
-    omega.
+    lia.
     destruct level.
     simpl in *.
-    omega.
+    lia.
     trivial.
     assert(Hi1 : p <> defaultPage).
     apply beq_nat_false in H1.
@@ -3977,7 +3977,7 @@ Some ptVaChildpd).
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
        intros.
-       assert(Hs :S(n-1) = n) by omega.
+       assert(Hs :S(n-1) = n) by lia.
        rewrite <- Hs.
        simpl.
        rewrite H.
@@ -3994,10 +3994,10 @@ rewrite H2.
 unfold CLevel.
 case_eq(lt_dec (level - 1) nbLevel);intros. 
 simpl. 
-omega.
+lia.
 destruct level. 
 simpl in *.
-omega.
+lia.
 trivial.
 + assert(Hnotnone : StateLib.Level.pred level <> None).
 apply levelPredNone;trivial. now contradict Hnotnone.  }
@@ -4005,11 +4005,11 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
        apply getIndirectionInGetIndirections2 with prevtab vaChild level;
       simpl; subst;
       trivial.
-      omega.
+      lia.
       simpl.
       rewrite <- Hprevtable.
       f_equal.
-      omega.
+      lia.
       rewrite H3. 
       unfold getIndirections in *;trivial.
 
@@ -4021,9 +4021,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros;
       rewrite H6 in *.
       simpl in *.
-      omega.
-      omega.
-      omega. *)
+      lia.
+      lia.
+      lia. *)
       apply beq_nat_false in Hdefaut.
       unfold not;intros;subst.
       now contradict Hdefaut. 
@@ -4035,8 +4035,8 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel. 
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros. 
       simpl. 
-      omega.
-      omega.
+      lia.
+      lia.
       }
       unfold not;intros. contradict H2.
       assert(Hincl : incl (getIndirectionsAux pdChildphy s (stop + 1))
@@ -4048,9 +4048,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel in H.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       rewrite H2 in *. 
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       unfold incl in *. 
       apply Hincl;trivial.
       }
@@ -4060,7 +4060,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       assert(0<nbLevel) by apply nbLevelNotZero.
       assert(level < nbLevel).
       apply getNbLevelLt;trivial.      
-      omega.
+      lia.
       apply beq_nat_false in H1.
       unfold not;intros;subst.
        
@@ -4105,7 +4105,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -4114,7 +4114,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -4164,7 +4164,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -4173,7 +4173,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -4243,7 +4243,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     rewrite H1.
     case_eq( StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va l)
     (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred l );intros;trivial.
     apply IHstop1;trivial.
     intros.
@@ -4255,10 +4255,10 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    case_eq(lt_dec (l - 1) nbLevel);intros.
    rewrite H8 in *. 
    simpl in *.
-   omega.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    simpl.
     rewrite H4.
     rewrite H0.
@@ -4278,12 +4278,12 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    rewrite H6 in *.
    simpl in *.
    subst.
-   omega.
-   omega.
+   lia.
+   lia.
    subst.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
 + intros Hi1.
@@ -4294,14 +4294,14 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin1 : In tbl (getIndirectionsAux pd s nbLevel)).
   { apply getIndirectionInGetIndirections with va level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in H0.
     unfold not;intros Hnot;subst.
     now contradict H0.
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.
+    lia.
     destruct Hidxroot as [Hidxroot | Hidxroot];subst.
     apply pdPartNotNull with part s;trivial.
     destruct Hidxroot  as [Hidxroot | Hidxroot];subst.
@@ -4310,7 +4310,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin2 : In ptVaChildpd (getIndirectionsAux pdChildphy s nbLevel)).
   { apply getIndirectionInGetIndirections with vaChild level (nbLevel - 1);trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in Hdefaut.
     clear Hidxroot.
     intuition.
@@ -4319,7 +4319,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega. }
+    lia. }
   unfold not;intros.
   subst.
   assert(Hin11 : In ptVaChildpd (getConfigPages phyDescChild s)).
@@ -4373,7 +4373,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -4398,7 +4398,7 @@ destruct Hor as [Hor | Hor].
 { assert(forall stop tbl,
     stop < level  -> 
     getIndirection pd va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ). 
     {  destruct Hidxroot as [Hidxroot | Hidxroot].
  * subst.
@@ -4416,7 +4416,7 @@ destruct Hor as [Hor | Hor].
       assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (stop+1))). 
       { assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))). 
     {  assert(0<nbLevel) by apply nbLevelNotZero.
-      assert(nbLevel - 1 + 1 = nbLevel) by omega.
+      assert(nbLevel - 1 + 1 = nbLevel) by lia.
     
  
  assert(Hprevious : exists prevtab,
@@ -4437,8 +4437,8 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega. } 
+    lia.
+    lia. } 
 
   
   assert(Htpp : 0 < nbLevel -1).
@@ -4451,34 +4451,34 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega.
+    lia.
+    lia.
     
      } 
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition. 
   revert Hstooo Htpp Hnotdef.
   clear. 
-  replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
+  replace (nbLevel -2) with (nbLevel -1 -1) by lia.  
   revert pdChildphy level ptVaChildpd.
   induction (nbLevel-1);simpl.
   intros.
-  omega.
+  lia.
   intros. 
   case_eq(StateLib.Level.eqb level fstLevel);intros;
   rewrite H in *.
   apply levelEqBEqNatTrue0 in H. 
-  omega.
+  lia.
    case_eq(StateLib.readPhyEntry pdChildphy
                 (StateLib.getIndexOfAddr vaChild level) (memory s));intros;
     rewrite H0 in *;try now contradict Hindchild.
-    case_eq(defaultPage =? p);intros;rewrite H1 in *.
+    case_eq(Nat.eqb defaultPage p);intros;rewrite H1 in *.
     apply beq_nat_false in Hdefaut.
     inversion Hindchild.
     subst.
     now contradict Hdefaut.
     case_eq(StateLib.Level.pred level );intros;rewrite H2 in *.
-    + replace (n-0) with n by omega.
-    assert(Hooo : n = 0 \/ 0 < n) by omega.
+    + replace (n-0) with n by lia.
+    assert(Hooo : n = 0 \/ 0 < n) by lia.
     destruct Hooo.
     *
     subst. 
@@ -4498,10 +4498,10 @@ Some ptVaChildpd).
    unfold CLevel.
     case_eq( lt_dec (level - 1) nbLevel );intros.
     simpl.
-    omega.
+    lia.
     destruct level.
     simpl in *.
-    omega.
+    lia.
     trivial.
     assert(Hi1 : p <> defaultPage).
     apply beq_nat_false in H1.
@@ -4513,7 +4513,7 @@ Some ptVaChildpd).
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
        intros.
-       assert(Hs :S(n-1) = n) by omega.
+       assert(Hs :S(n-1) = n) by lia.
        rewrite <- Hs.
        simpl.
        rewrite H.
@@ -4530,10 +4530,10 @@ rewrite H2.
 unfold CLevel.
 case_eq(lt_dec (level - 1) nbLevel);intros. 
 simpl. 
-omega.
+lia.
 destruct level. 
 simpl in *.
-omega.
+lia.
 trivial.
 + assert(Hnotnone : StateLib.Level.pred level <> None).
 apply levelPredNone;trivial. now contradict Hnotnone.  }
@@ -4541,11 +4541,11 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
        apply getIndirectionInGetIndirections2 with prevtab vaChild level;
       simpl; subst;
       trivial.
-      omega.
+      lia.
       simpl.
       rewrite <- Hprevtable.
       f_equal.
-      omega.
+      lia.
       rewrite H3. 
       unfold getIndirections in *;trivial.
 
@@ -4557,9 +4557,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros;
       rewrite H6 in *.
       simpl in *.
-      omega.
-      omega.
-      omega. *)
+      lia.
+      lia.
+      lia. *)
       apply beq_nat_false in Hdefaut.
       unfold not;intros;subst.
       now contradict Hdefaut. 
@@ -4571,8 +4571,8 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel. 
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros. 
       simpl. 
-      omega.
-      omega.
+      lia.
+      lia.
       }
       unfold not;intros. contradict H2.
       assert(Hincl : incl (getIndirectionsAux pdChildphy s (stop + 1))
@@ -4584,9 +4584,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel in H.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       rewrite H2 in *. 
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       unfold incl in *. 
       apply Hincl;trivial.
       }
@@ -4596,7 +4596,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       assert(0<nbLevel) by apply nbLevelNotZero.
       assert(level < nbLevel).
       apply getNbLevelLt;trivial.      
-      omega.
+      lia.
       apply beq_nat_false in H1.
       unfold not;intros;subst.
        
@@ -4641,7 +4641,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -4650,7 +4650,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -4700,7 +4700,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -4709,7 +4709,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -4779,7 +4779,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     rewrite H1.
     case_eq( StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va l)
     (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred l );intros;trivial.
     apply IHstop1;trivial.
     intros.
@@ -4791,10 +4791,10 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    case_eq(lt_dec (l - 1) nbLevel);intros.
    rewrite H8 in *. 
    simpl in *.
-   omega.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    simpl.
     rewrite H4.
     rewrite H0.
@@ -4814,12 +4814,12 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    rewrite H6 in *.
    simpl in *.
    subst.
-   omega.
-   omega.
+   lia.
+   lia.
    subst.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
 + intros Hi1.
@@ -4830,14 +4830,14 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin1 : In tbl (getIndirectionsAux pd s nbLevel)).
   { apply getIndirectionInGetIndirections with va level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in H0.
     unfold not;intros Hnot;subst.
     now contradict H0.
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.
+    lia.
     destruct Hidxroot as [Hidxroot | Hidxroot];subst.
     apply pdPartNotNull with part s;trivial.
     destruct Hidxroot  as [Hidxroot | Hidxroot];subst.
@@ -4846,7 +4846,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin2 : In ptVaChildpd (getIndirectionsAux pdChildphy s nbLevel)).
   { apply getIndirectionInGetIndirections with vaChild level (nbLevel - 1);trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in Hdefaut.
     clear Hidxroot.
     intuition.
@@ -4855,7 +4855,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega. }
+    lia. }
   unfold not;intros.
   subst.
   assert(Hin11 : In ptVaChildpd (getConfigPages phyDescChild s)).
@@ -4914,7 +4914,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) ->
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s ->
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s ->
-(defaultPage =? ptVaChildpd) = false ->
+(Nat.eqb defaultPage ptVaChildpd) = false ->
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild ->
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->
 nextEntryIsPP phyDescChild PDidx pdChildphy s ->
@@ -4939,7 +4939,7 @@ phyDescChild entry PDidx phyDescChild;trivial.
 left;trivial. }
 rewrite Hindeq.
 
-case_eq(defaultPage =? ind);intros Hdef; 
+case_eq(Nat.eqb defaultPage ind);intros Hdef; 
 trivial.
 assert(Hor : ptVaChildpd <> ind \/ (StateLib.getIndexOfAddr vaChild fstLevel)
 <> (StateLib.getIndexOfAddr vax fstLevel)). 
@@ -4957,7 +4957,7 @@ nbLevel s;trivial.
 
 left;split;trivial.
 apply getNbLevelEq;symmetry;trivial. 
-assert (Hdefault : (defaultPage =? ptVaChildpd) = false) by trivial.
+assert (Hdefault : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
 apply beq_nat_false in Hdefault.
 unfold not;intros;subst.
 now contradict Hdefault.
@@ -5016,7 +5016,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -5196,12 +5196,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -5294,12 +5294,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -5428,7 +5428,7 @@ getIndirections root s = getIndirections root {|
  v Hlookup1 | intros Hlookup1];rewrite Hlookup1 in *.
  clear Hmm.
  case_eq v ;intros;subst; try apply IHn0;trivial.
- case_eq(pa p =? defaultPage);intros Hdeff ; rewrite Hdeff in *;
+ case_eq(Nat.eqb (pa p) defaultPage);intros Hdeff ; rewrite Hdeff in *;
  try apply IHn0;trivial.
  f_equal.
   try apply IHn0;trivial.
@@ -5495,7 +5495,7 @@ getLLPages root s (nbPage + 1)  = getLLPages root  {|
  rewrite <- Hpp in *. clear Hpp.
  case_eq(StateLib.readPhysical root i (memory s));intros;trivial.
  rewrite H1 in *.
- case_eq(p =? defaultPage );intros;trivial.
+ case_eq(Nat.eqb p defaultPage);intros;trivial.
  f_equal.
  rewrite H2 in *.
  simpl in *. 
@@ -5553,7 +5553,7 @@ Proof.
  v Hlookup1 | intros Hlookup1];rewrite Hlookup1 in *.
  clear Hmm.
  case_eq v ;intros;subst; try apply IHn0;trivial.
- case_eq(pa p =? defaultPage);intros Hdeff ; rewrite Hdeff in *;
+ case_eq(Nat.eqb (pa p) defaultPage);intros Hdeff ; rewrite Hdeff in *;
  try apply IHn0;trivial.
  f_equal.
   try apply IHn0;trivial.
@@ -5721,7 +5721,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -5746,7 +5746,7 @@ destruct Hor as [Hor | Hor].
 { assert(forall stop tbl,
     stop < level  -> 
     getIndirection pd va level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ). 
     {  destruct Hidxroot as [Hidxroot | Hidxroot].
  * subst.
@@ -5767,7 +5767,7 @@ destruct Hor as [Hor | Hor].
       assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (stop+1))). 
       { assert(~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))). 
     {  assert(0<nbLevel) by apply nbLevelNotZero.
-      assert(nbLevel - 1 + 1 = nbLevel) by omega.
+      assert(nbLevel - 1 + 1 = nbLevel) by lia.
     
  
  assert(Hprevious : exists prevtab,
@@ -5788,8 +5788,8 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega. } 
+    lia.
+    lia. } 
 
   
   assert(Htpp : 0 < nbLevel -1).
@@ -5802,34 +5802,34 @@ Some ptVaChildpd).
     rewrite H4 in *.
     simpl in *.
     
-    omega.
-    omega.
+    lia.
+    lia.
     
      } 
   assert(Hnotdef : pdChildphy <> defaultPage) by intuition. 
   revert Hstooo Htpp Hnotdef.
   clear. 
-  replace (nbLevel -2) with (nbLevel -1 -1) by omega.  
+  replace (nbLevel -2) with (nbLevel -1 -1) by lia.  
   revert pdChildphy level ptVaChildpd.
   induction (nbLevel-1);simpl.
   intros.
-  omega.
+  lia.
   intros. 
   case_eq(StateLib.Level.eqb level fstLevel);intros;
   rewrite H in *.
   apply levelEqBEqNatTrue0 in H. 
-  omega.
+  lia.
    case_eq(StateLib.readPhyEntry pdChildphy
                 (StateLib.getIndexOfAddr vaChild level) (memory s));intros;
     rewrite H0 in *;try now contradict Hindchild.
-    case_eq(defaultPage =? p);intros;rewrite H1 in *.
+    case_eq(Nat.eqb defaultPage p);intros;rewrite H1 in *.
     apply beq_nat_false in Hdefaut.
     inversion Hindchild.
     subst.
     now contradict Hdefaut.
     case_eq(StateLib.Level.pred level );intros;rewrite H2 in *.
-    + replace (n-0) with n by omega.
-    assert(Hooo : n = 0 \/ 0 < n) by omega.
+    + replace (n-0) with n by lia.
+    assert(Hooo : n = 0 \/ 0 < n) by lia.
     destruct Hooo.
     *
     subst. 
@@ -5849,10 +5849,10 @@ Some ptVaChildpd).
    unfold CLevel.
     case_eq( lt_dec (level - 1) nbLevel );intros.
     simpl.
-    omega.
+    lia.
     destruct level.
     simpl in *.
-    omega.
+    lia.
     trivial.
     assert(Hi1 : p <> defaultPage).
     apply beq_nat_false in H1.
@@ -5864,7 +5864,7 @@ Some ptVaChildpd).
        destruct iHn as (prevtab & Hindprev & Hdef & Hread).
        exists prevtab;split;trivial.
        intros.
-       assert(Hs :S(n-1) = n) by omega.
+       assert(Hs :S(n-1) = n) by lia.
        rewrite <- Hs.
        simpl.
        rewrite H.
@@ -5881,10 +5881,10 @@ rewrite H2.
 unfold CLevel.
 case_eq(lt_dec (level - 1) nbLevel);intros. 
 simpl. 
-omega.
+lia.
 destruct level. 
 simpl in *.
-omega.
+lia.
 trivial.
 + assert(Hnotnone : StateLib.Level.pred level <> None).
 apply levelPredNone;trivial. now contradict Hnotnone.  }
@@ -5892,11 +5892,11 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
        apply getIndirectionInGetIndirections2 with prevtab vaChild level;
       simpl; subst;
       trivial.
-      omega.
+      lia.
       simpl.
       rewrite <- Hprevtable.
       f_equal.
-      omega.
+      lia.
       rewrite H3. 
       unfold getIndirections in *;trivial.
 
@@ -5908,9 +5908,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros;
       rewrite H6 in *.
       simpl in *.
-      omega.
-      omega.
-      omega. *)
+      lia.
+      lia.
+      lia. *)
       apply beq_nat_false in Hdefaut.
       unfold not;intros;subst.
       now contradict Hdefaut. 
@@ -5922,8 +5922,8 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel. 
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros. 
       simpl. 
-      omega.
-      omega.
+      lia.
+      lia.
       }
       unfold not;intros. contradict H2.
       assert(Hincl : incl (getIndirectionsAux pdChildphy s (stop + 1))
@@ -5935,9 +5935,9 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       unfold CLevel in H.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       rewrite H2 in *. 
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       unfold incl in *. 
       apply Hincl;trivial.
       }
@@ -5947,7 +5947,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
       assert(0<nbLevel) by apply nbLevelNotZero.
       assert(level < nbLevel).
       apply getNbLevelLt;trivial.      
-      omega.
+      lia.
       apply beq_nat_false in H1.
       unfold not;intros;subst.
        
@@ -5992,7 +5992,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -6001,7 +6001,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -6051,7 +6051,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   destruct Hpdchild as (nbL & HnbL & stopx & Hstop & Hind).
    apply getIndirectionInGetIndirections with vaChild nbL stopx;trivial.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in Hdefaut.
   unfold not;intros;subst.
   now contradict Hdefaut.
@@ -6060,7 +6060,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   unfold getIndirections.
   apply getIndirectionInGetIndirections with va level stop;trivial.
    assert(0<nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H0.
@@ -6130,7 +6130,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     rewrite H1.
     case_eq( StateLib.readPhyEntry pd (StateLib.getIndexOfAddr va l)
     (memory s));intros;trivial.
-    case_eq(defaultPage =? p);intros;trivial.
+    case_eq(Nat.eqb defaultPage p);intros;trivial.
     case_eq(StateLib.Level.pred l );intros;trivial.
     apply IHstop1;trivial.
     intros.
@@ -6142,10 +6142,10 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    case_eq(lt_dec (l - 1) nbLevel);intros.
    rewrite H8 in *. 
    simpl in *.
-   omega.
+   lia.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    simpl.
     rewrite H4.
     rewrite H0.
@@ -6165,12 +6165,12 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
    rewrite H6 in *.
    simpl in *.
    subst.
-   omega.
-   omega.
+   lia.
+   lia.
    subst.
    destruct l. 
    simpl in *.
-   omega.
+   lia.
    apply beq_nat_false in H3. 
    unfold not;intros;subst. now contradict H3. }
 + intros Hi1.
@@ -6181,14 +6181,14 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin1 : In tbl (getIndirectionsAux pd s nbLevel)).
   { apply getIndirectionInGetIndirections with va level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in H0.
     unfold not;intros Hnot;subst.
     now contradict H0.
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.
+    lia.
     destruct Hidxroot as [Hidxroot | Hidxroot];subst.
     apply pdPartNotNull with part s;trivial.
     destruct Hidxroot  as [Hidxroot | Hidxroot];subst.
@@ -6197,7 +6197,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
   assert(Hin2 : In ptVaChildpd (getIndirectionsAux pdChildphy s nbLevel)).
   { apply getIndirectionInGetIndirections with vaChild level (nbLevel - 1);trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply beq_nat_false in Hdefaut.
     clear Hidxroot.
     intuition.
@@ -6206,7 +6206,7 @@ destruct Hprevious as (prevtab & Hprevtable & Hprevnotnull & Hreadprev).
     symmetry in Hlevel.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega. }
+    lia. }
   unfold not;intros.
   subst.
   assert(Hin11 : In ptVaChildpd (getConfigPages phyDescChild s)).
@@ -6264,7 +6264,7 @@ In phyDescChild (getPartitions multiplexer s)->
      StateLib.getIndexOfAddr vaChild fstLevel = idx ->
      isPE ptVaChildpd idx s /\
      getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s)->
- (defaultPage =? ptVaChildpd) = false->
+ (Nat.eqb defaultPage ptVaChildpd) = false->
 
  phyDescChild <> part -> 
  In part (getPartitions multiplexer s)      ->    
@@ -6284,10 +6284,10 @@ intros.
   { intros.
     apply getIndirectionInGetIndirections with a level stop;trivial.
     assert(0<nbLevel) by apply nbLevelNotZero.
-    omega.
+    lia.
     apply getNbLevelEq in Hlevel.
     subst.
-    omega.  
+    lia.  
   unfold partitionDescriptorEntry in *.
 
   assert(Hexist : (exists entry : page,
@@ -6318,7 +6318,7 @@ subst;trivial.
 subst;trivial. *)
 assert(Hmykey : forall stop tbl,
     getIndirection pd a level stop s = Some tbl -> 
-    (defaultPage =? tbl) = false ->
+    (Nat.eqb defaultPage tbl) = false ->
       tbl <> ptVaChildpd ).
 { intros. 
   unfold not;intros.
@@ -6327,7 +6327,7 @@ assert(Hmykey : forall stop tbl,
   unfold not in Hmykey2.
   apply Hmykey2 with ptVaChildpd;trivial.
   apply Hi with stop;trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   apply beq_nat_false in Hdefaut.
   intuition.
   subst.
@@ -6353,7 +6353,7 @@ revert Hmykey Hlookup Hpdnotnull.
      apply getIndirectionMapMMUPage1 with entry;trivial. }
 rewrite <- Hmykey3.
  case_eq( getIndirection pd a level (nbLevel - 1) s);intros. 
- case_eq( defaultPage =? p);intros;trivial.
+ case_eq(Nat.eqb defaultPage p);intros;trivial.
  assert(Hpres :StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s) =
  StateLib.readPresent p (StateLib.getIndexOfAddr a fstLevel) (memory s')).
  simpl. 
@@ -6404,7 +6404,7 @@ In phyDescChild (getPartitions multiplexer s)->
      StateLib.getIndexOfAddr vaChild fstLevel = idx ->
      isPE ptVaChildpd idx s /\
      getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s)->
- (defaultPage =? ptVaChildpd) = false->
+ (Nat.eqb defaultPage ptVaChildpd) = false->
 
  phyDescChild <> part -> 
  In part (getPartitions multiplexer s)      ->               
@@ -6464,7 +6464,7 @@ partitionDescriptorEntry s ->
         StateLib.getIndexOfAddr vaChild fstLevel = idx ->
         isPE ptVaChildpd idx s /\
         getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild  s) ->
-       (defaultPage =? ptVaChildpd) = false ->      
+       (Nat.eqb defaultPage ptVaChildpd) = false ->      
 forall part, phyDescChild <> part -> 
   In part (getPartitions multiplexer s) -> 
   getUsedPages part s = getUsedPages part s'.
@@ -6511,7 +6511,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s ->
-(defaultPage =? ptVaChildpd) = false->
+(Nat.eqb defaultPage ptVaChildpd) = false->
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -6526,7 +6526,7 @@ unfold getIndirections.
 intros.
 { assert(Hii :~In ptVaChildpd (getIndirectionsAux pdChildphy s (nbLevel-1))) .
 
-assert(Hor1 : (nbLevel - 1) = 0 \/ (nbLevel - 1) > 0) by omega.
+assert(Hor1 : (nbLevel - 1) = 0 \/ (nbLevel - 1) > 0) by lia.
 destruct Hor1 as [Hor1 | Hor1].
 { rewrite Hor1 in *. 
 
@@ -6553,14 +6553,14 @@ revert pdChildphy.
 induction nbLevel;simpl;trivial.
 intros.
 f_equal.
-assert(Hor : n=0 \/ n>0) by omega.
+assert(Hor : n=0 \/ n>0) by lia.
 destruct Hor as[Hor | Hor].
 subst.
 simpl in *.
 induction((getTablePages pdChildphy tableSize s)).
 induction((getTablePages pdChildphy tableSize s'));simpl;trivial.
 simpl;trivial.
-assert(Hrew : S (n -1) = n) by omega.
+assert(Hrew : S (n -1) = n) by lia.
 rewrite <- minus_n_O in Hii.
 rewrite <- Hrew in Hii.
 
@@ -6615,7 +6615,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s ->
-(defaultPage =? ptVaChildpd) = false->
+(Nat.eqb defaultPage ptVaChildpd) = false->
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
@@ -6710,13 +6710,13 @@ unfold getIndirections.
 
 apply getIndirectionInGetIndirections with vaChild level (nbLevel -1);trivial.
 assert(0<nbLevel) by apply nbLevelNotZero.
-omega.
+lia.
 
 apply getIndirectionGetTableRoot1 with phyDescChild;trivial.
 apply nextEntryIsPPgetPd; trivial.
 symmetry;trivial.
 intros;subst;split;trivial.
-assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
 apply beq_nat_false in Hdefaut.
 unfold not;intros;subst.
 now contradict Hdefaut.
@@ -6779,13 +6779,13 @@ unfold getIndirections.
 
 apply getIndirectionInGetIndirections with vaChild level (nbLevel -1);trivial.
 assert(0<nbLevel) by apply nbLevelNotZero.
-omega.
+lia.
 
 apply getIndirectionGetTableRoot1 with phyDescChild;trivial.
 apply nextEntryIsPPgetPd; trivial.
 symmetry;trivial.
 intros;subst;split;trivial.
-assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
 apply beq_nat_false in Hdefaut.
 unfold not;intros;subst.
 now contradict Hdefaut.
@@ -6848,13 +6848,13 @@ unfold getIndirections.
 
 apply getIndirectionInGetIndirections with vaChild level (nbLevel -1);trivial.
 assert(0<nbLevel) by apply nbLevelNotZero.
-omega.
+lia.
 
 apply getIndirectionGetTableRoot1 with phyDescChild;trivial.
 apply nextEntryIsPPgetPd; trivial.
 symmetry;trivial.
 intros;subst;split;trivial.
-assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
 apply beq_nat_false in Hdefaut.
 unfold not;intros;subst.
 now contradict Hdefaut.
@@ -6892,7 +6892,7 @@ lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
 consistency s -> 
 In phyVaChild (getAccessibleMappedPages (currentPartition s) s) -> 
 In phyDescChild (getPartitions multiplexer s)-> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 entryPresentFlag ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) false s -> 
 checkVAddrsEqualityWOOffset nbLevel vaChild vax level = false -> 
 getAccessibleMappedPage pdChildphy s vax = SomePage x.
@@ -6922,7 +6922,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -6949,7 +6949,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -7034,7 +7034,7 @@ In phyVaChild (getAccessibleMappedPages currentPart s) ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 pdChildphy <> defaultPage-> 
 getIndirection pdChildphy vaChild level (nbLevel - 1) s = Some ptVaChildpd -> 
   getAccessibleMappedPage pdChildphy s' vax = SomePage x.
@@ -7053,7 +7053,7 @@ getIndirection pdChildphy vaChild level (nbLevel - 1) s = Some ptVaChildpd ->
 false vaChild phyDescChild entry;trivial.
 symmetry ;trivial. }
 rewrite Hind'.
-case_eq(defaultPage =? ind);intros Hdef;rewrite Hdef in *.
+case_eq(Nat.eqb defaultPage ind);intros Hdef;rewrite Hdef in *.
 now contradict Hmap.
 case_eq(StateLib.readPresent ind (StateLib.getIndexOfAddr vax fstLevel)
            (memory s));[intros ispres Hispres | intros Hispres];
@@ -7134,12 +7134,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -7237,7 +7237,7 @@ simpl;trivial. }
   subst. trivial.
   subst .
   revert Hind1.       
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
   assert(Htrue3 : nextEntryIsPP phyDescChild PDidx pdChildphy s) by trivial.
   revert Htrue1 Htrue2 Hlookup Hdefaut Htrue3.
   clear. 
@@ -8002,7 +8002,7 @@ assert(Hor3:  ( phyDescChild <> child1 /\ phyDescChild <> child2) \/
 { clear. destruct phyDescChild;destruct child1 ; destruct child2.
   simpl in *.
   assert(  (p <> p0 /\ p <> p1) \/
-  (p = p0 \/ p = p1)) by omega.
+  (p = p0 \/ p = p1)) by lia.
   destruct
    H. left. 
    destruct H.
@@ -8010,11 +8010,11 @@ assert(Hor3:  ( phyDescChild <> child1 /\ phyDescChild <> child2) \/
    unfold not;intros.
    inversion H1.
    subst.
-   omega.
+   lia.
    unfold not;intros.
    inversion H1.
    subst.
-   omega.
+   lia.
    right. 
    destruct H. 
    left. 
@@ -8172,7 +8172,7 @@ destruct Hor3 as [Hor3| Hor3].
             rewrite <- beqPairsTrue;split;trivial.
             rewrite Hpairs.
             simpl;trivial. }
-          assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+          assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
           revert Htrue1 Htrue2 Hlookup Hdefaut.
           clear. 
           intros. apply getIndirectionMapMMUPage with entry;trivial;subst;trivial.
@@ -8282,7 +8282,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -8311,7 +8311,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   symmetry;trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -8490,7 +8490,7 @@ rewrite Hnone;trivial.
             rewrite <- beqPairsTrue;split;trivial.
             rewrite Hpairs.
             simpl;trivial. }
-          assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+          assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
           revert Htrue1 Htrue2 Hlookup Hdefaut.
           clear. 
           intros. apply getIndirectionMapMMUPage with entry;trivial;subst;trivial.
@@ -8597,7 +8597,7 @@ rewrite Hii.
    assert(Hnodupconf : noDupConfigPagesList s).
     unfold consistency in *. 
     intuition.
-  case_eq(defaultPage =? p);intros Hnotdef;trivial.  
+  case_eq(Nat.eqb defaultPage p);intros Hnotdef;trivial.  
    assert(ptVaChildpd <> p \/ (StateLib.getIndexOfAddr vaChild fstLevel) <> 
   (StateLib.getIndexOfAddr vax fstLevel)).
    apply pageTablesOrIndicesAreDifferent with pdChildphy pdChildphy
@@ -8625,7 +8625,7 @@ left;trivial.
   split;trivial.
   apply getNbLevelEq.
   symmetry;trivial.
-  assert(Hdefaut: (defaultPage =? ptVaChildpd) = false) by trivial.
+  assert(Hdefaut: (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
     apply beq_nat_false in Hdefaut.
     unfold not;intros;subst;now contradict Hdefaut.
   apply beq_nat_false in Hnotdef.
@@ -8764,18 +8764,18 @@ assert(Hor3:
 { clear. destruct phyDescChild;destruct partition1 ; destruct partition2.
   simpl in *.
   assert(  (p <> p0 /\ p <> p1) \/
-  (p = p0 \/ p = p1)) by omega.
+  (p = p0 \/ p = p1)) by lia.
   destruct H. left. 
   destruct H.
   split. 
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   right. 
   destruct H. 
   left. 
@@ -8845,7 +8845,7 @@ assert (Hnewmap1 : getMappedPage pdChildphy s' vaChild = SomePage phyVaChild).
   subst .
   revert Hind1.
  
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   revert Htrue1 Htrue2 Hlookup Hdefaut.
   clear. 
   intros.
@@ -8891,7 +8891,7 @@ assert (Hnewmap :getAccessibleMappedPage pdChildphy s' vaChild = SomePage phyVaC
   intros.
   rewrite <- Hlevel in *.
   rewrite Hindchild' in *.
-  destruct(defaultPage =? ptVaChildpd);try now contradict Hnewmap1.
+  destruct(Nat.eqb defaultPage ptVaChildpd);try now contradict Hnewmap1.
   destruct ( StateLib.readPresent ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
   (memory s'));try now contradict Hnewmap1. 
   destruct b;try now contradict Hnewmap1.
@@ -9181,18 +9181,18 @@ assert(Hor3:
 { clear. destruct phyDescChild;destruct child ; destruct parent.
   simpl in *.
   assert(  (p <> p0 /\ p <> p1) \/
-  (p = p0 \/ p = p1)) by omega.
+  (p = p0 \/ p = p1)) by lia.
   destruct H. left. 
   destruct H.
   split. 
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   right. 
   destruct H. 
   left. 
@@ -9232,7 +9232,7 @@ assert (Hnewmap : getMappedPage pdChildphy s' vaChild = SomePage phyVaChild).
   subst .
   revert Hind1.
  
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   revert Htrue1 Htrue2 Hlookup Hdefaut.
   clear. 
   intros.
@@ -9468,12 +9468,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -9539,12 +9539,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -9638,12 +9638,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -9737,12 +9737,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -9835,12 +9835,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -9930,12 +9930,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -10001,7 +10001,7 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) ->
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s ->
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s ->
-(defaultPage =? ptVaChildpd) = false ->
+(Nat.eqb defaultPage ptVaChildpd) = false ->
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild ->
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->
 nextEntryIsPP phyDescChild PDidx pdChildphy s ->
@@ -10025,7 +10025,7 @@ phyVaChild r w e pdChildphy currentPart presentvaChild vaChild
 phyDescChild entry PDidx phyDescChild;trivial.
 left;trivial. }
 rewrite Hindeq.
-case_eq(defaultPage =? ind);intros Hdef; rewrite Hdef in *;try now contradict Hmapped;
+case_eq(Nat.eqb defaultPage ind);intros Hdef; rewrite Hdef in *;try now contradict Hmapped;
 trivial.
 assert(Hor : ptVaChildpd <> ind \/ (StateLib.getIndexOfAddr vaChild fstLevel)
 <> (StateLib.getIndexOfAddr vax fstLevel)). 
@@ -10041,7 +10041,7 @@ unfold consistency in *;intuition.
 left.
 split;trivial.
 apply getNbLevelEq;symmetry;trivial. 
-assert (Hdefault : (defaultPage =? ptVaChildpd) = false) by trivial.
+assert (Hdefault : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
 apply beq_nat_false in Hdefault.
 unfold not;intros;subst.
 now contradict Hdefault.
@@ -10104,12 +10104,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10183,12 +10183,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10248,12 +10248,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10292,7 +10292,7 @@ phyDescChild entry sh1idx part;trivial.
    apply nextEntryIsPPgetFstShadow;trivial.
    right;left;trivial. }
 rewrite Hind'.
-destruct (ind =? defaultPage);trivial. 
+destruct (Nat.eqb ind defaultPage);trivial. 
 assert(Hread:  StateLib.readPDflag ind (StateLib.getIndexOfAddr va fstLevel) (memory s') 
 =  StateLib.readPDflag ind (StateLib.getIndexOfAddr va fstLevel) (memory s)).
 apply readPDflagMapMMUPage with entry;trivial.
@@ -10339,12 +10339,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10464,7 +10464,7 @@ assert(Htrue2 : StateLib.readPhyEntry  ptVaChildpd
       subst .
       revert Hind1.
      
-      assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+      assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
       
       revert Htrue1 Htrue2 Hlookup Hdefaut.
       clear. 
@@ -10502,7 +10502,7 @@ assert(Htrue2 : StateLib.readPhyEntry  ptVaChildpd
       intros.
       rewrite  Hlevel in *.
       rewrite Hindchild' in *.
-      destruct(defaultPage =? ptVaChildpd);try now contradict Hnewmap1.
+      destruct(Nat.eqb defaultPage ptVaChildpd);try now contradict Hnewmap1.
       destruct ( StateLib.readPresent ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel)
       (memory s'));try now contradict Hnewmap1. 
       destruct b;try now contradict Hnewmap1.
@@ -10585,12 +10585,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10628,7 +10628,7 @@ phyDescChild entry sh2idx part;trivial.
    apply nextEntryIsPPgetSndShadow;trivial.
    do 2 right;trivial. }
 rewrite Hind'.
-destruct (defaultPage =? ind);trivial. 
+destruct (Nat.eqb defaultPage ind);trivial. 
 assert(Hread:  StateLib.readVirtual ind (StateLib.getIndexOfAddr va fstLevel) (memory s') 
 =  StateLib.readVirtual ind (StateLib.getIndexOfAddr va fstLevel) (memory s)).
 apply readVirtualMapMMUPage with entry;trivial.
@@ -10670,12 +10670,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10713,7 +10713,7 @@ phyDescChild entry sh1idx part;trivial.
    apply nextEntryIsPPgetFstShadow;trivial.
    right;left;trivial. }
 rewrite Hind'.
-destruct (defaultPage =? ind);trivial. 
+destruct (Nat.eqb defaultPage ind);trivial. 
 assert(Hread:  StateLib.readVirEntry ind (StateLib.getIndexOfAddr va fstLevel) (memory s') 
 =  StateLib.readVirEntry ind (StateLib.getIndexOfAddr va fstLevel) (memory s)).
 symmetry. apply readVirEntryMapMMUPage with entry;trivial.
@@ -10756,12 +10756,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
  isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
  getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
- (defaultPage =? ptVaChildpd) = false ->
+ (Nat.eqb defaultPage ptVaChildpd) = false ->
  StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
  entryPresentFlag ptVaChildpd idxvaChild presentvaChild s ->  
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) ->
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd
@@ -10777,7 +10777,7 @@ getTableAddrRoot ptVaInCurPartpd PDidx (currentPartition s)
  nextEntryIsPP (currentPartition s) PDidx currentPD s  -> 
 isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildsh2) = false -> 
+(Nat.eqb defaultPage ptVaChildsh2) = false -> 
 StateLib.readVirtual ptVaChildsh2 idxvaChild (memory s) =
 Some vaInCurrentPartition -> 
 In phyDescChild (getChildren (currentPartition s) s) ->
@@ -10855,7 +10855,7 @@ subst.
       subst .
       
       revert Hind1.     
-      assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial.
+      assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial.
            
       revert Htrue1 Htrue2 Hlookup Hdefaut.
       clear. 
@@ -10933,7 +10933,7 @@ destruct Hor1 as [Hor1 | Hor1].
       subst.
       assert (Hnewindsh2 :getIndirection sh2 vaChild nbL (nbLevel-1) s = Some ptVaChildsh2). 
       { apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         rewrite <- HnbL in *.
         inversion Hlevel;subst.
         apply getNbLevelEq in HnbL.
@@ -10954,7 +10954,7 @@ destruct Hor1 as [Hor1 | Hor1].
           rewrite <- Hor1.
           apply checkVAddrsEqualityWOOffsetPermut.  }
       rewrite Hnewgoal.
-     assert( (defaultPage =? ptVaChildsh2) = false /\
+     assert( (Nat.eqb defaultPage ptVaChildsh2) = false /\
             StateLib.readVirtual ptVaChildsh2 
             (StateLib.getIndexOfAddr vaChild fstLevel) (memory s) =
             Some vaInCurrentPartition ) as (Hi4 & Hi3) by intuition.
@@ -11251,12 +11251,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -11319,12 +11319,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -11400,12 +11400,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -11473,12 +11473,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -11676,12 +11676,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -11710,7 +11710,7 @@ Qed.
 Lemma vaIsDerived currentPart shadow1 (ptSh1ChildFromSh1 : page) s : 
     consistency s ->
     In currentPart (getPartitions multiplexer s) -> 
-     (defaultPage =? ptSh1ChildFromSh1) = false  -> 
+     (Nat.eqb defaultPage ptSh1ChildFromSh1) = false  -> 
     (exists va : vaddr,
         isEntryVA ptSh1ChildFromSh1 (StateLib.getIndexOfAddr shadow1 fstLevel) va s /\
         beqVAddr defaultVAddr va = false) -> 
@@ -11748,7 +11748,7 @@ rewrite <- Hl.
 subst.
 assert(Hgetind : getIndirection cursh1 shadow1 l (nbLevel - 1) s  = Some ptSh1ChildFromSh1).
 apply getIndirectionStopLevelGT2 with (l+1);trivial.
-abstract omega.
+abstract lia.
 apply getNbLevelEq in Hl.
 subst.
 apply nbLevelEq.
@@ -11896,18 +11896,18 @@ assert(Hor3:
 { clear. destruct phyDescChild;destruct child ; destruct parent.
   simpl in *.
   assert(  (p <> p0 /\ p <> p1) \/
-  (p = p0 \/ p = p1)) by omega.
+  (p = p0 \/ p = p1)) by lia.
   destruct H. left. 
   destruct H.
   split. 
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   unfold not;intros.
   inversion H1.
   subst.
-  omega.
+  lia.
   right. 
   destruct H. 
   left. 
@@ -11921,7 +11921,7 @@ clear Hchildeq Hpartseq Hpd.
 assert (Hnewmap : getMappedPage pdChildphy s' vaChild = SomePage phyVaChild).
 {  assert(Hlookup : lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
        beqPage beqIndex = Some (PE entry)) by trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   assert(Htrue1 : StateLib.readPhyEntry  ptVaChildpd
           (StateLib.getIndexOfAddr vaChild fstLevel) (memory s) =Some defaultPage).
   { assert(Hcons1 : isPresentNotDefaultIff s).
@@ -12164,7 +12164,7 @@ forall (ptsh2 descParent  sh2  : page)
 (forall idx : index,
   StateLib.getIndexOfAddr va fstLevel = idx ->
    isVE ptsh2 idx s /\ getTableAddrRoot ptsh2 sh1idx descParent va s) ->
-(defaultPage =? ptsh2) = false ->
+(Nat.eqb defaultPage ptsh2) = false ->
 isEntryVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) vaInAncestor s -> 
 StateLib.getFstShadow descParent (memory s) = Some sh2 -> 
 Some L = StateLib.getNbLevel ->
@@ -12190,7 +12190,7 @@ inversion HL.
 subst. 
 assert(Hnewind :getIndirection sh2 va nbL (nbLevel - 1) s
 = Some ptsh2).
-apply getIndirectionStopLevelGT2 with (nbL +1);try omega;trivial.
+apply getIndirectionStopLevelGT2 with (nbL +1);try lia;trivial.
 apply getNbLevelEq in HnbL.
 subst. apply nbLevelEq.
 rewrite Hnewind.
@@ -12569,12 +12569,12 @@ negb presentvaChild = true ->
 In phyDescChild (getPartitions multiplexer s) -> 
 isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s -> 
 getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s -> 
-(defaultPage =? ptVaChildpd) = false -> 
+(Nat.eqb defaultPage ptVaChildpd) = false -> 
 StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild -> 
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 In (currentPartition s) (getPartitions multiplexer s) -> 
-(defaultPage =? ptVaInCurPartpd) = false -> 
+(Nat.eqb defaultPage ptVaInCurPartpd) = false -> 
 entryPresentFlag ptVaInCurPartpd
   (StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) true s -> 
 entryUserFlag ptVaInCurPartpd 
@@ -12624,7 +12624,7 @@ symmetry;trivial.
    left;trivial.
 assert(Hnewgoal : exists indirection2 : page,
   getIndirection structroot va nbL stop s = Some indirection2 /\
-  (defaultPage =? indirection2) = b).
+  (Nat.eqb defaultPage indirection2) = b).
 { move Hcons at bottom. apply Hcons with partition pd ind1;trivial. } 
 destruct Hnewgoal as (ind2 & Hind2 & Hdef).
 exists ind2;split;trivial.
@@ -12714,7 +12714,7 @@ subst.
 assert (Hnewmap : getMappedPage pdChildphy s' vaChild = SomePage phyVaChild).
 {  assert(Hlookup : lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
        beqPage beqIndex = Some (PE entry)) by trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   assert(Htrue1 : StateLib.readPhyEntry  ptVaChildpd
           (StateLib.getIndexOfAddr vaChild fstLevel) (memory s) =Some defaultPage).
   { assert(Hcons1 : isPresentNotDefaultIff s).
@@ -12924,7 +12924,7 @@ subst.
 assert (Hnewmap : getMappedPage pdChildphy s' vaChild = SomePage phyVaChild).
 {  assert(Hlookup : lookup ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) (memory s)
        beqPage beqIndex = Some (PE entry)) by trivial.
-  assert(Hdefaut : (defaultPage =? ptVaChildpd) = false) by trivial. 
+  assert(Hdefaut : (Nat.eqb defaultPage ptVaChildpd) = false) by trivial. 
   assert(Htrue1 : StateLib.readPhyEntry  ptVaChildpd
           (StateLib.getIndexOfAddr vaChild fstLevel) (memory s) =Some defaultPage).
   { assert(Hcons1 : isPresentNotDefaultIff s).

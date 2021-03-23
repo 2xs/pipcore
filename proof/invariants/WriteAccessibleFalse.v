@@ -36,7 +36,7 @@
 Require Import Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware Model.ADT DependentTypeLemmas
 GetTableAddr Model.MAL Model.Lib Lib InternalLemmas PropagatedProperties WriteAccessible.
-Require Import Coq.Logic.ProofIrrelevance Omega List.
+Require Import Coq.Logic.ProofIrrelevance List.
 Import List.ListNotations.
 (*************************Move into InternalLemmas ************************)
 (********************************************************)
@@ -74,7 +74,7 @@ apply isPresentNotDefaultIffTrue in Hpres.
 assert(Hpage: isEntryPage ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) phyMMUaddr s) by trivial.
 apply isEntryPageReadPhyEntry1 in Hpage.
 rewrite Hpage in Hpres.
-rewrite Nat.eqb_neq.
+rewrite PeanoNat.Nat.eqb_neq.
 unfold not;intros;subst.
 contradict Hpres.
 f_equal.
@@ -116,7 +116,7 @@ apply isPresentNotDefaultIffTrue in Hpres.
 assert(Hpage: isEntryPage ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) phySh1addr s) by trivial.
 apply isEntryPageReadPhyEntry1 in Hpage.
 rewrite Hpage in Hpres.
-rewrite Nat.eqb_neq.
+rewrite PeanoNat.Nat.eqb_neq.
 unfold not;intros;subst.
 contradict Hpres.
 f_equal.
@@ -158,7 +158,7 @@ apply isPresentNotDefaultIffTrue in Hpres.
 assert(Hpage: isEntryPage ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) phySh2addr s) by trivial.
 apply isEntryPageReadPhyEntry1 in Hpage.
 rewrite Hpage in Hpres.
-rewrite Nat.eqb_neq.
+rewrite PeanoNat.Nat.eqb_neq.
 unfold not;intros;subst.
 contradict Hpres.
 f_equal.
@@ -264,7 +264,7 @@ configTablesAreDifferent s ->
  accessibleChildPageIsAccessibleIntoParent s -> 
 partitionDescriptorEntry s -> 
 In descParent (getPartitions multiplexer s) -> 
-(defaultPage =? ptvaInAncestor) = false -> 
+(Nat.eqb defaultPage ptvaInAncestor) = false -> 
 getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s -> 
 lookup ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) (memory s) beqPage beqIndex = Some (PE entry) ->
 isAccessibleMappedPageInParent ancestor vaInAncestor (pa entry) {|
@@ -814,7 +814,7 @@ accessibleVAIsNotPartitionDescriptor s ->
 Some nbL = StateLib.getNbLevel -> 
 partitionDescriptorEntry s -> 
 noDupConfigPagesList s -> 
-(defaultPage =? pt) = false -> 
+(Nat.eqb defaultPage pt) = false -> 
 nextEntryIsPP curPart PDidx currentPD s -> 
 getTableAddrRoot pt PDidx curPart vaValue s -> 
 isPE pt  (StateLib.getIndexOfAddr vaValue fstLevel) s -> 
@@ -861,13 +861,13 @@ physicalPageNotDerived s ->
 configTablesAreDifferent s -> 
 noDupConfigPagesList s ->
 noDupMappedPagesList s ->
-(defaultPage =? pt) = false ->
+(Nat.eqb defaultPage pt) = false ->
 isPE pt (StateLib.getIndexOfAddr vaValue fstLevel) s -> 
 getTableAddrRoot pt PDidx curPart vaValue s -> 
 entryPresentFlag pt (StateLib.getIndexOfAddr vaValue fstLevel) true s -> 
 isVE ptsh1 (StateLib.getIndexOfAddr vaValue fstLevel) s -> 
 getTableAddrRoot ptsh1 sh1idx curPart vaValue s -> 
-(defaultPage =? ptsh1) = false -> 
+(Nat.eqb defaultPage ptsh1) = false -> 
 In curPart (getPartitions multiplexer s) ->
 accessibleChildPageIsAccessibleIntoParent
   {|
@@ -913,7 +913,7 @@ lookup pt (StateLib.getIndexOfAddr vaValue fstLevel)
 (memory s) beqPage beqIndex = Some (PE entry) -> 
 consistency s -> 
 Some nbL = StateLib.getNbLevel -> 
-(defaultPage =? pt) = false -> 
+(Nat.eqb defaultPage pt) = false -> 
 nextEntryIsPP curPart PDidx currentPD s -> 
 getTableAddrRoot pt PDidx curPart vaValue s -> 
 isPE pt  (StateLib.getIndexOfAddr vaValue fstLevel) s -> 
@@ -923,7 +923,7 @@ entryUserFlag pt (StateLib.getIndexOfAddr vaValue fstLevel) true s ->
  isEntryVA ptsh1 (StateLib.getIndexOfAddr vaValue fstLevel) va s /\ beqVAddr defaultVAddr va = true) ->
 isVE ptsh1 (StateLib.getIndexOfAddr vaValue fstLevel) s -> 
 getTableAddrRoot ptsh1 sh1idx curPart vaValue s -> 
-(defaultPage =? ptsh1) = false -> 
+(Nat.eqb defaultPage ptsh1) = false -> 
 In curPart (getPartitions multiplexer s) ->
 consistency
   {|
@@ -1087,7 +1087,7 @@ lookup ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) (memory s) beqPage be
 In currentPart (getPartitions multiplexer s) -> 
 noCycleInPartitionTree s ->    parentInPartitionList s ->   
 partitionDescriptorEntry s -> 
-(defaultPage =? ptMMUFstVA) = false -> 
+(Nat.eqb defaultPage ptMMUFstVA) = false -> 
 getTableAddrRoot ptMMUFstVA PDidx currentPart fstVA s ->  
 configTablesAreDifferent s ->
 accessibleChildPageIsAccessibleIntoParent s -> 
@@ -1223,7 +1223,7 @@ getIndirection pd va1 l (nbLevel - 1) s) by (
 apply getIndirectionUpdateUserFlag; trivial).
 rewrite Hind in *.            
 destruct (getIndirection pd va1 l (nbLevel - 1) s);trivial.
-destruct ( defaultPage =? p);trivial.
+destruct (Nat.eqb defaultPage p);trivial.
 assert(Hread :  StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s')=
 StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s))
 by (apply readPresentUpdateUserFlag; trivial).
@@ -1944,10 +1944,10 @@ partitionsIsolation s /\
      In currentPart (getPartitions MALInternal.multiplexer s) /\
      isAncestor currentPart descParent s /\
      In descParent (getPartitions MALInternal.multiplexer s) /\
-     (defaultPage =? pa entry) = false /\
+     (Nat.eqb defaultPage (pa entry)) = false /\
      isPE pt (StateLib.getIndexOfAddr va fstLevel) s /\
      getTableAddrRoot pt PDidx descParent va s /\
-     (defaultPage =? pt) = false /\
+     (Nat.eqb defaultPage pt) = false /\
      entryPresentFlag pt (StateLib.getIndexOfAddr va fstLevel) true s /\
      entryUserFlag pt (StateLib.getIndexOfAddr va fstLevel) false s /\
      isEntryPage pt (StateLib.getIndexOfAddr va fstLevel) (pa entry) s /\
@@ -1958,7 +1958,7 @@ partitionsIsolation s /\
      StateLib.getIndexOfAddr va fstLevel = lastIndex /\
      isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\
      getTableAddrRoot ptsh2 sh2idx descParent va s /\
-     (defaultPage =? ptsh2) = false /\
+     (Nat.eqb defaultPage ptsh2) = false /\
      isVA' ptsh2 lastIndex vaInAncestor s /\
      nextEntryIsPP descParent PPRidx ancestor s /\
      nextEntryIsPP ancestor PDidx pdAncestor s /\
@@ -1966,7 +1966,7 @@ partitionsIsolation s /\
      false = StateLib.VAddr.eqbList defaultV vaInAncestor /\
      isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\
      getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s /\
-     (defaultPage =? ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva -> 
+     (Nat.eqb defaultPage ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva -> 
 accessibleVAIsNotPartitionDescriptor s' -> 
 propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s' ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable
            phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1

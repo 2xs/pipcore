@@ -37,7 +37,7 @@
 Require Import Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware Model.ADT Model.MAL 
 DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool. 
+Require Import Coq.Logic.ProofIrrelevance Lia List Bool EqNat Compare_dec.
 (*************************Move into InternalLemmas ************************)
 Lemma indirectionDescriptionIsConfigPage descChildphy phyPDChild  vaToPrepare l s:
  indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l -> 
@@ -56,7 +56,7 @@ simpl.
 right.
 apply inGetIndirectionsAuxInConfigPagesPD with phyPDChild;trivial.
 assert(nbLevel > 0) by apply nbLevelNotZero.
-destruct nbLevel. omega.
+destruct nbLevel. lia.
 simpl.
 left;trivial.
 apply nextEntryIsPPgetPd;trivial.
@@ -263,7 +263,7 @@ induction stop; simpl; intros.
   clear H0.
   case_eq (StateLib.readPhyEntry tableRoot curidx (memory s));
   intros; trivial.
-  case_eq (defaultPage =? p); intros; trivial.
+  case_eq (Nat.eqb defaultPage p); intros; trivial.
   f_equal.
   case_eq (StateLib.Level.pred curlevel); intros; trivial.
   apply IHstop with nbL; trivial.
@@ -273,7 +273,7 @@ induction stop; simpl; intros.
   simpl in *.
   destruct l.
   inversion H4.
-  subst. omega.
+  subst. lia.
   now contradict H2.
   simpl.
   apply Classical_Prop.not_or_and in Hii.
@@ -345,7 +345,7 @@ case_eq (StateLib.getFstShadow partition (memory s));trivial.
  assert (getIndirection p a nbL (nbLevel - 1)  s' = getIndirection p a nbL (nbLevel - 1)  s) as Hind.
   { apply getIndirectionUpdateMappedPageData with nbL ;trivial.
     assert(0 < nbLevel) by apply nbLevelNotZero.
-    replace (S (nbLevel - 1)) with nbLevel by omega.
+    replace (S (nbLevel - 1)) with nbLevel by lia.
     apply notConfigTableNotSh1configTable with partition; trivial.
     unfold getConfigPages in *.
     simpl in *.
@@ -354,7 +354,7 @@ case_eq (StateLib.getFstShadow partition (memory s));trivial.
     assumption. }
   rewrite Hind.
  case_eq (getIndirection p a nbL (nbLevel - 1) s); intros.
- case_eq(p0 =? defaultPage); intros; trivial.
+ case_eq(Nat.eqb p0 defaultPage); intros; trivial.
   assert (StateLib.readPDflag p0 (StateLib.getIndexOfAddr a fstLevel) (memory s') = 
   StateLib.readPDflag p0 (StateLib.getIndexOfAddr a fstLevel) (memory s)) as Hpdflag.
   unfold StateLib.readPDflag.
@@ -364,13 +364,13 @@ case_eq (StateLib.getFstShadow partition (memory s));trivial.
   assert (In p0 (getIndirections p s)).
   apply getIndirectionInGetIndirections with a nbL (nbLevel - 1); trivial.
   assert (0 < nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H6.
   unfold not; intros;subst.
   now contradict H6.
   apply getNbLevelEq in H2.
   rewrite H2.
-  omega.
+  lia.
   unfold partitionDescriptorEntry in *.
   apply H0  with partition sh1idx in H; clear H0.
   destruct H as (_ & _ & entrypd & Hpp & Hnotnul).
@@ -463,7 +463,7 @@ assert(Hind : getIndirection pd a nbL (nbLevel - 1)
                 (memory s) beqPage beqIndex |} = getIndirection pd a nbL (nbLevel - 1) s).
 apply getIndirectionUpdateMappedPageData with nbL; auto.
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert( (S (nbLevel - 1)) = nbLevel) by omega.
+assert( (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite H0.
 assumption.
 subst.
@@ -508,7 +508,7 @@ Qed.
 
 Lemma getMappedPagesUpdateMappedPageData partition (table : page) idx level x s: 
 partitionDescriptorEntry s -> 
-(defaultPage =? table) = false -> 
+(Nat.eqb defaultPage table) = false -> 
 Some level = StateLib.getNbLevel-> 
  In partition (getPartitions multiplexer s) -> 
 (forall partition1 : page,
@@ -586,7 +586,7 @@ assert(Hind : getIndirection pd va nbL (nbLevel - 1)
                 (memory s) beqPage beqIndex |} = getIndirection pd va nbL (nbLevel - 1) s).
 apply getIndirectionUpdateMappedPageData with nbL; auto.
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert( (S (nbLevel - 1)) = nbLevel) by omega.
+assert( (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite H0.
 assumption.
 subst.
@@ -664,7 +664,7 @@ assert(Hind : getIndirection pd va nbL (nbLevel - 1)
                 (memory s) beqPage beqIndex |} = getIndirection pd va nbL (nbLevel - 1) s).
 apply getIndirectionUpdateMappedPageData with nbL; auto.
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert( (S (nbLevel - 1)) = nbLevel) by omega.
+assert( (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite H0.
 assumption.
 subst.
@@ -732,7 +732,7 @@ Qed.
 Lemma getAccessibleMappedPagesUpdateMappedPageData partition (table : page) 
 idx x (* level *)  s: 
 partitionDescriptorEntry s -> 
-(defaultPage =? table) = false -> 
+(Nat.eqb defaultPage table) = false -> 
 (* Some level = StateLib.getNbLevel->  *)
  In partition (getPartitions multiplexer s) -> 
 (forall partition1 : page,
@@ -954,7 +954,7 @@ rewrite Hfalse.
   destruct (lookup table1 (CIndex size) (memory s) beqPage beqIndex); [
   destruct v | 
   apply IHsize] ; try apply IHsize.
-  destruct (pa p=? defaultPage);
+  destruct (Nat.eqb (pa p) defaultPage);
   [apply IHsize |
   f_equal;
   apply IHsize].
@@ -1026,7 +1026,7 @@ destruct (StateLib.getMaxIndex);trivial.
 assert(sh3 <> table).
 { case_eq ( StateLib.readPhysical sh3 i (memory s)); intros;
   rewrite H0 in H ; [
-  case_eq (p =? defaultPage); intros; rewrite H1 in H |];
+  case_eq (Nat.eqb p defaultPage); intros; rewrite H1 in H |];
    apply Classical_Prop.not_or_and in H;
 destruct H as (H & _); assumption. }
 assert(Hread :   StateLib.readPhysical sh3 i
@@ -1044,7 +1044,7 @@ assert(Hread :   StateLib.readPhysical sh3 i
     rewrite  Hmemory; clear Hmemory. reflexivity. }  
 rewrite Hread.
 case_eq ( StateLib.readPhysical sh3 i (memory s) ); intros; trivial.
-case_eq ( p =? defaultPage); intros; trivial.
+case_eq (Nat.eqb p defaultPage); intros; trivial.
 f_equal.
 apply IHn.
 rewrite H1 in H; trivial.
@@ -1122,7 +1122,7 @@ Lemma isVAUpdateMappedPageData partition table idxroot idx x s:
           In partition (getPartitions multiplexer s) ->
           partition = table \/ In table (getConfigPagesAux partition s) ->
           False )->
-(defaultPage =? table) = false ->
+(Nat.eqb defaultPage table) = false ->
 In partition (getPartitions multiplexer s) ->
 isVA partition idxroot s -> 
 isVA partition idxroot
@@ -1159,7 +1159,7 @@ Lemma nextEntryIsPPUpdateMappedPageData partition table idxroot root idx x s:
           In partition (getPartitions multiplexer s) ->
           partition = table \/ In table (getConfigPagesAux partition s) ->
           False )->
-(defaultPage =? table) = false ->
+(Nat.eqb defaultPage table) = false ->
 In partition (getPartitions multiplexer s) ->
 nextEntryIsPP partition idxroot root s <-> 
 nextEntryIsPP partition idxroot root
@@ -1367,12 +1367,12 @@ assert(HnbLevel : (S nbL) = nbLevel).
   simpl in *.
   destruct nbL.
   simpl in *.
-  inversion HnbL. omega.
+  inversion HnbL. lia.
   assert(0 < nbLevel) by apply nbLevelNotZero. 
-  omega. }
+  lia. }
 assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux entrypp s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   clear H.
   destruct Hstop as [Hlt |  Heq ].
   +
@@ -1392,7 +1392,7 @@ destruct Hor as [Hpd | [Hsh1 | Hsh2]].
 + subst.
 
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
 destruct Hor as [Hpd | [Hsh1 | Hsh2]].
 { subst.
@@ -1421,13 +1421,13 @@ destruct Hor as [Hpd | [Hsh1 | Hsh2]].
   apply nextEntryIsPPgetSndShadow; trivial. } }
  
 assert( getIndirection entrypp va nbL stop s' = getIndirection entrypp va nbL stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbL;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
   + assert( getIndirection entrypp va nbL stop s' = 
             getIndirection entrypp va nbL nbL s').
     { rewrite Hgetind.
@@ -1439,9 +1439,9 @@ assert( getIndirection entrypp va nbL stop s' = getIndirection entrypp va nbL st
       rewrite H0 in *.
       simpl in *.
       destruct nbL.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hgetind.
     symmetry.
     apply getIndirectionStopLevelGT with nbL; trivial.
@@ -1451,9 +1451,9 @@ assert( getIndirection entrypp va nbL stop s' = getIndirection entrypp va nbL st
     rewrite H0 in *.
     simpl in *.
     destruct nbL.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hgetind.
     rewrite H0.
     symmetry.
@@ -1557,7 +1557,7 @@ x s:
 (forall partition0 : page,
 In partition0 (getPartitions multiplexer s) ->
 partition0 = table2 \/ In table2 (getConfigPagesAux partition0 s) -> False) -> 
-(defaultPage =? table2) = false -> 
+(Nat.eqb defaultPage table2) = false -> 
 In partition (getPartitions multiplexer s) -> 
 partitionDescriptorEntry s -> 
 getTableAddrRoot table1 idxroot partition va s -> 
@@ -1587,10 +1587,10 @@ assert( getIndirection tableroot va nbL stop s =
     { rewrite Hind.
       symmetry.
       apply getIndirectionStopLevelGT2 with stop; trivial.
-      omega. }
+      lia. }
 rewrite Hind.
 apply getIndirectionStopLevelGT with nbL; trivial.
-omega.
+lia.
 rewrite <- Hind.
 rewrite H.
 apply getIndirectionUpdateMappedPageData with nbL ;trivial.
@@ -1601,9 +1601,9 @@ case_eq (lt_dec (nbLevel - 1) nbLevel); intros; rewrite H0 in *; trivial.
 destruct nbL.
 simpl in *.
 inversion HnbL.
-omega.
+lia.
 assert (0 < nbLevel) by apply nbLevelNotZero.
-omega.
+lia.
 subst.
 rewrite <- NPeano.Nat.add_1_r.
 rewrite HnbLevel.
@@ -1772,8 +1772,8 @@ In partition (getPartitions multiplexer s) ->
 Some level = StateLib.getNbLevel -> 
 partitionDescriptorEntry s -> 
 noDupMappedPagesList s ->
-(defaultPage =?pt2) = false ->
-(defaultPage =?pt1) = false ->
+(Nat.eqb defaultPage pt2) = false ->
+(Nat.eqb defaultPage pt1) = false ->
 isEntryPage pt1 idxVa1 phy1 s -> 
 isEntryPage pt2 idxVa2 phy2 s ->
 StateLib.getIndexOfAddr va1 fstLevel = idxVa1 -> 
@@ -1832,14 +1832,14 @@ assert(Hphy2 : getMappedPage pd s va2 = SomePage phy2).
   rewrite <- HnbL1.
 assert(Hgetlastind2 :getIndirection pd va2 nbL1 (nbLevel - 1) s = Some pt2).
   apply getIndirectionStopLevelGT2 with (nbL1 + 1); trivial.
-  omega.
+  lia.
   apply getNbLevelEq in HnbL1.
   rewrite HnbL1.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel); intros.
   simpl; trivial.
   assert(0 < nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   rewrite Hgetlastind2.
   rewrite Hpt2notnull.  
   unfold entryPresentFlag in Hpresent2.
@@ -1862,14 +1862,14 @@ assert(Hphy1 :getMappedPage pd s va1 = SomePage phy1).
   rewrite <- HnbL1.
   assert(Hgetlastind1 :getIndirection pd va1 nbL1 (nbLevel - 1) s = Some pt1).
   apply getIndirectionStopLevelGT2 with (nbL1 + 1); trivial.
-  omega.
+  lia.
   apply getNbLevelEq in HnbL1.
   rewrite HnbL1.
   unfold CLevel.
   case_eq(lt_dec (nbLevel - 1) nbLevel); intros.
   simpl; trivial.
   assert(0 < nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   rewrite Hgetlastind1.
   rewrite Hpt1notnull.
   unfold entryPresentFlag in Hpresent1.
@@ -1962,12 +1962,12 @@ assert(Hind: getIndirection sh1 va l (nbLevel - 1)
  apply getIndirectionUpdateMappedPageData  with l;intuition.
 rewrite Hind.
 case_eq(getIndirection sh1 va l (nbLevel - 1) s);intros;trivial.
-case_eq (p =? defaultPage);intros;trivial.
+case_eq (Nat.eqb p defaultPage);intros;trivial.
 cbn.
 assert (In p (getIndirectionsAux sh1 s nbLevel)).
 { apply getIndirectionInGetIndirections with va l (nbLevel - 1); trivial.
   assert(0 <nbLevel) by apply nbLevelNotZero.
-  omega.
+  lia.
   apply beq_nat_false in H1.
   unfold not;intros;subst.
   now contradict H1.
@@ -1992,7 +1992,7 @@ assert(StateLib.readPDflag p (StateLib.getIndexOfAddr va fstLevel)
 { apply readPDflagUpdateMappedPageData; trivial.
   unfold not;intros;subst.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  replace (S (nbLevel - 1)) with nbLevel in * by omega.
+  replace (S (nbLevel - 1)) with nbLevel in * by lia.
   now contradict Hnotconfig. }
 rewrite H3.
 trivial.
@@ -2015,23 +2015,23 @@ rewrite  getIndirectionUpdateMappedPageData with sh2 table curidx nbL nbL va
 case_eq( getIndirection sh2 va nbL (nbLevel - 1) s);trivial.
 intros lastIndirection Hind.
 simpl.
-case_eq(defaultPage =? lastIndirection);intros;trivial.
+case_eq(Nat.eqb defaultPage lastIndirection);intros;trivial.
 rewrite readVirtualUpdateMappedPageData;trivial.
  assert(In lastIndirection (getIndirectionsAux sh2 s nbLevel)).
  { apply getIndirectionInGetIndirections with va nbL (nbLevel - 1);trivial;
-  try omega.
+  try lia.
   apply nbLevelNotZero.
   unfold not;intros.
   apply beq_nat_false in H1.
   subst.
   now contradict H1.
   apply getNbLevelEq in HnbL.
-  subst. omega. }
+  subst. lia. }
   unfold not;intros.
   subst.
   now contradict H.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  replace (S (nbLevel - 1)) with nbLevel by omega.
+  replace (S (nbLevel - 1)) with nbLevel by lia.
   trivial.
 Qed.
 
@@ -2053,23 +2053,23 @@ rewrite  getIndirectionUpdateMappedPageData with sh1 table curidx nbL nbL va
 case_eq( getIndirection sh1 va nbL (nbLevel - 1) s);trivial.
 intros lastIndirection Hind.
 simpl.
-case_eq(defaultPage =? lastIndirection);intros;trivial.
+case_eq(Nat.eqb defaultPage lastIndirection);intros;trivial.
 rewrite readVirEntryUpdateMappedPageData;trivial.
  assert(In lastIndirection (getIndirectionsAux sh1 s nbLevel)).
  { apply getIndirectionInGetIndirections with va nbL (nbLevel - 1);trivial;
-  try omega.
+  try lia.
   apply nbLevelNotZero.
   unfold not;intros.
   apply beq_nat_false in H1.
   subst.
   now contradict H1.
   apply getNbLevelEq in HnbL.
-  subst. omega. }
+  subst. lia. }
   unfold not;intros.
   subst.
   now contradict H.
   assert(0<nbLevel) by apply nbLevelNotZero.
-  replace (S (nbLevel - 1)) with nbLevel by omega.
+  replace (S (nbLevel - 1)) with nbLevel by lia.
   trivial.
 Qed.
 
@@ -2560,7 +2560,7 @@ assert(Hv1 : getPDFlag sh1 va
 apply getPDFlagUpdateMappedPageData with partition;trivial.
 apply nextEntryIsPPgetFstShadow;trivial.
 assert(nbLevel> 0) by apply nbLevelNotZero.
-replace (S (nbLevel - 1)) with nbLevel by omega.
+replace (S (nbLevel - 1)) with nbLevel by lia.
 apply notConfigTableNotSh1configTable with partition;trivial.
 unfold not;intros. 
     apply Hget1 with partition;trivial.
@@ -2660,7 +2660,7 @@ assert(Hv1 : getPDFlag sh1 va
 apply getPDFlagUpdateMappedPageData with partition;trivial.
 apply nextEntryIsPPgetFstShadow;trivial.
 assert(nbLevel> 0) by apply nbLevelNotZero.
-replace (S (nbLevel - 1)) with nbLevel by omega.
+replace (S (nbLevel - 1)) with nbLevel by lia.
 apply notConfigTableNotSh1configTable with partition;trivial.
 unfold not;intros. 
     apply Hget1 with partition;trivial.
@@ -2823,7 +2823,7 @@ assert(table <> partition).
     left;trivial. intuition. }
 assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux structroot s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   clear H.
   destruct Hstop as [Hlt |  Heq ].
   +
@@ -2846,7 +2846,7 @@ destruct Hor as [Hsh1 | Hsh2].
 + subst.
 
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
 destruct Hor as  [Hsh1 | Hsh2].
 { subst.
@@ -2872,7 +2872,7 @@ destruct Hor as  [Hsh1 | Hsh2].
   symmetry.
   apply  getSndShadowUpdateMappedPageData;trivial. } } 
  assert(Hgetind : exists indirection2 : page, getIndirection structroot va nbL stop s = Some indirection2 /\
-        (defaultPage =? indirection2) = b).
+        (Nat.eqb defaultPage indirection2) = b).
         apply Hget2  with partition pdroot indirection1;trivial.
     rewrite getPdUpdateMappedPageData in *;trivial.
     destruct Hor as [Hor | Hor]; subst.
@@ -2893,7 +2893,7 @@ destruct Hor as  [Hsh1 | Hsh2].
     { clear Htable.
         assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux pdroot s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   destruct Hstop as [Hlt |  Heq ].
   +
 generalize (Hconfig partition Hpart); clear Hconfig; intros Hconfig.
@@ -2906,7 +2906,7 @@ destruct Hconfig .
 + subst.
 
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
   apply  notConfigTableNotPdconfigTable with partition; trivial.
   generalize (Hconfig partition Hpart); clear Hconfig; intros Hconfig.
@@ -2919,13 +2919,13 @@ rewrite Hsnbl.
   apply  getPdUpdateMappedPageData;trivial. }
   
 assert( getIndirection pdroot va nbL stop s' = getIndirection pdroot va nbL stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbL;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
     +
  
   assert(HnbL : Some nbL = StateLib.getNbLevel) by trivial.
@@ -2939,9 +2939,9 @@ assert(Hneww : getIndirection pdroot va nbL stop s' =
       case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii; rewrite Hii in *. 
       simpl in *.
       destruct nbL.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hind.
     symmetry.
     apply getIndirectionStopLevelGT with nbL; trivial.
@@ -2950,9 +2950,9 @@ assert(Hneww : getIndirection pdroot va nbL stop s' =
     case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii;rewrite Hii in *.
     simpl in *.
     destruct nbL.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hind.
     rewrite Hneww.
     symmetry.
@@ -2963,7 +2963,7 @@ apply getNbLevelEq in HnbL.
 subst.
 rewrite <-  nbLevelEq.
 assert(0 < nbLevel) by apply nbLevelNotZero.
-omega. 
+lia. 
 rewrite HnbLevel. 
  
       apply  notConfigTableNotPdconfigTable with partition; trivial.
@@ -2983,13 +2983,13 @@ rewrite HnbLevel.
     split;trivial.
         
 assert( getIndirection structroot va nbL stop s' = getIndirection structroot va nbL stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbL;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
   + 
       assert(HnbL : Some nbL = StateLib.getNbLevel) by trivial.
       assert(Hneww : getIndirection structroot va nbL stop s = 
@@ -3003,9 +3003,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
       rewrite Hii in *.
       simpl in *.
       destruct nbL.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hgetind.
     apply getIndirectionStopLevelGT with nbL; trivial.
     
@@ -3015,9 +3015,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
       rewrite Hii in *.
     simpl in *.
     destruct nbL.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hgetind.
     rewrite Hneww.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
@@ -3029,9 +3029,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
   simpl in *.
   destruct nbL.
   simpl in *.
-  inversion HnbL. omega.
+  inversion HnbL. lia.
   assert(0 < nbLevel) by apply nbLevelNotZero. 
-  omega. }
+  lia. }
     rewrite HnbLevel.
    destruct Hor as [Hsh1 | Hsh2].
     (* { subst.
@@ -3362,7 +3362,7 @@ let s' := {|
              x(memory s) beqPage beqIndex |} in 
 consistency s ->  
 In currentPart (getPartitions multiplexer s) -> 
-(defaultPage =? table) = false -> 
+(Nat.eqb defaultPage table) = false -> 
 (forall partition1 : page,
 In partition1 (getPartitions multiplexer s) ->
 partition1 = table \/ In table (getConfigPagesAux partition1 s) -> False) -> 
@@ -3409,7 +3409,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
    + unfold getPartitions.
      destruct nbPage;simpl;left;trivial.
    + intros. subst. 
-      assert(Hfalse : (defaultPage =? table) = false) by trivial.
+      assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
      apply beq_nat_false in Hfalse.
      unfold not; intros.
      apply Hfalse.
@@ -3453,7 +3453,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
  apply getPartitionsUpdateMappedPageData ; trivial.
  + unfold getPartitions.
    destruct nbPage;simpl;left;trivial.
- + assert(Hfalse : (defaultPage =? table) = false) by trivial.
+ + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -3466,7 +3466,7 @@ assert (Hchild1mult : In child1 (getPartitions multiplexer s)).
 { apply childrenPartitionInPartitionList with parent; trivial.
  unfold s' in Hchild1, Hchild2.
  rewrite getChildrenUpdateMappedPageData in Hchild1; fold s'; trivial.
- assert(Hfalse : (defaultPage =? table) = false) by trivial.
+ assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
  apply beq_nat_false in Hfalse.
 unfold not; intros.
 apply Hfalse.
@@ -3484,7 +3484,7 @@ assert (Hchild2mult : In child2 (getPartitions multiplexer s)).
 { apply childrenPartitionInPartitionList with parent; trivial.
  unfold s' in Hchild1, Hchild2.
  rewrite getChildrenUpdateMappedPageData in Hchild2; fold s'; trivial.
- assert(Hfalse : (defaultPage =? table) = false) by trivial.
+ assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
  apply beq_nat_false in Hfalse.
  unfold not; intros.
  apply Hfalse.
@@ -3514,7 +3514,7 @@ unfold getUsedPages in Hiso.
 apply Hiso with parent; trivial.
 unfold s' in Hchild1.
 rewrite getChildrenUpdateMappedPageData in Hchild1; trivial.
-{ assert(Hfalse : (defaultPage =? table) = false) by trivial.
+{ assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
   apply beq_nat_false in Hfalse.
   unfold not; intros.
   apply Hfalse.
@@ -3537,7 +3537,7 @@ rewrite getChildrenUpdateMappedPageData in Hchild1; trivial.
         now contradict Hi1. }
 { unfold s' in Hchild2.
   rewrite getChildrenUpdateMappedPageData in Hchild2; trivial.
-   { assert(Hfalse : (defaultPage =? table) = false) by trivial.
+   { assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
      apply beq_nat_false in Hfalse.
      unfold not; intros.
      apply Hfalse.
@@ -3589,7 +3589,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
      apply getPartitionsUpdateMappedPageData ; trivial.
      + unfold getPartitions.
        destruct nbPage;simpl;left;trivial.
-     + assert(Hfalse : (defaultPage =? table) = false) by trivial.
+     + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
        apply beq_nat_false in Hfalse.
        unfold not; intros.
        apply Hfalse.
@@ -3600,7 +3600,7 @@ assert (Hchildmult : In child (getPartitions multiplexer s)).
 { apply childrenPartitionInPartitionList with parent; trivial.
   unfold s' in Hchild.
   rewrite getChildrenUpdateMappedPageData in Hchild; fold s'; trivial.
-  assert(Hfalse : (defaultPage =? table) = false) by trivial.
+  assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
   apply beq_nat_false in Hfalse.
   unfold not; intros.
   apply Hfalse.
@@ -3632,7 +3632,7 @@ rewrite getConfigPagesUpdateMappedPageData.
 { apply Hvs; trivial.
 unfold s' in Hchild.
 rewrite getChildrenUpdateMappedPageData in Hchild; fold s'; trivial.
-{ assert(Hfalse : (defaultPage =? table) = false) by trivial.
+{ assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -3677,7 +3677,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
  apply getPartitionsUpdateMappedPageData ; intuition.
  + unfold getPartitions.
    destruct nbPage;simpl;left;trivial.
- + assert(Hfalse : (defaultPage =? table) = false) by intuition.
+ + assert(Hfalse : (Nat.eqb defaultPage table) = false) by intuition.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -3707,7 +3707,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
  apply getPartitionsUpdateMappedPageData ; intuition.
  + unfold getPartitions.
    destruct nbPage;simpl;left;trivial.
- + assert(Hfalse : (defaultPage =? table) = false) by intuition.
+ + assert(Hfalse : (Nat.eqb defaultPage table) = false) by intuition.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -3802,7 +3802,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
  apply getPartitionsUpdateMappedPageData ; intuition.
  + unfold getPartitions.
    destruct nbPage;simpl;left;trivial.
- + assert(Hfalse : (defaultPage =? table) = false) by intuition.
+ + assert(Hfalse : (Nat.eqb defaultPage table) = false) by intuition.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -3892,7 +3892,7 @@ rewrite  getPDFlagUpdateMappedPageData with  partition table curidx  sh1 va x s;
 apply Hnotpart with partition pd page; trivial.
 apply nextEntryIsPPgetFstShadow;trivial.
 assert(0<nbLevel) by apply nbLevelNotZero.
-replace (S (nbLevel - 1)) with nbLevel by omega.
+replace (S (nbLevel - 1)) with nbLevel by lia.
 apply notConfigTableNotSh1configTable with partition;trivial.
 unfold not; intros.
 apply Hconfig with partition;trivial.
@@ -3972,7 +3972,7 @@ with partition
  va accessiblePage table curidx x s;trivial.
 unfold accessibleChildPageIsAccessibleIntoParent in *.
 apply Haccess with pd;trivial.
-assert(Hnotnull : (defaultPage =? table) = false) by trivial.
+assert(Hnotnull : (Nat.eqb defaultPage table) = false) by trivial.
 unfold not;intros Hii.
 rewrite Hii in Hnotnull.
 apply beq_nat_false in Hnotnull.
@@ -4530,7 +4530,7 @@ assert(table <> partition).
     left;trivial. intuition. }
 assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux structroot s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   clear H.
   destruct Hstop as [Hlt |  Heq ].
   +
@@ -4553,7 +4553,7 @@ destruct Hor as [Hsh1 | Hsh2].
 + subst.
 
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
 destruct Hor as  [Hsh1 | Hsh2].
 { subst.
@@ -4579,7 +4579,7 @@ destruct Hor as  [Hsh1 | Hsh2].
   symmetry.
   apply  getSndShadowUpdateMappedPageData;trivial. } } 
  assert(Hgetind : exists indirection2 : page, getIndirection structroot va nbL stop s = Some indirection2 /\
-        (defaultPage =? indirection2) = b).
+        (Nat.eqb defaultPage indirection2) = b).
         apply Hget2  with partition pdroot indirection1;trivial.
         cbn in *.
     rewrite getPdUpdateMappedPageData in *;trivial.
@@ -4603,7 +4603,7 @@ destruct Hor as  [Hsh1 | Hsh2].
     { clear Htable.
         assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux pdroot s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   destruct Hstop as [Hlt |  Heq ].
   +
 generalize (Hconfig partition Hpart); clear Hconfig; intros Hconfig.
@@ -4616,7 +4616,7 @@ destruct Hconfig .
 + subst.
 
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
   apply  notConfigTableNotPdconfigTable with partition; trivial.
   generalize (Hconfig partition Hpart); clear Hconfig; intros Hconfig.
@@ -4629,13 +4629,13 @@ rewrite Hsnbl.
   apply  getPdUpdateMappedPageData;trivial. }
   
 assert( getIndirection pdroot va nbL stop s' = getIndirection pdroot va nbL stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbL;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
     +
  
   assert(HnbL : Some nbL = StateLib.getNbLevel) by trivial.
@@ -4649,9 +4649,9 @@ assert(Hneww : getIndirection pdroot va nbL stop s' =
       case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii; rewrite Hii in *. 
       simpl in *.
       destruct nbL.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hind.
     symmetry.
     apply getIndirectionStopLevelGT with nbL; trivial.
@@ -4660,9 +4660,9 @@ assert(Hneww : getIndirection pdroot va nbL stop s' =
     case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii;rewrite Hii in *.
     simpl in *.
     destruct nbL.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hind.
     rewrite Hneww.
     symmetry.
@@ -4673,7 +4673,7 @@ apply getNbLevelEq in HnbL.
 subst.
 rewrite <-  nbLevelEq.
 assert(0 < nbLevel) by apply nbLevelNotZero.
-omega. 
+lia. 
 rewrite HnbLevel. 
  
       apply  notConfigTableNotPdconfigTable with partition; trivial.
@@ -4693,13 +4693,13 @@ rewrite HnbLevel.
     split;trivial.
         
 assert( getIndirection structroot va nbL stop s' = getIndirection structroot va nbL stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbL;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
   + 
       assert(HnbL : Some nbL = StateLib.getNbLevel) by trivial.
       assert(Hneww : getIndirection structroot va nbL stop s = 
@@ -4713,9 +4713,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
       rewrite Hii in *.
       simpl in *.
       destruct nbL.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hgetind.
     apply getIndirectionStopLevelGT with nbL; trivial.
     
@@ -4725,9 +4725,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
       rewrite Hii in *.
     simpl in *.
     destruct nbL.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hgetind.
     rewrite Hneww.
     apply getIndirectionUpdateMappedPageData with nbL ;trivial.
@@ -4739,9 +4739,9 @@ assert( getIndirection structroot va nbL stop s' = getIndirection structroot va 
   simpl in *.
   destruct nbL.
   simpl in *.
-  inversion HnbL. omega.
+  inversion HnbL. lia.
   assert(0 < nbLevel) by apply nbLevelNotZero. 
-  omega. }
+  lia. }
     rewrite HnbLevel.
    destruct Hor as [Hsh1 | Hsh2].
     (* { subst.
@@ -4854,7 +4854,7 @@ assert(Hv1 : getPDFlag sh1 va
 apply getPDFlagUpdateMappedPageData with partition;trivial.
 apply nextEntryIsPPgetFstShadow;trivial.
 assert(nbLevel> 0) by apply nbLevelNotZero.
-replace (S (nbLevel - 1)) with nbLevel by omega.
+replace (S (nbLevel - 1)) with nbLevel by lia.
 apply notConfigTableNotSh1configTable with partition;trivial.
 unfold not;intros. 
     apply Hget1 with partition;trivial.
@@ -4950,7 +4950,7 @@ assert(Hv1 : getPDFlag sh1 va
 apply getPDFlagUpdateMappedPageData with partition;trivial.
 apply nextEntryIsPPgetFstShadow;trivial.
 assert(nbLevel> 0) by apply nbLevelNotZero.
-replace (S (nbLevel - 1)) with nbLevel by omega.
+replace (S (nbLevel - 1)) with nbLevel by lia.
 apply notConfigTableNotSh1configTable with partition;trivial.
 unfold not;intros. 
     apply Hget1 with partition;trivial.
@@ -4990,7 +4990,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
  apply getPartitionsUpdateMappedPageData ; intuition.
  + unfold getPartitions.
    destruct nbPage;simpl;left;trivial.
- + assert(Hfalse : (defaultPage =? table) = false) by intuition.
+ + assert(Hfalse : (Nat.eqb defaultPage table) = false) by intuition.
    apply beq_nat_false in Hfalse.
    unfold not; intros.
    apply Hfalse.
@@ -5065,7 +5065,7 @@ phyDescChild s  ->
   (forall partition : page,
   In partition (getPartitions multiplexer s) ->
   partition = table \/ In table (getConfigPagesAux partition s) -> False) -> 
-  (defaultPage =? table) = false -> 
+  (Nat.eqb defaultPage table) = false -> 
    propagatedProperties accessibleChild accessibleSh1 accessibleSh2 accessibleList 
     pdChild currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild
   ptPDChild idxPDChild presentPDChild ptSh1Child shadow1 idxSh1 presentSh1 ptSh2Child shadow2 idxSh2
@@ -5116,7 +5116,7 @@ apply consistencyUpdateMappedPageData with level;intuition.
        apply getPartitionsUpdateMappedPageData ; trivial.
        + unfold getPartitions.
          destruct nbPage;simpl;left;trivial.
-       + assert(Hfalse : (defaultPage =? table) = false) by intuition.
+       + assert(Hfalse : (Nat.eqb defaultPage table) = false) by intuition.
          apply beq_nat_false in Hfalse.
          unfold not; intros.
          apply Hfalse.
@@ -5592,7 +5592,7 @@ apply consistencyUpdateMappedPageData with level;intuition.
       rewrite <- isAccessibleMappedPageInParentUpdateMappedPageData
       with currentPart
       level pdChild phyPDChild table curidx x s;trivial.
-      assert(Hnotnull : (defaultPage =? table) = false) by trivial.
+      assert(Hnotnull : (Nat.eqb defaultPage table) = false) by trivial.
       unfold not;intros Hii.
       rewrite Hii in Hnotnull.
       apply beq_nat_false in Hnotnull.
@@ -5673,7 +5673,7 @@ destruct Hind as [(Heq & Hl) | (nbl & stop & Hnbl & Hstopx & Hind & Hnotnul & Hl
   *
   assert(Htable :stop <= (nbLevel -1) -> ~ In table (getIndirectionsAux tableroot s (S stop))).
 intros.
-{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by omega.
+{ assert (Hstop : stop < (nbLevel -1) \/ stop = (nbLevel -1) ) by lia.
   destruct Hstop as [Hlt |  Heq ].
   +
 generalize (Hconfig descChildphy Hpart); clear Hconfig; intros Hconfig.
@@ -5689,7 +5689,7 @@ destruct Hor3 as[Hor3 |[Hor3|Hor3]];subst.
   
 + subst.
 assert(0<nbLevel) by apply nbLevelNotZero.
-assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by omega.
+assert(Hsnbl :  (S (nbLevel - 1)) = nbLevel) by lia.
 rewrite Hsnbl.
   generalize (Hconfig descChildphy Hpart); clear Hconfig; intros Hconfig.
 
@@ -5715,13 +5715,13 @@ unfold not.
   apply nextEntryIsPPgetSndShadow;trivial. }
   
 assert( getIndirection tableroot vaToPrepare nbl stop s' = getIndirection tableroot vaToPrepare nbl stop s).
-{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by omega.
+{ assert (Hstop3 : stop < (nbLevel -1) \/ stop = (nbLevel -1) \/ stop > (nbLevel -1)) by lia.
   destruct Hstop3 as [Hlt | [ Heq | Hgt]].
   + apply getIndirectionUpdateMappedPageData with nbl;
-    trivial. apply Htable. omega.
+    trivial. apply Htable. lia.
   + subst.
     apply getIndirectionUpdateMappedPageData with nbl ;trivial.
-    apply Htable. omega.
+    apply Htable. lia.
     +
  
   assert(HnbL : Some nbl = StateLib.getNbLevel) by trivial.
@@ -5735,9 +5735,9 @@ assert(Hneww : getIndirection tableroot vaToPrepare nbl stop s =
       case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii; rewrite Hii in *. 
       simpl in *.
       destruct nbl.
-      simpl in *. omega.
+      simpl in *. lia.
       assert(0 < nbLevel) by apply nbLevelNotZero. 
-      omega. }
+      lia. }
     rewrite Hind.
     apply getIndirectionStopLevelGT with nbl; trivial.
     apply getNbLevelLe in HnbL.
@@ -5745,9 +5745,9 @@ assert(Hneww : getIndirection tableroot vaToPrepare nbl stop s =
     case_eq (lt_dec (nbLevel - 1) nbLevel); intros ii Hii;rewrite Hii in *.
     simpl in *.
     destruct nbl.
-    simpl in *. omega.
+    simpl in *. lia.
     assert(0 < nbLevel) by apply nbLevelNotZero. 
-    omega.
+    lia.
     rewrite <- Hind.
     rewrite Hneww.
     apply getIndirectionUpdateMappedPageData with nbl ;trivial.
@@ -5757,7 +5757,7 @@ apply getNbLevelEq in HnbL.
 subst.
 rewrite <-  nbLevelEq.
 assert(0 < nbLevel) by apply nbLevelNotZero.
-omega. 
+lia. 
 rewrite HnbLevel. 
  
  generalize (Hconfig descChildphy Hpart); clear Hconfig; intros Hconfig.
@@ -5879,7 +5879,7 @@ In partition (getPartitions multiplexer s) ->
 ~ (partition = table \/ In table (getConfigPagesAux partition s))) by 
 (unfold  initPEntryTablePreconditionToPropagatePrepareProperties in *; 
   intuition).
- assert(Hfalse : (defaultPage =? table) = false) by 
+ assert(Hfalse : (Nat.eqb defaultPage table) = false) by 
 (unfold  initPEntryTablePreconditionToPropagatePrepareProperties in *; 
   intuition).
  
@@ -6087,7 +6087,7 @@ assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
   + unfold getPartitions.
     destruct nbPage;simpl;left;trivial.
   + intuition.
-  + assert(Hfalse: (defaultPage =? phyPage1) = false) by intuition.
+  + assert(Hfalse: (Nat.eqb defaultPage phyPage1) = false) by intuition.
     apply beq_nat_false in Hfalse.
     unfold not; intros.
     apply Hfalse.
@@ -6158,15 +6158,15 @@ consistency s ->
 StateLib.getIndexOfAddr trdVA fstLevel = idxTrdVA ->
 isVE ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s ->
 getTableAddrRoot ptSh1TrdVA sh1idx (currentPartition s) trdVA s ->
-(defaultPage =? ptSh1TrdVA) = false ->
+(Nat.eqb defaultPage ptSh1TrdVA) = false ->
 StateLib.getIndexOfAddr sndVA fstLevel = idxSndVA ->
 isVE ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) s ->
 getTableAddrRoot ptSh1SndVA sh1idx (currentPartition s) sndVA s ->
-(defaultPage =? ptSh1SndVA) = false ->
+(Nat.eqb defaultPage ptSh1SndVA) = false ->
 StateLib.getIndexOfAddr fstVA fstLevel = idxFstVA ->
 isVE ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) s ->
 getTableAddrRoot ptSh1FstVA sh1idx (currentPartition s) fstVA s ->
-(defaultPage =? ptSh1FstVA) = false ->
+(Nat.eqb defaultPage ptSh1FstVA) = false ->
 isPartitionFalseAll
   {|
   currentPartition := currentPartition s;

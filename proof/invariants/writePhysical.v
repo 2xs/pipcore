@@ -37,7 +37,7 @@
 Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
 Invariants StateLib Model.Hardware  Model.MAL Model.ADT
 DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega List Bool Logic.Classical_Prop.
+Require Import Coq.Logic.ProofIrrelevance Lia List Bool Logic.Classical_Prop Compare_dec.
 
 (***************** To move ************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
@@ -445,7 +445,7 @@ induction  stop.
    } 
   rewrite HreadPhyEnt.
   destruct (StateLib.readPhyEntry sh1 (StateLib.getIndexOfAddr va nbL) (memory s) );trivial.
-  destruct (defaultPage =? p);trivial.
+  destruct (Nat.eqb defaultPage p);trivial.
   destruct ( StateLib.Level.pred nbL );trivial.
 Qed.
 
@@ -573,7 +573,7 @@ getIndirection root va l (nbLevel - 1) s).
 apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
 rewrite Hind.  
 destruct(getIndirection root va l (nbLevel - 1)  s); intros; trivial.
-destruct(defaultPage =? p);trivial.
+destruct(Nat.eqb defaultPage p);trivial.
  assert(Hpresent :    StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
   (memory s) = StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (PP x) (memory s) beqPage beqIndex) ).
@@ -609,7 +609,7 @@ getIndirection root va l (nbLevel - 1) s).
 apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
 rewrite Hind.  
 destruct(getIndirection root va l (nbLevel - 1)  s); intros; trivial.
-destruct(defaultPage =? p);trivial.
+destruct(Nat.eqb defaultPage p);trivial.
  assert(Hpresent :    StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
   (memory s) = StateLib.readPresent p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (PP x) (memory s) beqPage beqIndex) ).
@@ -753,7 +753,7 @@ assert(Hind : getIndirection p va l (nbLevel - 1)
 apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
 rewrite Hind.
 destruct (getIndirection p va l (nbLevel - 1) s );trivial.
-destruct (p0 =? defaultPage);trivial.
+destruct (Nat.eqb p0 defaultPage);trivial.
 assert(Hpdflag :  StateLib.readPDflag p0 (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (PP x) (memory s) beqPage beqIndex) =
    StateLib.readPDflag p0 (StateLib.getIndexOfAddr va fstLevel) (memory s)). 
@@ -1353,27 +1353,27 @@ assert(Hidx : idxroot < tableSize - 1 ).
   unfold PDidx.
   unfold CIndex.
   case_eq( lt_dec 2 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
   unfold sh1idx.
   unfold CIndex.
   case_eq( lt_dec 4 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
    unfold sh2idx.
   unfold CIndex.
   case_eq( lt_dec 6 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
    unfold sh3idx.
   unfold CIndex.
   case_eq( lt_dec 8 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
   unfold PPRidx.
   unfold CIndex.
   case_eq( lt_dec 10 tableSize );intros;
-  simpl;omega.
+  simpl;lia.
   unfold PRidx.
   unfold CIndex.
   case_eq( lt_dec 0 tableSize );intros;
-  simpl;omega. }
+  simpl;lia. }
 assert(Hparts : getPartitions multiplexer s = getPartitions multiplexer s').
 apply getPartitionsUpdateLLCouplePPVA with entry;trivial.
 rewrite <- Hparts in *;trivial. clear Hparts.
@@ -1547,7 +1547,7 @@ assert(Hind : getIndirection sh1 va l (nbLevel - 1)
 apply getIndirectionUpdateLLCouplePPVA with entry;trivial.
 rewrite Hind.
 destruct (getIndirection  sh1 va l (nbLevel - 1) s );trivial.
-destruct (p =? defaultPage);trivial.
+destruct (Nat.eqb p defaultPage);trivial.
 assert(Hpdflag :  StateLib.readPDflag p (StateLib.getIndexOfAddr va fstLevel)
     (add table idx (PP x) (memory s) beqPage beqIndex) =
    StateLib.readPDflag p (StateLib.getIndexOfAddr va fstLevel) (memory s)). 
@@ -1670,7 +1670,7 @@ assert(Hind : forall root, getIndirection root va nbL stop
     { intros. apply getIndirectionUpdateLLCouplePPVA with entry;trivial. }
 assert(Hgoal :  exists indirection2 : page,
       getIndirection structroot va nbL stop s = Some indirection2 /\
-      (defaultPage =? indirection2) = b). 
+      (Nat.eqb defaultPage indirection2) = b). 
 { apply H with partition pdroot indirection1;trivial.
   rewrite <- Hind;trivial. }
 destruct Hgoal as (indirection2 & Hind1 & Hindnotnul).
@@ -1926,7 +1926,7 @@ s).
 rewrite Hind.
 case_eq (getIndirection  p va l  (nbLevel - 1) s );
 [ intros tbl Htbl | intros Htbl]; trivial.
-case_eq (defaultPage =? tbl);trivial.
+case_eq (Nat.eqb defaultPage tbl);trivial.
 intros Htblnotnul.
 simpl.
 symmetry.
@@ -1954,7 +1954,7 @@ s).
 rewrite Hind.
 case_eq (getIndirection  p va l  (nbLevel - 1) s );
 [ intros tbl Htbl | intros Htbl]; trivial.
-case_eq (defaultPage =? tbl);trivial.
+case_eq (Nat.eqb defaultPage tbl);trivial.
 intros Htblnotnul.
 simpl.
 symmetry.

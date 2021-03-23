@@ -37,7 +37,7 @@ Require Import Core.Internal Isolation Consistency WeakestPreconditions StateLib
 Model.Hardware Model.ADT Invariants  DependentTypeLemmas
 GetTableAddr Model.MAL Model.Lib Lib InternalLemmas WriteAccessible
 PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Omega List.
+Require Import Coq.Logic.ProofIrrelevance Lia List EqNat Compare_dec.
 Import List.ListNotations.
 
    Lemma getParentWriteAccessibleRec n descPart phy 
@@ -64,11 +64,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -214,9 +214,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -224,9 +224,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -297,7 +297,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -411,18 +411,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -518,14 +518,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -767,16 +767,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -816,16 +816,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -2065,7 +2065,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -2166,11 +2166,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -2315,9 +2315,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -2325,9 +2325,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -2398,7 +2398,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -2512,18 +2512,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -2619,14 +2619,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -2867,16 +2867,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -2916,16 +2916,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -4024,7 +4024,7 @@ case_eq isMultiplexer.
           apply getIndirectionUpdateUserFlag; trivial).
           rewrite Hind in *.            
           destruct (getIndirection pd va1 l (nbLevel - 1) s);trivial.
-          destruct ( defaultPage =? p);trivial.
+          destruct (Nat.eqb defaultPage p);trivial.
           assert(Hread :  StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s')=
           StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s))
           by (apply readPresentUpdateUserFlag; trivial).
@@ -4173,7 +4173,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -4258,11 +4258,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -4407,9 +4407,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -4417,9 +4417,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -4490,7 +4490,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -4604,18 +4604,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -4711,14 +4711,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -4959,16 +4959,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -5008,16 +5008,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -6258,7 +6258,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -6346,11 +6346,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -6495,9 +6495,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -6505,9 +6505,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -6578,7 +6578,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -6692,18 +6692,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -6799,14 +6799,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -7047,16 +7047,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -7096,16 +7096,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -8349,7 +8349,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -8434,11 +8434,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -8583,9 +8583,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -8593,9 +8593,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -8666,7 +8666,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -8780,18 +8780,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -8887,14 +8887,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -9135,16 +9135,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -9184,16 +9184,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -10427,7 +10427,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -10510,11 +10510,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -10659,9 +10659,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -10669,9 +10669,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -10742,7 +10742,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -10856,18 +10856,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -10963,14 +10963,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -11211,16 +11211,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -11260,16 +11260,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -12369,7 +12369,7 @@ case_eq isMultiplexer.
           apply getIndirectionUpdateUserFlag; trivial).
           rewrite Hind in *.            
           destruct (getIndirection pd va1 l (nbLevel - 1) s);trivial.
-          destruct ( defaultPage =? p);trivial.
+          destruct (Nat.eqb defaultPage p);trivial.
           assert(Hread :  StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s')=
           StateLib.readPresent p (StateLib.getIndexOfAddr va1 fstLevel) (memory s))
           by (apply readPresentUpdateUserFlag; trivial).
@@ -12533,7 +12533,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -12619,11 +12619,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -12776,9 +12776,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -12786,9 +12786,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -12859,7 +12859,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -12973,18 +12973,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  15 (* 6 *) rewrite <- and_assoc in H0.
@@ -13080,14 +13080,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -13328,16 +13328,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual. 
@@ -13377,16 +13377,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -14613,7 +14613,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.
@@ -14679,7 +14679,7 @@ Qed.
 In phyDescChild (getPartitions multiplexer s) -> 
 nextEntryIsPP phyDescChild PDidx pdChildphy s -> 
 partitionDescriptorEntry s -> 
-(defaultPage =? pdChildphy) = false.
+(Nat.eqb defaultPage pdChildphy) = false.
 Proof.
 intros. 
  unfold partitionDescriptorEntry in *. 
@@ -14692,7 +14692,7 @@ assert(entryPd = pdChildphy).
 apply getPdNextEntryIsPPEq  with phyDescChild s;trivial.
 apply nextEntryIsPPgetPd;trivial.
 subst;trivial.
-apply Nat.eqb_neq.
+apply PeanoNat.Nat.eqb_neq.
 symmetrynot.
 unfold not;intros.
 apply Hnotnull.
@@ -14728,11 +14728,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
  ( In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -14785,7 +14785,7 @@ case_eq isMultiplexer.
   intuition subst.
   assert(Hmult :  StateLib.getParent descParent (memory s) = None). 
   { unfold StateLib.Page.eqb in *.
-    assert(Hismult : true = (descParent =? multiplexer)) by trivial.
+    assert(Hismult : true = (Nat.eqb descParent multiplexer)) by trivial.
   symmetry in Hismult.
   apply  beq_nat_true in Hismult.
   unfold propagatedProperties in *.
@@ -14897,7 +14897,7 @@ case_eq isMultiplexer.
   eapply WP.weaken.
   eapply WP.ret .
   simpl. intros.
-  assert(Hptsh2NotNulltrue : (defaultPage =? ptsh2) = false ).
+  assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ).
  { assert(Hwellformed :wellFormedShadows sh2idx s).
     unfold propagatedProperties in *.
     unfold consistency in *.
@@ -14917,10 +14917,10 @@ case_eq isMultiplexer.
   assert(Hmult : multiplexer = MALInternal.multiplexer ) by intuition.
       subst.
   assert(Htrue : getIndirection sh2 va level (nbLevel -1) s = Some ptsh2 /\
-              (defaultPage =? ptsh2) = false).
+              (Nat.eqb defaultPage ptsh2) = false).
   assert(Hexist : exists indirection2 : page,
                 getIndirection sh2 va level (nbLevel - 1) s = Some indirection2 /\
-                (defaultPage =? indirection2) = false). 
+                (Nat.eqb defaultPage indirection2) = false). 
   apply Hwellformed with descParent pdparent pt;trivial. 
   + intuition.      
   + assert( false = StateLib.Page.eqb descParent multiplexer) as Hnotmul by 
@@ -14950,7 +14950,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx ->
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s))
-         /\  (defaultPage =? ptsh2) = true
+         /\  (Nat.eqb defaultPage ptsh2) = true
         /\ nextEntryIsPP descParent sh2idx sh2 s) by intuition.
    assert(Hlevel  : Some level = StateLib.getNbLevel ). { unfold propagatedProperties in *.
    intuition. }
@@ -15006,7 +15006,7 @@ case_eq isMultiplexer.
   destruct H as ((H & Hstrong) & Htrue).
   assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (defaultPage =? defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     destruct Hor with (StateLib.getIndexOfAddr va fstLevel);trivial.
@@ -15083,7 +15083,7 @@ case_eq isMultiplexer.
       eapply WP.ret.
       simpl. intros.
       subst.
-      assert(Hptsh2NotNulltrue : (defaultPage =? ptsh2) = false ) by intuition.
+      assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ) by intuition.
       
       assert(Hfalse : true = StateLib.VAddr.eqbList defaultV vaInAncestor) by intuition.
       assert(Htrue :  false = StateLib.VAddr.eqbList defaultV vaInAncestor).
@@ -15232,8 +15232,8 @@ case_eq isMultiplexer.
         subst.
         
             assert(Ha3:Some L = StateLib.getNbLevel ) by intuition.
-        (** verticalSharing : (defaultPage =? ptvaInAncestor) = false *)
-        assert(Htrue : (defaultPage =? ptvaInAncestor) = false). 
+        (** verticalSharing : (Nat.eqb defaultPage ptvaInAncestor) = false *)
+        assert(Htrue : (Nat.eqb defaultPage ptvaInAncestor) = false). 
         {(*  destruct H as (((((((Hprops & Ha1) & Ha2) & Ha3) & Ha4) & Ha5)
                     & Ha6 ) & Ha7).
 (*           destruct Ha1 as (Ha1 & Ha8 & Ha9 & Ha10 & Ha11 & Ha12 & Ha13 & Ha14).
@@ -15290,7 +15290,7 @@ case_eq isMultiplexer.
             case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
             [intros pt1 Hpt1 | intros Hpt1]; 
             rewrite Hpt1 in *; try now contradict Hp.
-            case_eq(defaultPage =? pt1);intros Hisnull;
+            case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
             rewrite Hisnull in *;try now contradict Hp.
             clear Hp.
             apply getNbLevelEq in HnbL.
@@ -15329,7 +15329,7 @@ case_eq isMultiplexer.
             case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
             [intros pt1 Hpt1 | intros Hpt1]; 
             rewrite Hpt1 in *; try now contradict Hp.
-            case_eq(defaultPage =? pt1);intros Hisnull;
+            case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
             rewrite Hisnull in *;try now contradict Hp.
             clear Hp.
             apply getNbLevelEq in HnbL.
@@ -15337,7 +15337,7 @@ case_eq isMultiplexer.
             assert(Hindeq : getIndirection pdAncestor vaInAncestor 
             (CLevel (nbLevel - 1)) (nbLevel - 1)s = Some ptvaInAncestor).
             apply getIndirectionStopLevelGT2 with (CLevel (nbLevel - 1) + 1); 
-            try omega;trivial.
+            try lia;trivial.
             apply nbLevelEq.
             rewrite Hindeq in *.
             inversion Hpt1.
@@ -15421,14 +15421,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite Hdef in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -15668,16 +15668,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual.
@@ -15717,16 +15717,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -16950,11 +16950,11 @@ case_eq isMultiplexer.
   derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
 isAncestor currentPart ancestor s /\
 (In ancestor (getPartitions MALInternal.multiplexer s) /\
-(defaultPage =? phypage) = false /\
+(Nat.eqb defaultPage phypage) = false /\
 (forall idx : index,
  StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
  isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-(defaultPage =? ptvaInAncestor) = false /\
+(Nat.eqb defaultPage ptvaInAncestor) = false /\
 StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
 entryPresentFlag ptvaInAncestor idxva true s /\
 entryUserFlag ptvaInAncestor idxva false s /\
@@ -17031,11 +17031,11 @@ writeAccessibleRecAux n vaInAncestor ancestor false
   derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
 isAncestor currentPart ancestor s /\
 (In ancestor (getPartitions MALInternal.multiplexer s) /\
-(defaultPage =? phypage) = false /\
+(Nat.eqb defaultPage phypage) = false /\
 (forall idx : index,
  StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
  isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-(defaultPage =? ptvaInAncestor) = false /\
+(Nat.eqb defaultPage ptvaInAncestor) = false /\
 StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
 entryPresentFlag ptvaInAncestor idxva true s /\
 entryUserFlag ptvaInAncestor idxva false s /\
@@ -17113,11 +17113,11 @@ writeAccessibleRecAux n vaInAncestor ancestor false
   derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
 isAncestor currentPart ancestor s /\
 (In ancestor (getPartitions MALInternal.multiplexer s) /\
-(defaultPage =? phypage) = false /\
+(Nat.eqb defaultPage phypage) = false /\
 (forall idx : index,
  StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
  isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-(defaultPage =? ptvaInAncestor) = false /\
+(Nat.eqb defaultPage ptvaInAncestor) = false /\
 StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
 entryPresentFlag ptvaInAncestor idxva true s /\
 entryUserFlag ptvaInAncestor idxva false s /\
@@ -17188,11 +17188,11 @@ destruct Heqvars as (va1 & Hva1 & Hva11).
   derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
 isAncestor currentPart ancestor s /\
 (In ancestor (getPartitions MALInternal.multiplexer s) /\
-(defaultPage =? phypage) = false /\
+(Nat.eqb defaultPage phypage) = false /\
 (forall idx : index,
  StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
  isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-(defaultPage =? ptvaInAncestor) = false /\
+(Nat.eqb defaultPage ptvaInAncestor) = false /\
 StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
 entryPresentFlag ptvaInAncestor idxva true s /\
 entryUserFlag ptvaInAncestor idxva false s /\
@@ -17260,11 +17260,11 @@ writeAccessibleRecAux n vaInAncestor ancestor false
   derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
 isAncestor currentPart ancestor s /\
 (In ancestor (getPartitions MALInternal.multiplexer s) /\
-(defaultPage =? phypage) = false /\
+(Nat.eqb defaultPage phypage) = false /\
 (forall idx : index,
  StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
  isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-(defaultPage =? ptvaInAncestor) = false /\
+(Nat.eqb defaultPage ptvaInAncestor) = false /\
 StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
 entryPresentFlag ptvaInAncestor idxva true s /\
 entryUserFlag ptvaInAncestor idxva false s /\
@@ -17321,11 +17321,11 @@ writeAccessibleRecAux n vaInAncestor ancestor false
         derivedRefChildListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild s /\
       isAncestor currentPart ancestor s /\
       (In ancestor (getPartitions MALInternal.multiplexer s) /\
-      (defaultPage =? phypage) = false /\
+      (Nat.eqb defaultPage phypage) = false /\
       (forall idx : index,
        StateLib.getIndexOfAddr vaInAncestor fstLevel = idx ->
        isPE ptvaInAncestor idx s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s) /\
-      (defaultPage =? ptvaInAncestor) = false /\
+      (Nat.eqb defaultPage ptvaInAncestor) = false /\
       StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva /\
       entryPresentFlag ptvaInAncestor idxva true s /\
       entryUserFlag ptvaInAncestor idxva false s /\
@@ -17458,11 +17458,11 @@ phySh2Child phyConfigPagesList phyDescChild s /\
  
 isAncestor  currentPart descParent s /\
 (In descParent (getPartitions MALInternal.multiplexer s)  /\
-     (defaultPage =? phypage) = false /\
+     (Nat.eqb defaultPage phypage) = false /\
     (forall idx : index,
 StateLib.getIndexOfAddr va fstLevel = idx ->
 isPE pt idx s /\ getTableAddrRoot pt PDidx descParent va s) /\
-(defaultPage =? pt) = false /\
+(Nat.eqb defaultPage pt) = false /\
 StateLib.getIndexOfAddr va fstLevel = idxvaparent /\
 entryPresentFlag pt idxvaparent true s /\
 entryUserFlag pt idxvaparent false s /\
@@ -17615,9 +17615,9 @@ case_eq isMultiplexer.
          assert (tableSize > tableSizeLowerBound).
          apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega.  apply tableSizeBigEnough.
+         lia.  apply tableSizeBigEnough.
          unfold tableSizeLowerBound in *.
-         omega. apply tableSizeBigEnough. omega.
+         lia. apply tableSizeBigEnough. lia.
       - assumption.
       - contradict Hfalse.
         unfold PDidx. unfold sh2idx.
@@ -17625,9 +17625,9 @@ case_eq isMultiplexer.
         assert (tableSize > tableSizeLowerBound).
         apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega.  apply tableSizeBigEnough.
+        lia.  apply tableSizeBigEnough.
         unfold tableSizeLowerBound in *.
-        omega. apply tableSizeBigEnough. omega.
+        lia. apply tableSizeBigEnough. lia.
       - assumption.  }
   assert (HP := conj H0 H).
   pattern s in HP.
@@ -17703,7 +17703,7 @@ case_eq isMultiplexer.
        (forall idx : index,
         StateLib.getIndexOfAddr va fstLevel = idx -> 
         isVA ptsh2 idx s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)) /\ 
-        (defaultPage =? ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
+        (Nat.eqb defaultPage ptsh2) = false /\ isVA' ptsh2 lastIndex vaInAncestor s) by intuition.
   destruct Hkk as (Hiso & Hancs & Hvs & Hcons  & Ha & Hb & Hc & Hd & He & Hf  
                   &  [(Hi & Hfalse) | Hi] & Hj & Hk ).  
   subst. apply beq_nat_false in Hj.
@@ -17817,18 +17817,18 @@ case_eq isMultiplexer.
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - contradict Hfalse.
              unfold PDidx. unfold sh2idx.
              apply indexEqFalse;
              assert (tableSize > tableSizeLowerBound).
              apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega.  apply tableSizeBigEnough.
+             lia.  apply tableSizeBigEnough.
              unfold tableSizeLowerBound in *.
-             omega. apply tableSizeBigEnough. omega.
+             lia. apply tableSizeBigEnough. lia.
            - assumption.
            - assumption.  }  
       do  16 (* 6 *) rewrite <- and_assoc in H0.
@@ -17924,14 +17924,14 @@ case_eq isMultiplexer.
         assert(Hgetind : getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s  
         = Some ptvaInAncestor).
         apply getIndirectionStopLevelGT2 with (nbL+1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind in *.
         rewrite H in *.
         destruct ( StateLib.readPresent ptvaInAncestor
@@ -18173,16 +18173,16 @@ case_eq isMultiplexer.
         subst.
         assert(Hgetind : getIndirection sh2 va nbL (nbLevel - 1) s = Some ptsh2).
         apply getIndirectionStopLevelGT2 with (nbL + 1);trivial.
-        omega.
+        lia.
         apply getNbLevelEq in HnbL.
         rewrite HnbL.
         unfold CLevel.
         case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
         simpl;trivial.
         assert(0<nbLevel) by apply nbLevelNotZero.
-        omega.
+        lia.
         rewrite Hgetind.
-        assert (Hptnotnull : (defaultPage =? ptsh2) = false) by trivial.
+        assert (Hptnotnull : (Nat.eqb defaultPage ptsh2) = false) by trivial.
         rewrite Hptnotnull.
         unfold  isVA' in *. 
         unfold StateLib.readVirtual. 
@@ -18222,16 +18222,16 @@ case_eq isMultiplexer.
       subst.
       assert(Hind :getIndirection pdAncestor vaInAncestor l (nbLevel - 1) s = Some ptvaInAncestor).
       apply getIndirectionStopLevelGT2 with (l+1);trivial.
-      omega.
+      lia.
       apply getNbLevelEq in HnbL.
       rewrite HnbL.
       unfold CLevel.
       case_eq(lt_dec (nbLevel - 1) nbLevel);intros.
       simpl;trivial.
       assert(0<nbLevel) by apply nbLevelNotZero.
-      omega.
+      lia.
       rewrite Hind in *.
-      assert (Hnotnull : (defaultPage =? ptvaInAncestor) = false) by trivial.
+      assert (Hnotnull : (Nat.eqb defaultPage ptvaInAncestor) = false) by trivial.
       rewrite Hnotnull in *.
       destruct (StateLib.readPresent ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel)
       (memory s)); try now contradict Hi.
@@ -19481,7 +19481,7 @@ assert(Hlevel : Some L = StateLib.getNbLevel) by intuition.
 rewrite <- Hlevel in *.
 case_eq(getIndirection pdAncestor newVA L (nbLevel - 1) s);[intros ptAncestor HptAncestor |
 intros HptAncestor];rewrite HptAncestor in *;try now contradict Hmapped.
-case_eq(defaultPage =? ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
+case_eq(Nat.eqb defaultPage ptAncestor);intros Hb;rewrite Hb in *;try now contradict Hmapped.
 case_eq(StateLib.readPresent ptAncestor (StateLib.getIndexOfAddr newVA fstLevel) (memory s));
 [intros present Hpresent |
 intros Hpresent];rewrite Hpresent in *;try now contradict Hmapped.

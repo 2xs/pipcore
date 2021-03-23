@@ -34,7 +34,7 @@
 Require Import Model.ADT Model.Hardware Core.Services Isolation 
 Consistency WeakestPreconditions Invariants StateLib Model.Lib
  Model.MAL GetTableAddr InternalLemmas DependentTypeLemmas.
-Require Import Omega Bool List.
+Require Import Bool List EqNat.
 
 (** * Summary 
     This file contains the invariant of [addVaddr]. 
@@ -301,7 +301,7 @@ eapply Invariants.getIndexOfAddr.
   assert (Hnewget :  isVE ptVaChildFromSh1
   (StateLib.getIndexOfAddr vaChild fstLevel) s /\
        getTableAddrRoot ptVaChildFromSh1 sh1idx currentPart vaChild s /\ 
-       (defaultPage =? ptVaChildFromSh1) = false).
+       (Nat.eqb defaultPage ptVaChildFromSh1) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.

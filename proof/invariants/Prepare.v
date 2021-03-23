@@ -41,7 +41,7 @@ InternalLemmas InternalLemmas2 DependentTypeLemmas LinkedListConfig PropagatedPr
 WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable UpdateMappedPageContent
 InitFstShadow InitSndShadow UpdateShadow1StructurePrepare InsertEntryIntoLL.
 
-Require Import Omega Bool List Coq.Logic.ProofIrrelevance.
+Require Import Lia Bool List Coq.Logic.ProofIrrelevance EqNat Compare_dec.
 (************************** TO MOVE ******************************)
 (*%%%%%%%%%%%%Consistency%%%%%%%%%%%*)
 
@@ -63,9 +63,9 @@ In LLChildphy (getLLPages fstLL s (nbPage + 1))
 prepareRec (nbLevel+1) descChild descChildphy phyPDChild phySh1Child phySh2Child LLChildphy vaToPrepare fstVA l
 {{fun _ s  => partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof.
-assert(Hsize : nbLevel   <= nbLevel) by omega.
+assert(Hsize : nbLevel   <= nbLevel) by lia.
 assert (Hlevelind : l < nbLevel).
-destruct l. simpl;omega.
+destruct l. simpl;lia.
 revert Hsize Hlevelind.
 revert phyPDChild phySh1Child phySh2Child LLChildphy l.
 generalize nbLevel at 1 3 4.
@@ -271,12 +271,12 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
   assert(Hkey : levelpred < l).
   apply levelPredLt;trivial.
   intuition.
-  omega.
+  lia.
     generalize (IHn indMMUToPrepare indSh1ToPrepare indSh2ToPrepare  LLChildphy levelpred  );clear IHn;intro IHn.
     unfold hoareTriple in IHn.
     intros.
     eapply IHn;trivial.
-    omega.
+    lia.
     
     intuition.
     (* MMU data structure *)
@@ -297,7 +297,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       assert(Hnotfstlevel :false = StateLib.Level.eqb l fstLevel) by trivial. 
       symmetry in Hnotfstlevel. 
       apply levelEqBEqNatFalse0 in Hnotfstlevel.
-      destruct l. omega.
+      destruct l. lia.
       split.
       assert(Hentrypage : isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s) by trivial.
       unfold isEntryPage in Hentrypage.
@@ -311,7 +311,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       split.
       unfold not.
       intros Hfalse1.
-      assert(Hfalse : (defaultPage =? indMMUToPrepare) = false) by trivial.
+      assert(Hfalse : (Nat.eqb defaultPage indMMUToPrepare) = false) by trivial.
       apply beq_nat_false in Hfalse.
       rewrite Hfalse1 in Hfalse. 
       now contradict Hfalse.
@@ -329,9 +329,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       assert(nbL - stop < nbLevel).
       destruct nbL.
       simpl in *.
-      omega.
+      lia.
       apply level_gt in Hnotfstlevel.
-      omega. assumption.
+      lia. assumption.
       split.  
       subst.
       assert(Hentrypage : isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indMMUToPrepare s) by trivial.
@@ -350,7 +350,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       case_eq (lt_dec (nbL - stop) nbLevel).
       intros l Hstop.
       rewrite Hstop in Hnotfstlevel.
-      simpl in *. omega.
+      simpl in *. lia.
       intros n0 Hfalse.
       rewrite Hfalse  in Hnotfstlevel.
       unfold StateLib.getNbLevel in Hnbl.
@@ -360,7 +360,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       inversion Hnbl. clear Hnbl. subst.
       simpl in *.
       contradict Hfalse.
-      omega.
+      lia.
       intros Hright.
       rewrite Hright in Hnbl.
       simpl in *.
@@ -369,7 +369,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       split.
       unfold not.
       intros Hfalse1.
-      assert(Hfalse : (defaultPage =? indMMUToPrepare) = false) by trivial.
+      assert(Hfalse : (Nat.eqb defaultPage indMMUToPrepare) = false) by trivial.
       apply beq_nat_false in Hfalse.
       rewrite Hfalse1 in Hfalse. 
       now contradict Hfalse.
@@ -383,7 +383,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       intros. contradict H.
       unfold aux in *. cbn.
       destruct nbL.
-      simpl in *. omega. }      
+      simpl in *. lia. }      
       rewrite Haux.
       apply levelPredMinus1 ;trivial.
       symmetry; assumption. }
@@ -405,7 +405,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hnotfstlevel :false = StateLib.Level.eqb l fstLevel) by trivial. 
         symmetry in Hnotfstlevel. 
         apply levelEqBEqNatFalse0 in Hnotfstlevel.
-        destruct l. omega.
+        destruct l. lia.
         split.
         assert(Hentrypage : isEntryPage phySh1Child (StateLib.getIndexOfAddr vaToPrepare l) indSh1ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
@@ -419,7 +419,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         split.
         unfold not.
         intros Hfalse1.
-        assert(Hfalse : (defaultPage =? indSh1ToPrepare) = false).
+        assert(Hfalse : (Nat.eqb defaultPage indSh1ToPrepare) = false).
         apply InternalLemmas.structIndirectionIsnotnull with indMMUToPrepare phySh1Child descChildphy phyPDChild vaToPrepare l levelpred sh1idx s;trivial.
         left;trivial.
         apply beq_nat_false in Hfalse.
@@ -439,9 +439,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(nbL - stop < nbLevel).
         destruct nbL.
         simpl in *.
-        omega.
+        lia.
         apply level_gt in Hnotfstlevel.
-        omega. assumption.
+        lia. assumption.
         split.  
         subst.
         assert(Hentrypage : isEntryPage phySh1Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indSh1ToPrepare s) by trivial.
@@ -460,7 +460,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         case_eq (lt_dec (nbL - stop) nbLevel).
         intros l Hstop.
         rewrite Hstop in Hnotfstlevel.
-        simpl in *. omega.
+        simpl in *. lia.
         intros n0 Hfalse.
         rewrite Hfalse  in Hnotfstlevel.
         unfold StateLib.getNbLevel in Hnbl.
@@ -470,7 +470,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         inversion Hnbl. clear Hnbl. subst.
         simpl in *.
         contradict Hfalse.
-        omega.
+        lia.
         intros Hright.
         rewrite Hright in Hnbl.
         simpl in *.
@@ -479,7 +479,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         split.
         unfold not.
         intros Hfalse1.
-        assert(Hfalse : (defaultPage =? indSh1ToPrepare) = false).
+        assert(Hfalse : (Nat.eqb defaultPage indSh1ToPrepare) = false).
         { apply structIndirectionIsnotnullMiddle  with
          indMMUToPrepare phySh1Child descChildphy phyPDChild vaToPrepare nbL levelpred stop  sh1idx s;trivial.
          left;trivial.
@@ -497,7 +497,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         intros. contradict H.
         unfold aux in *. cbn.
         destruct nbL.
-        simpl in *. omega. }
+        simpl in *. lia. }
         rewrite Haux.
         apply levelPredMinus1 ;trivial.
         symmetry; assumption. }
@@ -519,7 +519,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(Hnotfstlevel :false = StateLib.Level.eqb l fstLevel) by trivial. 
         symmetry in Hnotfstlevel. 
         apply levelEqBEqNatFalse0 in Hnotfstlevel.
-        destruct l. omega.
+        destruct l. lia.
         split.
         assert(Hentrypage : isEntryPage phySh2Child (StateLib.getIndexOfAddr vaToPrepare l) indSh2ToPrepare s) by trivial.
         unfold isEntryPage in Hentrypage.
@@ -533,7 +533,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         split.
         (** Here we use the consistency property wellFormedShadows to prove that the second 
         shadow data structure follows the same configuration as the MMU *)
-        assert(Hfalse : (defaultPage =? indSh2ToPrepare) = false).
+        assert(Hfalse : (Nat.eqb defaultPage indSh2ToPrepare) = false).
         apply structIndirectionIsnotnull with indMMUToPrepare phySh2Child descChildphy phyPDChild vaToPrepare l levelpred sh2idx s;trivial.
         right;trivial.
         unfold not;intros.
@@ -554,9 +554,9 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         assert(nbL - stop < nbLevel).
         destruct nbL.
         simpl in *.
-        omega.
+        lia.
         apply level_gt in Hnotfstlevel.
-        omega. assumption.
+        lia. assumption.
         split.  
         subst.
         assert(Hentrypage : isEntryPage phySh2Child (StateLib.getIndexOfAddr vaToPrepare (CLevel (nbL - stop))) indSh2ToPrepare s) by trivial.
@@ -575,7 +575,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         case_eq (lt_dec (nbL - stop) nbLevel).
         intros l Hstop.
         rewrite Hstop in Hnotfstlevel.
-        simpl in *. omega.
+        simpl in *. lia.
         intros n0 Hfalse.
         rewrite Hfalse  in Hnotfstlevel.
         unfold StateLib.getNbLevel in Hnbl.
@@ -585,7 +585,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         inversion Hnbl. clear Hnbl. subst.
         simpl in *.
         contradict Hfalse.
-        omega.
+        lia.
         intros Hright.
         rewrite Hright in Hnbl.
         simpl in *.
@@ -594,7 +594,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         split.
         unfold not.
         intros Hfalse1.
-        assert(Hfalse : (defaultPage =? indSh2ToPrepare) = false).
+        assert(Hfalse : (Nat.eqb defaultPage indSh2ToPrepare) = false).
         { apply structIndirectionIsnotnullMiddle  with
          indMMUToPrepare phySh2Child descChildphy phyPDChild vaToPrepare nbL levelpred stop  sh2idx s;trivial.
          right;trivial.
@@ -612,7 +612,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
         intros. contradict H.
         unfold aux in *. cbn.
         destruct nbL.
-        simpl in *. omega. }
+        simpl in *. lia. }
         rewrite Haux.
         apply levelPredMinus1 ;trivial.
         symmetry; assumption. } 
@@ -734,7 +734,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     assert (Hnewget : isPE ptMMUFstVA (
     StateLib.getIndexOfAddr fstVA fstLevel) s /\
          getTableAddrRoot ptMMUFstVA PDidx currentPart fstVA s /\ 
-         (defaultPage =? ptMMUFstVA) = false).
+         (Nat.eqb defaultPage ptMMUFstVA) = false).
     { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
       + subst.
         apply beq_nat_false in Ha4.
@@ -894,7 +894,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     assert (Hnewget : isPE ptMMUSndVA (
     StateLib.getIndexOfAddr sndVA fstLevel) s /\
          getTableAddrRoot ptMMUSndVA PDidx currentPart sndVA s /\ 
-         (defaultPage =? ptMMUSndVA) = false).
+         (Nat.eqb defaultPage ptMMUSndVA) = false).
     { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
       + subst.
         apply beq_nat_false in Ha4.
@@ -1269,7 +1269,7 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     assert (Hnewget : isPE ptMMUTrdVA (
     StateLib.getIndexOfAddr trdVA fstLevel) s /\
          getTableAddrRoot ptMMUTrdVA PDidx currentPart trdVA s /\ 
-         (defaultPage =? ptMMUTrdVA) = false).
+         (Nat.eqb defaultPage ptMMUTrdVA) = false).
     { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
       + subst.
         apply beq_nat_false in Ha4.
@@ -1453,17 +1453,17 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
       intuition;subst.
       eapply isPartitionFalseProof with (currentPart:=currentPartition s);trivial;try eassumption.
       unfold consistency in *;intuition.
-      rewrite Nat.eqb_sym;trivial.
+      rewrite PeanoNat.Nat.eqb_sym;trivial.
       unfold isPartitionFalseAll.
       intuition;subst.
       eapply isPartitionFalseProof with (currentPart:=currentPartition s)
       (descChild:= sndVA) (ptRefChild:=ptMMUSndVA) ;trivial;try eassumption.
       unfold consistency in *;intuition.
-      rewrite Nat.eqb_sym;trivial.
+      rewrite PeanoNat.Nat.eqb_sym;trivial.
       eapply isPartitionFalseProof with (currentPart:=currentPartition s)
       (descChild:= trdVA) (ptRefChild:=ptMMUTrdVA) ;trivial;try eassumption.
       unfold consistency in *;intuition.
-      rewrite Nat.eqb_sym;trivial. }
+      rewrite PeanoNat.Nat.eqb_sym;trivial. }
     pattern s in H. 
     assert(Hnew:= conj (conj (conj (conj H Hconfig1) Hconfig2) Hconfig3) Hispart).
     apply Hnew.
@@ -1702,13 +1702,13 @@ assert(Hlevelpred:  StateLib.Level.pred l = Some levelpred) by intuition.
     case_eq (lt_dec 0 tableSize).
     intros.
     rewrite H2 in H1.
-    simpl in *. omega.
+    simpl in *. lia.
     intros.
     contradict H2.
     assert (tableSize > tableSizeLowerBound).
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
-    omega.
+    lia.
     intros [].
     simpl.
 (** initFstShadow *)
@@ -1920,7 +1920,7 @@ simpl.
   destruct H as (((Ha1 & Ha2) & Ha3) & Ha4).
   assert (Hnewget : isVE ptDescChild (StateLib.getIndexOfAddr descChild fstLevel) s /\
        getTableAddrRoot ptDescChild sh1idx currentPart descChild s /\ 
-       (defaultPage =? ptDescChild) = false).
+       (Nat.eqb defaultPage ptDescChild) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -2033,7 +2033,7 @@ eapply Invariants.getIndexOfAddr.
   assert (Hnewget : isPE ptDescChildpd 
   (StateLib.getIndexOfAddr descChild fstLevel) s /\
        getTableAddrRoot ptDescChildpd PDidx currentPart descChild s /\ 
-       (defaultPage =? ptDescChildpd) = false).
+       (Nat.eqb defaultPage ptDescChildpd) = false).
   { destruct Ha3 as [(Ha3 & Hfalse) | Ha3].
     + subst.
       apply beq_nat_false in Ha4.
@@ -2210,13 +2210,13 @@ apply nextEntryIsPPgetConfigList;trivial.
 destruct nbPage;simpl.
 case_eq(StateLib.getMaxIndex );[intros x Hx|intros Hx].
 destruct(StateLib.readPhysical LLChildphy x (memory s));simpl;[|left;trivial].
-destruct(p =? defaultPage);simpl;left;trivial.
+destruct(Nat.eqb p defaultPage);simpl;left;trivial.
 contradict Hx.
 apply getMaxIndexNotNone.
 
 case_eq(StateLib.getMaxIndex );[intros x Hx|intros Hx].
 destruct(StateLib.readPhysical LLChildphy x (memory s));simpl;[|left;trivial].
-destruct(p =? defaultPage);simpl;left;trivial.
+destruct(Nat.eqb p defaultPage);simpl;left;trivial.
 contradict Hx.
 apply getMaxIndexNotNone.
 Qed.
