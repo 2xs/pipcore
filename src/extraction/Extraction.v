@@ -34,10 +34,17 @@
       In this file we define the required configuration to extract the  MALInternal, MAL, Internal and 
       Services functions from Coq to JSON.
       The JSON output will be analyzed to generate the corresponding C implementation *)
-Require Import Model.MAL Model.Hardware Model.ADT Core.Services Core.Internal.
-Require Extraction.
+Require Import Pip.Model.MAL Pip.Model.Hardware Pip.Model.ADT Pip.Core.Services Pip.Core.Internal.
 
+Require Extraction.
 Extraction Language JSON.
+
+(*
+   Place the extracted AST inside the "build" folder at root
+   What ? Stop staring at me like that, even CompCert uses this. Yikes
+   https://github.com/AbsInt/CompCert/blob/master/extraction/extraction.v#L158
+*)
+Cd "build".
 
 (** Coq standard library *)
 (* Tell Coq to extract those names verbatim, instead of using if-then-else *)
@@ -50,3 +57,5 @@ Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Internal.
 Extraction Library Services.
+
+Cd "..".

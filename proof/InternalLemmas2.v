@@ -33,11 +33,13 @@
 
 (** * Summary 
     This file contains several internal lemmas to help prove invariants *)
-Require Import Model.ADT Isolation Consistency WeakestPreconditions List 
-Core.Internal  Model.MAL StateLib Model.Hardware 
- DependentTypeLemmas Model.Lib Invariants Lib PropagatedProperties InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Lia Classical_Prop Compare_dec EqNat Minus
-Lt.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib Pip.Core.Internal.
+
+Require Import Pip.Proof.Isolation Pip.Proof.Consistency Pip.Proof.WeakestPreconditions.
+Require Import Pip.Proof.StateLib Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas Pip.Proof.Lib.
+Require Import PropagatedProperties Invariants.
+
+Require Import List Coq.Logic.ProofIrrelevance Lia Classical_Prop Compare_dec EqNat Minus Lt.
 
 Import List.ListNotations.
  Lemma getIndirectionStop1' s indirection x idxind va l entry :

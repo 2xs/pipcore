@@ -33,10 +33,12 @@
 (** * Summary 
     This file contains the invariant of [createPartition]. 
     We prove that this PIP service preserves the isolation property *)
-Require Import  Model.ADT Model.Hardware Core.Services Isolation
-Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible .
- Require Import Bool Coq.Logic.ProofIrrelevance List EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.Lib Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr PropagatedProperties WriteAccessible.
+Import Bool Coq.Logic.ProofIrrelevance List EqNat.
  
 
 
@@ -59,21 +61,21 @@ verticalSharing s /\
 consistency s /\
 Some level = StateLib.getNbLevel /\
 false =
-checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
 false =
-checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
 false =
-checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel descChild listparam level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild listparam level /\
 false =
-checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
 false =
-checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel pdChild listparam level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild listparam level /\
 false =
-checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
-false = checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
+StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
 (Nat.eqb Kidx (nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex))
 = false /\
 (Nat.eqb Kidx (nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex))
@@ -187,23 +189,23 @@ isEntryPage ptConfigPagesList idxConfigPagesList phyConfigPagesList s /\
 In partition (getPartitions multiplexer s) ->
 ~ (partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s))) /\
 isEntryPage ptRefChild idxRefChild phyDescChild s }} 
-  writeAccessible ptPDChild idxPDChild false
+  MAL.writeAccessible ptPDChild idxPDChild false
    {{ fun _ s  =>
    ((((partitionsIsolation s /\
        kernelDataIsolation s /\
        verticalSharing s /\
        consistency s /\
        Some level = StateLib.getNbLevel /\
-       false = checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
-       false = checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
-       false = checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
-       false = checkVAddrsEqualityWOOffset nbLevel descChild listparam level /\
-       false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
-       false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
-       false = checkVAddrsEqualityWOOffset nbLevel pdChild listparam level /\
-       false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
-       false = checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
-       false = checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild listparam level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild listparam level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 listparam level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow2 listparam level /\
        (Nat.eqb Kidx (nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex)) = false /\
        (Nat.eqb Kidx (nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex)) = false /\
        (Nat.eqb Kidx (nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex)) = false /\
@@ -1502,7 +1504,7 @@ presentRefChild && accessibleChild && presentPDChild && true && presentConfigPag
    (forall partition : page,
     In partition (getAncestors currentPart s) ->
     ~ In phyPDChild (getAccessibleMappedPages partition s)) }} 
-  writeAccessible ptSh1Child idxSh1 false {{ fun _ (s : state) => ((propagatedProperties accessibleChild false accessibleSh2 accessibleList pdChild
+  MAL.writeAccessible ptSh1Child idxSh1 false {{ fun _ (s : state) => ((propagatedProperties accessibleChild false accessibleSh2 accessibleList pdChild
      currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild
      ptPDChild idxPDChild presentPDChild ptSh1Child shadow1 idxSh1 presentSh1 ptSh2Child
      shadow2 idxSh2 presentSh2 ptConfigPagesList idxConfigPagesList presentConfigPagesList
@@ -2585,7 +2587,7 @@ presentRefChild && accessibleChild && presentPDChild && true && presentConfigPag
    (forall partition : page,
     In partition (getAncestors currentPart s) ->
     ~ In phySh1Child (getAccessibleMappedPages partition s)) }} 
-  writeAccessible ptSh2Child idxSh2 false {{ fun _ (s : state)  =>
+  MAL.writeAccessible ptSh2Child idxSh2 false {{ fun _ (s : state)  =>
    (((propagatedProperties accessibleChild false false accessibleList pdChild
       currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild
       ptPDChild idxPDChild presentPDChild ptSh1Child shadow1 idxSh1 presentSh1 ptSh2Child
@@ -3695,7 +3697,7 @@ presentRefChild && accessibleChild && presentPDChild && true && presentConfigPag
    (forall partition : page,
     In partition (getAncestors currentPart s) ->
     ~ In phySh2Child (getAccessibleMappedPages partition s)) }} 
-  writeAccessible ptConfigPagesList idxConfigPagesList false {{ fun _ s =>  (((propagatedProperties accessibleChild false false false pdChild currentPart currentPD
+  MAL.writeAccessible ptConfigPagesList idxConfigPagesList false {{ fun _ s =>  (((propagatedProperties accessibleChild false false false pdChild currentPart currentPD
       level ptRefChild descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild
       ptSh1Child shadow1 idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList
       idxConfigPagesList presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild
@@ -4821,7 +4823,7 @@ presentRefChild && accessibleChild && presentPDChild && true && presentConfigPag
    (forall partition : page,
     In partition (getAncestors currentPart s) ->
     ~ In phyConfigPagesList (getAccessibleMappedPages partition s)) }} 
-  writeAccessible ptRefChild idxRefChild false {{   fun _ s => (((propagatedProperties false false false false pdChild currentPart currentPD level
+  MAL.writeAccessible ptRefChild idxRefChild false {{   fun _ s => (((propagatedProperties false false false false pdChild currentPart currentPD level
       ptRefChild descChild idxRefChild presentRefChild ptPDChild idxPDChild presentPDChild ptSh1Child
       shadow1 idxSh1 presentSh1 ptSh2Child shadow2 idxSh2 presentSh2 ptConfigPagesList
       idxConfigPagesList presentConfigPagesList currentShadow1 ptRefChildFromSh1 derivedRefChild

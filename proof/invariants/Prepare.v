@@ -35,11 +35,15 @@
     This file contains the invariant of [prepare]. 
     We prove that this PIP service preserves the isolation property *)
 
-Require Import Model.ADT Model.Hardware Core.Services Core.Internal Isolation Consistency  
-WeakestPreconditions Invariants StateLib Model.Lib Model.MAL GetTableAddr 
-InternalLemmas InternalLemmas2 DependentTypeLemmas LinkedListConfig PropagatedProperties 
-WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable UpdateMappedPageContent
-InitFstShadow InitSndShadow UpdateShadow1StructurePrepare InsertEntryIntoLL.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.Isolation
+               Pip.Proof.InternalLemmas Pip.Proof.InternalLemmas2 Pip.Proof.StateLib
+               Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr LinkedListConfig PropagatedProperties
+               WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable
+               UpdateMappedPageContent InitFstShadow InitSndShadow
+               UpdateShadow1StructurePrepare InsertEntryIntoLL.
 
 Require Import Lia Bool List Coq.Logic.ProofIrrelevance EqNat Compare_dec.
 (************************** TO MOVE ******************************)
@@ -57,7 +61,7 @@ In descChildphy (getChildren (currentPartition s) s) /\
 indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l /\
 indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\
 indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l /\
-getConfigTablesLinkedList descChildphy (memory s) = Some fstLL /\
+StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some fstLL /\
 In LLChildphy (getLLPages fstLL s (nbPage + 1))
      }} 
 prepareRec (nbLevel+1) descChild descChildphy phyPDChild phySh1Child phySh2Child LLChildphy vaToPrepare fstVA l

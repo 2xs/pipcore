@@ -33,10 +33,12 @@
 
 (**  * Summary 
     In this file we formalize and prove all invariants about the linked list configuration *)
-Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal 
-Isolation Consistency Model.Lib StateLib  WeakestPreconditions
-DependentTypeLemmas List Bool Invariants InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants.
+Require Import Bool List Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat.
 (**********************************TO MOVE*********************************)
 
 (*%%%%%%%%%%%%%%%%%%InternalLemmas%%%%%%%%%%%%%%%%%%%%%%%%%*)

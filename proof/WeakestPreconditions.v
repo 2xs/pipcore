@@ -34,8 +34,9 @@
 (** * Summary  
     In this file we formalize and prove the weakest precondition of the 
     MAL and MALInternal functions *)
-Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Model.IAL
-Lia List StateLib Compare_dec.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib Pip.Model.IAL.
+Require Import Pip.Proof.StateLib.
+Require Import Lia List Compare_dec.
 Lemma ret  (A : Type) (a : A) (P : A -> state -> Prop) : {{ P a }} ret a {{ P }}.
 Proof.
 intros s H; trivial.

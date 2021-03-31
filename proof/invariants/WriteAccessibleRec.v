@@ -33,12 +33,12 @@
 
 (** * Summary 
     This file contains the invariant of [writeAccessibleRec] *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions StateLib
-Model.Hardware Model.ADT Invariants  DependentTypeLemmas
-GetTableAddr Model.MAL Model.Lib Lib InternalLemmas WriteAccessible
-PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Lia List EqNat Compare_dec.
-Import List.ListNotations.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.Lib Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import GetTableAddr Invariants PropagatedProperties WriteAccessible.
+Import Compare_dec Coq.Logic.ProofIrrelevance EqNat Lia List List.ListNotations.
 
    Lemma getParentWriteAccessibleRec n descPart phy 
 

@@ -35,7 +35,7 @@
     This file contains the definition of some constants and its monadic getters;
     and the module definition of each abstract data type in which we define required
     monadic functions  *)
-Require Import Model.ADT Model.Hardware Model.Lib. 
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib.
 Require Import List Arith Lia.
 
 (** Define some constants *)

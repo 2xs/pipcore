@@ -31,8 +31,9 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import Isolation Consistency Model.Hardware Model.ADT StateLib .
-Require Import List Arith Model.MALInternal.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MALInternal.
+Require Import Pip.Proof.Consistency Pip.Proof.Isolation Pip.Proof.StateLib.
+Require Import List Arith.
 Import List.ListNotations.
 Definition propagatedProperties  accessibleChild accessibleSh1 accessibleSh2 accessibleList 
 pdChild currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild

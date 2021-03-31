@@ -34,9 +34,11 @@
 (** * Summary 
     This file contains required lemmas to prove that updating physical mapped 
     pages content do not modify partitions configuration tables  *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware Model.ADT Model.MAL 
-DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.DependentTypeLemmas Pip.Proof.Isolation Pip.Proof.InternalLemmas
+               Pip.Proof.Consistency Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants PropagatedProperties.
 Require Import Coq.Logic.ProofIrrelevance Lia List Bool EqNat Compare_dec.
 (*************************Move into InternalLemmas ************************)
 Lemma indirectionDescriptionIsConfigPage descChildphy phyPDChild  vaToPrepare l s:
@@ -1075,11 +1077,11 @@ cbn.
 rewrite getPdUpdateMappedPageData; trivial.
 case_eq (StateLib.getPd partition (memory s)); trivial.
 rewrite getFstShadowUpdateMappedPageData in *;trivial.
-case_eq (getFstShadow partition (memory s)); trivial.
+case_eq (StateLib.getFstShadow partition (memory s)); trivial.
 rewrite getSndShadowUpdateMappedPageData in *;trivial.
-case_eq (getSndShadow partition (memory s)); trivial.
+case_eq (StateLib.getSndShadow partition (memory s)); trivial.
 rewrite getTrdShadowUpdateMappedPageData in *;trivial.
-case_eq (getConfigTablesLinkedList partition (memory s)); trivial.
+case_eq (StateLib.getConfigTablesLinkedList partition (memory s)); trivial.
 f_equal.
 unfold getIndirections.
 intros sh3 Hsh3 sh2 Hsh2 sh1 Hsh1 pd Hpd.
@@ -1786,7 +1788,7 @@ StateLib.getIndexOfAddr va2 fstLevel = idxVa2 ->
  StateLib.getIndexOfAddr va2 fstLevel = idx ->
  isPE pt2 idx s /\ 
  getTableAddrRoot pt2 PDidx partition va2 s) ->  
-false = checkVAddrsEqualityWOOffset nbLevel va1 va2 level -> 
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel va1 va2 level -> 
 entryPresentFlag pt1 idxVa1 true s -> 
 entryPresentFlag pt2 idxVa2 true s -> 
 phy1 <> phy2.
@@ -2094,13 +2096,13 @@ intros Ha Hb Hc (* Hd *) He Hf.
 unfold isAccessibleMappedPageInParent.
 simpl.
 rewrite getSndShadowUpdateMappedPageData;trivial.
-case_eq (getSndShadow partition (memory s));trivial.
+case_eq (StateLib.getSndShadow partition (memory s));trivial.
 intros sh2 Hsh2.
 rewrite <- getVirtualAddressSh2UpdateMappedPageData.
 case_eq(getVirtualAddressSh2 sh2 s va);trivial.
 intros vaInParent HvaInParent.
 rewrite getParentUpdateMappedPageData;trivial.
-case_eq(getParent partition (memory s));trivial.
+case_eq(StateLib.getParent partition (memory s));trivial.
 intros parent Hparent.
 rewrite getPdUpdateMappedPageData.
 case_eq(StateLib.getPd parent (memory s) );trivial.
@@ -2261,7 +2263,7 @@ revert partition H1 H2.
 induction (nbPage +1);
 simpl;trivial;intros.
 rewrite getParentUpdateMappedPageData;trivial.
-case_eq(          getParent partition (memory s));intros;trivial.
+case_eq(StateLib.getParent partition (memory s));intros;trivial.
 f_equal.
 simpl in *.
 apply IHn;trivial.
@@ -2878,14 +2880,14 @@ destruct Hor as  [Hsh1 | Hsh2].
     destruct Hor as [Hor | Hor]; subst.
     rewrite nextEntryIsPPgetFstShadow in *.
     simpl in *.
-    assert(Hsh1 :  getFstShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
+    assert(Hsh1 : StateLib.getFstShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
     by trivial.
     rewrite <- Hsh1.
     symmetry.
     apply getFstShadowUpdateMappedPageData;trivial.
     rewrite nextEntryIsPPgetSndShadow in *.
     simpl in *.
-    assert(Hsh1 :  getSndShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
+    assert(Hsh1 : StateLib.getSndShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
     by trivial.
     rewrite <- Hsh1.
     symmetry.
@@ -3086,7 +3088,7 @@ unfold isDerived.
 intros.
 simpl.
 rewrite getFstShadowUpdateMappedPageData;trivial.
-case_eq(getFstShadow parent (memory s) );[intros sh1 Hsh1 | intros Hsh1]
+case_eq(StateLib.getFstShadow parent (memory s) );[intros sh1 Hsh1 | intros Hsh1]
 ; rewrite Hsh1 in *;trivial.
 assert(Hvirt : getVirtualAddressSh1 sh1 
 {| currentPartition := currentPartition s; memory := add table curidx x (memory s) beqPage beqIndex |}
@@ -3745,9 +3747,9 @@ assert(Hpd : StateLib.getConfigTablesLinkedList partition (add table curidx x (m
 { apply getTrdShadowUpdateMappedPageData;trivial. }
 rewrite Hpd in *. clear Hpd.
 case_eq (StateLib.getPd partition (memory s) );intros; trivial. 
-case_eq ( getFstShadow partition (memory s));intros; trivial.
-case_eq ( getSndShadow partition (memory s));intros; trivial.
-case_eq(  getConfigTablesLinkedList partition (memory s) );intros; trivial.
+case_eq ( StateLib.getFstShadow partition (memory s));intros; trivial.
+case_eq ( StateLib.getSndShadow partition (memory s));intros; trivial.
+case_eq(  StateLib.getConfigTablesLinkedList partition (memory s) );intros; trivial.
 unfold getIndirections.
 rewrite  getIndirectionsAuxUpdateMappedPageData.     
 rewrite  getIndirectionsAuxUpdateMappedPageData.
@@ -4587,14 +4589,14 @@ destruct Hor as  [Hsh1 | Hsh2].
     destruct Hor as [Hor | Hor]; subst.
     rewrite nextEntryIsPPgetFstShadow in *.
     simpl in *.
-    assert(Hsh1 :  getFstShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
+    assert(Hsh1 : StateLib.getFstShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
     by trivial.
     rewrite <- Hsh1.
     symmetry.
     apply getFstShadowUpdateMappedPageData;trivial.
     rewrite nextEntryIsPPgetSndShadow in *.
     simpl in *.
-    assert(Hsh1 :  getSndShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
+    assert(Hsh1 : StateLib.getSndShadow partition (add table curidx x (memory s) beqPage beqIndex) = Some structroot)
     by trivial.
     rewrite <- Hsh1.
     symmetry.

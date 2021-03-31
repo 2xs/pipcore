@@ -31,11 +31,15 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import Model.ADT Model.Hardware Core.Services Isolation 
-Consistency WeakestPreconditions Invariants StateLib Model.Lib
- Model.MAL GetTableAddr InternalLemmas DependentTypeLemmas  UpdateShadow2Structure 
-UpdateShadow1Structure 
- PropagatedProperties MapMMUPage InternalLemmas2.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+
+Require Import Pip.Proof.Isolation Pip.Proof.Consistency Pip.Proof.WeakestPreconditions
+Pip.Proof.StateLib Pip.Proof.InternalLemmas Pip.Proof.InternalLemmas2 Pip.Proof.DependentTypeLemmas.
+
+Require Import Invariants GetTableAddr UpdateShadow2Structure UpdateShadow1Structure
+               PropagatedProperties MapMMUPage.
+
 Require Import Bool List EqNat.
 
 (** * Summary 

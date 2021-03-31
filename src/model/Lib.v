@@ -30,8 +30,8 @@
 (*  The fact that you are presently reading this means that you have had       *)
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
-
-Require Import List PeanoNat Lt Lia Coq.Logic.Classical_Prop Bool Model.ADT Coq.Program.Tactics.
+Require Import Pip.Model.ADT.
+Require Import List PeanoNat Lt Lia Coq.Logic.Classical_Prop Bool Coq.Program.Tactics.
 Import List.ListNotations.
 
 

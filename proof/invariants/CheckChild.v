@@ -33,13 +33,16 @@
 
 (** * Summary 
     This file contains the invariant of [checkChild] some associated lemmas *)
-Require Import Isolation Consistency WeakestPreconditions List 
-Core.Internal Invariants Model.MAL StateLib Model.Hardware 
-Model.ADT DependentTypeLemmas Model.Lib GetTableAddr InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Lia EqNat Compare_dec.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Isolation Pip.Proof.Consistency Pip.Proof.WeakestPreconditions
+               Pip.Proof.StateLib Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas.
+Require Import Invariants GetTableAddr.
+
+Require Import List Coq.Logic.ProofIrrelevance Lia EqNat Compare_dec.
 
 Lemma checkChild (parent : page) (va : vaddr) (nbL : level) (P : state -> Prop) : 
-{{fun s => P s /\ consistency s /\ parent = currentPartition s /\ Some nbL = getNbLevel}} 
+{{fun s => P s /\ consistency s /\ parent = currentPartition s /\ Some nbL = StateLib.getNbLevel}} 
 Internal.checkChild parent nbL va
 {{fun isChild s => P s /\ isChild = StateLib.checkChild parent nbL s va}}.
 Proof.
@@ -180,9 +183,9 @@ case_eq isNullptSh1; intros HisNullptSh1.
   unfold checkChild.
   assert (nextEntryIsPP parent sh1idx sh1 s) as Hsh1 by intuition.
   unfold nextEntryIsPP in Hsh1.
-  unfold getFstShadow.
-  unfold readPhysical.
-  case_eq (Index.succ sh1idx); intros.
+  unfold StateLib.getFstShadow.
+  unfold StateLib.readPhysical.
+  case_eq (StateLib.Index.succ sh1idx); intros.
   rewrite H0 in Hsh1.
   assert (parent = currentPartition s) as Hparent by intuition.
   subst.
@@ -196,7 +199,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
   assert (    (getTableAddrRoot' ptsh1 sh1idx (currentPartition s) va s /\ ptsh1 = defaultPage \/
   getTableAddrRoot ptsh1 sh1idx (currentPartition s) va s /\
   ptsh1 <> defaultPage /\
-  (forall idx : index, getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
+  (forall idx : index, StateLib.getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
   intuition.
   destruct H3 as [(Hrootstruc & Hdef) |  Hx].
   unfold getTableAddrRoot' in Hrootstruc.
@@ -204,12 +207,12 @@ case_eq isNullptSh1; intros HisNullptSh1.
   destruct Hrootstruc as (Htmp & Hrootstruc).
   apply Hrootstruc in Hisroot.
   destruct Hisroot as (nbl1 & Hnbl & stop2 & Hstop0 & Hstop2 & Hgetind).
-  assert (Some nbL = getNbLevel) as Hlvl by intuition.
+  assert (Some nbL = StateLib.getNbLevel) as Hlvl by intuition.
   rewrite <- Hlvl in Hnbl.
   inversion Hnbl.
   subst.
   clear Hnbl.
-  unfold getNbLevel in Hlvl.
+  unfold StateLib.getNbLevel in Hlvl.
   clear H2. 
   case_eq(gt_dec nbLevel 0); intros.
   rewrite H2 in Hlvl.
@@ -260,10 +263,10 @@ case_eq isNullptSh1; intros HisNullptSh1.
       apply beq_nat_false in H1.
       now contradict H1.
       subst.
-      assert(isVE ptsh1 (getIndexOfAddr va fstLevel) s ).
+      assert(isVE ptsh1 (StateLib.getIndexOfAddr va fstLevel) s ).
       apply H9; trivial.
       unfold isVE in H3.
-      case_eq(lookup ptsh1 (getIndexOfAddr va fstLevel) (memory s) beqPage beqIndex);
+      case_eq(lookup ptsh1 (StateLib.getIndexOfAddr va fstLevel) (memory s) beqPage beqIndex);
       intros; rewrite H5 in *;
         
       try now contradict H3.
@@ -275,9 +278,9 @@ case_eq isNullptSh1; intros HisNullptSh1.
         unfold checkChild.
         assert (nextEntryIsPP (currentPartition s) sh1idx sh1 s) as Hsh1 by intuition.
         unfold nextEntryIsPP in Hsh1.
-        unfold getFstShadow.
-        unfold readPhysical.
-        case_eq (Index.succ sh1idx); intros.
+        unfold StateLib.getFstShadow.
+        unfold StateLib.readPhysical.
+        case_eq (StateLib.Index.succ sh1idx); intros.
         rewrite H8 in Hsh1.
         subst.
         case_eq (lookup (currentPartition s) i (memory s) beqPage beqIndex); intros.  
@@ -288,7 +291,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
         assert (    (getTableAddrRoot' ptsh1 sh1idx (currentPartition s) va s /\ ptsh1 = defaultPage \/
         getTableAddrRoot ptsh1 sh1idx (currentPartition s) va s /\
         ptsh1 <> defaultPage /\
-        (forall idx : index, getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
+        (forall idx : index, StateLib.getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
         intuition.
         destruct H11 as [(Hrootstruc & Hdef) |  Hx].
         subst.
@@ -300,12 +303,12 @@ case_eq isNullptSh1; intros HisNullptSh1.
         destruct Hrootstruc as (Htmp & Hrootstruc).
         apply Hrootstruc in Hisroot.
         destruct Hisroot as (nbl1 & Hnbl & stop2 & Hstop2 & Hgetind).
-        assert (Some nbL = getNbLevel) as Hlvl by intuition.
+        assert (Some nbL = StateLib.getNbLevel) as Hlvl by intuition.
         rewrite <- Hlvl in Hnbl.
         inversion Hnbl.
         subst.
         clear Hnbl.
-        unfold getNbLevel in Hlvl.
+        unfold StateLib.getNbLevel in Hlvl.
         case_eq(gt_dec nbLevel 0); intros.
         rewrite H11 in Hlvl.
         inversion Hlvl.
@@ -318,7 +321,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
         rewrite Hstopgt.
         destruct H.
         unfold  entryPDFlag in *.
-        unfold readPDflag .
+        unfold StateLib.readPDflag .
         assert(Hfalse : (Nat.eqb ptsh1 defaultPage) = false).
         apply NPeano.Nat.eqb_neq.
         unfold not; intros;subst.

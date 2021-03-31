@@ -33,10 +33,12 @@
 
 (** * Summary 
     This file contains several invariants of [updatePartitionDescriptor]  *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware Model.ADT Model.MAL 
-DependentTypeLemmas Model.Lib InternalLemmas  PropagatedProperties UpdateMappedPageContent.
-Require Import Coq.Logic.ProofIrrelevance List Bool EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.Isolation
+               Pip.Proof.InternalLemmas Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants PropagatedProperties UpdateMappedPageContent.
+Import Bool Coq.Logic.ProofIrrelevance EqNat List.
 
 Lemma initConfigPagesListPostConditionUpdateMappedPageContent phyConfigPagesList s table1 PRidxsucc  x:
 initConfigPagesListPostCondition phyConfigPagesList s ->
@@ -134,10 +136,10 @@ initConfigPagesListPostCondition phyConfigPagesList s /\
         StateLib.getIndexOfAddr va1 fstLevel = idx ->
         isPE pt1 idx s /\ getTableAddrRoot pt1 PDidx (currentPartition s) va1 s) /\
   entryPresentFlag pt1 idxVa1 true s  /\
-  false = checkVAddrsEqualityWOOffset nbLevel va1 pdChild level /\
-  false = checkVAddrsEqualityWOOffset nbLevel va1 shadow1 level /\
-  false = checkVAddrsEqualityWOOffset nbLevel va1 shadow2 level /\
-  false = checkVAddrsEqualityWOOffset nbLevel va1 list level /\
+  false = StateLib.checkVAddrsEqualityWOOffset nbLevel va1 pdChild level /\
+  false = StateLib.checkVAddrsEqualityWOOffset nbLevel va1 shadow1 level /\
+  false = StateLib.checkVAddrsEqualityWOOffset nbLevel va1 shadow2 level /\
+  false = StateLib.checkVAddrsEqualityWOOffset nbLevel va1 list level /\
   nextEntryIsPP (currentPartition s) PDidx currentPD s /\
   (Nat.eqb defaultPage pt1) = false /\
   idxroot < tableSize - 1 }} 

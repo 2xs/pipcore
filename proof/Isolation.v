@@ -34,7 +34,9 @@
 (** * Summary 
     This file contains the formalization of interesting properties that we need 
     to prove *)
-Require Import List StateLib Model.ADT Model.Hardware Lib Model.Lib Model.MAL.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Proof.StateLib Pip.Proof.Lib.
+Require Import List.
 Import List.ListNotations.
 
 (** THE VERTICAL SHARING PROPERTY:

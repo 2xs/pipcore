@@ -33,10 +33,13 @@
 
 (** * Summary 
     This file contains the invariant of [Activate] some associated lemmas *)
-Require Import Model.ADT Model.Hardware Core.Services Isolation 
-Consistency Invariants WeakestPreconditions Model.Lib StateLib 
-Model.MAL DependentTypeLemmas InternalLemmas Lib.
-Require Import Lia Bool  Coq.Logic.ProofIrrelevance List Classical_Prop Compare_dec EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL Pip.Core.Services.
+
+Require Import Pip.Proof.Isolation Pip.Proof.Consistency Pip.Proof.WeakestPreconditions
+               Pip.Proof.StateLib Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas.
+Require Import Invariants.
+
+Require Import Lia Bool Coq.Logic.ProofIrrelevance List Classical_Prop Compare_dec EqNat.
 Import List.ListNotations.
 
 Lemma getTablePagesUpdateCurrentPartition s rootStructure phyVA: 
@@ -221,9 +224,9 @@ unfold getConfigPages. f_equal.
 unfold getConfigPagesAux.
 simpl.
 destruct (StateLib.getPd partition (memory s) ); trivial. 
-destruct ( getFstShadow partition (memory s)); trivial.
-destruct ( getSndShadow partition (memory s)); trivial.
-destruct(  getConfigTablesLinkedList partition (memory s) ); trivial.
+destruct ( StateLib.getFstShadow partition (memory s)); trivial.
+destruct ( StateLib.getSndShadow partition (memory s)); trivial.
+destruct(  StateLib.getConfigTablesLinkedList partition (memory s) ); trivial.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
 rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
@@ -254,7 +257,7 @@ intros.
 rewrite <- IHl.
 unfold checkChild.
 simpl.
-destruct ( getFstShadow parent (memory s) ) ; trivial.
+destruct ( StateLib.getFstShadow parent (memory s) ) ; trivial.
 rewrite <- getIndirectionUpdateCurrentPartition with p a lvl phyVA s.
 reflexivity.
 Qed.
@@ -490,10 +493,10 @@ isAccessibleMappedPageInParent partition va accessiblePage s.
 Proof.
 unfold isAccessibleMappedPageInParent.
 simpl.
-destruct( getSndShadow partition (memory s) );trivial.
+destruct( StateLib.getSndShadow partition (memory s) );trivial.
 rewrite getVirtualAddressSh2UpdateCurrentPartition.
 destruct(getVirtualAddressSh2 p s va );trivial.
-destruct(getParent partition (memory s) );trivial.
+destruct(StateLib.getParent partition (memory s) );trivial.
 destruct(StateLib.getPd p0 (memory s) );trivial.
 rewrite <- getAccessibleMappedPageUpdateCurrentPartition .
 trivial.
@@ -566,7 +569,7 @@ Proof.
 unfold isDerived.
 intros.
 simpl in *.
-destruct (getFstShadow parent (memory s) );try now contradict H.
+destruct (StateLib.getFstShadow parent (memory s) );try now contradict H.
 rewrite <- getVirtualAddressSh1UpdateCurrentPartition with p phyVA va s;
 trivial.
 reflexivity.
@@ -603,7 +606,7 @@ root isMultiplexer nbL  ptpd lastIndex phyVA pd:
          StateLib.getIndexOfAddr descChild fstLevel = idx -> isPE ptpd idx s))) /\
       (Nat.eqb defaultPage ptpd) = false) /\
      StateLib.getIndexOfAddr descChild fstLevel = lastIndex) /\
-    isEntryPage ptpd lastIndex phyVA s) /\ entryPresentFlag ptpd lastIndex true s   }} activate phyVA {{ fun _ (s : state) =>
+    isEntryPage ptpd lastIndex phyVA s) /\ entryPresentFlag ptpd lastIndex true s   }} MAL.activate phyVA {{ fun _ (s : state) =>
                        partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof.
 eapply weaken.
@@ -639,14 +642,14 @@ split.
     generalize (Hanc partition1 partition2); clear Hanc; intros Hanc.
     apply Hanc in H; trivial. clear Hanc.
     rewrite <- getAccessibleMappedPagesUpdateCurrentPartition with phyVA partition1 s.
-    unfold disjoint in *.
+    unfold Lib.disjoint in *.
     intros.
     apply H in H1.   
     unfold getConfigPagesAux in *. simpl.
     destruct (StateLib.getPd partition2 (memory s) ); trivial. 
-    destruct ( getFstShadow partition2 (memory s)); trivial.
-    destruct ( getSndShadow partition2 (memory s)); trivial.
-    destruct(  getConfigTablesLinkedList partition2 (memory s) ); trivial.
+    destruct ( StateLib.getFstShadow partition2 (memory s)); trivial.
+    destruct ( StateLib.getSndShadow partition2 (memory s)); trivial.
+    destruct(  StateLib.getConfigTablesLinkedList partition2 (memory s) ); trivial.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
@@ -705,9 +708,9 @@ split.
           {  unfold getConfigPages . f_equal.
           unfold getConfigPagesAux; simpl. 
           destruct (StateLib.getPd partition (memory s) ); trivial. 
-          destruct ( getFstShadow partition (memory s)); trivial.
-          destruct ( getSndShadow partition (memory s)); trivial.
-          destruct(  getConfigTablesLinkedList partition (memory s) ); trivial.
+          destruct ( StateLib.getFstShadow partition (memory s)); trivial.
+          destruct ( StateLib.getSndShadow partition (memory s)); trivial.
+          destruct(  StateLib.getConfigTablesLinkedList partition (memory s) ); trivial.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with phyVA p1 s.
@@ -879,14 +882,14 @@ split.
     generalize (Hanc partition1 partition2); clear Hanc; intros Hanc.
     apply Hanc in H; trivial. clear Hanc.
     rewrite <- getAccessibleMappedPagesUpdateCurrentPartition with parent partition1 s.
-    unfold disjoint in *.
+    unfold Lib.disjoint in *.
     intros.
     apply H in H1.   
     unfold getConfigPagesAux in *. simpl in *.
     destruct (StateLib.getPd partition2 (memory s) ); trivial. 
-    destruct ( getFstShadow partition2 (memory s)); trivial.
-    destruct ( getSndShadow partition2 (memory s)); trivial.
-    destruct(  getConfigTablesLinkedList partition2 (memory s) ); trivial.
+    destruct ( StateLib.getFstShadow partition2 (memory s)); trivial.
+    destruct ( StateLib.getSndShadow partition2 (memory s)); trivial.
+    destruct(  StateLib.getConfigTablesLinkedList partition2 (memory s) ); trivial.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
     rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
@@ -938,9 +941,9 @@ split.
           {  unfold getConfigPages . f_equal.
           unfold getConfigPagesAux; simpl. 
           destruct (StateLib.getPd partition (memory s) ); trivial. 
-          destruct ( getFstShadow partition (memory s)); trivial.
-          destruct ( getSndShadow partition (memory s)); trivial.
-          destruct(  getConfigTablesLinkedList partition (memory s) ); trivial.
+          destruct ( StateLib.getFstShadow partition (memory s)); trivial.
+          destruct ( StateLib.getSndShadow partition (memory s)); trivial.
+          destruct(  StateLib.getConfigTablesLinkedList partition (memory s) ); trivial.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p0 s.
           rewrite <- getIndirectionsUpdateCurrentPartition with parent p1 s.
@@ -1161,9 +1164,9 @@ f_equal.
 unfold getConfigPagesAux.
 simpl.
 case (StateLib.getPd somePartition (memory s)); trivial; intro.
-case (getFstShadow somePartition (memory s)); trivial; intro.
-case (getSndShadow somePartition (memory s)); trivial; intro.
-case (getConfigTablesLinkedList somePartition (memory s)); trivial; intro.
+case (StateLib.getFstShadow somePartition (memory s)); trivial; intro.
+case (StateLib.getSndShadow somePartition (memory s)); trivial; intro.
+case (StateLib.getConfigTablesLinkedList somePartition (memory s)); trivial; intro.
 unfold s'.
 rewrite <- (getIndirectionsActivate newCurrentPartition s).
 rewrite <- (getIndirectionsActivate newCurrentPartition s).
@@ -1708,7 +1711,7 @@ Lemma activatePartition (partDesc : page) :
            In partDesc (getPartitions multiplexer s) /\
            partDesc <> defaultPage
 }}
-activate partDesc
+MAL.activate partDesc
 {{fun _ s' => partitionsIsolation s' /\
             kernelDataIsolation s' /\
             verticalSharing s' /\

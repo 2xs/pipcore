@@ -34,11 +34,15 @@
 (** * Summary 
     This file contains the invariant of [removeVAddr]. 
     We prove that this PIP service preserves the isolation property *)
-Require Import Model.ADT Model.Hardware Core.Services Isolation Consistency Core.Internal
-Model.MAL Model.MALInternal Bool WeakestPreconditions Invariants Arith List
-GetTableAddr InternalLemmas DependentTypeLemmas StateLib  Model.Lib
-WritePEntryRemoveVaddr PropagatedProperties UpdateShadow2Structure
-UpdateShadow1Structure.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib
+               Pip.Model.MAL Pip.Model.MALInternal.
+Require Import Pip.Core.Internal Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr WritePEntryRemoveVaddr PropagatedProperties
+               UpdateShadow2Structure UpdateShadow1Structure.
+
+Import Arith List Bool.
 
 Lemma removeVAddr   (descChild : vaddr) (vaChild : vaddr) :
 {{fun s => partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }} 
@@ -147,7 +151,7 @@ subst.
   subst.
   split.
   unfold nextEntryIsPP in *. 
-  destruct (Index.succ sh1idx); [ | now contradict H0].
+  destruct (StateLib.Index.succ sh1idx); [ | now contradict H0].
   destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
   destruct v ; try now contradict H0.
   subst. assumption.
@@ -286,7 +290,7 @@ destruct Hentry as (page1 & Hpd & Hnotnull).
 subst.
 split.
 unfold nextEntryIsPP in *. 
-destruct (Index.succ PDidx); [ | now contradict H0].
+destruct (StateLib.Index.succ PDidx); [ | now contradict H0].
 destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
 destruct v ; try now contradict H0.
 subst; assumption.
@@ -413,7 +417,7 @@ assert(Hnewgoal : getMappedPage currentPD s descChild = SomePage phyDescChild).
   split;trivial. 
   assert(Hnewgoal : checkChild (currentPartition s) level s descChild = true).
   { unfold checkChild. 
-  assert(Hcursh1 : getFstShadow (currentPartition s) (memory s) = Some currentShadow1).
+  assert(Hcursh1 : StateLib.getFstShadow (currentPartition s) (memory s) = Some currentShadow1).
   { apply nextEntryIsPPgetFstShadow. intuition; subst;trivial. }
   rewrite Hcursh1.
   assert(Hpt :getIndirection currentShadow1 descChild level (nbLevel - 1) s  = Some ptDescChild). 
@@ -512,7 +516,7 @@ subst.
 split.
 
 unfold nextEntryIsPP in *. 
-destruct (Index.succ PDidx); [ | now contradict H0].
+destruct (StateLib.Index.succ PDidx); [ | now contradict H0].
 destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
 destruct v ; try now contradict H0.
 subst ; assumption.
@@ -665,7 +669,7 @@ subst.
 split.
 
 unfold nextEntryIsPP in *. 
-destruct (Index.succ sh1idx); [ | now contradict H0].
+destruct (StateLib.Index.succ sh1idx); [ | now contradict H0].
 destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
 destruct v ; try now contradict H0.
 subst; assumption.
@@ -816,7 +820,7 @@ subst.
 split.
 
 unfold nextEntryIsPP in *. 
-destruct (Index.succ sh2idx); [ | now contradict H0].
+destruct (StateLib.Index.succ sh2idx); [ | now contradict H0].
 destruct (lookup phyDescChild i (memory s) beqPage beqIndex) ; try now contradict H0.
 destruct v ; try now contradict H0.
 subst; assumption.
@@ -938,7 +942,7 @@ subst.
 split.
 
 unfold nextEntryIsPP in *. 
-destruct (Index.succ sh1idx); [ | now contradict H0].
+destruct (StateLib.Index.succ sh1idx); [ | now contradict H0].
 destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict H0.
 destruct v ; try now contradict H0.
 subst; assumption.

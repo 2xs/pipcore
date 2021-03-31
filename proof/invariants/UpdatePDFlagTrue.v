@@ -30,16 +30,15 @@
 (*  The fact that you are presently reading this means that you have had       *)
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
-Require Import Model.ADT Model.Hardware Core.Services Isolation
-Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL UpdateShadow1Structure InternalLemmas DependentTypeLemmas Lib
-WriteAccessible
-  InitConfigPagesList InitPEntryTable DependentTypeLemmas  GetTableAddr
- WriteAccessibleRec UpdateMappedPageContent InternalLemmas 
-UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure .
- Require Import Lia Bool  Coq.Logic.ProofIrrelevance List EqNat Compare_dec Minus.
- Import List.ListNotations.
- Require Import Coq.Sorting.Permutation.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.Lib Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import GetTableAddr InitConfigPagesList InitPEntryTable Invariants PropagatedProperties UpdateMappedPageContent UpdatePartitionDescriptor UpdateShadow1Structure
+WriteAccessible WriteAccessibleRec.
+Import Bool Compare_dec Coq.Logic.ProofIrrelevance Coq.Sorting.Permutation EqNat
+       Lia List List.ListNotations Minus.
+
 Lemma readPDflagRightValue table idx entry s flag:
 StateLib.readPDflag table idx
   (add table idx
@@ -377,8 +376,8 @@ assert(Hnewgoal : checkChild currentPart nbL s' descChild = true).
 
 rewrite nextEntryIsPPgetFstShadow in *.
 
-assert(Hsh1S : getFstShadow currentPart (memory s') =
-getFstShadow currentPart (memory s)).
+assert(Hsh1S : StateLib.getFstShadow currentPart (memory s') =
+StateLib.getFstShadow currentPart (memory s)).
 unfold s';simpl.
 apply getFstShadowAddDerivation with entry;trivial.
 rewrite Hsh1S.
@@ -415,9 +414,9 @@ unfold getPdsVAddr in *.
 rewrite filter_In in *.
 apply Classical_Prop.not_and_or in Hpds1.
 destruct Hpds.
-split;trivial.     
-assert(Hshad :getFstShadow currentPart (memory s) =
-getFstShadow currentPart (memory s')).
+split;trivial.
+assert(Hshad : StateLib.getFstShadow currentPart (memory s) =
+StateLib.getFstShadow currentPart (memory s')).
 symmetry.
 apply getFstShadowAddDerivation with entry;trivial.
 
@@ -493,11 +492,11 @@ subst.
 
 now contradict H1.
  
-assert(Hvas : checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = true \/
-checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = false).
-{ destruct (checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL);intuition. }
+assert(Hvas : StateLib.checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = true \/
+StateLib.checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = false).
+{ destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL);intuition. }
 destruct Hvas as  [Hvaseq | Hvasnoteq];subst.
-- assert(Hvasx : checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = true) by trivial.
+- assert(Hvasx : StateLib.checkVAddrsEqualityWOOffset nbLevel vachild' descChild nbL = true) by trivial.
 apply getIndirectionEq with nbL vachild' descChild currentPD (nbLevel -1) s in Hvaseq.
 unfold getMappedPage in Hvachild'.
 rewrite Hnbl in *.
@@ -697,9 +696,9 @@ simpl in *.
 apply  Classical_Prop.and_not_or .
 split;trivial.
 (* assert(Hor:a=a0 \/ a <> a0). *)
-assert(Hor : checkVAddrsEqualityWOOffset nbLevel a a0 nbL = true \/ 
-checkVAddrsEqualityWOOffset nbLevel a a0 nbL = false).
-{ destruct (checkVAddrsEqualityWOOffset nbLevel a a0 nbL).
+assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel a a0 nbL = true \/ 
+StateLib.checkVAddrsEqualityWOOffset nbLevel a a0 nbL = false).
+{ destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel a a0 nbL).
   left;trivial.
   right;trivial.
 (* destruct a0.
@@ -828,8 +827,8 @@ assert(In descChild (getPdsVAddr currentPart nbL getAllVAddrWithOffset0 s')).
   rewrite filter_In;trivial.
   unfold checkChild.
   rewrite nextEntryIsPPgetFstShadow in *.
-  assert(Hsh1S : getFstShadow currentPart (memory s') =
-  getFstShadow currentPart (memory s)).
+  assert(Hsh1S : StateLib.getFstShadow currentPart (memory s') =
+  StateLib.getFstShadow currentPart (memory s)).
   unfold s';simpl.
   apply getFstShadowAddDerivation with entry;trivial.
   rewrite Hsh1S.
@@ -1210,9 +1209,9 @@ destruct Hvapart as [Hvapart | Hvapart].
           unfold getMappedPages in *.
           rewrite Hpd in *.
           unfold getMappedPagesAux in *;tauto.
-          assert(Horkey : checkVAddrsEqualityWOOffset nbLevel descChild a nbL = false \/
-          checkVAddrsEqualityWOOffset nbLevel descChild a nbL = true).
-          { destruct (checkVAddrsEqualityWOOffset nbLevel descChild a nbL).
+          assert(Horkey : StateLib.checkVAddrsEqualityWOOffset nbLevel descChild a nbL = false \/
+          StateLib.checkVAddrsEqualityWOOffset nbLevel descChild a nbL = true).
+          { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel descChild a nbL).
           right;trivial.
           left;trivial. }
           destruct Horkey as [Horkey | Horkey];trivial.
@@ -1651,13 +1650,13 @@ checkChild part nbL s' a = false.
 Proof.
 intros s' Hpde Hconfigs Hlookup HnbL part parent va a Hnoteq  Hi1 Hpart Htrue  Hfalse H. 
 unfold checkChild in *.
-assert(Hsh1 : forall part, getFstShadow part (memory s') =
-getFstShadow part (memory s)).
+assert(Hsh1 : forall part, StateLib.getFstShadow part (memory s') =
+StateLib.getFstShadow part (memory s)).
 unfold s';simpl.
 intros. 
 apply getFstShadowAddDerivation with entry;trivial.
 rewrite  Hsh1 in *;clear Hsh1.  
-case_eq ( getFstShadow part (memory s)); [ intros sh1 Hsh1 | 
+case_eq ( StateLib.getFstShadow part (memory s)); [ intros sh1 Hsh1 | 
 intros Hsh1];rewrite Hsh1 in *;trivial.
 move Hpde at bottom.
 unfold partitionDescriptorEntry in *.
@@ -1673,7 +1672,7 @@ isVA parent sh1idx s /\
 as (_ & _ & Hsh1propparent).
 apply Hpde;trivial.
 right;left;trivial.
-case_eq ( getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
+case_eq ( StateLib.getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
 intros Hsh1parent];rewrite Hsh1parent in *;trivial.
 2: {
 destruct Hsh1propparent as (xx & Hsh1parentprop & Hnotnull).
@@ -1797,13 +1796,13 @@ checkChild parent nbL s' a = false.
 Proof.
 intros s' Hpde Hconfigs Hlookup HnbL  parent va a  Hnoteq Hpart Htrue  Hfalse H. 
 unfold checkChild in *.
-assert(Hsh1 : forall part, getFstShadow part (memory s') =
-getFstShadow part (memory s)).
+assert(Hsh1 : forall part, StateLib.getFstShadow part (memory s') =
+StateLib.getFstShadow part (memory s)).
 unfold s';simpl.
 intros. 
 apply getFstShadowAddDerivation with entry;trivial.
 rewrite  Hsh1 in *;clear Hsh1.  
-case_eq ( getFstShadow parent (memory s)); [ intros sh1 Hsh1 | 
+case_eq ( StateLib.getFstShadow parent (memory s)); [ intros sh1 Hsh1 | 
 intros Hsh1];rewrite Hsh1 in *;trivial.
 move Hpde at bottom.
 unfold partitionDescriptorEntry in *.
@@ -1813,7 +1812,7 @@ isVA parent sh1idx s /\
 as (_ & _ & Hsh1prop).
 apply Hpde;trivial.
 right;left;trivial.   
-case_eq ( getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
+case_eq ( StateLib.getFstShadow parent (memory s)); [ intros sh1parent Hsh1parent | 
 intros Hsh1parent];rewrite Hsh1parent in *;trivial.
 Focus 2 .
 destruct Hsh1prop as (xx & Hsh1parentprop & Hnotnull).
@@ -2532,7 +2531,7 @@ apply childrenPartitionInPartitionList with mult;trivial.
       rewrite in_app_iff;right;simpl;left;trivial.
       unfold getAncestors.
       unfold isParent in *.
-      assert (Hparent : getParent multichld (memory s) = Some mult ).
+      assert (Hparent : StateLib.getParent multichld (memory s) = Some mult ).
       apply Hisparent;trivial.
       rewrite eqchld.
       rewrite in_app_iff;simpl;right;simpl;left;trivial.     
@@ -4559,7 +4558,7 @@ Qed.
           intros Hparentintree Hpde Hisparent .
           revert partition. 
           induction (nbPage+1);simpl;intuition. 
-          case_eq(getParent partition (memory s));[ intros parent Hparent | intros Hparent].
+          case_eq(StateLib.getParent partition (memory s));[ intros parent Hparent | intros Hparent].
           simpl. 
           assert(Hor : parent = multiplexer \/ parent <> multiplexer) by apply pageDecOrNot.
           destruct Hor as [Hor | Hor].
@@ -5073,7 +5072,7 @@ unfold s'.
             revert currentPart partition1.
             
             
-            assert(Hmult : getParent multiplexer (memory s) = None) .
+            assert(Hmult : StateLib.getParent multiplexer (memory s) = None) .
             intuition.
             induction nbPage.
             simpl.
@@ -5090,7 +5089,7 @@ unfold s'.
             subst.
             rewrite Hmult in *.
             now contradict Hclose.
-            case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent];
+            case_eq(StateLib.getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent];
             rewrite Hparent in *; try now contradict Hclose.
             case_eq ( in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1))); 
             intros i Hi; rewrite Hi in *.
@@ -5116,7 +5115,7 @@ unfold s'.
            revert currentPart partition1 closestAnc.
            unfold closestAncestor.
            induction (nbPage+1);simpl;intros. now contradict Hclose.
-           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+           case_eq( StateLib.getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
            rewrite Hparent in *.
            - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
            intros i Hi; rewrite Hi in *.
@@ -5151,12 +5150,12 @@ unfold s'.
            destruct Hor as [Hor | Hor].
            left;trivial.
            destruct Hcurpart as [Hcurpart | Hcurpart].
-           + subst. assert (Hmult :  getParent multiplexer (memory s) = None) by intuition.
+           + subst. assert (Hmult :  StateLib.getParent multiplexer (memory s) = None) by intuition.
            rewrite Hmult in *.
            inversion Hclose. intuition.
            +
            right.
-           case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+           case_eq( StateLib.getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
            rewrite Hparent in *.
            - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
            intros i Hi; rewrite Hi in *.
@@ -5194,14 +5193,14 @@ unfold s'.
           generalize nbPage at 1 3.
            induction n;simpl;intros.
            trivial.  
-           + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+           + case_eq( StateLib.getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
               rewrite Hparent in *.
               - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
                 intros i Hi; rewrite Hi in *.
                * inversion Hclose;subst. trivial.
                *  now contradict Hclose.
               -  inversion Hclose. subst. unfold getPartitions in *;trivial.
-         + case_eq( getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
+         + case_eq( StateLib.getParent currentPart (memory s));[intros parent Hparent | intros Hparent];
             rewrite Hparent in *.
             - case_eq(in_dec pageDec partition1 (getPartitionAux parent s (nbPage + 1)));
               intros i Hi; rewrite Hi in *.
@@ -5226,7 +5225,7 @@ unfold s'.
            now contradict Hclose.
            simpl.
            intros.    
-           case_eq(getParent currentPart (memory s) );intros.
+           case_eq(StateLib.getParent currentPart (memory s) );intros.
            rewrite H in *.
            case_eq ( in_dec pageDec partition1 (getPartitionAux p s (nbPage + 1)));intros;
            rewrite H0 in *.
@@ -5411,7 +5410,7 @@ unfold s'.
                 induction nbPage;simpl. intuition.
                 intros.               
                 destruct Hchild11. intuition.
-              case_eq(getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent].
+              case_eq(StateLib.getParent currentPart (memory s) ); [intros parent Hparent | intros Hparent].
               simpl.
               assert(Hor : parent = partition1 \/ parent <> partition1) by apply pageDecOrNot.
               destruct Hor as [Hor | or].
@@ -5531,7 +5530,7 @@ unfold s'.
            intuition.
            simpl.
            intros.
-           case_eq (getParent currentPart (memory s));[intros parent Hparent| intros Hparent]. 
+           case_eq (StateLib.getParent currentPart (memory s));[intros parent Hparent| intros Hparent]. 
            +  destruct Hchild11 as [Hchild11 | Hchild11];subst.
              now contradict Horcurpart.
            (*  destruct Hchild22 as [Hchild22 | Hchild22];subst.
@@ -5593,7 +5592,7 @@ unfold s'.
             assert(Hmult : In multiplexer (getAncestors currentPart s)).
             { apply multiplexerIsAncestor;trivial. 
               unfold not;intros; subst.
-               assert(Hmult :   getParent multiplexer (memory s) = None) by intuition.
+               assert(Hmult :   StateLib.getParent multiplexer (memory s) = None) by intuition.
               rewrite Hmult in *. now contradict Hparent. }  
             unfold getAncestors in *.
             revert dependent currentPart.
@@ -5603,12 +5602,12 @@ unfold s'.
             intros parent partition1 Hances.
             intros.
             rewrite Hparent in *. 
-            case_eq(getParent parent (memory s) );[intros ances Hances1 | intros Hances1];
+            case_eq(StateLib.getParent parent (memory s) );[intros ances Hances1 | intros Hances1];
             rewrite Hances1 in *; try now contradict Hances.
             simpl in *.
             destruct Hmult as [Hmult | Hmult ].
             subst.
-            assert(Hmultnoparent : getParent multiplexer (memory s) = None) by intuition.
+            assert(Hmultnoparent : StateLib.getParent multiplexer (memory s) = None) by intuition.
             rewrite Hances1 in *. 
             now contradict Hmultnoparent.
             destruct Hances as [Hances | Hances].
@@ -5656,7 +5655,7 @@ unfold s'.
               simpl in *.
               destruct Hxx.
               subst.
-              assert(getParent currentPart (memory s) = Some child2).
+              assert(StateLib.getParent currentPart (memory s) = Some child2).
               unfold isParent in Hisparent.
               apply Hisparent;trivial.
               rewrite H in Hparent.
@@ -7709,16 +7708,16 @@ idxSH1 = sh1idx ->
 idxSH2 = sh2idx ->
 idxSH3 = sh3idx ->
 idxPPR = PPRidx -> 
-false = checkVAddrsEqualityWOOffset nbLevel descChild pdChild level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild list level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild list level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 list level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow2 list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild pdChild level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow2 list level ->
 getMappedPage currentPD s pdChild = SomePage phyPDChild -> 
 getMappedPage currentPD s shadow1 = SomePage phySh1Child -> 
 getMappedPage currentPD s shadow2 = SomePage phySh2Child -> 
@@ -8279,7 +8278,7 @@ destruct Heqvars as (va1 & Hva1 & Hva11).
       move Hinchildren at bottom.
       move Hnotinchildren at bottom.
       destruct Hchildren as (l1 & l2 & Hi1 & Hi2).
-       assert(Hsh1 : getFstShadow (currentPartition s) (memory s') = getFstShadow 
+       assert(Hsh1 : StateLib.getFstShadow (currentPartition s) (memory s') = StateLib.getFstShadow 
        (currentPartition s) (memory s)).
      apply getFstShadowAddDerivation with entry; trivial.
       assert (Hpdes : StateLib.getPd (currentPartition s) (memory s) = 
@@ -8667,8 +8666,8 @@ assert(Hnodumap : accessibleChildPageIsAccessibleIntoParent s).
 { unfold consistency in *. intuition. }
 unfold accessibleChildPageIsAccessibleIntoParent in *.
 intros partition va pd accessiblePage HpartS HpdS HaccessS.
-assert(HfstS : forall partition , getSndShadow partition (memory s') =
-                                  getSndShadow partition (memory s)).
+assert(HfstS : forall partition , StateLib.getSndShadow partition (memory s') =
+                                  StateLib.getSndShadow partition (memory s)).
 { intros . apply getSndShadowAddDerivation with entry; trivial. }
 assert(Hpdeq : forall partition , StateLib.getPd  partition (memory s') =
                                   StateLib.getPd  partition (memory s)).
@@ -8903,7 +8902,7 @@ getAncestors part s').
                               StateLib.getParent  partition (memory s)).
   { intros . apply getParentAddDerivation with entry; trivial. }
   rewrite Hparenteq.
-  case_eq(getParent part (memory s)); intros; simpl; trivial.
+  case_eq(StateLib.getParent part (memory s)); intros; simpl; trivial.
   f_equal.
   apply IHn; trivial. } 
   intros ancestor partition Hpart Hances.
@@ -9453,10 +9452,10 @@ assert(Hparteq : partition = phyDescChild  \/ partition <> phyDescChild ) by app
   destruct Hcurparteq as [Hcurparteq |Hcurparteq ].
   - subst.
     trivial.
-  - assert(Hparentnew : getParent phyDescChild (memory s) = Some (currentPartition s)).
+  - assert(Hparentnew : StateLib.getParent phyDescChild (memory s) = Some (currentPartition s)).
     apply nextEntryIsPPgetParent;trivial.
-    assert(HgetParent: getParent phyDescChild (memory s')  =
-    getParent phyDescChild (memory s)).
+    assert(HgetParent: StateLib.getParent phyDescChild (memory s')  =
+    StateLib.getParent phyDescChild (memory s)).
     apply getParentAddDerivation with entry;trivial.
     rewrite HgetParent in *.  
     rewrite Hparentnew in *.
@@ -9466,8 +9465,8 @@ assert(Hparteq : partition = phyDescChild  \/ partition <> phyDescChild ) by app
                 (currentPartition s) <> parent ) by apply pageDecOrNot.
   destruct Hcurparteq as [Hcurparteq |Hcurparteq ].
   - subst.
-    assert(HgetParent: getParent partition (memory s')  =
-       getParent partition (memory s)).
+    assert(HgetParent: StateLib.getParent partition (memory s')  =
+       StateLib.getParent partition (memory s)).
     apply getParentAddDerivation with entry;trivial.
     rewrite HgetParent in *.
     assert( In partition (getChildren (currentPartition s) s)).
@@ -9499,8 +9498,8 @@ assert(Hparteq : partition = phyDescChild  \/ partition <> phyDescChild ) by app
                 phyDescChild <> parent ) by apply pageDecOrNot.
   destruct Hneweq as [Hneweq |Hneweq ].
   * subst parent.
-  assert(HgetParent: getParent partition (memory s')  =
-       getParent partition (memory s)).
+  assert(HgetParent: StateLib.getParent partition (memory s')  =
+       StateLib.getParent partition (memory s)).
     apply getParentAddDerivation with entry;trivial.
     rewrite HgetParent in *.
     assert(Hfalse : In partition (getChildren phyDescChild s)).
@@ -9782,7 +9781,7 @@ assert(HderivS : forall part va1,  isDerived part va1 s' = isDerived part va1 s)
        StateLib.getFstShadow part (memory s)).
   { intros. apply getFstShadowAddDerivation with entry;trivial. }
   rewrite Hsh1S.
-  case_eq (getFstShadow part (memory s)); intros; trivial.
+  case_eq (StateLib.getFstShadow part (memory s)); intros; trivial.
    assert(HgetVirS :  getVirtualAddressSh1 p s' va1 =  getVirtualAddressSh1 p s va1). 
    { unfold getVirtualAddressSh1.
      case_eq(StateLib.getNbLevel);intros;trivial.
@@ -10100,18 +10099,18 @@ destruct Hparteq as [Hparteq | Hparteq].
     assert(Hchildeq : child = phyDescChild  \/ child <> phyDescChild ) by apply pageDecOrNot.
     destruct Hchildeq as [Hchild1eq |Hchild1eq ].
     - subst child.
-      assert(Hparentnew : getParent phyDescChild (memory s) = Some (currentPartition s)).
+      assert(Hparentnew : StateLib.getParent phyDescChild (memory s) = Some (currentPartition s)).
     apply nextEntryIsPPgetParent;trivial.
-    assert(HgetParent: getParent phyDescChild (memory s')  =
-    getParent phyDescChild (memory s)).
+    assert(HgetParent: StateLib.getParent phyDescChild (memory s')  =
+    StateLib.getParent phyDescChild (memory s)).
     apply getParentAddDerivation with entry;trivial.
     simpl in *.
     rewrite HgetParent in *.
     trivial.
-    -  assert(Hparent : getParent child
+    -  assert(Hparent : StateLib.getParent child
   (add ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel)
      (VE {| pd := true; va := va entry |}) (memory s) beqPage beqIndex) =  
-     getParent child(memory s) ).
+     StateLib.getParent child(memory s) ).
      apply getParentAddDerivation with entry;trivial.
      rewrite Hparent.  
      apply Hisparent;trivial.
@@ -10200,10 +10199,10 @@ destruct Hparteq as [Hparteq | Hparteq].
      set(s' := {|currentPartition := _|}) in *. 
    rewrite Hchildrennil in *.
    now contradict Hp2.
-   - assert(Hparent : getParent child
+   - assert(Hparent : StateLib.getParent child
   (add ptRefChildFromSh1 (StateLib.getIndexOfAddr descChild fstLevel)
      (VE {| pd := true; va := va entry |}) (memory s) beqPage beqIndex) =  
-     getParent child(memory s) ).
+     StateLib.getParent child(memory s) ).
      apply getParentAddDerivation with entry;trivial.
      rewrite Hparent.  
     assert(Hphynotchild : ~ In phyDescChild (getChildren currentPart s)).
@@ -11808,9 +11807,9 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     assert( currentShadow1  =sh1).
     { apply getSh1NextEntryIsPPEq with (currentPartition s) s;trivial. }
     subst sh1.
-    assert(Hor : checkVAddrsEqualityWOOffset nbLevel va descChild level = true \/
-    checkVAddrsEqualityWOOffset nbLevel va descChild level = false).
-    { destruct (checkVAddrsEqualityWOOffset nbLevel va descChild level).
+    assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level = true \/
+    StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level = false).
+    { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level).
       left;trivial.
       right;trivial. }
     destruct Hor as [Hor | Hor].
@@ -12358,9 +12357,9 @@ assert(Hcurparteq : (currentPartition s) = parent  \/
     assert( currentShadow1  =sh1).
     { apply getSh1NextEntryIsPPEq with (currentPartition s) s;trivial. }
     subst sh1.
-    assert(Hor : checkVAddrsEqualityWOOffset nbLevel va descChild level = true \/
-    checkVAddrsEqualityWOOffset nbLevel va descChild level = false).
-    { destruct (checkVAddrsEqualityWOOffset nbLevel va descChild level).
+    assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level = true \/
+    StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level = false).
+    { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel va descChild level).
       left;trivial.
       right;trivial. }
     destruct Hor as [Hor | Hor].
@@ -13520,16 +13519,16 @@ kernelDataIsolation s ->
 verticalSharing s ->
 consistency s ->
 Some level = StateLib.getNbLevel ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild pdChild level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel descChild list level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel pdChild list level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 list level ->
-false = checkVAddrsEqualityWOOffset nbLevel shadow2 list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild pdChild level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 list level ->
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow2 list level ->
 (Nat.eqb Kidx (nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex)) = false ->
 (Nat.eqb Kidx (nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex)) = false ->
 (Nat.eqb Kidx (nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex)) = false ->
@@ -13819,7 +13818,7 @@ Qed.
 
  Lemma getTableAddrRootEqOffset descChild va1 part table s idxroot:
 (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx) -> 
-checkVAddrsEqualityWOOffset nbLevel descChild va1
+StateLib.checkVAddrsEqualityWOOffset nbLevel descChild va1
           (CLevel (nbLevel - 1)) = true -> 
  getTableAddrRoot table idxroot part descChild s -> 
  getTableAddrRoot table idxroot part va1 s.
@@ -13879,16 +13878,16 @@ kernelDataIsolation s /\
 verticalSharing s /\
 consistency s /\
 Some level = StateLib.getNbLevel /\
-false = checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
-false = checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel descChild list level /\
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
-false = checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel pdChild list level /\
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
-false = checkVAddrsEqualityWOOffset nbLevel shadow1 list level /\
-false = checkVAddrsEqualityWOOffset nbLevel shadow2 list level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild pdChild level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow1 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel descChild list level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow1 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel pdChild list level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 list level /\
+false = StateLib.checkVAddrsEqualityWOOffset nbLevel shadow2 list level /\
 (Kidx =? nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex) = false /\
 (Kidx =? nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex) = false /\
 (Kidx =? nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex) = false /\
@@ -14122,7 +14121,7 @@ assert(Hphynotchild : ~ In phyDescChild (getChildren  (currentPartition s) s)).
       right.
       unfold checkChild.
       rewrite nextEntryIsPPgetFstShadow in *.
-      assert(Hfstsh1 : getFstShadow (currentPartition s) (memory s) = Some currentShadow1).
+      assert(Hfstsh1 : StateLib.getFstShadow (currentPartition s) (memory s) = Some currentShadow1).
       trivial. 
       rewrite Hfstsh1.
       assert(Hind : getIndirection currentShadow1 descChild level (nbLevel - 1) s = Some ptRefChildFromSh1).

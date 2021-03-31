@@ -33,13 +33,14 @@
 (** * Summary
     This file contains the invariant of [writePhyEntry].
     We prove that this instruction preserves the isolation property  *)
-    Require Import Arith Lia Classical_Prop.
 
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.InternalLemmas2 Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants Lib GetTableAddr MapMMUPage PropagatedProperties WriteAccessible .
+Import Arith Bool Classical_Prop Coq.Logic.ProofIrrelevance Lia List.
 
-Require Import  Model.ADT Model.Hardware Core.Services Isolation
-Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties WriteAccessible MapMMUPage InternalLemmas2.
- Require Import Bool  Coq.Logic.ProofIrrelevance List.
  (* %%%%%%%%%%%%%%%%%%%%%%%%%%%%% InternalLemmas %%%%%%%%%%%%%%%%%%%%%%%% *)
 
 Definition nextIndirectionsOR (indirection nextIndirection phyPDChild phyMMUaddr phySh1Child phySh1addr phySh2Child phySh2addr: page) idxroot:=
@@ -1108,10 +1109,10 @@ destruct Horlst as [Horlst| Horlst].
 +
 
 
- assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
+ assert( Hnewvaddr: StateLib.checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
 { apply checkVAddrsEqualityWOOffsetFalseS;trivial.
 
- subst;trivial. }
+subst;trivial. }
 apply getIndirectionMapMMUPage11 with entry
 ;trivial.
 intros * Hi1 Hi2.
@@ -1212,9 +1213,9 @@ apply beq_nat_false in Hi2.
 unfold not;intros;subst;now contradict Hi2. }
 
 unfold not;intros;subst;now contradict Hnotinind.
-+ assert(checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
-checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
-{ destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
++ assert(StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
+StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
+{ destruct (StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
   left;trivial.
   right;trivial. }
 destruct H.
@@ -1991,7 +1992,7 @@ destruct Horlst as [Horlst| Horlst].
 +
 
 
- assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
+ assert( Hnewvaddr: StateLib.checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
 { apply checkVAddrsEqualityWOOffsetFalseS;trivial.
 
  subst;trivial. }
@@ -2095,9 +2096,9 @@ apply beq_nat_false in Hi2.
 unfold not;intros;subst;now contradict Hi2. }
 
 unfold not;intros;subst;now contradict Hnotinind.
-+ assert(checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
-checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
-{ destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
++ assert(StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
+StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
+{ destruct (StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
   left;trivial.
   right;trivial. }
 destruct H.
@@ -2577,9 +2578,9 @@ destruct Heqvars as (va1 & Hva1 & Hva11).
 exists va1.
 split;trivial.
 rewrite <- H.*)
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
+  assert(Hor :StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
+         StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
+  { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
   destruct Hor as [Hor | Hor].
   * (** Same virtual address : contradiction **)
     assert(Hfalse: getMappedPage indirection s vapg = NonePage).
@@ -2915,9 +2916,9 @@ destruct Heqvars as (va1 & Hva1 & Hva11).
 exists va1.
 split;trivial.
 rewrite <- H.*)
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
+  assert(Hor :StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
+         StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
+  { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
   destruct Hor as [Hor | Hor].
   * (** Same virtual address : contradiction **)
     assert(Heq:  getMappedPage indirection s' vapg =
@@ -3203,7 +3204,7 @@ destruct Horlst as [Horlst| Horlst].
 +
 
 
- assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vapg nbL = false ).
+ assert( Hnewvaddr: StateLib.checkVAddrsEqualityWOOffset (stop ) vaToPrepare vapg nbL = false ).
 { apply checkVAddrsEqualityWOOffsetFalseS;trivial.
 
  subst;trivial. }
@@ -3305,9 +3306,9 @@ apply beq_nat_false in Hi2.
 unfold not;intros;subst;now contradict Hi2. }
 
 unfold not;intros;subst;now contradict Hnotinind.
-+ assert(Horstop: checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = true \/
-checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = false) .
-{ destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL).
++ assert(Horstop: StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = true \/
+StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = false) .
+{ destruct (StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL).
   left;trivial.
   right;trivial. }
 destruct Horstop as [Hstopor| Hstopor].
@@ -3750,9 +3751,9 @@ destruct Heqvars as (va1 & Hva1 & Hva11).
 exists va1.
 split;trivial.
 rewrite <- H.*)
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
+  assert(Hor :StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = true \/
+         StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l = false).
+  { destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare vapg l);intuition. }
   destruct Hor as [Hor | Hor].
   * (** Same virtual address : contradiction **)
     assert(Heq:  getAccessibleMappedPage indirection s' vapg =
@@ -4051,7 +4052,7 @@ destruct Horlst as [Horlst| Horlst].
 +
 
 
- assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vapg nbL = false ).
+ assert( Hnewvaddr: StateLib.checkVAddrsEqualityWOOffset (stop ) vaToPrepare vapg nbL = false ).
 { apply checkVAddrsEqualityWOOffsetFalseS;trivial.
 
  subst;trivial. }
@@ -4153,9 +4154,9 @@ apply beq_nat_false in Hi2.
 unfold not;intros;subst;now contradict Hi2. }
 
 unfold not;intros;subst;now contradict Hnotinind.
-+ assert(Horstop: checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = true \/
-checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = false) .
-{ destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL).
++ assert(Horstop: StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = true \/
+StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL = false) .
+{ destruct (StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vapg nbL).
   left;trivial.
   right;trivial. }
 destruct Horstop as [Hstopor| Hstopor].
@@ -5004,8 +5005,8 @@ set(s':={|currentPartition:= _ |}) in *.
 intros Hor Hlookup Hpde Hconfdiff Hpd Hkey Hpart Hnbl.
 unfold checkChild.
 simpl.
-assert(Hgetsh1 : forall part, getFstShadow part (memory s) =
- getFstShadow part
+assert(Hgetsh1 : forall part, StateLib.getFstShadow part (memory s) =
+ StateLib.getFstShadow part
     (add indirection  idx
               (PE
                  {|
@@ -5300,8 +5301,8 @@ intros  Hlookup Hpde Hconfdiff Hcons1 Hcons2 Hcons3 Hpd Hkey Hroot Hpart Hl Hlev
 Hnextnotdef Hindnoteq.
 unfold checkChild in *.
 simpl.
-assert(Hgetsh1 : forall part, getFstShadow part (memory s) =
- getFstShadow part
+assert(Hgetsh1 : forall part, StateLib.getFstShadow part (memory s) =
+ StateLib.getFstShadow part
     (add indirection   (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
@@ -5824,7 +5825,7 @@ destruct Hor as [(Heq & HnbL) | (nbL & stop & HnbL & Hstop & Hindi & Hnotdef & H
     {  assert(Horlst: (StateLib.getIndexOfAddr vaToPrepare l) = (StateLib.getIndexOfAddr vavalue l) \/  
         (StateLib.getIndexOfAddr vaToPrepare l) <> (StateLib.getIndexOfAddr vavalue l) ) by apply indexDecOrNot.
     destruct Horlst as [Horlst| Horlst].
-    + assert( Hnewvaddr: checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
+    + assert( Hnewvaddr: StateLib.checkVAddrsEqualityWOOffset (stop ) vaToPrepare vavalue nbL = false ).
       { apply checkVAddrsEqualityWOOffsetFalseS;trivial.
         subst;trivial. }
       apply getIndirectionMapMMUPage11 with entry ;trivial.
@@ -5899,9 +5900,9 @@ destruct Hor as [(Heq & HnbL) | (nbL & stop & HnbL & Hstop & Hindi & Hnotdef & H
           apply beq_nat_false in Hi2.
           unfold not;intros;subst;now contradict Hi2. }
         unfold not;intros;subst;now contradict Hnotinind.
-  + assert(checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
-  checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
-  { destruct (checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
+  + assert(StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = true \/
+  StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL = false) .
+  { destruct (StateLib.checkVAddrsEqualityWOOffset stop vaToPrepare vavalue nbL).
   left;trivial.
   right;trivial. }
   destruct H.
@@ -6212,8 +6213,8 @@ destruct Hor as [Hor|Hor].
     apply checkChildAddIndirectionSamePartPdSh2 with sh2idx entry pd ;trivial.
   unfold or2;right;trivial.
 + subst. unfold checkChild.
-  assert(Hgetsh1 : forall part, getFstShadow part (memory s) =
-    getFstShadow part
+  assert(Hgetsh1 : forall part, StateLib.getFstShadow part (memory s) =
+    StateLib.getFstShadow part
     (add indirection  (StateLib.getIndexOfAddr vaToPrepare l)
               (PE
                  {|
@@ -6226,7 +6227,7 @@ destruct Hor as [Hor|Hor].
 { intros. symmetry.
   apply getFstShadowMapMMUPage with entry;trivial. }
 rewrite <- Hgetsh1. clear Hgetsh1.
-case_eq(getFstShadow partx (memory s));intros * Hsh1;trivial.
+case_eq(StateLib.getFstShadow partx (memory s));intros * Hsh1;trivial.
 assert(Hindeq: getIndirection p vavalue nbLgen (nbLevel - 1) s =
  getIndirection p vavalue nbLgen (nbLevel - 1) s').
 { apply getIndirectionMapMMUPage11 with entry
@@ -6966,9 +6967,9 @@ assert(Hinmmu: In indirection (getIndirections pdpart s)).
 { apply indirectionDescriptionInGetIndirections with partition vaToPrepare l idxroot;trivial.
 }
 case_eq ( StateLib.getPd partition (memory s)) ; [intros pd Hpd1|intros Hpd1];rewrite Hpd1 in *;trivial.
-case_eq ( getFstShadow partition (memory s)) ; [intros sh1 Hsh1|intros Hsh1];rewrite Hsh1 in *;trivial.
-case_eq ( getSndShadow partition (memory s) ) ; [intros sh2 Hsh2|intros Hsh2];rewrite Hsh2 in *;trivial.
-case_eq ( getConfigTablesLinkedList partition (memory s) ) ; [intros ll Hll|intros Hll];rewrite Hll in *;trivial.
+case_eq ( StateLib.getFstShadow partition (memory s)) ; [intros sh1 Hsh1|intros Hsh1];rewrite Hsh1 in *;trivial.
+case_eq ( StateLib.getSndShadow partition (memory s) ) ; [intros sh2 Hsh2|intros Hsh2];rewrite Hsh2 in *;trivial.
+case_eq ( StateLib.getConfigTablesLinkedList partition (memory s) ) ; [intros ll Hll|intros Hll];rewrite Hll in *;trivial.
 rewrite in_app_iff in *.
 destruct Hkey2 as [Hkey2 | Hkey2].
 + left.

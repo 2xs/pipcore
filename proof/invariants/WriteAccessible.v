@@ -33,11 +33,12 @@
 
 (** * Summary 
     This file contains required lemmas to prove the [writeAccessible] invariant *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware Model.ADT DependentTypeLemmas
-GetTableAddr Model.MAL Model.Lib Lib InternalLemmas PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Lia List Compare_dec EqNat.
-Import List.ListNotations.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.Lib Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr PropagatedProperties.
+Import List.ListNotations Coq.Logic.ProofIrrelevance Lia List Compare_dec EqNat.
 
 Lemma getPdUpdateUserFlag ( partition : page) entry s table idx flag:
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) ->
@@ -170,7 +171,7 @@ case_eq (beqPairs (table, idx) (partition, i) beqPage beqIndex); intros Hpairs.
 Qed.
 Lemma getParentUpdateUserFlag ( partition : page) entry s table idx flag:
 lookup table idx (memory s) beqPage beqIndex = Some (PE entry) ->
-getParent partition
+StateLib.getParent partition
   (add table idx
      (PE
         {|
@@ -179,7 +180,7 @@ getParent partition
         exec := exec entry;
         present := present entry;
         user := flag;
-        pa := pa entry |}) (memory s) beqPage beqIndex) = getParent partition (memory s).
+        pa := pa entry |}) (memory s) beqPage beqIndex) = StateLib.getParent partition (memory s).
 Proof. 
 simpl.
 intros Hentry. 
@@ -1967,7 +1968,7 @@ induction (nbPage +1).
 simpl; trivial.
 simpl.
 intros.
-unfold getParent.
+unfold StateLib.getParent.
 case_eq (StateLib.Index.succ PPRidx);trivial.
 intros.
 unfold StateLib.readPhysical. 
@@ -2067,9 +2068,9 @@ Hpd  (* Hfst *) Hdiff Hdis  Hlookup .
     unfold getConfigPagesAux.
     case_eq(StateLib.getPd partition0 (memory s));trivial;
     intros * Hpd0.
-    case_eq(getFstShadow partition0 (memory s) );trivial.
-    case_eq( getSndShadow partition0 (memory s) );trivial.
-    case_eq(getConfigTablesLinkedList partition0 (memory s) );trivial.
+    case_eq(StateLib.getFstShadow partition0 (memory s) );trivial.
+    case_eq(StateLib.getSndShadow partition0 (memory s) );trivial.
+    case_eq(StateLib.getConfigTablesLinkedList partition0 (memory s) );trivial.
     intros.
     simpl.
     (* right *)
@@ -2157,9 +2158,9 @@ Hpd  (* Hfst *) Hdiff Hdis  Hlookup .
     assert (In p (getConfigPagesAux partition s)).
     unfold getConfigPagesAux.
     rewrite Hpd.
-    case_eq(getFstShadow partition (memory s) );trivial.
-    case_eq( getSndShadow partition (memory s) );trivial.
-    case_eq(getConfigTablesLinkedList partition (memory s) );trivial.
+    case_eq(StateLib.getFstShadow partition (memory s) );trivial.
+    case_eq(StateLib.getSndShadow partition (memory s) );trivial.
+    case_eq(StateLib.getConfigTablesLinkedList partition (memory s) );trivial.
     intros.
     simpl.
     (* ri *)
@@ -2257,7 +2258,7 @@ intros  Haccess Hparent Hpde  Haccessinparent Hpp1 Hx1 Hx2 Hva1 Hlookup
  (* Hsh2 *) Hparentpart Hnotnull Hpp Hptsh2notnull.
 unfold accessibleChildPageIsAccessibleIntoParent in *.
 unfold isAccessibleMappedPageInParent in Haccessinparent.
-case_eq(getSndShadow descParent (memory s)); [intros sh2 Hsh2 | intros Hsh2];
+case_eq(StateLib.getSndShadow descParent (memory s)); [intros sh2 Hsh2 | intros Hsh2];
 rewrite Hsh2 in *; try now contradict Haccessinparent.
 assert(Hva : getVirtualAddressSh2 sh2 s va = Some vaInAncestor).
 { unfold getVirtualAddressSh2.
@@ -2502,7 +2503,7 @@ Qed.
 
  Lemma getAccessibleMappedPageUpdateUserFlagDiffrentVaddrs pdAncestor ptvaInAncestor
   vaInAncestor vaInParent flag entry level ancestor s:
-  checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = false -> 
+  StateLib.checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = false -> 
   noDupConfigPagesList s-> 
   In ancestor (getPartitions multiplexer s) -> 
   partitionDescriptorEntry s -> 
@@ -2734,14 +2735,14 @@ clear Haccess.
 unfold isAccessibleMappedPageInParent in *.
 simpl in *.
 rewrite getSndShadowUpdateUserFlag;trivial.
-case_eq(getSndShadow partition (memory s)); [intros sh2 Hsh2 | intros Hsh2];
+case_eq(StateLib.getSndShadow partition (memory s)); [intros sh2 Hsh2 | intros Hsh2];
 rewrite Hsh2 in *;
 try now contradict Hgoal.
 rewrite <- getVirtualAddressSh2UpdateUserFlag;trivial.
 rewrite getParentUpdateUserFlag;trivial.
-case_eq( getVirtualAddressSh2 sh2 s va); [intros vaInParent HvaInparent | intros HvaInparent]; 
+case_eq(StateLib.getVirtualAddressSh2 sh2 s va); [intros vaInParent HvaInparent | intros HvaInparent]; 
 rewrite HvaInparent in *;try now contradict Hgoal.
-case_eq(getParent partition (memory s));trivial;
+case_eq(StateLib.getParent partition (memory s));trivial;
 [intros parent Hparent | intros Hparent];rewrite Hparent in *;  try now contradict Hgoal.
 rewrite getPdUpdateUserFlag;trivial.
 case_eq(StateLib.getPd parent (memory s));[intros pdParent Hpdparent| intros Hpdparent];
@@ -2776,10 +2777,10 @@ destruct Hparteq as [Hparteq| Hparteq].
   destruct Hgetptancestor as (_ & Hgetptancestor).
   apply Hgetptancestor in Hpp.
   clear Hgetptancestor.
-  destruct Hpp as (nbL & HnbL & stop & Hstop & Hind).  
-  assert(Hvas : checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = true \/ 
-         checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = false). 
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level);intuition. }
+  destruct Hpp as (nbL & HnbL & stop & Hstop & Hind).
+  assert(Hvas : StateLib.checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = true \/ 
+                StateLib.checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level = false). 
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset nbLevel vaInAncestor vaInParent level);intuition. }
   destruct Hvas as  [Hvaseq | Hvasnoteq];subst.
   - assert(Hlastidx : (StateLib.getIndexOfAddr vaInAncestor fstLevel) = (StateLib.getIndexOfAddr vaInParent fstLevel)).
     { apply checkVAddrsEqualityWOOffsetTrue' with nbLevel level; trivial.
@@ -2919,9 +2920,9 @@ destruct Hparteq as [Hparteq| Hparteq].
            inversion Hlevel;subst;trivial.
          inversion HnbL;subst;trivial.
 
-       assert(Hor : checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1 = false \/
-       checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1 = true).
-       { destruct  ( checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1).
+       assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1 = false \/
+                    StateLib.checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1 = true).
+       { destruct  (StateLib.checkVAddrsEqualityWOOffset nbLevel va vaInDescParent nbL1).
           right;trivial.
           left;trivial. }
        destruct Hor as [Hor | Hor].
@@ -3186,7 +3187,7 @@ apply Haccess with pd ;trivial. }
 unfold isAccessibleMappedPageInParent in *.
 simpl in *.
 rewrite getSndShadowUpdateUserFlag;trivial.
-case_eq(getSndShadow partition (memory s)); [intros sh2 Hsh2 | intros Hsh2];
+case_eq(StateLib.getSndShadow partition (memory s)); [intros sh2 Hsh2 | intros Hsh2];
 rewrite Hsh2 in *;
 try now contradict Hgoal.
 unfold s'.
@@ -3194,7 +3195,7 @@ rewrite <- getVirtualAddressSh2UpdateUserFlag;trivial.
 rewrite getParentUpdateUserFlag;trivial.
 case_eq( getVirtualAddressSh2 sh2 s va); [intros vaInParent HvaInparent | intros HvaInparent]; 
 rewrite HvaInparent in *;try now contradict Hgoal.
-case_eq(getParent partition (memory s));trivial;
+case_eq(StateLib.getParent partition (memory s));trivial;
 [intros parent Hparent | intros Hparent];rewrite Hparent in *;  try now contradict Hgoal.
 rewrite getPdUpdateUserFlag;trivial.
 case_eq(StateLib.getPd parent (memory s));[intros pdParent Hpdparent| intros Hpdparent];
@@ -3233,9 +3234,9 @@ destruct Hparteq as [Hparteq| Hparteq].
   apply Hgetptancestor in Hcurpd.
   clear Hgetptancestor.
   destruct Hcurpd as (nbL & HnbL & stop & Hstop & Hind).  
-  assert(Hvas : checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level = true \/ 
-         checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level = false). 
-  { destruct (checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level);intuition. }
+  assert(Hvas : StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level = true \/ 
+                StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level = false). 
+  {   destruct (StateLib.checkVAddrsEqualityWOOffset nbLevel shadow1 vaInParent level);intuition. }
   destruct Hvas as  [Hvaseq | Hvasnoteq];subst.
   - (** The same virtual addresses into the same partition  : here we have a contradiction because 
          shadow1 is not derived into currentPart, in another words the associated physical address 
@@ -3438,7 +3439,7 @@ induction (nbPage + 1);
 simpl in *;trivial.
 intros.
 rewrite getParentUpdateUserFlag;trivial.
-case_eq(getParent currentPart (memory s));intros;rewrite H0 in *;try now contradict
+case_eq(StateLib.getParent currentPart (memory s));intros;rewrite H0 in *;try now contradict
 H. simpl in *.
 destruct H. 
 left;trivial.

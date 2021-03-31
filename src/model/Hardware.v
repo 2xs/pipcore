@@ -54,8 +54,8 @@
        We define some lemmas like "weaken" and "bindWP" to facilitate Hoare logic 
        and monad manipulation.
 *)
-Require Import FunctionalExtensionality Model.ADT Arith.
-
+Require Import Pip.Model.ADT.
+Require Import FunctionalExtensionality Arith.
 Record Pentry : Type:=
 {read :bool;
  write : bool ;

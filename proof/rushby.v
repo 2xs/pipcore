@@ -1,6 +1,12 @@
-Require Import Model.ADT Model.Hardware Core.Services Model.MMU Model.MAL List 
-StateLib Model.Lib Isolation InternalLemmas Classical_Prop Lia Consistency
-DependentTypeLemmas Core.Internal GetTableAddr Invariants EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MMU Pip.Model.MAL Pip.Model.Lib.
+Require Import Pip.Core.Services Pip.Core.Internal.
+
+Require Import Pip.Proof.StateLib Pip.Proof.Isolation Pip.Proof.InternalLemmas Pip.Proof.Consistency.
+Require Import Pip.Proof.DependentTypeLemmas.
+
+Require Import GetTableAddr Invariants.
+
+Require Import List Classical_Prop Lia EqNat.
 
 (* Definition writeUser (partition: page) (va : vaddr) (v : page) s:=
  match  StateLib.getPd partition (memory s), StateLib.getNbLevel  with 

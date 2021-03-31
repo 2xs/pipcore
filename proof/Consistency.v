@@ -35,8 +35,10 @@
 (** * Summary 
     This file contains the formalization of the consistency properties : 
 for each one we summarize the description of its definition *)
-Require Import Model.ADT Model.Hardware Model.MAL Model.Lib Lib Isolation 
-StateLib.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib.
+
+Require Import Pip.Proof.Lib Pip.Proof.Isolation Pip.Proof.StateLib.
+
 Require Import List Coq.Logic.ProofIrrelevance.
 Import List.ListNotations.
 

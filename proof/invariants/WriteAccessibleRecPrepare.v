@@ -33,11 +33,12 @@
 
 (** * Summary 
     This file contains required lemmas to prove the [writeAccessibleRec] invariants used to prove the prepare service *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions StateLib
-Model.Hardware Model.ADT Invariants  DependentTypeLemmas
-GetTableAddr Model.MAL Model.MALInternal Model.Lib Lib InternalLemmas WriteAccessible WriteAccessibleFalse
-PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Lia List EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL Pip.Model.MALInternal.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr Lib WriteAccessible WriteAccessibleFalse PropagatedProperties.
+Import Coq.Logic.ProofIrrelevance Lia List EqNat.
 Import List.ListNotations.
 (************************* MOVE into InternalLemmas ****************************)
 

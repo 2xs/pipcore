@@ -33,16 +33,20 @@
 (** * Summary 
     This file contains the invariant of [createPartition]. 
     We prove that this PIP service preserves the isolation property *)
-Require Import Model.ADT Model.Hardware Core.Services Isolation
-Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr WriteAccessible WritePhyEntry 
-PropagatedProperties WriteAccessibleRec
-InitConfigPagesList InitPEntryTable
- UpdateMappedPageContent
-UpdatePartitionDescriptor PropagatedProperties UpdateShadow1Structure
-InitFstShadow InitSndShadow   UpdatePDFlagTrue.
- Require Import Lia Bool  Coq.Logic.ProofIrrelevance List EqNat Compare_dec.
-      Lemma andPreAndPost :
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL Pip.Model.Lib.
+Require Import Pip.Core.Services.
+
+Require Import Pip.Proof.WeakestPreconditions Pip.Proof.StateLib Pip.Proof.InternalLemmas
+               Pip.Proof.DependentTypeLemmas.
+
+Require Import Isolation Consistency Invariants GetTableAddr WriteAccessible WritePhyEntry
+               PropagatedProperties WriteAccessibleRec InitConfigPagesList InitPEntryTable
+               UpdateMappedPageContent UpdatePartitionDescriptor PropagatedProperties
+               UpdateShadow1Structure InitFstShadow InitSndShadow UpdatePDFlagTrue.
+
+Require Import Lia Bool  Coq.Logic.ProofIrrelevance List EqNat Compare_dec.
+
+Lemma andPreAndPost :
  forall (A : Type) (P: state -> Prop) 
  (Q1 Q2  :  state -> Prop) (m : LLI A),
 {{fun s => P s /\ Q1 s}} m {{fun _ => Q1}} -> 
@@ -81,7 +85,7 @@ Lemma writeKernelPhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit
   currentPartition := currentPartition s;
   memory := add table idx
               (PE {| read := r; write := w; exec := e; present := p; user := u; pa := addr |})
-              (memory s) beqPage beqIndex |} }} writePhyEntry table idx addr p u r w e  {{P}}.
+              (memory s) beqPage beqIndex |} }} MAL.writePhyEntry table idx addr p u r w e  {{P}}.
 Proof.
 unfold writeKernelPhyEntry.
 eapply weaken.
@@ -1399,7 +1403,7 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *; trivial. 
       assert (Hkernel : kernelDataIsolation s) by intuition.
       unfold kernelDataIsolation in Hkernel.
-      unfold disjoint in Hkernel.
+      unfold Lib.disjoint in Hkernel.
       apply Hkernel with (currentPartition s); trivial.
       intuition.
       apply physicalPageIsAccessible with ptPDChild pdChild idxPDChild 
@@ -1442,7 +1446,7 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *; trivial.
       assert (Hkernel : kernelDataIsolation s) by intuition.
       unfold kernelDataIsolation in Hkernel.
-      unfold disjoint in Hkernel.
+      unfold Lib.disjoint in Hkernel.
       apply Hkernel with (currentPartition s); trivial.
       intuition.
       apply physicalPageIsAccessible with ptSh1Child shadow1 idxSh1 accessibleSh1
@@ -1483,7 +1487,7 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *; trivial.
       assert (Hkernel : kernelDataIsolation s) by intuition.
       unfold kernelDataIsolation in Hkernel.
-      unfold disjoint in Hkernel.
+      unfold Lib.disjoint in Hkernel.
       apply Hkernel with (currentPartition s); trivial.
       intuition.
       apply physicalPageIsAccessible with ptSh2Child shadow2 idxSh2 accessibleSh2
@@ -1525,7 +1529,7 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *; trivial.
       assert (Hkernel : kernelDataIsolation s) by intuition.
       unfold kernelDataIsolation in Hkernel.
-      unfold disjoint in Hkernel.
+      unfold Lib.disjoint in Hkernel.
       apply Hkernel with (currentPartition s); trivial.
       intuition.
       apply physicalPageIsAccessible with ptConfigPagesList list idxConfigPagesList 

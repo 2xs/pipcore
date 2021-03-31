@@ -33,7 +33,8 @@
 
 (** * Summary 
       This file contains some generic lemmas used by invariants **)
-Require Import List Coq.Logic.Classical_Prop Model.Lib.
+Require Import Pip.Model.Lib.
+Import List Coq.Logic.Classical_Prop.
 Import List.ListNotations Lia.
 
 Lemma NoDupSplit (A: Type) :

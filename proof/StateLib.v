@@ -33,9 +33,11 @@
 
 (** * Summary 
     This file contains required functions to define properties about a given state *) 
-Require Import Model.ADT Model.Hardware Model.Lib Model.MAL Bool.
-Require Import ProofIrrelevance  Coq.Program.Equality Arith List Lia.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+
+Require Import ProofIrrelevance Coq.Program.Equality Arith List Lia Bool.
 Import List.ListNotations.
+
 Module Index.
 Definition geb (a b : index) : bool := b <=? a.
 Definition leb (a b : index) : bool := a <=? b.

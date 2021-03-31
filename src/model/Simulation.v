@@ -56,7 +56,7 @@
     Step 7 "deletePartition" : The multiplexer deletes the child and gets 
             all used pages back *) 
 
-Require Import List Core.Services Model.Hardware Model.ADT Model.MALInternal Model.MAL Model.IAL.
+Require Import List Pip.Core.Services Pip.Model.Hardware Pip.Model.ADT Pip.Model.MALInternal Pip.Model.MAL Pip.Model.IAL.
 Import List.ListNotations.
 
 Definition K := 10.

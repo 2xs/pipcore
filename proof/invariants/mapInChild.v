@@ -31,9 +31,11 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import Model.ADT Model.Hardware Core.Services Isolation 
-Consistency WeakestPreconditions Invariants StateLib Model.Lib
- Model.MAL GetTableAddr InternalLemmas DependentTypeLemmas.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr.
 Require Import Bool List EqNat.
 
 (** * Summary 

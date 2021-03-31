@@ -33,17 +33,14 @@
 (** * Summary
     This file contains the invariant of [writePhyEntry].
     We prove that this instruction preserves the isolation property  *)
-    Require Import Arith Lia Classical_Prop.
 
-
-
-Require Import  Model.ADT Model.Hardware Core.Services Isolation
-Consistency Invariants WeakestPreconditions Model.Lib StateLib
-Model.MAL Lib InternalLemmas DependentTypeLemmas GetTableAddr PropagatedProperties 
-WriteAccessible MapMMUPage InternalLemmas2 WritePhyEntryPrepare.
- Require Import Bool  Coq.Logic.ProofIrrelevance List.
-Import ListNotations.
- (******************************************* propagatedProperties ***************************)
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.InternalLemmas2 Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr Lib MapMMUPage PropagatedProperties WriteAccessible WritePhyEntryPrepare.
+Import Arith Bool Classical_Prop Coq.Logic.ProofIrrelevance Lia List ListNotations.
+(******************************************* propagatedProperties ***************************)
 
 
 (************************************************************************)   
@@ -3334,8 +3331,8 @@ Some level = StateLib.getNbLevel ->
 sstop <= level ->
 pd <> defaultPage ->
 getIndirection pd vaToPrepare level sstop s = Some indirection ->
-sstop > 0 -> 
-checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false ->
+sstop > 0 ->
+StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false ->
 stop >= sstop ->
 indirection0 <> defaultPage ->
 getIndirection pd va level stop s' = Some indirection0 ->
@@ -3604,9 +3601,9 @@ destruct Heqmid as [Heqmid|Heqmid].
   symmetry.
   apply getIndirectionEqAddIndirectionIndirectionIsMiddle with entry
   sstop indirection0;trivial.
-  assert(Hori: checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
-  checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
-  { destruct (checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
+  assert(Hori: StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
+               StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
     left;trivial.
     right;trivial. }
   destruct Hori;trivial.
@@ -4673,9 +4670,9 @@ destruct Heqmid as [Heqmid|Heqmid].
   symmetry.
   apply getIndirectionEqAddIndirectionIndirectionIsMiddle with entry
   sstop indirection0;trivial.
-  assert(Hori: checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
-  checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
-  { destruct (checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
+  assert(Hori: StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
+               StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
     left;trivial.
     right;trivial. }
   destruct Hori;trivial.
@@ -4946,9 +4943,9 @@ destruct Heqmid as [Heqmid|Heqmid].
   symmetry.
   apply getIndirectionEqAddIndirectionIndirectionIsMiddle with entry
   sstop indirection0;trivial.
-  assert(Hori: checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
-  checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
-  { destruct (checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
+  assert(Hori: StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = true \/
+               StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset sstop vaToPrepare va level);simpl.
     left;trivial.
     right;trivial. }
   destruct Hori;trivial.
@@ -5657,9 +5654,9 @@ rewrite <- H.*)
 induction valist;simpl in *;trivial.
 case_eq(getMappedPage indirection s a );intros * Heq1.
 * case_eq(getMappedPage indirection s' a );intros * Heq2. 
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
+  assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
+               StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
   destruct Hor as [Hor | Hor].
   ** (** Same virtual address : contradiction **)
     assert(Hfalse: getMappedPage indirection s a = NonePage).
@@ -5699,9 +5696,9 @@ case_eq(getMappedPage indirection s a );intros * Heq1.
      rewrite Hkeymap in Heq2.
      inversion Heq2;subst.
   * case_eq(getMappedPage indirection s' a );intros * Heq2;trivial.
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
+  assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
+               StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
   destruct Hor as [Hor | Hor].
   ** (** Same virtual address : contradiction **)
     assert(Hfalse: getMappedPage indirection s a = NonePage).
@@ -5729,9 +5726,9 @@ case_eq(getMappedPage indirection s a );intros * Heq1.
     rewrite Hkeymap in Heq1.
     inversion Heq1;subst.
   * case_eq(getMappedPage indirection s' a );intros * Heq2;trivial.
-  assert(Hor :checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
-         checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
-  { destruct (checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
+  assert(Hor : StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = true \/
+               StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l = false).
+  { destruct ( StateLib.checkVAddrsEqualityWOOffset nbLevel vaToPrepare a l);intuition. }
   destruct Hor as [Hor | Hor].
   ** (** Same virtual address : contradiction **)
     assert(Hkeymap: getMappedPage indirection s a = SomePage p).  
@@ -6851,7 +6848,7 @@ Lemma writePhyEntryAddIndirection ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepa
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart
      trdVA nextVA vaToPrepare sndVA fstVA nbLgen l idxFstVA idxSndVA idxTrdVA zeroI lpred
      fstLL LLChildphy lastLLTable (CIndex (CIndex (CIndex (CIndex 3 - 1) - 1) - 1))  true}}
-  writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true
+  MAL.writePhyEntry phyPDChild idxToPrepare phyMMUaddr true true true true true
  {{ fun _ s =>  insertEntryIntoLLPC s ptMMUTrdVA phySh2addr phySh1addr phyMMUaddr ptMMUFstVA
      phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD ptSh1TrdVA
      ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child currentPart

@@ -33,10 +33,12 @@
 
 (**  * Summary 
     In this file we formalize and prove all invariants of the MAL and MALInternal functions *)
-Require Import Model.ADT Model.Hardware Core.Services Model.MAL Core.Internal  Isolation Consistency Model.Lib StateLib Model.IAL DependentTypeLemmas List Bool .
-Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat.
-
-Require WeakestPreconditions.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.IAL Pip.Model.Lib
+               Pip.Model.MAL.
+Require Import Pip.Core.Internal Pip.Core.Services.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat List Bool.
 
 Module WP := WeakestPreconditions.
 Lemma getMultiplexer (P : state -> Prop) :
@@ -475,7 +477,7 @@ split.
 destruct l.
 destruct va.
 simpl. assumption.
-unfold getIndexOfAddr.
+unfold StateLib.getIndexOfAddr.
 trivial.
 Qed.
 
@@ -1211,7 +1213,7 @@ simpl; trivial.
 Qed.
 
 Lemma checkIndexPropertyLTB (userIndex : userValue) (P : state -> Prop) :
-{{ fun s => P s }} checkIndexPropertyLTB userIndex {{ fun b s => P s /\ (Nat.ltb userIndex tableSize) = b}}.
+{{ fun s => P s }} IAL.checkIndexPropertyLTB userIndex {{ fun b s => (P s /\ (Nat.ltb userIndex tableSize) = b)}}.
 Proof.
 eapply WP.weaken.
 apply WP.checkIndexPropertyLTB.
@@ -1220,7 +1222,7 @@ intros. split;trivial.
 Qed.
 
 Lemma userValueToIndex (userIndex : userValue) (P : state -> Prop) :
-{{ fun s => P s /\ userIndex < tableSize}} userValueToIndex userIndex {{ fun b s => P s /\ b = (CIndex userIndex)}}.
+{{ fun s => P s /\ userIndex < tableSize}} IAL.userValueToIndex userIndex {{ fun b s => P s /\ b = (CIndex userIndex)}}.
 Proof.
 eapply WP.weaken.
 apply WP.userValueToIndex.
@@ -1231,7 +1233,7 @@ repeat split;trivial.
 Qed.
 
 Lemma readInterruptMask (calleeVidt : page) (P : state -> Prop) :
-{{ fun s => P s}} readInterruptMask calleeVidt {{ fun _ s => P s}}.
+{{ fun s => P s}} IAL.readInterruptMask calleeVidt {{ fun _ s => P s}}.
 Proof.
 eapply WP.weaken.
 apply WP.readInterruptMask.
@@ -1241,7 +1243,7 @@ Qed.
 
 Lemma isInterruptMasked (interruptMask : interruptMask) (targetInterrupt : index) (P : state -> Prop)  :
 {{fun s => P s}}
-isInterruptMasked interruptMask targetInterrupt
+IAL.isInterruptMasked interruptMask targetInterrupt
 {{fun _ s => P s}}.
 Proof.
 eapply WP.weaken.
@@ -1278,7 +1280,7 @@ Qed.
 
 Lemma firstVAddrGreaterThanSecond (first second : vaddr) (P : state -> Prop):
 {{fun s => P s}}
-firstVAddrGreaterThanSecond first second
+IAL.firstVAddrGreaterThanSecond first second
 {{fun _ s => P s}}.
 Proof.
 eapply WP.weaken.
@@ -1290,7 +1292,7 @@ Qed.
 Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
 (P : state -> Prop) :
 {{fun s => P s}}
-writeContext callingContextAddr contextSaveAddr flagsOnWake
+IAL.writeContext callingContextAddr contextSaveAddr flagsOnWake
 {{fun _ s => P s}}.
 Proof.
 eapply WP.weaken.
@@ -1302,7 +1304,7 @@ Qed.
 Lemma setInterruptMask (vidt : page) (mask : interruptMask)
 (P : state -> Prop) :
 {{fun s => P s}}
-setInterruptMask vidt mask
+IAL.setInterruptMask vidt mask
 {{fun _ s => P s}}.
 Proof.
 eapply WP.weaken.

@@ -34,8 +34,8 @@
 (** * Summary 
      Memory Abstraction Layer : is the interface exposed to services to read and
     write data into physical memory  *)
-Require Export Model.MALInternal. 
-Require Import Model.ADT Model.Hardware Model.Lib Model.MMU.
+Require Export Pip.Model.MALInternal.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MMU.
 Require Import Arith Bool NPeano List Lia.
 
 (** Memory access : read and write functions for each data type "vaddr", "page", 

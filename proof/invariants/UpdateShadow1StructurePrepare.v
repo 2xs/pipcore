@@ -35,11 +35,12 @@
     This file contains required lemmas to prove that updating the first shadow 
     structure preserves isolation and consistency properties (prepare) *)
 
-Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware  Model.MAL 
-DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties UpdateMappedPageContent
-UpdateShadow1Structure.
-Require Import Coq.Logic.ProofIrrelevance List Bool. 
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants PropagatedProperties UpdateMappedPageContent UpdateShadow1Structure.
+Import Bool Coq.Logic.ProofIrrelevance List.
 
 (************************************To MOVE******************************************)
 
@@ -268,7 +269,7 @@ intuition;subst;trivial;simpl.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesAddDerivation with v0;trivial.
-+ assert(Hi: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
++ assert(Hi: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hi.
   apply getConfigTablesLinkedListAddDerivation with v0;trivial.
 + admit.
@@ -291,9 +292,9 @@ Lemma writeVirEntryFstVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr }} 
-  
-  writeVirEntry ptSh1FstVA idxFstVA fstVA 
-  
+
+  MAL.writeVirEntry ptSh1FstVA idxFstVA fstVA
+
   {{fun _ s  => 
    propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -371,9 +372,8 @@ Lemma writeVirEntrySndVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
  /\   isWellFormedTables phyMMUaddr phySh1addr phySh2addr lpred s
  /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
  /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr    
- /\  isEntryVA ptSh1FstVA idxFstVA fstVA s }} 
-  writeVirEntry ptSh1SndVA idxSndVA sndVA 
-    
+ /\  isEntryVA ptSh1FstVA idxFstVA fstVA s }}
+  MAL.writeVirEntry ptSh1SndVA idxSndVA sndVA
   {{fun _ s  => 
    propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -459,9 +459,9 @@ Lemma writeVirEntryTrdVA ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUF
    /\ newIndirectionsAreNotAccessible s phyMMUaddr phySh1addr phySh2addr
    /\ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phySh2addr
    /\ isEntryVA  ptSh1FstVA idxFstVA fstVA s
-   /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}} 
-  writeVirEntry ptSh1TrdVA idxTrdVA trdVA 
-    
+   /\ isEntryVA  ptSh1SndVA idxSndVA sndVA s}}
+  MAL.writeVirEntry ptSh1TrdVA idxTrdVA trdVA
+
   {{fun _ s  => 
    propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild
       currentShadow2 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child

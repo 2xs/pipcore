@@ -33,11 +33,12 @@
 
 (** * Summary 
     This file contains required lemmas to prove the [writeAccessible] invariant *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware Model.ADT DependentTypeLemmas
-GetTableAddr Model.MAL Model.Lib Lib InternalLemmas PropagatedProperties WriteAccessible.
-Require Import Coq.Logic.ProofIrrelevance List.
-Import List.ListNotations.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants GetTableAddr Lib PropagatedProperties WriteAccessible.
+Import Coq.Logic.ProofIrrelevance List List.ListNotations.
 (*************************Move into InternalLemmas ************************)
 (********************************************************)
 (*************************Move into PropagatedProperties ************************)
@@ -1264,7 +1265,7 @@ descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLg
 idxFstVA idxSndVA idxTrdVA zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
- writeAccessible ptMMUFstVA idxFstVA false 
+ MAL.writeAccessible ptMMUFstVA idxFstVA false 
 {{  fun _ s => propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable  s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
@@ -1366,7 +1367,7 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
++ assert(Hconf: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hconf.
   apply getConfigTablesLinkedListUpdateUserFlag;trivial.
 + assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
@@ -1410,7 +1411,7 @@ descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLg
 idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
- writeAccessible ptMMUSndVA idxSndVA false 
+MAL.writeAccessible ptMMUSndVA idxSndVA false 
 {{  fun _ s => propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
@@ -1509,7 +1510,7 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
++ assert(Hconf: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hconf.
   apply getConfigTablesLinkedListUpdateUserFlag;trivial. 
 + assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
@@ -1554,7 +1555,7 @@ descChildphy phySh1Child currentPart trdVA  nextVA  vaToPrepare sndVA fstVA nbLg
 idxFstVA idxSndVA idxTrdVA  zeroI minFI
 /\ isPartitionFalseAll s ptSh1FstVA ptSh1TrdVA ptSh1SndVA idxFstVA idxSndVA idxTrdVA
 }}
- writeAccessible ptMMUTrdVA idxTrdVA false 
+MAL.writeAccessible ptMMUTrdVA idxTrdVA false 
 {{  fun _ s => propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable s ptMMUTrdVA phySh2addr phySh1addr
 indMMUToPrepare ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 
 phySh2Child currentPD ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 
@@ -1653,7 +1654,7 @@ intuition;subst;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
++ assert(Hconf: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hconf.
   apply getConfigTablesLinkedListUpdateUserFlag;trivial.
 + assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).
@@ -1689,7 +1690,7 @@ Lemma writeAccessiblePropagateWriteAccessibleRecProperty pg currentPart idxToUpd
 {{ fun s => preconditionToPropagateWriteAccessibleRecProperty s ptToUpdate vaToUpdate idxToUpdate
 /\ (forall partition : page, In partition (getAncestors currentPart s) -> ~ In pg (getAccessibleMappedPages partition s))
 }}
- writeAccessible ptToUpdate idxToUpdate false 
+MAL.writeAccessible ptToUpdate idxToUpdate false 
 {{  fun _ s =>
  (forall partition : page, In partition (getAncestors currentPart s) -> ~ In pg (getAccessibleMappedPages partition s)) 
  }}.
@@ -2047,7 +2048,7 @@ apply childAncestorConfigTablesAreDifferent with s
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
 + apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateUserFlag;trivial.
-+ assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
++ assert(Hconf: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some LLroot) by trivial.
   rewrite <- Hconf.
   apply getConfigTablesLinkedListUpdateUserFlag;trivial.
 + fold s'. assert(Hconf: getLLPages LLroot s (nbPage + 1) = getLLPages LLroot s' (nbPage + 1)).

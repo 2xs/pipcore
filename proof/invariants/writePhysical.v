@@ -34,9 +34,11 @@
 (** * Summary 
     This file contains required lemmas to prove that updating the second shadow 
     structure preserves isolation and consistency properties  *)
-Require Import Model.ADT Core.Internal Isolation Consistency WeakestPreconditions 
-Invariants StateLib Model.Hardware  Model.MAL Model.ADT
-DependentTypeLemmas Model.Lib InternalLemmas PropagatedProperties.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants PropagatedProperties.
 Require Import Coq.Logic.ProofIrrelevance Lia List Bool Logic.Classical_Prop Compare_dec.
 
 (***************** To move ************************)
@@ -48,7 +50,7 @@ Lemma inGetTrdShadowInConfigPagesAux partition LL table s:
 partitionDescriptorEntry s ->
 In partition (getPartitions multiplexer s) ->
 In table (getLLPages LL s (nbPage + 1)) ->
-getConfigTablesLinkedList partition (memory s) = Some LL  ->
+StateLib.getConfigTablesLinkedList partition (memory s) = Some LL  ->
 In table (getConfigPagesAux  partition s).
 Proof.
 intros Hpde Hgetparts Hconfig Hpd .
@@ -67,7 +69,7 @@ Lemma inGetTrdShadowInConfigPages partition LL table s:
 partitionDescriptorEntry s ->
 In partition (getPartitions multiplexer s) ->
 In table (getLLPages LL s (nbPage + 1)) ->
-getConfigTablesLinkedList partition (memory s) = Some LL  ->
+StateLib.getConfigTablesLinkedList partition (memory s) = Some LL  ->
 In table (getConfigPages  partition s).
 Proof.
 intros Hpde Hgetparts Hconfig Hpd .
@@ -77,7 +79,7 @@ apply inGetTrdShadowInConfigPagesAux with LL;trivial.
 Qed.
 Lemma LLtableNotPartition s LLtable partition LLroot :
 In LLtable (getLLPages LLroot s (nbPage + 1))->
-getConfigTablesLinkedList partition (memory s) = Some LLroot ->
+StateLib.getConfigTablesLinkedList partition (memory s) = Some LLroot ->
 In partition (getPartitions multiplexer s) ->
 In LLtable (getConfigPages partition s) ->
 configTablesAreDifferent s ->
@@ -738,12 +740,12 @@ intro.
 intros Hentry.
 unfold checkChild.
 simpl.
-assert(Hsh1 : getFstShadow part
+assert(Hsh1 : StateLib.getFstShadow part
     (add table idx (PP x) (memory s) beqPage beqIndex)=
-    getFstShadow part (memory s)). 
+    StateLib.getFstShadow part (memory s)). 
 { apply getFstShadowUpdateLLCouplePPVA with entry; trivial. }
 rewrite Hsh1.
-destruct(getFstShadow part (memory s) );trivial.
+destruct(StateLib.getFstShadow part (memory s) );trivial.
 assert(Hind : getIndirection p va l (nbLevel - 1)
     {|
     currentPartition := currentPartition s;
@@ -1729,13 +1731,13 @@ simpl.
 revert partition. 
 induction (nbPage + 1);trivial.
 simpl;intros.
-assert(Hparent : getParent partition
+assert(Hparent : StateLib.getParent partition
     (add table idx (PP x) (memory s) beqPage
-       beqIndex) = getParent partition (memory s)).
+       beqIndex) = StateLib.getParent partition (memory s)).
 {  apply getParentUpdateLLCouplePPVA with entry;trivial.
 intuition. }
 rewrite Hparent.
-destruct (getParent partition (memory s) );trivial.
+destruct (StateLib.getParent partition (memory s) );trivial.
 f_equal.
 simpl in *.
 apply not_or_and in H0.
@@ -1848,9 +1850,9 @@ getPartitions multiplexer {|
 apply getPartitionsUpdateLLCouplePPVA with entry; trivial.
 rewrite <- Hpartitions in *; clear Hpartitions;trivial.
 simpl in *.
-assert(Hparent : getParent partition
+assert(Hparent : StateLib.getParent partition
     (add table idx (PP vaInCurrentPartition) (memory s) beqPage
-       beqIndex) = getParent partition (memory s)).
+       beqIndex) = StateLib.getParent partition (memory s)).
 { apply getParentUpdateLLCouplePPVA with entry;trivial. contradict Hkey;subst;trivial.  }
 assert(Hchildren : forall part, In part (getPartitions multiplexer s) 
     -> part <> table -> getChildren part
@@ -1981,7 +1983,7 @@ StateLib.getFstShadow parent
 { symmetry. apply getFstShadowUpdateLLCouplePPVA with entry;trivial.
 contradict Hkey;subst;trivial.   }
 rewrite <- Hsh1 in *.
-destruct (getFstShadow parent (memory s));trivial.
+destruct (StateLib.getFstShadow parent (memory s));trivial.
 assert(Hgetvir1 : getVirtualAddressSh1 p s va  =
 getVirtualAddressSh1 p {|
     currentPartition := currentPartition s;
@@ -2070,9 +2072,9 @@ unfold multiplexerWithoutParent.
 intros; 
 simpl.
 
-assert(Hparent : getParent multiplexer
+assert(Hparent : StateLib.getParent multiplexer
     (add table idx (PP vaInCurrentPartition) (memory s) beqPage
-       beqIndex) = getParent multiplexer (memory s)).
+       beqIndex) = StateLib.getParent multiplexer (memory s)).
 { apply getParentUpdateLLCouplePPVA with entry;trivial. 
   unfold getPartitions in *.
   destruct nbPage;simpl in *;  apply not_or_and in H;  intuition.
@@ -2116,9 +2118,9 @@ assert(Hchildren : forall part, In part (getPartitions multiplexer s)
 symmetry.
 apply getChildrenUpdateLLCouplePPVA with entry;trivial. } 
 rewrite Hchildren in *;trivial.
-assert(Hparent : getParent partition
+assert(Hparent : StateLib.getParent partition
     (add table idx (PP vaInCurrentPartition) (memory s) beqPage
-       beqIndex) = getParent partition (memory s)).
+       beqIndex) = StateLib.getParent partition (memory s)).
 { apply getParentUpdateLLCouplePPVA with entry;trivial.
 assert(Hpart: In partition (getPartitions multiplexer s)).
 apply childrenPartitionInPartitionList with parent;trivial.
@@ -2396,22 +2398,22 @@ Proof.
 set(s':= {| currentPartition := _ |}).
 intros.
 unfold isAccessibleMappedPageInParent.
-assert(Hsh2s:getSndShadow parent (memory s) =
-getSndShadow parent (memory s')).
+assert(Hsh2s: StateLib.getSndShadow parent (memory s) =
+StateLib.getSndShadow parent (memory s')).
 { unfold s';simpl;symmetry;
    apply getSndShadowUpdateLLCouplePPVA with entry;trivial. }
 rewrite <- Hsh2s. 
-case_eq(getSndShadow parent (memory s)); [intros sh2 Hsh2|];trivial.
+case_eq(StateLib.getSndShadow parent (memory s)); [intros sh2 Hsh2|];trivial.
 assert(Hgetvir2:  getVirtualAddressSh2 sh2 s va =  getVirtualAddressSh2 sh2 s' va ).
 apply getVirtualAddressSh2UpdateLLCouplePPVA with entry;trivial.
 rewrite <- Hgetvir2.
 case_eq(getVirtualAddressSh2 sh2 s va);[intros vaInParent HvaInParent |];trivial.
-assert(Hparents:getParent parent (memory s) =
-getParent parent (memory s')).
+assert(Hparents: StateLib.getParent parent (memory s) =
+StateLib.getParent parent (memory s')).
 { unfold s';simpl;symmetry;
    apply getParentUpdateLLCouplePPVA with entry;trivial. }
 rewrite <- Hparents.
-case_eq(   getParent parent (memory s));[intros ancestor Hancestor|];trivial.
+case_eq(StateLib.getParent parent (memory s));[intros ancestor Hancestor|];trivial.
 assert(Hancestors:StateLib.getPd ancestor (memory s) =
 StateLib.getPd ancestor (memory s')).
 { unfold s';simpl;symmetry;
@@ -2750,7 +2752,7 @@ set(s':=  {|
      currentPartition := _|}).
 assert (HtableinLL: In newLastLLable (getLLPages fstLL s (nbPage + 1))).
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.
-assert(HLL: getConfigTablesLinkedList descChildphy (memory s) = Some fstLL).
+assert(HLL: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some fstLL).
 unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition.
 assert(Hchildpart:In descChildphy (getPartitions multiplexer s)) by (unfold insertEntryIntoLLPC, 
                         propagatedPropertiesPrepare in *;intuition).
@@ -2820,7 +2822,7 @@ unfold insertEntryIntoLLPC, propagatedPropertiesPrepare in *;intuition;subst;sim
 + unfold initPEntryTablePreconditionToPropagatePreparePropertiesAll in *;
   intuition; apply initPEntryTablePreconditionToPropagatePreparePropertiesUpdateLLCouplePPVA
   with entry;trivial.
-+  assert(Hconf: getConfigTablesLinkedList descChildphy (memory s) = Some fstLL) by trivial.
++  assert(Hconf: StateLib.getConfigTablesLinkedList descChildphy (memory s) = Some fstLL) by trivial.
   rewrite <- Hconf.
    apply getConfigTablesLinkedListUpdateLLCouplePPVA with entry;trivial.
   intuition.   

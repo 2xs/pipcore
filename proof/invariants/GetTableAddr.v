@@ -33,11 +33,15 @@
 
 (** * Summary 
     This file contains the invariant of [getTableAddr] some associated lemmas *)
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
 
-Require Import Isolation Consistency WeakestPreconditions List 
-Core.Internal Invariants Model.MAL StateLib Model.Hardware 
-Model.ADT DependentTypeLemmas Model.Lib InternalLemmas.
-Require Import Coq.Logic.ProofIrrelevance Lia Compare_dec Lt EqNat.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+
+Require Import Invariants.
+
+Require Import List Coq.Logic.ProofIrrelevance Lia Compare_dec Lt EqNat.
 
 Lemma getTableAddr  (indirection : page) (va : vaddr) (l : level) P currentPart idxroot: 
 {{fun s => P s /\ consistency s /\ In currentPart (getPartitions multiplexer s) /\
@@ -235,9 +239,9 @@ induction n; simpl.
         assert ((exists tableroot : page,
         nextEntryIsPP currentPart idxroot tableroot s /\
         tableroot <> defaultPage /\
-        (tableroot = indirection /\ Some l = getNbLevel \/
+        (tableroot = indirection /\ Some l = StateLib.getNbLevel \/
         (exists (nbL : level) (stop : nat),
-        Some nbL = getNbLevel /\
+        Some nbL = StateLib.getNbLevel /\
         stop <= nbL /\
         getIndirection tableroot va nbL stop s = Some indirection /\
         indirection <> defaultPage /\ l = CLevel (nbL - stop))))) by intuition.
@@ -254,12 +258,12 @@ induction n; simpl.
         exists l.
         split; trivial.
         exists (nbLevel -1).
-        assert (false = Level.eqb l fstLevel) as Hfstlevel by intuition.
+        assert (false = (Nat.eqb l fstLevel)) as Hfstlevel by intuition.
         symmetry in Hfstlevel.
         apply levelEqBEqNatFalse0 in Hfstlevel.
         apply and_assoc.
         split. 
-        unfold getNbLevel in H4.
+        unfold StateLib.getNbLevel in H4.
         case_eq(gt_dec nbLevel 0); intros.
         rewrite H5 in H4.
         inversion H4. simpl.
@@ -275,8 +279,8 @@ induction n; simpl.
         destruct H.
         destruct H. 
         clear H.
-        unfold nextEntryIsPP in *.   
-        destruct (Index.succ idxroot); [| now contradict H0].
+        unfold nextEntryIsPP in *.
+        destruct (StateLib.Index.succ idxroot); [| now contradict H0].
         destruct (lookup currentPart i (memory s) beqPage beqIndex); [| now contradict H0].
         destruct v ; try now contradict H0.
         subst.
@@ -288,7 +292,7 @@ induction n; simpl.
         simpl.
         rewrite <- H7.
         unfold readPhyEntry.   *)
-        case_eq(lookup p (getIndexOfAddr va l) (memory s) beqPage beqIndex); intros;
+        case_eq(lookup p (StateLib.getIndexOfAddr va l) (memory s) beqPage beqIndex); intros;
         rewrite H0 in H5.
         case_eq v; intros  ; rewrite H3 in H5; try now contradict H5.
 
@@ -296,7 +300,7 @@ induction n; simpl.
         assert (nbLevel -1 > 0). 
         symmetry in H7.
         apply levelEqBEqNatFalse0 in H7.
-        unfold   getNbLevel in H4.
+        unfold StateLib.getNbLevel in H4.
         case_eq  (gt_dec nbLevel 0); intros.
         rewrite H3 in H4.
         inversion H4.
@@ -311,7 +315,7 @@ induction n; simpl.
         now contradict H3.
         simpl.
         rewrite <- H7.
-        unfold readPhyEntry.  
+        unfold StateLib.readPhyEntry.  
         rewrite H0.    rewrite H2.
         trivial.
         now contradict H5. }
@@ -338,22 +342,22 @@ induction n; simpl.
         symmetry in H7.
 
         unfold nextEntryIsPP in *.   
-        destruct (Index.succ idxroot); [| now contradict H0].
+        destruct (StateLib.Index.succ idxroot); [| now contradict H0].
         destruct (lookup currentPart i (memory s) beqPage beqIndex); [| now contradict H0].
         destruct v ; try now contradict H0.
         subst.
         unfold isEntryPage in H5.
-        case_eq(lookup indirection (getIndexOfAddr va (CLevel (x0 - x1))) 
+        case_eq(lookup indirection (StateLib.getIndexOfAddr va (CLevel (x0 - x1))) 
         (memory s) beqPage beqIndex); intros; rewrite H0 in H5; try now contradict H5.
 
         case_eq v; intros; rewrite H3 in H5; try now contradict H5. 
         subst.
-        assert ( Level.eqb (CLevel (x0 - x1)) fstLevel = false). trivial.
+        assert ( StateLib.Level.eqb (CLevel (x0 - x1)) fstLevel = false). trivial.
         apply levelEqBEqNatFalse0 in H7.
         exists (CLevel (nbLevel -1)).
 
         split; trivial.
-        unfold getNbLevel.
+        unfold StateLib.getNbLevel.
         case_eq (gt_dec nbLevel 0); intros.
         unfold CLevel. 
         case_eq( lt_dec (nbLevel - 1) nbLevel ) ; intros.
@@ -369,7 +373,7 @@ induction n; simpl.
         unfold CLevel.
         case_eq ( lt_dec (nbLevel - 1) nbLevel ) ; intros.
         simpl. split.
-        unfold   getNbLevel in H.
+        unfold   StateLib.getNbLevel in H.
         case_eq  (gt_dec nbLevel 0); intros.
         rewrite H6 in *.
         inversion H.
@@ -395,7 +399,7 @@ induction n; simpl.
         
         assert (getIndirection p va x0 (x1+1) s = Some (pa p0)).
 
-        apply  getIndirectionProp with (getIndexOfAddr va (CLevel (x0 - x1)))indirection;
+        apply  getIndirectionProp with (StateLib.getIndexOfAddr va (CLevel (x0 - x1)))indirection;
         try lia; try trivial.
         clear H8 H0.
         apply getIndirectionNbLevelEq with (x1+1).
@@ -407,7 +411,7 @@ induction n; simpl.
         lia.
         assert (x0 =  (CLevel (nbLevel - 1))).
 
-        unfold getNbLevel in *.
+        unfold StateLib.getNbLevel in *.
         case_eq (  gt_dec nbLevel 0 ); intros; rewrite H0 in *.
         inversion H.
         destruct x0.
@@ -425,7 +429,7 @@ induction n; simpl.
         subst.
         lia.
         assert (x0 = (CLevel (nbLevel - 1))).
-        unfold getNbLevel in *.
+        unfold StateLib.getNbLevel in *.
         case_eq (  gt_dec nbLevel 0 ); intros; rewrite H0 in *.
         inversion H.
         destruct x0.
@@ -504,9 +508,9 @@ induction n; simpl.
       (exists tableroot : page,
          nextEntryIsPP currentPart idxroot tableroot s /\
          tableroot <> defaultPage /\
-         (tableroot = nextindirection /\ Some levelpred = getNbLevel \/
+         (tableroot = nextindirection /\ Some levelpred = StateLib.getNbLevel \/
           (exists (nbL : level) (stop : nat),
-             Some nbL = getNbLevel /\
+             Some nbL = StateLib.getNbLevel /\
              stop <= nbL /\
              getIndirection tableroot va nbL stop s = Some nextindirection /\
              nextindirection <> defaultPage /\ levelpred = CLevel (nbL - stop)))) ).
@@ -614,7 +618,7 @@ induction n; simpl.
            }
   - apply IHn in H0.
     * assumption.
-    * assert ( false = Level.eqb l fstLevel) by intuition.
+    * assert ( false = StateLib.Level.eqb l fstLevel) by intuition.
       destruct H.
       clear IHn.
       clear H H0.               
@@ -637,7 +641,7 @@ induction n; simpl.
       destruct l.
       simpl in *.
       lia.
-    * assert ( false = Level.eqb l fstLevel) by intuition.
+    * assert ( false = StateLib.Level.eqb l fstLevel) by intuition.
       destruct H.
       clear IHn.
       clear H H0.               

@@ -34,8 +34,11 @@
 (** * Summary 
     This file contains required lemmas to help in proving some properties
     on our dependent types defined into [Model.ADT] *)
-Require Import Model.ADT  Model.Hardware Model.MAL Arith Model.Lib StateLib.
-Require Import Coq.Logic.ProofIrrelevance Lia Bool.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib.
+
+Require Import Pip.Proof.StateLib.
+
+Require Import Coq.Logic.ProofIrrelevance Arith Lia Bool.
 
 (** ADT : level **)
 Lemma levelEqBEqNatTrue :

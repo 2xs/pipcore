@@ -35,7 +35,10 @@
     This file contains the invariant of [collect]. 
     We prove that this PIP service preserves the isolation property *)
 
-Require Import Model.ADT Model.Hardware Core.Services Isolation Consistency.
+Require Import Pip.Model.ADT Pip.Model.Hardware.
+Require Import Pip.Core.Services.
+
+Require Import Isolation Consistency.
 
 Lemma collect (descChild : vaddr) (vaToCollect : vaddr) :
 {{fun s => partitionsIsolation s  /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }} 

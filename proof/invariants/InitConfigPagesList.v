@@ -33,10 +33,18 @@
 
 (** * Summary 
     This file contains the invariant of [initConfigPagesList] some associated lemmas *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions Invariants.
-Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas Model.Lib
-PropagatedProperties  UpdateMappedPageContent  InternalLemmas WriteIndex InsertEntryIntoLL.
-Require Import Coq.Logic.ProofIrrelevance Lia Model.MAL List Bool Compare_dec EqNat.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib.
+
+Require Import Pip.Core.Internal.
+
+Require Import Pip.Proof.Isolation Pip.Proof.Consistency Pip.Proof.WeakestPreconditions
+               Pip.Proof.StateLib Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas.
+
+Require Import PropagatedProperties Invariants UpdateMappedPageContent WriteIndex
+               InsertEntryIntoLL.
+
+Require Import Coq.Logic.ProofIrrelevance Lia List Bool Compare_dec EqNat.
+
 Definition writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s:=
 
    ((((PeanoNat.Nat.Even curidx /\
@@ -86,12 +94,12 @@ case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex)
            beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
    { apply removeDupIdentity. intuition. }
      rewrite Hmemory. trivial.
-Qed. 
+Qed.
 
 
 Lemma writeIndexNbFI phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI :
 {{fun s: state => writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }} 
-writeIndex phyConfigPagesList oneI maxentries {{ fun (_ : unit) (s : state) =>
+MAL.writeIndex phyConfigPagesList oneI maxentries {{ fun (_ : unit) (s : state) =>
                                                  initConfigPagesListPostCondition
                                                      phyConfigPagesList s }}.
 Proof.
@@ -177,8 +185,8 @@ lia.
 Admitted.
 
 Lemma writeIndexFFI  phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI:
-{{ fun s : state =>writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }} 
-  writeIndex phyConfigPagesList zero twoI {{ fun _ s => 
+{{ fun s : state => writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }} 
+  MAL.writeIndex phyConfigPagesList zero twoI {{ fun _ s => 
   writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx maxidxminus1 eqbZero nullP nullV maxentries oneI twoI s }}.
 Proof.
 eapply weaken.
@@ -531,7 +539,7 @@ induction n.  simpl.
   apply CIndex1lt;trivial.
   intros twoI.
   simpl.
-  (** writeIndex : First free index **)
+  (** MAL.writeIndex : First free index **)
   eapply bindRev.
   eapply writeIndexFFI.
   intros [].
@@ -1340,7 +1348,7 @@ induction n.  simpl.
   apply CIndex1lt;trivial.
   intros twoI.
   simpl.
-(** writeIndex **)
+(** MAL.writeIndex **)
   eapply bindRev.
   eapply weaken.
   eapply WP.writeIndex.

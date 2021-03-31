@@ -1,4 +1,5 @@
-Require Import Model.ADT Model.Lib Model.Hardware Bool Arith List Model.MALInternal Model.MAL.
+Require Import Pip.Model.ADT Pip.Model.Lib Pip.Model.Hardware Pip.Model.MALInternal Pip.Model.MAL.
+Require Import Bool Arith List.
 Import List.ListNotations.
 
 Module Vint.

@@ -33,10 +33,12 @@
 
 (** * Summary 
     This file contains several invariants of [initVEntryTable] and associated lemmas *)
-Require Import Core.Internal Isolation Consistency WeakestPreconditions Invariants.
-Require Import StateLib Model.Hardware Model.ADT DependentTypeLemmas 
-UpdateMappedPageContent Model.Lib InternalLemmas PropagatedProperties.
-Require Import Coq.Logic.ProofIrrelevance Lia Model.MAL List Bool EqNat Compare_dec Lt.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
+Require Import Pip.Core.Internal.
+Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
+               Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.
+Require Import Invariants UpdateMappedPageContent PropagatedProperties.
+Import Coq.Logic.ProofIrrelevance Lia List Bool EqNat Compare_dec Lt.
 
 
 
@@ -368,7 +370,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
         StateLib.getIndexOfAddr va2 fstLevel = idx -> 
         isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s) /\
         Some level = StateLib.getNbLevel /\
-       false = checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
+       false = StateLib.checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
        entryPresentFlag table1 idxVa1 true s /\ entryPresentFlag table2 idxVa2 true s
 
 }} 
