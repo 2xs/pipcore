@@ -1,5 +1,8 @@
 build
 makefile.dep
+Makefile.coq
+Makefile.coq.conf
+.Makefile.coq.d
 doc/html
 doc/latex
 *.o
