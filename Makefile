@@ -38,6 +38,8 @@ MAKEFLAGS += -j
 
 CFLAGS=-m32 -Wall -W -Wextra -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-stack-protector -fno-pic -no-pie -DLOGLEVEL=TRACE -DGIT_REVISION='"7f309a4380486a0e8fba88728aab68b6fdc85c02"'
 
+NASMFLAGS=-f elf
+
 #####################################################################
 ##                      Directory variables                        ##
 #####################################################################
@@ -85,6 +87,7 @@ BUILD_TARGET_DIR=$(BUILD_DIR)/$(TARGET)
 C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Internal.c
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
+AS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.s)
 
 C_GENERATED_HEADERS=$(C_GENERATED_HEADERS_DIR)/Internal.h
 C_MODEL_INTERFACE_HEADERS=$(wildcard $(C_MODEL_INTERFACE_INCLUDE_DIR)/*.h)
@@ -94,6 +97,7 @@ C_TARGET_BOOT_HEADERS=$(wildcard $(C_TARGET_BOOT_INCLUDE_DIR)/*.h)
 C_GENERATED_OBJ=$(C_GENERATED_SRC:.c=.o)
 C_TARGET_BOOT_OBJ=$(patsubst %.c, $(BUILD_TARGET_DIR)/%.o, $(notdir $(C_TARGET_BOOT_SRC)))
 C_TARGET_MAL_OBJ=$(patsubst %.c, $(BUILD_TARGET_DIR)/%.o, $(notdir $(C_TARGET_MAL_SRC)))
+AS_TARGET_BOOT_OBJ=$(patsubst %.s, $(BUILD_TARGET_DIR)/%.o, $(notdir $(AS_TARGET_BOOT_SRC)))
 
 ########################### Coq files ###############################
 
@@ -122,7 +126,8 @@ JSONS:=$(patsubst %,$(BUILD_DIR)/%, $(JSONS))
 ##                    Default Makefile target                      ##
 #####################################################################
 
-all : $(C_GENERATED_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)
+all : $(C_GENERATED_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
+      $(AS_TARGET_BOOT_OBJ)
 
 #####################################################################
 ##                    Code compilation targets                     ##
@@ -187,6 +192,12 @@ $(C_TARGET_BOOT_OBJ):\
                         -I $(C_TARGET_BOOT_INCLUDE_DIR)\
                         -I $(C_GENERATED_HEADERS_DIR)\
                         -c -o $@ $<
+
+# Static pattern rule for constructing object files from target boot assembly files
+$(AS_TARGET_BOOT_OBJ):\
+    $(BUILD_TARGET_DIR)/%.o : $(C_TARGET_BOOT_DIR)/%.s\
+                            | $(BUILD_TARGET_DIR)
+	$(NASM) $(NASMFLAGS) -o $@ $<
 
 # Static pattern rule for constructing object files from target MAL C files
 $(C_TARGET_MAL_OBJ):\
