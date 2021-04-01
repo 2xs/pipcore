@@ -40,6 +40,8 @@ CFLAGS=-m32 -Wall -W -Wextra -Werror -nostdlib -fno-builtin -std=gnu99 -ffreesta
 
 NASMFLAGS=-f elf
 
+PARTITION=nanny_busy_beaver
+
 #####################################################################
 ##                      Directory variables                        ##
 #####################################################################
@@ -74,6 +76,9 @@ C_TARGET_BOOT_INCLUDE_DIR=$(C_TARGET_BOOT_DIR)/include
 C_GENERATED_SRC_DIR=$(GENERATED_FILES_DIR)
 C_GENERATED_HEADERS_DIR=$(GENERATED_FILES_DIR)
 
+TARGET_PARTITION_DIR=$(C_SRC_TARGET_DIR)/partitions
+GENERATED_PARTITION_OBJ_DIR=$(GENERATED_FILES_DIR)
+
 #####################################################################
 ##                        Files variables                          ##
 #####################################################################
@@ -84,6 +89,7 @@ C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Interna
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
 AS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.s)
+AS_ROOTPART_BIN_WRAPPER_SRC=$(C_SRC_TARGET_DIR)/rootpart_bin_wrapper.s
 
 C_GENERATED_HEADERS=$(C_GENERATED_HEADERS_DIR)/Internal.h
 C_MODEL_INTERFACE_HEADERS=$(wildcard $(C_MODEL_INTERFACE_INCLUDE_DIR)/*.h)
@@ -94,6 +100,7 @@ C_GENERATED_OBJ=$(C_GENERATED_SRC:.c=.o)
 C_TARGET_BOOT_OBJ=$(C_TARGET_BOOT_SRC:.c=.o)
 C_TARGET_MAL_OBJ=$(C_TARGET_MAL_SRC:.c=.o)
 AS_TARGET_BOOT_OBJ=$(AS_TARGET_BOOT_SRC:.s=.o)
+AS_ROOTPART_BIN_WRAPPER_OBJ=$(GENERATED_PARTITION_OBJ_DIR)/$(PARTITION).o
 
 ########################### Coq files ###############################
 
@@ -112,6 +119,11 @@ COQ_PROOF_FILES=$(foreach dir, $(COQ_PROOF_DIR)\
                              , $(wildcard $(dir)/*.v)\
                  )
 
+######################### Partition files ###########################
+
+INTERMEDIATE_BIN=$(C_SRC_TARGET_DIR)/root_partition.bin
+PARTITION_BIN=$(TARGET_PARTITION_DIR)/$(PARTITION)/$(PARTITION).bin
+
 ######################## Miscellaneous files ########################
 
 OBJECT_FILES=$(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
@@ -126,7 +138,7 @@ JSONS:=$(addprefix $(GENERATED_FILES_DIR)/, $(JSONS))
 #####################################################################
 
 all : $(C_GENERATED_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
-      $(AS_TARGET_BOOT_OBJ)
+      $(AS_TARGET_BOOT_OBJ) $(AS_ROOTPART_BIN_WRAPPER_OBJ)
 
 #####################################################################
 ##                    Code compilation targets                     ##
@@ -205,6 +217,12 @@ $(C_TARGET_MAL_OBJ):\
                         -I $(C_TARGET_BOOT_INCLUDE_DIR)\
                         -c -o $@ $<
 
+########################## Partition Binary #########################
+
+$(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(INTERMEDIATE_BIN)\
+                              | $(GENERATED_FILES_DIR)
+	$(NASM) $(NASMFLAGS) -o $@ $<
+
 #####################################################################
 ##                      Proof related targets                      ##
 #####################################################################
@@ -224,6 +242,14 @@ Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(CO
 
 $(GENERATED_FILES_DIR):
 	mkdir -p $@
+
+# TODO can we use a link instead of a copy ?
+$(INTERMEDIATE_BIN): $(PARTITION_BIN)
+	cp $< $@
+
+# Do not trigger compilation if $(INTERMEDIATE_BIN) is missing
+# and delete $(INTERMEDIATE_BIN) after compilation if it was created
+.INTERMEDIATE: $(INTERMEDIATE_BIN)
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean

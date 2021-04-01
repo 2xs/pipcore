@@ -33,7 +33,7 @@
 
 ; Multiboot header.
 ; /**
-; * \file boot0.s
+; * \file boot_assembly.s
 ; * \brief Assembly entrypoint.
 ; */
 MBOOT_PAGE_ALIGN    equ 1<<0
