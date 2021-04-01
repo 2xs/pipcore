@@ -40,11 +40,11 @@ Require Extraction.
 Extraction Language JSON.
 
 (*
-   Place the extracted AST inside the "build" folder at root
+   Place the extracted AST inside the "generated" folder at root
    What ? Stop staring at me like that, even CompCert uses this. Yikes
    https://github.com/AbsInt/CompCert/blob/master/extraction/extraction.v#L158
 *)
-Cd "build".
+Cd "generated".
 
 (** Coq standard library *)
 (* Tell Coq to extract those names verbatim, instead of using if-then-else *)

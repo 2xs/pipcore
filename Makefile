@@ -45,6 +45,7 @@ NASMFLAGS=-f elf
 #####################################################################
 
 SRC_DIR=src
+GENERATED_FILES_DIR=generated
 
 ########################## Coq related dirs #########################
 
@@ -70,13 +71,8 @@ C_TARGET_MAL_INCLUDE_DIR=$(C_TARGET_MAL_DIR)/include
 C_TARGET_BOOT_DIR=$(C_SRC_TARGET_DIR)/boot
 C_TARGET_BOOT_INCLUDE_DIR=$(C_TARGET_BOOT_DIR)/include
 
-C_GENERATED_SRC_DIR=$(BUILD_DIR)
-C_GENERATED_HEADERS_DIR=$(BUILD_DIR)
-
-######################### Build related dirs ########################
-
-BUILD_DIR=build
-BUILD_TARGET_DIR=$(BUILD_DIR)/$(TARGET)
+C_GENERATED_SRC_DIR=$(GENERATED_FILES_DIR)
+C_GENERATED_HEADERS_DIR=$(GENERATED_FILES_DIR)
 
 #####################################################################
 ##                        Files variables                          ##
@@ -95,9 +91,9 @@ C_TARGET_MAL_HEADERS=$(wildcard $(C_TARGET_MAL_INCLUDE_DIR)/*.h)
 C_TARGET_BOOT_HEADERS=$(wildcard $(C_TARGET_BOOT_INCLUDE_DIR)/*.h)
 
 C_GENERATED_OBJ=$(C_GENERATED_SRC:.c=.o)
-C_TARGET_BOOT_OBJ=$(patsubst %.c, $(BUILD_TARGET_DIR)/%.o, $(notdir $(C_TARGET_BOOT_SRC)))
-C_TARGET_MAL_OBJ=$(patsubst %.c, $(BUILD_TARGET_DIR)/%.o, $(notdir $(C_TARGET_MAL_SRC)))
-AS_TARGET_BOOT_OBJ=$(patsubst %.s, $(BUILD_TARGET_DIR)/%.o, $(notdir $(AS_TARGET_BOOT_SRC)))
+C_TARGET_BOOT_OBJ=$(C_TARGET_BOOT_SRC:.c=.o)
+C_TARGET_MAL_OBJ=$(C_TARGET_MAL_SRC:.c=.o)
+AS_TARGET_BOOT_OBJ=$(AS_TARGET_BOOT_SRC:.s=.o)
 
 ########################### Coq files ###############################
 
@@ -118,9 +114,12 @@ COQ_PROOF_FILES=$(foreach dir, $(COQ_PROOF_DIR)\
 
 ######################## Miscellaneous files ########################
 
+OBJECT_FILES=$(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
+             $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ)
+
 # Jsons (Coq extracted AST)
 JSONS=IAL.json Internal.json MAL.json MALInternal.json Services.json
-JSONS:=$(patsubst %,$(BUILD_DIR)/%, $(JSONS))
+JSONS:=$(addprefix $(GENERATED_FILES_DIR)/, $(JSONS))
 
 #####################################################################
 ##                    Default Makefile target                      ##
@@ -137,8 +136,8 @@ all : $(C_GENERATED_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
 
 # Rely on Makefile.coq to handle dependencies of coq code and
 # compile it. Extracts necessary information for generation of C files
-$(JSONS) &: Makefile.coq $(COQ_SRC_FILES) | $(BUILD_DIR)
-	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="src/extraction/Extraction.vo" -j
+$(JSONS) &: Makefile.coq $(COQ_SRC_FILES) | $(GENERATED_FILES_DIR)
+	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$(COQ_EXTRACTION_FILES:.v=.vo)" -j
 
 ###################### Generation from Coq to C #####################
 
@@ -148,25 +147,28 @@ DIGGERFLAGS += --ignore coq_N
 # Monad used in the coq code
 DIGGERFLAGS += -M coq_LLI
 # Dependencies of the traducted code to C interface
-DIGGERFLAGS += -m MALInternal -d :$(BUILD_DIR)/MALInternal.json
-DIGGERFLAGS += -m MAL -d :$(BUILD_DIR)/MAL.json
-DIGGERFLAGS += -m IAL -d :$(BUILD_DIR)/IAL.json
+DIGGERFLAGS += -m MALInternal -d :$(GENERATED_FILES_DIR)/MALInternal.json
+DIGGERFLAGS += -m MAL -d :$(GENERATED_FILES_DIR)/MAL.json
+DIGGERFLAGS += -m IAL -d :$(GENERATED_FILES_DIR)/IAL.json
 # output a #include "maldefines.h" at the beginning of the translated files
 DIGGERFLAGS += -q maldefines.h
 
-$(BUILD_DIR)/Internal.h: $(BUILD_DIR)/Internal.json $(JSONS)\
-                       | $(DIGGER) $(BUILD_DIR)
+$(GENERATED_FILES_DIR)/Internal.h: $(GENERATED_FILES_DIR)/Internal.json $(JSONS)\
+                                 | $(GENERATED_FILES_DIR) $(DIGGER)
 	$(DIGGER) $(DIGGERFLAGS) --header\
 		                 $< -o $@
 
-$(BUILD_DIR)/Internal.c: $(BUILD_DIR)/Internal.json $(JSONS) $(BUILD_DIR)/Internal.h\
-                       | $(DIGGER) $(BUILD_DIR)
+$(GENERATED_FILES_DIR)/Internal.c: $(GENERATED_FILES_DIR)/Internal.json $(JSONS)\
+	                           $(GENERATED_FILES_DIR)/Internal.h\
+                                 | $(GENERATED_FILES_DIR) $(DIGGER)
 	$(DIGGER) $(DIGGERFLAGS) -q Internal.h\
 	                         $< -o $@
 
-$(BUILD_DIR)/Services.c: $(BUILD_DIR)/Services.json $(JSONS) $(BUILD_DIR)/Internal.h\
-                       | $(DIGGER) $(BUILD_DIR)
-	$(DIGGER) $(DIGGERFLAGS) -m Internal -d :$(BUILD_DIR)/Internal.json\
+$(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)\
+	                           $(GENERATED_FILES_DIR)/Internal.json\
+	                           $(GENERATED_FILES_DIR)/Internal.h\
+                                 | $(GENERATED_FILES_DIR) $(DIGGER)
+	$(DIGGER) $(DIGGERFLAGS) -m Internal -d :$(GENERATED_FILES_DIR)/Internal.json\
 	                         -q Internal.h\
 				 $< -o $@
 
@@ -174,19 +176,15 @@ $(BUILD_DIR)/Services.c: $(BUILD_DIR)/Services.json $(JSONS) $(BUILD_DIR)/Intern
 
 # Static pattern rule for constructing object files from generated C files
 $(C_GENERATED_OBJ):\
-    $(BUILD_DIR)/%.o: $(C_GENERATED_SRC_DIR)/%.c\
-                      $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)\
-                    | $(BUILD_DIR)
+    %.o: %.c $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
                         -I $(C_GENERATED_HEADERS_DIR)\
                         -c -o $@ $<
 
 # Static pattern rule for constructing object files from target boot C files
 $(C_TARGET_BOOT_OBJ):\
-    $(BUILD_TARGET_DIR)/%.o : $(C_TARGET_BOOT_DIR)/%.c\
-                              $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
-                              $(C_TARGET_BOOT_HEADERS) $(C_GENERATED_HEADERS)\
-                            | $(BUILD_TARGET_DIR)
+    %.o : %.c $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
+              $(C_TARGET_BOOT_HEADERS) $(C_GENERATED_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
                         -I $(C_TARGET_MAL_INCLUDE_DIR)\
                         -I $(C_TARGET_BOOT_INCLUDE_DIR)\
@@ -195,16 +193,13 @@ $(C_TARGET_BOOT_OBJ):\
 
 # Static pattern rule for constructing object files from target boot assembly files
 $(AS_TARGET_BOOT_OBJ):\
-    $(BUILD_TARGET_DIR)/%.o : $(C_TARGET_BOOT_DIR)/%.s\
-                            | $(BUILD_TARGET_DIR)
+    %.o : %.s
 	$(NASM) $(NASMFLAGS) -o $@ $<
 
 # Static pattern rule for constructing object files from target MAL C files
 $(C_TARGET_MAL_OBJ):\
-    $(BUILD_TARGET_DIR)/%.o : $(C_TARGET_MAL_DIR)/%.c\
-                              $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
-                              $(C_TARGET_BOOT_HEADERS)\
-                            | $(BUILD_TARGET_DIR)
+    %.o : %.c $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
+              $(C_TARGET_BOOT_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
                         -I $(C_TARGET_MAL_INCLUDE_DIR)\
                         -I $(C_TARGET_BOOT_INCLUDE_DIR)\
@@ -227,15 +222,13 @@ proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
 Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
 	coq_makefile -f _CoqProject -o Makefile.coq $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
 
-$(BUILD_DIR):
-	mkdir -p $@
-
-$(BUILD_TARGET_DIR): | $(BUILD_DIR)
+$(GENERATED_FILES_DIR):
 	mkdir -p $@
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq Makefile.coq.conf
-	rm -rf $(BUILD_DIR)
+	rm -rf $(GENERATED_FILES_DIR)
+	rm -f $(OBJECT_FILES)
 
-.PHONY: all clean coq_code_extraction
+.PHONY: all clean
