@@ -34,8 +34,8 @@
 ENTRY(start)
 SECTIONS
 {
-/* Kernel laod address defined during make (Makefile.inc), used in everything */
-.text __KERNEL_LOAD_ADDR__ :
+/* Kernel load address defined during make (Makefile.inc), used in everything */
+.text 0x100000 :
 {
 code = .; _code = .; __code = .;
 *(.text)
@@ -57,8 +57,8 @@ bss = .; _bss = .; __bss = .;
 . = ALIGN(4096);
 }
 
-/* Kernel stack address defined during make (Makefile.inc), used in 0boot0.s */
-.krnstack __KERNEL_STACK_ADDR__ :
+/* Kernel stack address defined during make (Makefile.inc), used in boot_assembly.s */
+.krnstack 0x300000 :
 {
 krnstack = .; _krnstack = .; __krnstack = .;
 *(.krnstack)
@@ -66,7 +66,7 @@ krnstack = .; _krnstack = .; __krnstack = .;
 }
 
 /* Multiplexer load address defined during make (Makefile.inc), used in multiplexer.s */
-.multiplexer __MULTIPLEXER_LOAD_ADDR__ :
+.multiplexer 0x700000 :
 {
 multiplexer = .;
 _multiplexer = .;

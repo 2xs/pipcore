@@ -33,14 +33,14 @@
 
 include toolchain.mk
 TARGET=x86_multiboot
+PARTITION=nanny_busy_beaver
 
 MAKEFLAGS += -j
 
 CFLAGS=-m32 -Wall -W -Wextra -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-stack-protector -fno-pic -no-pie -DLOGLEVEL=TRACE -DGIT_REVISION='"7f309a4380486a0e8fba88728aab68b6fdc85c02"'
 
 NASMFLAGS=-f elf
-
-PARTITION=nanny_busy_beaver
+LDFLAGS=-m elf_i386
 
 #####################################################################
 ##                      Directory variables                        ##
@@ -77,7 +77,7 @@ C_GENERATED_SRC_DIR=$(GENERATED_FILES_DIR)
 C_GENERATED_HEADERS_DIR=$(GENERATED_FILES_DIR)
 
 TARGET_PARTITION_DIR=$(C_SRC_TARGET_DIR)/partitions
-GENERATED_PARTITION_OBJ_DIR=$(GENERATED_FILES_DIR)
+GENERATED_PARTITION_OBJ_DIR=$(TARGET_PARTITION_DIR)
 
 #####################################################################
 ##                        Files variables                          ##
@@ -126,8 +126,10 @@ PARTITION_BIN=$(TARGET_PARTITION_DIR)/$(PARTITION)/$(PARTITION).bin
 
 ######################## Miscellaneous files ########################
 
+TARGET_PARTITIONS_OBJ=$(wildcard $(TARGET_PARTITION_DIR)/*.o)
 OBJECT_FILES=$(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
-             $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ)
+             $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ)\
+             $(TARGET_PARTITIONS_OBJ)
 
 # Jsons (Coq extracted AST)
 JSONS=IAL.json Internal.json MAL.json MALInternal.json Services.json
@@ -137,8 +139,7 @@ JSONS:=$(addprefix $(GENERATED_FILES_DIR)/, $(JSONS))
 ##                    Default Makefile target                      ##
 #####################################################################
 
-all : $(C_GENERATED_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
-      $(AS_TARGET_BOOT_OBJ) $(AS_ROOTPART_BIN_WRAPPER_OBJ)
+all : $(PARTITION).elf
 
 #####################################################################
 ##                    Code compilation targets                     ##
@@ -223,6 +224,19 @@ $(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(INTERMEDIATE_BI
                               | $(GENERATED_FILES_DIR)
 	$(NASM) $(NASMFLAGS) -o $@ $<
 
+######################### Pip + Partition ELF #######################
+
+# $(AS_TARGET_BOOT_OBJ) must be the first object file arg to the linker
+$(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
+                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ)\
+		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
+		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)
+	$(LD) $(LDFLAGS)\
+                  $(AS_TARGET_BOOT_OBJ) $(C_TARGET_BOOT_OBJ)\
+		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
+		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)\
+                  -T $< -o $@
+
 #####################################################################
 ##                      Proof related targets                      ##
 #####################################################################
@@ -243,9 +257,9 @@ Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(CO
 $(GENERATED_FILES_DIR):
 	mkdir -p $@
 
-# TODO can we use a link instead of a copy ?
+# Using a hard link to prevent copy
 $(INTERMEDIATE_BIN): $(PARTITION_BIN)
-	cp $< $@
+	ln $< $@
 
 # Do not trigger compilation if $(INTERMEDIATE_BIN) is missing
 # and delete $(INTERMEDIATE_BIN) after compilation if it was created
@@ -256,5 +270,6 @@ clean: Makefile.coq
 	rm -f Makefile.coq Makefile.coq.conf
 	rm -rf $(GENERATED_FILES_DIR)
 	rm -f $(OBJECT_FILES)
+	rm -f $(PARTITION).elf
 
-.PHONY: all clean
+.PHONY: all proofs clean
