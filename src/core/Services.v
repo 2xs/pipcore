@@ -926,7 +926,7 @@ Definition deletePartition (descChild : vaddr) :=
     (**  Set mapped pages as underived *)
     perform currentSh1 := getFstShadow currentPart in
     perform maxindex := getMaxIndex in
-    perform mappedVAddrList := putMappedPagesBack currentSh1 phyChildSh2 maxindex nbL nullAddrV in
+    perform mappedVAddrList := unmapChildPages currentSh1 phyChildSh2 in
 
     (**  Get the configuration pages list of the child  *)
     perform phyConfigPagesListChild := getConfigTablesLinkedList phyDescChild in

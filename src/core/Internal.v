@@ -259,122 +259,105 @@ perform vaSh1 := readVirEntry ptSh1va idxva in
 perform isNull := compareVAddrToNull vaSh1 in 
 ret isNull.
 
-
-(** The [getPTPagesAux] marks as underived all virtual address stored into the 
-    given table [ptSh2Child] *)
-Fixpoint  getPTPagesAux timeout ptSh2Child (maxindex : index) (buf : vaddr) 
-                        parentSh1 (l1 : level) :=
+(**  The [unmapChildPagesAux] combs through the child's shadow2 tables to retrieve the parent's pages virtual address,
+     and marks them as underived in the parent's partition (removes them from the shadow1) *)
+Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : page) (curIndex : index)
+                            (curLevel : level) (unmappedPagesHead : vaddr) : LLI vaddr :=
   match timeout with
   | 0 => getDefaultVAddr
   | S timeout1 =>
-    perform zero := MALInternal.Index.zero in
-    perform isEq := MALInternal.Index.eqb maxindex zero in
-    if (isEq)
-    then perform va := readVirtual ptSh2Child maxindex in (** read the virtual address into the given table at index [maxindex *)
-      perform null := getDefaultVAddr in
-      perform eq := MALInternal.VAddr.eqbList va null  in  (** compare virtual address to null *)
-      if negb eq (** do not add the null address to the list *)
-      then
-        (** link this, and now forget about buffer, and consider va as our new buffer *)
-        perform zero := MALInternal.Index.zero in
-       (*  storeVirtual va zero buf ;; *)
-        (** set the virtual address underived into the current partition *)
-        setUnderived va parentSh1 l1 ;;
-        perform maxindexPred := MALInternal.Index.pred maxindex in
-        getPTPagesAux timeout1 ptSh2Child maxindexPred va parentSh1 l1(** recursive call on next entry *)
-
-      else ret buf (** return the first entry of our list *)
-    else
-      perform va :=  readVirtual ptSh2Child maxindex in (** read the virtual address *)
-      perform null :=  getDefaultVAddr in
-      perform eq :=  MALInternal.VAddr.eqbList va null  in    (** compare virtual address to null *)
-      if negb eq (** do not add the null address to the list *)
-      then
-        (** link this, and now forget about buffer, and consider va as our new buffer *)
-        perform zero := MALInternal.Index.zero in
-        (* storeVirtual va zero buf ;; *)
-        setUnderived va parentSh1 l1 ;;
-        perform maxindexPred := MALInternal.Index.pred maxindex in
-        getPTPagesAux timeout1 ptSh2Child maxindexPred va parentSh1 l1(** recursive call on next entry *)
-
-      else(** empty page - go to next entry *)
-        perform maxindexPred := MALInternal.Index.pred maxindex in
-        getPTPagesAux timeout1 ptSh2Child maxindexPred buf parentSh1 l1
-  end. 
-(** The [getPTPages] fixes the timeout value of [getPTPagesAux] *)
-Definition  getPTPages ptSh2Child (maxindex : index) (buf : vaddr) parentSh1 l1:=
-  getPTPagesAux N ptSh2Child (maxindex : index) (buf : vaddr) parentSh1 l1.
-
-
-(**  The [putMappedPagesBackAux] marks all virtual address of the given child as 
-     underived (must revise the kernel index) *)
-Fixpoint putMappedPagesBackAux timeout currentSh1 ptSh2Child (pos : index) l1 buf:=
-  match timeout with
-  | 0 => getDefaultVAddr
-  | S timeout1 =>
-    perform maxLevel := getNbLevel in
-    perform nullAddr := getDefaultPage in
-    perform maxindex := getMaxIndex in
-    perform islevel := MALInternal.Level.eqb l1 maxLevel in
-    perform isfstlevel := MALInternal.Level.eqb l1 fstLevel in
-    if (islevel)  (* Page Directory *)
+    (** Check whether we're on a leaf table *)
+    perform isfstlevel := MALInternal.Level.eqb curLevel fstLevel in
+    if isfstlevel
+    (** if we are in a leaf table *)
     then
-      perform zero := MALInternal.Index.zero in
-      perform one := MALInternal.Index.succ zero in
-      perform indextwo := MALInternal.Index.succ one in
-      perform res := MALInternal.Index.geb pos indextwo in
-      if res  (** 0 for shadow 1 , 1 for kernel pages , 2 is the first used entry *)
-      then    (** We can parse this *)
-        perform pt :=   readPhyEntry ptSh2Child pos in 
-        perform cmp :=   MALInternal.Page.eqb nullAddr pt in
-        if negb cmp
-        then    (** get only the sub-pages, ignoring the current ones, and store them in linked list lst *)
-          perform maxindexPred := MALInternal.Index.pred maxindex in
-          perform levelPred := MALInternal.Level.pred l1 in
-          perform lst :=  putMappedPagesBackAux timeout1 currentSh1  pt maxindexPred levelPred buf  in
-          perform pospred := MALInternal.Index.pred pos in
-          putMappedPagesBackAux timeout1 currentSh1 ptSh2Child pospred l1 lst (** lst is the new buffer *)
-        else
-          perform pospred := MALInternal.Index.pred pos in
-          putMappedPagesBackAux timeout1 currentSh1 ptSh2Child pospred l1 buf  (** else go on *)
-      else   (** We dont parse entry 1 and 2. We're done here *)
-        ret buf  (** First entries of page directory : return buffer, we're done ! *)
-    else if isfstlevel  (** Last indirection : get tables *)
+      (** get the virtual address of the page in the child shadow 2 at index curIndex *)
+      perform vaddrOfChildPageInParent := readVirtual childSh2Page curIndex in
+      (** compare the virtual address to null *)
+      perform entryIsNull := MALInternal.VAddr.eqbList vaddrOfChildPageInParent defaultVAddr in
+      if (negb entryIsNull)
+      (** if there is a page mapped *)
       then
-        getPTPages ptSh2Child maxindex  buf currentSh1  maxLevel
-        (** get table entries - buf is the new endpoint *)
-
-      else   (** Intermediate table : parse all entries, getting a list for each *)
-        perform zero := MALInternal.Index.zero in
-        perform un := MALInternal.Index.succ zero in
-        perform res := MALInternal.Index.gtb pos un in
-        if (res)  (** more elements to check ? *)
+        (** Blank the associated parent's shadow 1 index *)
+        perform maxLevel := getNbLevel in
+        setUnderived vaddrOfChildPageInParent parentSh1 maxLevel ;;
+        (** Link the page to the list *)
+        perform indexZero := MALInternal.Index.zero in
+(*         TODO *)
+(*         storeVirtual vaddrOfChildPageInParent indexZero unmappedPagesHead ;; *)
+        (** Test if we are looking at the first index *)
+        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        if (negb curIndexisZero)
+        (** There are still indexes we need to check in this table *)
         then
-          perform pt :=   readPhyEntry ptSh2Child pos in
-          perform cmp :=   MALInternal.Page.eqb pt nullAddr in
-          if negb cmp
-          then
-            perform levelPred := MALInternal.Level.pred l1 in
-            perform lst :=  putMappedPagesBackAux timeout1  currentSh1 pt maxindex levelPred buf  in(** Get pages for sub-entry, emptying buffer *)
-            perform posPred := MALInternal.Index.pred pos in
-            putMappedPagesBackAux timeout1 currentSh1 ptSh2Child posPred l1 lst
-            (** Continue parsing this page, filling the buffer with the
-              newly-got elements *)
-          else perform pospred := MALInternal.Index.pred pos in
-            putMappedPagesBackAux timeout1  currentSh1  ptSh2Child pospred l1 buf
-        else   (** last entry : just parse it on the next level *)
-          perform pt := readPhyEntry ptSh2Child pos in 
-          perform cmp := MALInternal.Page.eqb pt nullAddr in
-          if negb cmp
-          then
-            perform levelPred := MALInternal.Level.pred l1 in
-            putMappedPagesBackAux timeout1 currentSh1  pt maxindex levelPred buf  (** Continue linking *)
-          else ret buf
-  end.  (** nothing to do, just return our buffer *)
+          (** recursive call on previous index *)
+          perform curIndexPred := MALInternal.Index.pred curIndex in
+          unmapChildPagesAux timeout1 parentSh1 childSh2Page curIndexPred curLevel vaddrOfChildPageInParent
+        (** No more index to check in this table, no recursive call *)
+        else
+          ret vaddrOfChildPageInParent
+      (** no page mapped at this index *)
+      else
+        (** Test if we are looking at the first index *)
+        perform indexZero := MALInternal.Index.zero in
+        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        if (negb curIndexisZero)
+        (** There are still indexes we need to check in this table *)
+        then
+          (** recursive call on previous index *)
+          perform curIndexPred := MALInternal.Index.pred curIndex in
+          unmapChildPagesAux timeout1 parentSh1 childSh2Page curIndexPred curLevel unmappedPagesHead
+        (** No more index to check in this table, no recursive call *)
+        else
+          ret unmappedPagesHead
 
-(** The [putMappedPagesBack] fixes the timeout value of [putMappedPagesBackAux] *)
-Definition putMappedPagesBack ( currentSh1 ptSh2Child : page) (pos : index)  (l1 : level) (buf : vaddr) : LLI vaddr:=
-  putMappedPagesBackAux N  currentSh1 ptSh2Child pos l1 buf.
+    (** we are in a node table (as opposed to a leaf table) *)
+    else
+      (** check whether there is a kernel page at this index *)
+      perform nullAddr := getDefaultPage in
+      perform lowerLevelChildSh2Page := readPhyEntry childSh2Page curIndex in
+      perform noEntryAtThisIndex := MALInternal.Page.eqb lowerLevelChildSh2Page nullAddr in
+      (** Is there a kernel page at this index ? *)
+      if (negb noEntryAtThisIndex)
+      then
+        (** Recursive call a level lower into the tables *)
+        perform maxIndex := getMaxIndex in
+        perform lowerLevel := MALInternal.Level.pred curLevel in
+        perform newUnmappedPagesHead := unmapChildPagesAux timeout1 parentSh1
+                                        lowerLevelChildSh2Page maxIndex lowerLevel unmappedPagesHead in
+        (** Test if we are looking at the first index *)
+        perform indexZero := MALInternal.Index.zero in
+        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        if (negb curIndexisZero)
+        then
+          (** There are still indexes we need to check in this table *)
+          perform curIndexPred := MALInternal.Index.pred curIndex in
+          unmapChildPagesAux timeout1 parentSh1 childSh2Page
+                             curIndexPred curLevel newUnmappedPagesHead
+        else
+          (** No more index to check in this table, no recursive call *)
+          ret newUnmappedPagesHead
+      else
+        (** Test if we are looking at the first index *)
+        perform indexZero := MALInternal.Index.zero in
+        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        if (negb curIndexisZero)
+        then
+          (** There are still indexes we need to check in this table *)
+          perform curIndexPred := MALInternal.Index.pred curIndex in
+          unmapChildPagesAux timeout1 parentSh1 childSh2Page
+                             curIndexPred curLevel unmappedPagesHead
+        else
+          (** No more index to check in this table, no recursive call *)
+          ret unmappedPagesHead
+  end.
+
+(** The [unmapChildPages] fixes the timeout value of [unmapChildPagesAux] *)
+Definition unmapChildPages (parentSh1 : page) (childSh2 : page) : LLI vaddr :=
+  perform maxindex := getMaxIndex in
+  perform nbL := getNbLevel in
+  perform nullVAddr := getDefaultVAddr in
+  unmapChildPagesAux N parentSh1 childSh2 maxindex nbL nullVAddr.
 
 (** The [insertEntryIntoConfigPagesListAux] function inserts an entry into the 
     list of partition configuration pages *)
