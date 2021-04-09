@@ -39,8 +39,8 @@ LDFLAGS=-m elf_i386
 
 GDBARGS=-x gdbinit # -iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/$(KERNEL_ELF)" 
 
-QEMUARGS=-kernel $(PARTITION).elf -cpu Haswell -m 1024
-QEMUARGS+=-nographic
+QEMUARGS=-cpu Haswell -m 64
+QEMUARGS+=-nographic -kernel
 #QEMUARGS+= -S -s
 
 

@@ -34,7 +34,6 @@
 include toolchain.mk
 MAKEFLAGS += -j
 
-
 #####################################################################
 ##                      Directory variables                        ##
 #####################################################################
@@ -185,6 +184,7 @@ $(C_GENERATED_OBJ):\
     %.o: %.c $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
                         -I $(C_GENERATED_HEADERS_DIR)\
+                        -I $(C_TARGET_BOOT_INCLUDE_DIR)\
                         -c -o $@ $<
 
 # Static pattern rule for constructing object files from target boot C files
@@ -257,6 +257,9 @@ $(INTERMEDIATE_BIN): $(PARTITION_BIN)
 # Do not trigger compilation if $(INTERMEDIATE_BIN) is missing
 # and delete $(INTERMEDIATE_BIN) after compilation if it was created
 .INTERMEDIATE: $(INTERMEDIATE_BIN)
+
+qemu: $(PARTITION).elf
+	$(QEMU) $(QEMUARGS) $<
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
