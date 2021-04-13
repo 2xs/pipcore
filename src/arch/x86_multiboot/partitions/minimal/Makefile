@@ -35,7 +35,8 @@ include ../toolchain.mk
 
 CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -I$(LIBPIP)/arch/x86/include/ -fno-stack-protector -fno-pic -no-pie
 ASFLAGS=$(CFLAGS)
-LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld -lpip
+#LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld -lpip
+LDFLAGS=-m elf_i386 -T link.ld
 
 ASSOURCES=$(wildcard *.s)
 CSOURCES=$(wildcard *.c)
