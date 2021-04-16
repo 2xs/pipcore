@@ -225,9 +225,9 @@ $(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
 		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
 		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)
 	$(LD) $(LDFLAGS)\
-                  $(AS_TARGET_BOOT_OBJ) $(C_TARGET_BOOT_OBJ)\
-		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
-		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)\
+                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ)\
+                  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
+                  $(AS_ROOTPART_BIN_WRAPPER_OBJ)\
                   -T $< -o $@
 
 #####################################################################

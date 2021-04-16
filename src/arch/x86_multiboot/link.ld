@@ -37,6 +37,9 @@ SECTIONS
 /* Kernel load address defined during make (Makefile.inc), used in everything */
 .text 0x100000 :
 {
+__multiboot_header = .;
+*(.multiboot_header)
+. = ALIGN(4096);
 code = .; _code = .; __code = .;
 *(.text)
 . = ALIGN(4096);
