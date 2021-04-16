@@ -1,7 +1,7 @@
 .section .text
-.global boot
+.global start
 .extern _main
-boot:
+start:
     call _main
 
 loop:

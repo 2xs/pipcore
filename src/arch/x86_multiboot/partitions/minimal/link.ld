@@ -31,8 +31,8 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-OUTPUT_FORMAT("binary")
-ENTRY(boot)
+OUTPUT_FORMAT(binary)
+ENTRY(start)
 SECTIONS {
     .text 0x700000 :
     {
