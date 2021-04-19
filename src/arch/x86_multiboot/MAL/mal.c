@@ -500,7 +500,7 @@ void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t ad
     uint32_t pd = current_partition;
     uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
     uint32_t kpt = readPhysical(cr3, kernelIndex());
-    writePhysicalWithLotsOfFlags(table, index, kpt, 1, 1, 1, 1, 1);
+    writePhysicalWithLotsOfFlags(table, index, kpt, present, user, read, write, execute);
     return;
 }
 

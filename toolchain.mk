@@ -28,7 +28,20 @@ GDB=gdb
 TARGET=x86_multiboot
 PARTITION=minimal
 
-CFLAGS=-m32 -Wall -W -Wextra -Werror -nostdlib -fno-builtin -std=gnu99 -ffreestanding -c -g -Wno-unused-variable -trigraphs -Wno-trigraphs -march=pentium -Wno-unused-but-set-variable -DPIPDEBUG -Wno-unused-parameter -fno-stack-protector -fno-pic -no-pie -DLOGLEVEL=TRACE
+CFLAGS=-Wall -Wextra
+# -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
+CFLAGS+=-std=gnu99
+
+# Bare metal C code, do not rely on standard library
+CFLAGS+=-nostdlib -fno-builtin -ffreestanding
+# No position independent code / executable
+CFLAGS+=-fno-stack-protector -fno-pic
+
+# Arch related options
+CFLAGS+=-march=pentium -m32
+
+# Debug related options
+CFLAGS+=-g -DPIPDEBUG -DLOGLEVEL=TRACE
 
 NASMFLAGS=-f elf
 LDFLAGS=-m elf_i386
