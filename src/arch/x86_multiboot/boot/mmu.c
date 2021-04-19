@@ -468,7 +468,7 @@ void initMmu()
 	fpinfo->membegin = (uint32_t)&__end;
 	fpinfo->memend = curAddr;
 	fpinfo->magic = FPINFO_MAGIC;
-	strcpy(fpinfo->revision, GIT_REVISION);
+	memset(fpinfo->revision, 0, sizeof fpinfo->revision);
 	
 	/* At this point, page allocator is empty. */
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);

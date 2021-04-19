@@ -134,7 +134,7 @@ void spawnFirstPartition(void)
 int c_main(struct multiboot *mbootPtr)
 {
 	initSerial();
-	DEBUG(INFO, "Pip kernel, git revision %s\n", GIT_REVISION);
+	DEBUG(INFO, "Pip kernel\n");
 	
 	// Install GDT & IDT
 	DEBUG(INFO, "-> Initializing GDT.\n");
