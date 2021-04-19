@@ -34,6 +34,22 @@
 include toolchain.mk
 MAKEFLAGS += -j
 
+CFLAGS=-Wall -Wextra
+# -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
+CFLAGS+=-std=gnu99
+
+# Bare metal C code, do not rely on standard library
+CFLAGS+=-nostdlib -fno-builtin -ffreestanding
+# No position independent code / executable
+CFLAGS+=-fno-stack-protector -fno-pic
+
+CFLAGS+=$(ARCH_CFLAGS)
+ASFLAGS=$(ARCH_ASFLAGS)
+LDFLAGS=$(ARCH_LDFLAGS)
+
+# Enable debug symbols and logs
+CFLAGS+=$(if $(DEBUG), $(DEBUG_CFLAGS))
+
 #####################################################################
 ##                      Directory variables                        ##
 #####################################################################
@@ -200,7 +216,7 @@ $(C_TARGET_BOOT_OBJ):\
 # Static pattern rule for constructing object files from target boot assembly files
 $(AS_TARGET_BOOT_OBJ):\
     %.o : %.s
-	$(NASM) $(NASMFLAGS) -o $@ $<
+	$(AS) $(ASFLAGS) -o $@ $<
 
 # Static pattern rule for constructing object files from target MAL C files
 $(C_TARGET_MAL_OBJ):\
@@ -215,7 +231,7 @@ $(C_TARGET_MAL_OBJ):\
 
 $(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(INTERMEDIATE_BIN)\
                               | $(GENERATED_FILES_DIR)
-	$(NASM) $(NASMFLAGS) -o $@ $<
+	$(AS) $(ASFLAGS) -o $@ $<
 
 ######################### Pip + Partition ELF #######################
 

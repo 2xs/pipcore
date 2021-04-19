@@ -12,7 +12,7 @@ COQ=coq
 CC=gcc
 
 # Netwide assembler
-NASM=nasm
+AS=nasm
 
 # GNU Linker
 LD=ld
@@ -28,24 +28,15 @@ GDB=gdb
 TARGET=x86_multiboot
 PARTITION=minimal
 
-CFLAGS=-Wall -Wextra
-# -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
-CFLAGS+=-std=gnu99
-
-# Bare metal C code, do not rely on standard library
-CFLAGS+=-nostdlib -fno-builtin -ffreestanding
-# No position independent code / executable
-CFLAGS+=-fno-stack-protector -fno-pic
-
 # Arch related options
-CFLAGS+=-march=pentium -m32
+ARCH_CFLAGS=-march=pentium -m32
+ARCH_LDFLAGS=-m elf_i386
+ARCH_ASFLAGS=-f elf
 
 # Debug related options
-CFLAGS+=-g -DPIPDEBUG -DLOGLEVEL=TRACE
+DEBUG_CFLAGS=-g -DPIPDEBUG -DLOGLEVEL=TRACE
 
-NASMFLAGS=-f elf
-LDFLAGS=-m elf_i386
-
+DEBUG=ENABLED
 
 ######################### Execution options ###################
 
