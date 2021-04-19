@@ -43,6 +43,7 @@ void _main()
 {
     const char *Hello_world_str = "Hello World !\n";
     serial_puts(Hello_world_str);
+    for(;;);
 }
 
 uint32_t serial_transmit_ready(void) {

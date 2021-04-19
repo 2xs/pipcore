@@ -31,17 +31,11 @@
 #  knowledge of the CeCILL license and that you accept its terms.             #
 ###############################################################################
 
-include ../toolchain.mk
-
-CFLAGS=-m32 -c -nostdlib --freestanding -I$(LIBPIP)/include/ -I$(LIBPIP)/arch/x86/include/ -fno-stack-protector -fno-pic -no-pie
-ASFLAGS=$(CFLAGS)
-#LDFLAGS=-L$(LIBPIP)/lib -melf_i386 -Tlink.ld -lpip
+CFLAGS=-m32 -c -nostdlib --freestanding -fno-stack-protector -fno-pic -no-pie
 LDFLAGS=-m elf_i386 -T link.ld
 
-ASSOURCES=$(wildcard *.s)
 CSOURCES=$(wildcard *.c)
 
-ASOBJ=$(ASSOURCES:.s=.o)
 COBJ=$(CSOURCES:.c=.o)
 
 EXEC=minimal.bin
@@ -50,13 +44,10 @@ all: $(EXEC)
 	@echo Done.
 
 clean:
-	rm -f $(ASOBJ) $(COBJ) $(EXEC)
+	rm -f $(COBJ) $(EXEC)
 
-$(EXEC): $(ASOBJ) $(COBJ)
+$(EXEC): $(COBJ)
 	$(LD) $^ -o $@ $(LDFLAGS)
-
-%.o: %.s
-	$(AS) $(ASFLAGS) $< -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
