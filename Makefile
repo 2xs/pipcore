@@ -250,7 +250,7 @@ $(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
 ##                      Proof related targets                      ##
 #####################################################################
 
-proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
+proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES) | $(GENERATED_FILES_DIR)
 	$(MAKE) -f Makefile.coq all
 
 %.vo : Makefile.coq
