@@ -86,7 +86,6 @@ pip_fpinfo* fpinfo;
 void spawnFirstPartition(void)
 {
 	uint32_t pageDir, pt, vidtPaddr;
-	void *usrStack;
 	user_ctx_t *ctx;
 
 
@@ -118,7 +117,7 @@ void spawnFirstPartition(void)
 	writePhysical(vidtPaddr, 32, (uint32_t)ctx);
 
 	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
-	switchContextCont(getRootPartition(), pageDir, 0, 0, ctx);
+	switchContextCont(getRootPartition(), pageDir, 0, ctx);
 	for(;;);
 }
 

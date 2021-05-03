@@ -34,9 +34,9 @@ yield_checks_t getParentPartDescCont(page_t callerPartDesc, page_t callerPageDir
 
 yield_checks_t getSourcePartVidtCont(page_t calleePartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-yield_checks_t getTargetPartVidtCont(page_t calleePartDesc, page_t callerPageDir, page_t callerVidt,
+yield_checks_t getTargetPartVidtCont(page_t calleePartDesc, page_t callerPageDir,
 vaddr_t vidtVaddr, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-yield_checks_t switchContextCont(page_t callerVidt, int_mask_t flagsOnYield, page_t calleePartDesc, page_t calleePageDir, user_ctx_t *ctx);
+yield_checks_t switchContextCont(page_t calleePartDesc, page_t calleePageDir, int_mask_t flagsOnYield, user_ctx_t *ctx);
 
 #endif

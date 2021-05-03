@@ -96,30 +96,30 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 }
 
 /*!
- * \fn uint32_t readPhysical(uint32_t table, uint32_t index)
- * \brief Reads the address stored into table Table, at index index, using physical addresses
+ * \fn uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
+ * \brief Reads the address stored into table table, at index index, using physical addresses
+ *        This function masks the least significant bits that are used by the kernel to store
+ *        various flags (see `readVirEntry` and `readPhyEntry` in model)
  * \param table The table to read from
  * \param index The index in the table
- * \return The address stored in the given slot
+ * \return The address stored in the given slot, with its least significant bits cleared
  */
 uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 {
-	/* We're in kernel : we can disable paging */
+	/* we need physical address space, disable paging */
 	disable_paging();
 	
-	/* We're page-aligned : zero the flags */
+	uint32_t paddr_to_read = table | (index * sizeof(uint32_t));
+	uint32_t val = *(uint32_t *) paddr_to_read;
+	
+	/* zero the flags */
 	uint32_t mask = 0xFFFFF000;
-	
-	/* Binary OR with the table's address, page-aligned, and the offset */
-	uint32_t dest = table | (index * sizeof(uint32_t));
-	
-	/* Now we got a fresh, cool, nice pointer, return its value */
-	uint32_t val = *(uint32_t*)dest;
+	val = val & mask;
 	
 	/* Re-enable paging */
 	enable_paging();
 	
-	return val & 0xFFFFF000;
+	return val;
 }
 
 /*!
@@ -497,7 +497,6 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
 
 void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
 {
-    uint32_t pd = current_partition;
     uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
     uint32_t kpt = readPhysical(cr3, kernelIndex());
     writePhysicalWithLotsOfFlags(table, index, kpt, present, user, read, write, execute);

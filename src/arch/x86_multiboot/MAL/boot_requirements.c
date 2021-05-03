@@ -50,7 +50,6 @@
 void activate(uintptr_t dir)
 {
   	// Set CR3 to the address of our Page Directory
-  	page_directory_t* d = (page_directory_t*)dir;
 	asm volatile("mov %0, %%cr3"
 		 :
 		 : "r"(dir));

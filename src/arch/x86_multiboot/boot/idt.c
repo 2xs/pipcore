@@ -121,7 +121,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 				DEBUG(INFO, "Interrupted partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetPartVidtCont(rootPartDesc, intPartitionPageDir, 0, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
+			getTargetPartVidtCont(rootPartDesc, intPartitionPageDir, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
 			break;
 		default:
 			DEBUG(CRITICAL, "Unrecoverable error occured during while loading the root interruption handler - guru meditation\n");
@@ -219,7 +219,7 @@ void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned target
 				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetPartVidtCont(getParent(callerPartDesc), callerPageDir, 0, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
+			getTargetPartVidtCont(getParent(callerPartDesc), callerPageDir, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
 			break;
 		case FAIL_ROOT_CALLER:
 			DEBUG(CRITICAL, "Root partition faulted, guru meditation.\n");
@@ -229,7 +229,6 @@ void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned target
 			DEBUG(CRITICAL, "Error, parent partition can not handle the fault, propagating a double fault.\n");
 			// Be sure to handle the root case differently, as it has no parent
 			page parentPartDesc = getParent(callerPartDesc);
-			page parentPageDir  = getPd(parentPartDesc);
 			// We are still trying to save the faulting partition's context, even though it is very unlikely the partition will ever wake up again
 			// TODO is it worth a try ?
 			propagateFault(parentPartDesc, callerPageDir, DOUBLE_FAULT_LEVEL, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);

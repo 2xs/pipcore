@@ -44,8 +44,6 @@
 #include "segment_selectors.h"
 #include "hdef.h"
 
-static uint32_t buffer[64]; // temporary buffer for benchmarking
-
 /**
  * \fn krn_puts(char* c)
  * \brief Writes a string to the serial output

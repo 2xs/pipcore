@@ -151,7 +151,7 @@ uint32_t inl(uint16_t port)
  * \note The parent partition should resume the caller on its own 
  */
 void
-faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx)
+faultToParent(uint32_t data1, uint32_t data2, gate_ctx_t *ctx) //IO access control is not planned
 {
 	DEBUG(INFO, "Userland tried to access forbidden IO port (port %x, value %x)\n", data1, data2);
 	//TODO call to yield

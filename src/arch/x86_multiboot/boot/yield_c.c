@@ -6,11 +6,11 @@ vaddr_t getVidtVAddr() {
 	return 0xFFFFF000;
 }
 
-int_mask_t readInterruptMask(page_t vidt) {
+int_mask_t readInterruptMask(page_t vidt) { //unimplemented
 	return 0u;
 }
 
-bool isInterruptMasked(int_mask_t int_mask, uint32_t index) {
+bool isInterruptMasked(int_mask_t int_mask, uint32_t index) { //unimplemented
 	return false;
 }
 
@@ -47,15 +47,15 @@ yield_checks_t getParentPartDescCont(page_t callerPartDesc, page_t callerPageDir
 
 yield_checks_t getSourcePartVidtCont(page_t calleePartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-yield_checks_t getTargetPartVidtCont(page_t calleePartDesc, page_t callerPageDir, page_t callerVidt, vaddr_t vidtVaddr, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
+yield_checks_t getTargetPartVidtCont(page_t calleePartDesc, page_t callerPageDir, vaddr_t vidtVaddr, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
 yield_checks_t checkIntMaskCont(page_t calleePartDesc, page_t calleePageDir, page_t calleeVidt, page_t callerPageDir, page_t callerVidt, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-yield_checks_t getTargetPartCtxCont(page_t calleePartDesc, page_t calleePageDir, page_t calleeVidt, page_t callerPageDir, page_t callerVidt, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
+yield_checks_t getTargetPartCtxCont(page_t calleePartDesc, page_t calleePageDir, page_t calleeVidt, page_t callerPageDir, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc, page_t calleePageDir, page_t callerPageDir, page_t callerVidt, vaddr_t callerContextSaveVAddr, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext, user_ctx_t *targetContext);
+yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc, page_t calleePageDir, page_t callerPageDir, vaddr_t callerContextSaveVAddr, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext, user_ctx_t *targetContext);
 
-yield_checks_t switchContextCont(page_t callerVidt, int_mask_t flagsOnYield, page_t calleePartDesc, page_t calleePageDir, user_ctx_t *ctx);
+yield_checks_t switchContextCont(page_t calleePartDesc, page_t calleePageDir, int_mask_t flagsOnYield, user_ctx_t *ctx);
 
 yield_checks_t yieldGlue(gate_ctx_t *gate_ctx,
 			 vaddr_t calleePartDescVAddr,
@@ -173,13 +173,12 @@ yield_checks_t getSourcePartVidtCont(page_t calleePartDesc,
 
 	//save caller context if needed
 	vaddr_t callerContextSaveVAddr = readUserlandVAddr(callerVidt, callerContextSaveIndex);
-	return getTargetPartVidtCont(calleePartDesc, callerPageDir, callerVidt, vidtVaddr, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
+	return getTargetPartVidtCont(calleePartDesc, callerPageDir, vidtVaddr, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
 }
 
 
 yield_checks_t getTargetPartVidtCont(page_t calleePartDesc,
 				     page_t callerPageDir,
-				     page_t callerVidt,
 				     vaddr_t vidtVaddr,
 				     vaddr_t callerContextSaveVAddr,
 				     unsigned targetInterrupt,
@@ -199,7 +198,7 @@ yield_checks_t getTargetPartVidtCont(page_t calleePartDesc,
 	if (!(readAccessible(calleeVidtLastMMUPage, idxVidtInLastMMUPage)))
 		return FAIL_UNAVAILABLE_TARGET_VIDT;
 	page_t calleeVidt = readPhyEntry(calleeVidtLastMMUPage, idxVidtInLastMMUPage);
-	return getTargetPartCtxCont(calleePartDesc, calleePageDir, calleeVidt, callerPageDir, callerVidt, callerContextSaveVAddr, targetInterrupt, nbL, idxVidtInLastMMUPage, flagsOnYield, flagsOnWake, callerInterruptedContext);
+	return getTargetPartCtxCont(calleePartDesc, calleePageDir, calleeVidt, callerPageDir, callerContextSaveVAddr, targetInterrupt, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);
 }
 
 // check interrupt status of the target is now dropped as we decided that it should be the responsibility of the parent
@@ -228,11 +227,9 @@ yield_checks_t getTargetPartCtxCont(page_t calleePartDesc,
 				    page_t calleePageDir,
 				    page_t calleeVidt,
 				    page_t callerPageDir,
-				    page_t callerVidt,
 				    vaddr_t callerContextSaveVAddr,
 				    unsigned targetInterrupt,
 				    unsigned nbL,
-				    unsigned idxVidtInLastMMUPage,
 				    int_mask_t flagsOnYield,
 				    int_mask_t flagsOnWake,
 				    user_ctx_t *callerInterruptedContext)
@@ -262,16 +259,15 @@ yield_checks_t getTargetPartCtxCont(page_t calleePartDesc,
 	user_ctx_t *targetContext = (user_ctx_t *)calleeContextVAddr;
 	// check if we should save the caller context
 	if (!(callerContextSaveVAddr == 0)) {
-		return saveSourcePartCtxCont(calleePartDesc, calleePageDir, callerPageDir, callerVidt, callerContextSaveVAddr, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext, targetContext);
+		return saveSourcePartCtxCont(calleePartDesc, calleePageDir, callerPageDir, callerContextSaveVAddr, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext, targetContext);
 	} else {
-		return switchContextCont(calleePartDesc, calleePageDir, callerVidt, flagsOnYield, targetContext);
+		return switchContextCont(calleePartDesc, calleePageDir, flagsOnYield, targetContext);
 	}
 }
 
 yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc,
 				     page_t calleePageDir,
 				     page_t callerPageDir,
-				     page_t callerVidt,
 				     vaddr_t callerContextSaveVAddr,
 				     unsigned nbL,
 				     int_mask_t flagsOnYield,
@@ -299,7 +295,7 @@ yield_checks_t saveSourcePartCtxCont(page_t calleePartDesc,
 	if (!(readAccessible(callerCtxEndLastMMUPage, idxCallerCtxEndInLastMMUPage)))
 		return FAIL_CALLER_CONTEXT_SAVE;
 	writeContext(callerInterruptedContext, callerContextSaveVAddr, flagsOnWake);
-	return switchContextCont(calleePartDesc, calleePageDir, callerVidt, flagsOnYield, targetContext);
+	return switchContextCont(calleePartDesc, calleePageDir, flagsOnYield, targetContext);
 }
 
 void updateCurPartAndActivate(page_t calleePartDesc, page_t calleePageDir) {
@@ -311,7 +307,6 @@ void updateCurPartAndActivate(page_t calleePartDesc, page_t calleePageDir) {
 
 yield_checks_t switchContextCont (page_t calleePartDesc,
 				  page_t calleePageDir,
-				  page_t callerVidt,
 				  int_mask_t flagsOnYield,
 				  user_ctx_t *ctx) {
 	DEBUG(INFO, "Applying interrupt state from the parameters : %d\n", flagsOnYield);

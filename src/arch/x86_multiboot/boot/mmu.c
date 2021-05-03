@@ -184,32 +184,26 @@ void mapPageWrapper(page_directory_t* dir, uint32_t paddr, uint32_t vaddr, uint8
  */
 void initFreePageList(uintptr_t base, uintptr_t length)
 {
-    extern uint32_t __end;
-    uint32_t sizeToMap;
-    uint32_t mappingBegin;
+    DEBUG(TRACE, "Adding memory region %x length %x\n", base, length);
+    extern uintptr_t __end;
+    if(base >= 0x100000) {
+        uint32_t i = 0;
+        /* Add each page of free area */
+        for(i = base; i < base + length; i+=0x1000) {
+            /* Ignore kernel area */
+            if(i > (uint32_t)&__end) {
+                *(uint32_t*)i = (uint32_t)firstFreePage; /* Add current page as head of list */
+                firstFreePage = (uint32_t*)i;
+                pageCount++;
+            }
+        }
 
-	DEBUG(TRACE, "Adding memory region %x length %x\n", base, length);
-	extern uintptr_t __end;
-	if(base >= 0x100000)
-	{
-		uint32_t i = 0;
-		/* Add each page of free area */
-		for(i = base; i < base + length; i+=0x1000)
-		{
-			/* Ignore kernel area */
-			if(i > (uint32_t)&__end) {
-				*(uint32_t*)i = (uint32_t)firstFreePage; /* Add current page as head of list */
-				firstFreePage = (uint32_t*)i;
-				pageCount++;
-			}
-		}
-
-		DEBUG(TRACE, "added memory region to page allocator, %d pages, first page %x, last page at %x", pageCount, base, i);
-		maxPages = pageCount;
-		ramEnd = i;
-	} else {
-		DEBUG(TRACE, "Not adding low-memory area\n");
-	}
+        DEBUG(TRACE, "added memory region to page allocator, %d pages, first page %x, last page at %x", pageCount, base, i);
+        maxPages = pageCount;
+        ramEnd = i;
+    } else {
+        DEBUG(TRACE, "Not adding low-memory area\n");
+    }
 }
 
 /**
@@ -253,12 +247,10 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
     multiboot_memory_map_t* mmap = (multiboot_memory_map_t*)mmap_ptr;
     uint32_t num = 1;
 
-    extern uint32_t code;
-
     // Parse each entry
     while((uint32_t*)mmap < (uint32_t*)((uint32_t)mmap_ptr + len) && mmap->size > 0)
     {
-		DEBUG(TRACE, "region %d, addr %x, length %x\n", num, mmap->base_addr_low, mmap->length_low);
+        DEBUG(TRACE, "region %d, addr %x, length %x\n", num, mmap->base_addr_low, mmap->length_low);
         switch(mmap->type){
         case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE:
             DEBUG(TRACE, "\tACPI_RECLAIMABLE\n");
