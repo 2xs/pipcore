@@ -277,6 +277,12 @@ $(INTERMEDIATE_BIN): $(PARTITION_BIN)
 qemu: $(PARTITION).elf
 	$(QEMU) $(QEMUARGS) $<
 
+qemu_debug: $(PARTITION).elf
+	$(QEMU) $(QEMU_DEBUG_ARGS) $(QEMUARGS) $<
+
+gdb: $(PARTITION).elf
+	$(GDB) $(GDBARGS)
+
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq Makefile.coq.conf

@@ -41,10 +41,9 @@ DEBUG=ENABLED
 ######################### Execution options ###################
 
 
-GDBARGS=-x gdbinit # -iex "target remote localhost:1234" -iex "symbol-file $(BUILD_DIR)/$(TARGET)/$(KERNEL_ELF)" 
+GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file $(PARTITION).elf"
 
 QEMUARGS=-cpu Haswell -m 64
 QEMUARGS+=-nographic -kernel
-#QEMUARGS+= -S -s
 
-
+QEMU_DEBUG_ARGS= -S -s
