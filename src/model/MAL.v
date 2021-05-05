@@ -95,10 +95,41 @@ Definition writePhyEntry (paddr : page) (idx : index)(addr : page) (p u r w e: b
   modify (fun s => {| currentPartition := s.(currentPartition);
   memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  s.(memory) beqPage beqIndex|} ).
 
-Definition writeKernelPhyEntry (paddr : page) (idx : index)(addr : page) ( p u r w e: bool) :=
-  modify (fun s => {| currentPartition := s.(currentPartition);
-  memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  
-  s.(memory) beqPage beqIndex|} ).
+(** This function is a model of the real function that will map the kernel into a partition's virtual memory
+    Note that the model inserts a dummy physical entry that is totally neutral to the model (its 'present' flag
+    is set to false).
+
+    This function's model is in contradiction with the real world, where the actual flags written may not be the
+    same as below, and the page mapped may also not be the same (or may not even exist).
+
+    The kernel model explicitly omits memory that is not available to the root partition.
+    As such, the kernel's stack, code and the root partition configuration pages are out of the scope of the proof.
+
+    Because the preconfigured kernel MMU page is a part of the root partition configuration pages, the page is not
+    inside the model, and we cannot talk about it. Furthermore, even if we *could* talk about it, it would break a
+    fundamental property (partitionIsolation) saying that pages mapped in a partition are not shared with its
+    siblings (that property remains true if we only consider the memory that is available to the root partition).
+
+    Nonetheless, the kernel expects its kernel/boot environment memory to be located at a specific place in memory,
+    to be able to check if it is not overwriting its own code/stack/setup configuration.
+    Thus, this function has args so that the kernel provides the expected location in the MMU table.
+*)
+Definition mapKernel (paddr : page) (idx : index) :=
+  modify (fun s =>
+  {|
+    currentPartition := s.(currentPartition);
+    memory :=
+      add paddr idx (
+      PE {|
+        read := false;
+        write := false;
+        exec := false;
+        present := false;
+        user := false;
+        pa := defaultPage
+      |})
+      s.(memory) beqPage beqIndex
+  |}).
 
 
 Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=

@@ -495,11 +495,18 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
     }
 }
 
-void writeKPhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
+/**
+ * This function is the real world version of the model's "mapKernel".
+ * We use the same MMU table page for every partition that is configured at
+ * boot time for the root partition. When creating a partition, that page is
+ * looked up in the MMU configuration pages of the parent partition and written
+ * at the same place.
+ */
+void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page, uint32_t kernel_index)
 {
     uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
-    uint32_t kpt = readPhysical(cr3, kernelIndex());
-    writePhysicalWithLotsOfFlags(table, index, kpt, present, user, read, write, execute);
+    uint32_t kpt = readPhysical(cr3, kernel_index);
+    writePhysicalWithLotsOfFlags(child_mmu_root_page, kernel_index, kpt, 1, 0, 1, 1, 1);
     return;
 }
 

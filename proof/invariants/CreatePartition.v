@@ -80,18 +80,18 @@ subst.
 right;f_equal. apply proof_irrelevance.
 Qed.
 
-Lemma writeKernelPhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> state -> Prop) :
+Lemma mapKernel  table idx (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
   currentPartition := currentPartition s;
   memory := add table idx
-              (PE {| read := r; write := w; exec := e; present := p; user := u; pa := addr |})
-              (memory s) beqPage beqIndex |} }} MAL.writePhyEntry table idx addr p u r w e  {{P}}.
+              (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPage |})
+              (memory s) beqPage beqIndex |} }} MAL.writePhyEntry table idx defaultPage false false false false false {{P}}.
 Proof.
-unfold writeKernelPhyEntry.
+unfold mapKernel.
 eapply weaken.
-eapply modify .
+eapply modify.
 intros. simpl.
-assumption.  
+assumption.
 Qed.
 
 Lemma createPartition (descChild pdChild shadow1 shadow2 list : vaddr) :
@@ -2009,22 +2009,12 @@ eapply WP.bindRev.
   eapply H0.
   simpl.
   intros kidx.
-    (** getDefaultPage **)
-
-    eapply WP.bindRev.
-    eapply WP.weaken.
-    eapply Invariants.getDefaultPage.
-    simpl.
-    intros.
-    eapply H0.
-      simpl.
-  intros defaultPA.
 (** writeKernelPhyEntry **)
     eapply WP.bindRev.
     intros.
     eapply WP.weaken.
-    
-    eapply writeKernelPhyEntry.
+
+    eapply mapKernel.
     simpl.
     intros.
     pattern s in H0.
@@ -2035,26 +2025,15 @@ eapply WP.bindRev.
     set (s' :=  {|
      currentPartition := currentPartition s;
      memory := add phyPDChild kidx
-                 (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPA |})
+                 (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPage |})
                  (memory s) beqPage beqIndex |}) in *.
    simpl in *.
-   destruct H0 as (((H0 & Ha1 ) &  Ha2) & Ha3). (* 
-   assert(propagatedProperties  false false false false 
-pdChild currentPart currentPD level ptRefChild descChild idxRefChild true
- ptPDChild idxPDChild true  ptSh1Child shadow1 idxSh1
-true  ptSh2Child shadow2 idxSh2 true  ptConfigPagesList 
-idxConfigPagesList true 
-currentShadow1 ptRefChildFromSh1 derivedRefChild ptPDChildSh1 derivedPDChild 
-ptSh1ChildFromSh1 derivedSh1Child childSh2
-derivedSh2Child childListSh1 derivedRefChildListSh1 list phyPDChild phySh1Child
-phySh2Child phyConfigPagesList phyDescChild s'). *)
-split.
+   destruct H0 as ((H0 & Ha1 ) & Ha3).
 split.
 split.
 split.
 destruct H0. 
 apply propagatedPropertiesUpdateMappedPageData; trivial.
-   rewrite Ha3.
    apply isPresentNotDefaultIffRightValue.
    unfold propagatedProperties in * .
    unfold consistency in *.
@@ -2063,19 +2042,20 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    intuition.
    unfold propagatedProperties in * .
    intuition.
-   split.
    {
   repeat rewrite and_assoc.
-   unfold propagatedProperties in *. 
-   unfold isWellFormedMMUTables in *.  
+   unfold propagatedProperties in *.
+   unfold isWellFormedMMUTables in *.
    assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
-   {unfold consistency in *. 
-   intuition. 
+   {unfold consistency in *.
+   intuition.
    subst.
-   unfold currentPartitionInPartitionsList in *.    
+   unfold currentPartitionInPartitionsList in *.
    subst;intuition. }
-   try repeat split;trivial; try (  
-    apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition). }
+   try repeat split;trivial; try (
+    apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition).
+    destruct H0.
+    destruct H1. trivial. }
    intuition.
    unfold isWellFormedMMUTables.
    intros.
@@ -2086,18 +2066,18 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    simpl.
    subst;split;trivial.
    assert( lookup phyPDChild idx (removeDup phyPDChild kidx (memory s)
-    beqPage beqIndex) beqPage beqIndex =  
+    beqPage beqIndex) beqPage beqIndex =
     lookup phyPDChild idx (memory s) beqPage beqIndex).
     apply removeDupIdentity.
-    apply beqPairsFalse in H1.
+    apply beqPairsFalse in H0.
     intuition.
-    rewrite H2.
+    rewrite H8.
     apply Ha1.
     trivial.
     subst.
     trivial.
 intros [].
-(** initPEntryTable **)    
+(** initPEntryTable **)
 
     eapply weaken.
     instantiate(1:= fun s : state => 
@@ -2146,12 +2126,12 @@ intros [].
       assert (zero = CIndex 0) as Hzero.
       intuition.
       subst.
-      
+
       assert(Hor : level <> fstLevel \/ level = fstLevel ) by apply levelDecOrNot.
       destruct Hor as [Ho | Hor].
       left;intros.
       split;trivial.
-      intros.   
+      intros.
       unfold CIndex in H1.
       case_eq (lt_dec 0 tableSize).
       intros.
@@ -2248,7 +2228,7 @@ intros [].
             destruct Hor as [Ho | Hor].
             left;intros.
             split;trivial.
-            intros.   
+            intros.
             unfold CIndex in H1.
             case_eq (lt_dec 0 tableSize).
             intros.
@@ -2373,7 +2353,7 @@ intros [].
       intuition.
       subst.
       assumption. }
-      
+
     intros []. simpl.
 (** initConfigPagesList **)
     eapply WP.bindRev.
@@ -2384,7 +2364,7 @@ intros [].
     eapply initConfigPagesListNewProperty.
     simpl; intros.
     split.
-    rewrite <- and_assoc. 
+    rewrite <- and_assoc.
     split.
     repeat rewrite andb_true_iff in Hlegit.
     repeat rewrite and_assoc in Hlegit.
@@ -2430,7 +2410,7 @@ intros [].
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     lia.
-    
+
     unfold CIndex in H5.
     case_eq (lt_dec 0 tableSize).
     intros.
@@ -2441,7 +2421,7 @@ intros [].
     apply tableSizeBigEnough.
     unfold tableSizeLowerBound in *.
     lia.
-    
+
     intros [].
     simpl.
 (** getDefaultVAddr **)
@@ -2453,7 +2433,7 @@ intros [].
     pattern s in H0.
     eapply H0.
     simpl.
-    intros nullv. 
+    intros nullv.
 (** getPRidx **)
     eapply bindRev.
     eapply weaken.
@@ -2663,19 +2643,19 @@ intros [].
       intuition.
       try repeat right; trivial. }
     destruct H0.
-    destruct H0.  
+    destruct H0.
     destruct H0 as (H0 & _ & H4).
     intuition.
-    
+
     assert(Hnoteq : idxPR <> idxPD).
-    { subst. 
+    { subst.
       apply idxPRidxPDNotEq. }
     now contradict Hnoteq.
     subst.
     apply idxPRsucNotEqidxPD.  abstract lia.
-    
+
     assert(Hnoteq : idxPR <> idxPD).
-    
+
     { subst.  apply  idxPRidxPDNotEq. }
     subst.
 
@@ -2772,13 +2752,13 @@ eapply WP.bindRev.
       left; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh1idx   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
-    destruct H0.  
+    destruct H0.
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxPD <> idxSH1).
@@ -2803,21 +2783,21 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PRidx   in Hcur.
       intuition.
       repeat right ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh1idx   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
-    destruct H0. 
-    destruct H0.  
+    destruct H0.
+    destruct H0.
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxPR <> idxSH1).
@@ -2825,19 +2805,19 @@ eapply WP.bindRev.
     now contradict Hnoteq.
     subst.
     apply idxPRsuccNotEqidxSh1.  abstract lia.
-     
+
     assert(Hnoteq : idxPR <> idxSH1).
     { subst. apply idxPRidxSh1NotEq. }
     subst.
 
-    apply idxSh1succNotEqidxPR;trivial. 
+    apply idxSh1succNotEqidxPR;trivial.
     simpl.
     intros [].
 (** updatePartitionDescriptor : add the page directory into the partition descriptor *)
     eapply WP.bindRev.
     eapply preAndPost.
     eapply preAndPost.
-    eapply preAndPost.    
+    eapply preAndPost.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply updatePartitionDescriptorPropagatedProperties.
@@ -2918,36 +2898,36 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh2idx   in Hcur.
       intuition.
       right;right;left; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh1idx   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
-    destruct H0. 
+    destruct H0.
      destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxSH2 <> idxSH1).
-    { subst. 
+    { subst.
       apply idxSh2idxSh1notEq.  }
     now contradict Hnoteq.
     subst.
- apply idxSh1succNotEqidxSh2; trivial. 
+ apply idxSh1succNotEqidxSh2; trivial.
     assert(Hnoteq : idxSH1 <> idxSH2).
-    { subst. 
+    { subst.
    symmetrynot.    apply idxSh2idxSh1notEq. }
-   
+
     subst.
 
     apply idxSh2succNotEqidxSh1;trivial.
-    
+
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -2960,21 +2940,21 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh2idx   in Hcur.
       intuition.
       right;right;left ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PDidx   in Hcur.
       intuition.
       left;trivial. }
     destruct H0.
     destruct H0.
-    destruct H0.  
+    destruct H0.
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxPD <> idxSH2).
@@ -2982,7 +2962,7 @@ eapply WP.bindRev.
     now contradict Hnoteq.
     subst.
     apply idxPDsucNotEqidxSh2;trivial.
-    
+
     assert(Hnoteq : idxPD <> idxSH2).
     { subst. apply idxPDidxSh2notEq. }
     subst.
@@ -2999,31 +2979,31 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh2idx   in Hcur.
       intuition.
       right;right;left ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PRidx   in Hcur.
       intuition.
       repeat right;trivial. }
     destruct H0.
-    destruct H0.  
     destruct H0.
     destruct H0.
-    
+    destruct H0.
+
     destruct H0 as (H0 & _ & H6).
     intuition.
     assert(Hnoteq : idxPR <> idxSH2).
     { subst. 
     apply idxPRidxSh2NotEq. }
     now contradict Hnoteq.
-    subst. 
-   
+    subst.
+
     apply idxPRsuccNotEqidxSh2; trivial.
     assert(Hnoteq : idxPR <> idxSH2).
     { subst. apply idxPRidxSh2NotEq. }
@@ -3035,7 +3015,7 @@ eapply WP.bindRev.
     eapply preAndPost.
     eapply preAndPost.
     eapply preAndPost.
-    eapply preAndPost.    
+    eapply preAndPost.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply updatePartitionDescriptorPropagatedProperties.
@@ -3122,14 +3102,14 @@ eapply WP.bindRev.
       right;right;left; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh3idx   in Hcur.
       intuition.
       do 3 right;left;trivial. }
     destruct H0.
-    destruct H0.  
-    
+    destruct H0.
+
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxSH2 <> idxSH3).
@@ -3153,22 +3133,22 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh1idx   in Hcur.
       intuition.
       right;left ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh3idx   in Hcur.
       intuition.
       do 3 right;left;trivial. }
     destruct H0.
-    destruct H0.  
     destruct H0.
-    
+    destruct H0.
+
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxSH1 <> idxSH3).
@@ -3180,7 +3160,7 @@ eapply WP.bindRev.
     assert(Hnoteq : idxSH3 <> idxSH1).
     { subst. symmetrynot. apply idxSh1idxSh3notEq. }
     subst.
- apply idxSh3succNotEqidxSh1;trivial. 
+ apply idxSh3succNotEqidxSh1;trivial.
           eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -3193,24 +3173,24 @@ eapply WP.bindRev.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh3idx   in Hcur.
       intuition.
       do 3 right;left ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PDidx   in Hcur.
       intuition.
       left;trivial. }
     do 4 destruct H0.
-    
+
     destruct H0 as (H0 &  H6).
     intuition.
     assert(Hnoteq : idxPD <> idxSH3).
-    { subst. 
+    { subst.
        apply idxPDidxSh3notEq. }
     now contradict Hnoteq.
     subst.
@@ -3243,16 +3223,16 @@ eapply WP.bindRev.
       apply Hpde with (currentPartition s) PRidx in Hcur.
       intuition.
       repeat right;trivial. }
-    do 5 destruct H0.    
+    do 5 destruct H0.
     destruct H0 as (H0 &  H7).
     intuition.
     assert(Hnoteq : idxPR <> idxSH3).
-    { subst. 
-       apply idxPRidxSh3NotEq . 
+    { subst.
+       apply idxPRidxSh3NotEq.
       }
     now contradict Hnoteq.
     subst.
-    apply idxPRsuccNotEqidxSh3;trivial.  
+    apply idxPRsuccNotEqidxSh3;trivial.
     assert(Hnoteq : idxSH3 <> idxPR).
     { subst. symmetrynot. apply idxPRidxSh3NotEq. }
     subst.
@@ -3266,7 +3246,7 @@ intros [].
     eapply preAndPost.
     eapply preAndPost.
     eapply preAndPost.
-    eapply preAndPost.    
+    eapply preAndPost.
     eapply WP.weaken.
     eapply conjPrePost.
     eapply updatePartitionDescriptorPropagatedProperties.
@@ -3346,30 +3326,30 @@ intros [].
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PPRidx   in Hcur.
       intuition.
       do 4 right ;left; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) sh3idx   in Hcur.
       intuition.
       do 3 right;left;trivial. }
-    do 2 destruct H0.    
+    do 2 destruct H0.
     destruct H0 as (H0 &  H4).
     intuition.
     assert(Hnoteq : idxPPR <> idxSH3).
     { subst. apply idxPPRidxSh3NotEq.  }
     now contradict Hnoteq.
     subst.
-    apply idxSh3succNotEqPPRidx;trivial.  
+    apply idxSh3succNotEqPPRidx;trivial.
     assert(Hnoteq : idxSH3 <> idxPPR).
     { subst.  symmetrynot. apply idxPPRidxSh3NotEq. }
     subst.
-apply idxPPRsuccNotEqidxSh3;trivial.  
+apply idxPPRsuccNotEqidxSh3;trivial.
       eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -3394,7 +3374,7 @@ apply idxPPRsuccNotEqidxSh3;trivial.
       apply Hpde with (currentPartition s) sh2idx   in Hcur.
       intuition.
       do 2 right;left;trivial. }
-        do 3 destruct H0.    
+        do 3 destruct H0.
     destruct H0 as (H0 &  H5).
     intuition.
     assert(Hnoteq : idxSH2 <> idxPPR).
@@ -3431,11 +3411,11 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       apply Hpde with (currentPartition s) sh1idx   in Hcur.
       intuition.
       right;left;trivial. }
-        do 4 destruct H0.    
+        do 4 destruct H0.
     destruct H0 as (H0 &  H6).
 
     intuition.
-    
+
     assert(Hnoteq : idxSH1 <> idxPPR).
     { subst.  apply idxSh1idxPPRnotEq.  }
     now contradict Hnoteq.
@@ -3445,7 +3425,7 @@ apply idxPPRsuccNotEqidxSh2;trivial.
     assert(Hnoteq : idxPPR <> idxSH1).
     { subst.    apply idxPPRidxSh1NotEq.  }
     subst.
-    apply idxPPRsuccNotEqidxSh1;trivial. 
+    apply idxPPRsuccNotEqidxSh1;trivial.
               eapply weaken.
     apply updatePartitionDescriptorPropagatedProperties2.
     simpl.
@@ -3458,19 +3438,19 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       intuition.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PPRidx   in Hcur.
       intuition.
       do 4 right;left ; trivial.
       subst.
       assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
-      unfold currentPartitionInPartitionsList in *. 
+      unfold currentPartitionInPartitionsList in *.
       intuition.
       apply Hpde with (currentPartition s) PDidx in Hcur.
       intuition.
       left;trivial. }
-       do 5 destruct H0.    
+       do 5 destruct H0.
     destruct H0 as (H0 &  H7).
 
     intuition.
@@ -3478,7 +3458,7 @@ apply idxPPRsuccNotEqidxSh2;trivial.
     { subst. apply idxPDidxPPRNotEq.  }
     now contradict Hnoteq.
     subst.
- apply idxPDsucNotEqidxPPR;trivial. 
+ apply idxPDsucNotEqidxPPR;trivial.
     assert(Hnoteq : idxPPR <> idxPD).
     { subst. 
       apply idxPPRidxPDNotEq. }
@@ -3508,9 +3488,9 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       apply Hpde with (currentPartition s) PRidx in Hcur.
       intuition.
       repeat right;trivial. }
-       do 6 destruct H0.    
+       do 6 destruct H0.
     destruct H0 as (H0 &  H8).
-    intuition. 
+    intuition.
     assert(Hnoteq : idxPR <> idxPPR).
     { subst. apply idxPRidxPPRNotEq.  }
     now contradict Hnoteq.
@@ -3520,7 +3500,7 @@ apply idxPPRsuccNotEqidxSh2;trivial.
     assert(Hnoteq : idxPPR <> idxPR).
     { subst. symmetrynot. apply idxPRidxPPRNotEq. }
     subst.
-    apply idxPPRsuccNotEqidxPR;trivial. 
+    apply idxPPRsuccNotEqidxPR;trivial.
     simpl.
     intros [].
 
@@ -3582,7 +3562,7 @@ apply idxPPRsuccNotEqidxSh2;trivial.
    eassumption.
    eapply H1.
  intros [].
-(**  writePDflag **)  
+(**  writePDflag **)
 eapply WP.bindRev.
 eapply weaken.
 eapply WP.writePDflag.
@@ -3590,13 +3570,13 @@ simpl.
 intros. 
 assert(Hget : forall idx : index,
           StateLib.getIndexOfAddr descChild fstLevel = idx ->
-          isVE ptRefChildFromSh1 idx s /\ 
+          isVE ptRefChildFromSh1 idx s /\
           getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s).
-{ 
+{
 unfold propagatedProperties in *.
 unfold newPropagatedProperties in *.  intuition. }
 assert (Hve :isVE ptRefChildFromSh1 idxRefChild s).
-{ 
+{
 unfold propagatedProperties in *.
 unfold newPropagatedProperties in *. 
 apply Hget.
@@ -3613,25 +3593,20 @@ verticalSharing s /\
 consistency s).
 simpl.
 
-(* unfold propagatedProperties in *.
-unfold newPropagatedProperties in *. 
-unfold initConfigPagesListPostCondition in *. *)
     apply createPartitionPostcondition with 
-    (* (CIndex 0) nullv PRidx PDidx sh1idx sh2idx sh3idx PPRidx *) pdChild
+    pdChild
 currentPart currentPD level ptRefChild descChild ptPDChild idxPDChild ptSh1Child shadow1 idxSh1 ptSh2Child
 shadow2 idxSh2 ptConfigPagesList idxConfigPagesList currentShadow1 derivedRefChild ptPDChildSh1 ptSh1ChildFromSh1
 childSh2 childListSh1 list phyPDChild phySh1Child phySh2Child phyConfigPagesList phyDescChild ;intuition;subst;trivial.
-
-(* subst.
- *)    intros []. 
+   intros []. 
    eapply WP.weaken. eapply WP.ret .
    simpl. intuition.
  - intros HNotlegit. 
    eapply WP.weaken. eapply WP.ret .
    simpl. intuition.
-      } 
+      }
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
       intros. eapply WP.weaken. eapply WP.ret .
       simpl. intuition.
-Qed. 
+Qed.

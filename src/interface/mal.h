@@ -119,7 +119,7 @@ uint32_t indexSh3(void); //!< Configuration tables linked list index within part
 uint32_t PPRidx(void); //!< Parent partition index within partition descriptor
 uint32_t kernelIndex(void); //!< Index of kernel's page directory entry
 void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute); //!< Write a physical entry with all the possible flags we might need
-void writeKPhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute); //!< Write a physical entry with all the possible flags we might need
+void writeKernelPhysicalEntry(uint32_t mmu_root_page, uint32_t kernel_index); //!< Writes the kernel MMU configuration page at index 'kernel_index' in the MMU root page
 uint32_t extractPreIndex(uint32_t vaddr, uint32_t index);
 
 uint32_t prepareType(int b, uint32_t vaddr);

@@ -264,8 +264,7 @@ else
         initPEntryTable phyPDChild zero;;
         (** Add the kernel mapping *)
         perform kidx := getKidx in
-        perform  kernel := getDefaultPage in
-        writeKernelPhyEntry phyPDChild kidx kernel true false false false false ;;
+        mapKernel phyPDChild kidx;;
         (** Initialize phySh1Child table *)
         initFstShadow phySh1Child nbL zero;;
 
