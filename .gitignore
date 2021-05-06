@@ -1,4 +1,5 @@
 generated
+toolchain.mk
 makefile.dep
 Makefile.coq
 Makefile.coq.conf
