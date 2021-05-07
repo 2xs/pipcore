@@ -74,8 +74,6 @@
  */
 
 #define DEBUG(loglvl,msg,...) if(loglvl<=LOGLEVEL){ kprintf(#loglvl " [%s:%d] " msg, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define BOOT_DEBUG(loglvl,msg,...) if (loglvl<=LOGLEVEL) { kprintf("[" #loglvl " BOOT] [%s:%d] " msg, __FILE__, __LINE__, ##__VA_ARGS__);}
-#define IAL_DEBUG(loglvl,msg,...) if(loglvl<=LOGLEVEL){ kprintf("["#loglvl " IAL] [%s:%d] " msg, __FILE__, __LINE__, ##__VA_ARGS__);}
 
 /**
  * \brief Defines the appropriate DEBUGHEX behavior.

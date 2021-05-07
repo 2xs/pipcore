@@ -591,10 +591,10 @@ void initIDT(void) {
 	for (idt_index = 0  ; idt_index <  256 ; idt_index++) {
 		idt_entries[idt_index] = IDT_INTERRUPT_ENTRY(idt_index);
 	}
-	BOOT_DEBUG(TRACE, "Done initializing the IDT structure, now loading the IDT\n");
+	DEBUG(TRACE, "Done initializing the IDT structure, now loading the IDT\n");
 
 	asm("lidt (%0)"::"r"(&idt_ptr));
-	BOOT_DEBUG(TRACE, "Done loading IDT\n")
+	DEBUG(TRACE, "Done loading IDT\n")
 }
 
 /**
@@ -658,7 +658,7 @@ timerPhase (uint32_t hz)
 	outb (0x40, divisor & 0xFF);    /* Set low byte of divisor */
 	outb (0x40, divisor >> 8);      /* Set high byte of divisor */
 	
-	BOOT_DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
+	DEBUG (INFO, "Timer phase changed to %d hz\n", hz);
 }
 
 uint32_t pcid_enabled = 0;
@@ -685,7 +685,7 @@ static inline int cpuid_string(int code, uint32_t where[4]) {
  */
 void initCPU()
 {
-	BOOT_DEBUG(CRITICAL, "Identifying CPU model and features...\n");
+	DEBUG(CRITICAL, "Identifying CPU model and features...\n");
 	
 	/* Display CPU vendor string */
 	uint32_t cpu_string[4];
@@ -699,14 +699,14 @@ void initCPU()
 	memcpy(&(cpuident[8]), &(cpu_string[2]), 4 * sizeof(char));
 	cpuident[12] = '\0';
 	
-	BOOT_DEBUG(CRITICAL, "CPU identification: %s\n", cpuident);
+	DEBUG(CRITICAL, "CPU identification: %s\n", cpuident);
 	
 	/* Processor brand */
 	cpuid_string(CPUID_INTELBRANDSTRING, (uint32_t*)cpubrand);
 	cpuid_string(CPUID_INTELBRANDSTRINGMORE, (uint32_t*)&cpubrand[16]);
 	cpuid_string(CPUID_INTELBRANDSTRINGEND, (uint32_t*)&cpubrand[32]);
 	cpubrand[48] = '\n';
-	BOOT_DEBUG(CRITICAL, "CPU brand: %s\n", cpubrand);
+	DEBUG(CRITICAL, "CPU brand: %s\n", cpubrand);
 	
 	/* Check whether PCID is supported as well as PGE */
 	uint32_t ecx, edx;
@@ -716,18 +716,18 @@ void initCPU()
 	/* PGE check */
 	if(edx & CPUID_FEAT_EDX_PGE)
 	{
-		BOOT_DEBUG(CRITICAL, "PGE supported, enabling CR4.PGE\n");
+		DEBUG(CRITICAL, "PGE supported, enabling CR4.PGE\n");
 		asm volatile("MOV %%CR4, %0" : "=r"(cr4));
 		cr4 |= (1 << 7); /* Enable Page Global as well */
 		asm volatile("MOV %0, %%CR4" :: "r"(cr4));
 	} else {
-		BOOT_DEBUG(CRITICAL, "PGE unsupported, Global Page feature will be unavailable\n");
+		DEBUG(CRITICAL, "PGE unsupported, Global Page feature will be unavailable\n");
 	}
 	
 	/* PCID check */
 	if(ecx & CPUID_FEAT_ECX_PCID)
 	{
-		BOOT_DEBUG(CRITICAL, "PCID supported, enabling CR4.PCIDE\n");
+		DEBUG(CRITICAL, "PCID supported, enabling CR4.PCIDE\n");
 		pcid_enabled = 1;
 		
 		/* Enable PCID */
@@ -735,18 +735,18 @@ void initCPU()
 		cr4 |= (1 << 17);
 		asm volatile("MOV %0, %%CR4" :: "r"(cr4));
 	} else {
-		BOOT_DEBUG(CRITICAL, "PCID unsupported, Process Context Identifiers feature will be unavailable\n");
+		DEBUG(CRITICAL, "PCID unsupported, Process Context Identifiers feature will be unavailable\n");
 	}
 }
 
 uint32_t timer_ticks = 0;
 
 void idt_init(void) {
-	BOOT_DEBUG(INFO, "Initializing interrupts\n");
+	DEBUG(INFO, "Initializing interrupts\n");
 	initIDT();
 	remapIRQ();
 	timerPhase(100);
 	timer_ticks = 0;
 	initCPU();
-	BOOT_DEBUG(INFO, "Done initializing interrupts\n");
+	DEBUG(INFO, "Done initializing interrupts\n");
 }
