@@ -19,7 +19,7 @@ Pip exports 8 primitives related to memory management:
 
 Pip also exports the primitives `dispatch` and `resume` that are discussed below and are related to control flow.
 
-### Data structure 
+### Data structure
 In order to control, allow or decline memory operations, Pip uses several data structures to keep track of derivations.
 
 #### Partition descriptor
@@ -58,7 +58,7 @@ Its structure is one of a table, containing entries addressed by their offset.
 
 Therefore, each index will point to an entry in one of those tables. The first index will give an entry into the Page Directory.
 This entry contains a physical address, which is a "Page Table". We can then take the second index extracted from the virtual address,
-and parse the Page Table to find another entry, and so on. 
+and parse the Page Table to find another entry, and so on.
 
 Example: On x86 32 bits architectures, we have two levels of indirection, which are Page Directory and Page Table.
 The first 10 bits of the virtual address points to an entry in the Page Directory, which is the Page Table address.
@@ -67,8 +67,8 @@ We can then take the remaining 12 bits of the virtual address, OR them with the 
 
     |------------------|
     |  PAddr      |Fl. |
-    |------------------|      
-    |  PAddr      |Fl. |      
+    |------------------|
+    |  PAddr      |Fl. |
     |------------------|
     |       ...        |
     |                  |
@@ -106,13 +106,13 @@ multiplexing and dispatching to the right child partition. (`dispatch`)
 We also want to provide a way of implementing ~trap calls between parent and
 child partitions. (`notify`)
 
-### Design 
+### Design
 In order to keep the Pip kernel as 'exo' as possible, we keep most of the
 scheduler out of the kernel. The Pip kernel provides only context saving and
 switching primitives. All the complex scheduling logics must be implemented
 in userland.
 
-We keep the same hierarchical organisation that was used for the memory. 
+We keep the same hierarchical organisation that was used for the memory.
 Therefore, a parent partition should take care of managing the execution
 flow of its children partitions.
 
@@ -141,7 +141,7 @@ The interrupted context's stack can be found at entry ESP(0) of the interrupted 
 
 #### Context switching
 To resume a child context, a pip-service has been added: `resume`
-This service allows a parent partition to activate a child partition and 
+This service allows a parent partition to activate a child partition and
 switch to one of its contexts.
 ie. `resume(part_no, 0)` to activate child partition `part_no` and
 	resume its interrupted context, resetting or not the VCLI flag.
@@ -162,7 +162,7 @@ The `resume` service activates another partition, and restores the execution of 
 This function is meant to be called from an interrupt/notify handler, and never returns to the caller.
 Arguments are: target partition, and context to resume.
 
-This service is usually used by a parent when implementing the scheduling of its child partitions. 
+This service is usually used by a parent when implementing the scheduling of its child partitions.
 
 PipFlags:
 

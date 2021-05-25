@@ -1,6 +1,6 @@
 # Readme
 
-You can find more about the Pip protokernel at its [website](http://pip.univ-lille.fr).
+You can find more about the Pip protokernel at its [website](http://pip.univ-lille1.fr/).
 
 The source code is covered by CeCILL-A licence.
 
@@ -24,17 +24,14 @@ You can generate the "Getting Started" tutorial by invoking `make gettingstarted
 
 Pip is known to build correctly with this toolchain:
 
-* GCC i386, version 4.7.2 to 4.9
-	* GCC 7.2 is known to be working as well
-	* GNU Binutils version 2.29 is NOT working, as LD triggers a segmentation fault, use version 2.28 or lower instead
-* NASM version 2.11.08
-* COQ Proof Assistant version 8.5pl2
-* GNU Sed version 4.2.2 (install it on an OSX build host through MacPorts : "gsed")
+* GCC version 8.3.0 and above
+* NASM version 2.14 and above
+* COQ Proof Assistant version 8.13.1
 * grub-mkrescue (for ISO image generation; unnecessary for i386 target though)
-* Doxygen version 1.8.10 (for documentation generation)
-* haskell-stack version 1.2.0.2 (is a cross-platform program for developing Haskell projects)
-* QEMU i386 version 2.6.50
-* Texlive any version or another latex tools 
+* Doxygen version 1.8.13 and above (for documentation generation)
+* haskell-stack version 1.7.1 and above (is a cross-platform program for developing Haskell projects)
+* QEMU i386 version 3.1.0 and above
+* Texlive any version or another latex tools
 
 ## Building the Pip
 
@@ -48,7 +45,7 @@ You can pass several arguments to make to compile the Pip.
 * `mrproper` | `clean` | `partition` | `all` | `kernel` | `proof` | `qemu` | `grub`: Requested build operation
 
 ## Building partitions
-Each partition is located into `src/partitions/{architecture}/{partition}`.
+Each partition is located into `src/arch/{architecture}/partitions/{partition}`
 
 * Configure the toolchain by copying `src/partitions/{architecture}/toolchain.mk.template` to `src/partitions/{architecture}/toolchain.mk`, then edit the latter to your needs.
 * You can use the `minimal` partition as a base to develop more elaborated software.
@@ -84,7 +81,7 @@ Although QEMU is the reference x86 emulator for Pip, a configuration file for th
 Note that you need to generate Pip's ISO image through `make grub` before running Bochs.
 
 ## Compiling on Linux
-The compilation on Linux should be as easy as to install the i386-elf toolchain as well as the other requirements, and use the Makefile to generate a binary image. 
+The compilation on Linux should be as easy as to install the i386-elf toolchain as well as the other requirements, and use the Makefile to generate a binary image.
 Use your favourite package manager to install i386 gcc (gcc-multilib), haskell-stack, QEMU, Coq, NASM, Doxygen and GRUB.
 
 ## Compiling on Darwin/OSX

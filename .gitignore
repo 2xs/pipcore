@@ -29,6 +29,7 @@ makefile.autocoq
 *lia.cache
 
 # Misc
+tags
 *.json
 *.tar
 *.pcap
@@ -45,10 +46,6 @@ doc/c-doc/
 
 # Toolchain configuration
 src/partitions/*/toolchain.mk
-
-# Internal.h is regenerated with each compilation
-Internal.h
-git.h
 
 # Latex
 *.aux
