@@ -1,6 +1,6 @@
 #!/bin/sh
 #################################################################################
-#   © Université Lille 1, The Pip Development Team (2015-2021)                  #
+#   © Université de Lille, The Pip Development Team (2015-2021)                 #
 #                                                                               #
 #   This software is a computer program whose purpose is to run a minimal,      #
 #   hypervisor relying on proven properties such as memory isolation.           #
@@ -32,377 +32,267 @@
 #   knowledge of the CeCILL license and that you accept its terms.              #
 #################################################################################
 
-printf "###################################################\\n"
-printf "Pipcore Configuration Script.\\n"
-printf "###################################################\\n"
+## The regular expression used to extract the total amount of available memory.
+available_memory_regex='^MemTotal:[[:space:]]*\([^[:space:]]*\).*'
 
-# Check available RAM
+## The minimum amount of memory in KB required to compile proofs.
+minimum_required_memory='8388604' # (8 GB)
 
-printf "Checking the total amount of RAM memory available ... "
-available_ram_kb=$(head -1 /proc/meminfo | sed -e 's/^MemTotal:\s*//' -n -e 's/ .*$//p')
-if [ "$available_ram_kb" -le "8388604" ];
+## The minimum required version of tools.
+as_minimum_version='2.14'
+cc_minimum_version='8.3.0'
+coqc_minimum_version='8.13.1'
+doxygen_minimum_version='1.8.13'
+gdb_minimum_version='8.2.1'
+grub_mkrescue_minimum_version='2.02'
+ld_minimum_version='2.31.1'
+make_minimum_version='4.2.1'
+pdflatex_minimum_version='3.14'
+qemu_minimum_version='3.1.0'
+
+## The regular expressions used to extract the version number.
+as_regex_1='^NASM version \([^ ]*\).*$'
+cc_regex_1='^gcc .* \([^ ]*\)$'
+coqc_regex_1='^The Coq Proof Assistant, version \([^ ]*\).*$'
+doxygen_regex_1='^\([^ ]*\)$'
+gdb_regex_1='^GNU gdb .* \([^ ]*\)$'
+grub_mkrescue_regex_1='^.*grub-mkrescue .* \([^ ]*\)$'
+ld_regex_1='^GNU ld .* \([^ ]*\)$'
+make_regex_1='^GNU Make \([^ ]*\).*$'
+pdflatex_regex_1='^pdfTeX \([^ ]*\).*$'
+qemu_regex_1='^QEMU emulator version \([^ ]*\).*$'
+
+## The regular expressions used to check the validity of the version number.
+as_regex_2='^2[.]14.*$|^2[.]1[5-9].*$|^2[.][2-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
+cc_regex_2='^8[.][3-9].*$|^8[.][1-9][0-9].*$|^9[.].*$|^[1-9][0-9][.].*$'
+coqc_regex_2='^8[.]13[.]1$'
+doxygen_regex_2='^1[.]8[.]1[3-9].*$|^1[.]8[.][2-9][0-9].*$|^1[.]9.*$|^1[.][1-9][0-9].*$|^[2-9][.].*$|^[1-9][0-9][.].*$'
+gdb_regex_2='^8[.]2[.][1-9].*$|^8[.][3-9].*$|^8[.][1-9][0-9].*$|^9[.].*$|^[1-9][0-9][.].*$'
+grub_mkrescue_regex_2='^2[.]0[2-9].*$|^2[.][1-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
+ld_regex_2='^2[.]31[.][1-9].*$|^2[.]3[2-9].*$|^2[.][4-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
+make_regex_2='^4[.][3-9].*$|^4[.][1-9][0-9].*$|^[5-9][.].*$|^[1-9][0-9][.].*$'
+pdflatex_regex_2='^3[.]1[4-9].*$|^3[.][2-9][0-9].*$|^[4-9][.].*$|^[1-9][0-9][.].*$'
+qemu_regex_2='^3[.][1-9].*$|^[4-9][.].*$|^[1-9][0-9][.].*$'
+
+## Extract the version number of a tool.
+## $1 The command that prints the tool version to stdout.
+## $2 The regular expression to extract the version number.
+## Returns the version number.
+extract_version_number() {
+    printf "%s\\n" "$( $1 2>/dev/null | sed -n -e 's/'"$2"'/\1/p' )"
+}
+
+## Check the validity of a version number.
+## $1 The version number to be checked.
+## $2 The regular expresion used to check the version number.
+## Returns 1 if the version number is valid, 0 otherwise.
+is_valid_version_number() {
+    printf "%s\\n" "$1" | grep -E "$2" >/dev/null 2>&1
+}
+
+## Get the path of the tool if it has been found.
+## $1 The name of the tool to be checked.
+## $2 The argument to print the version of the tool to stdout.
+## $3 The minimum required version of the tool.
+## $4 A regular expression to extract the version number.
+## $5 A regular expression to check the version number.
+## Returns the path to the tool if it was found or an empty string otherwise.
+get_tool_path_if_exists() {
+    printf "Checking %s ... " "$1" >&2
+    path=$(command -v "$1")
+    while :
+    do
+        version=$(extract_version_number "$path $2" "$4")
+        if is_valid_version_number "$version" "$5";
+        then
+            printf "OK (%s)\\n" "$version" >&2
+            break
+        elif is_valid_version_number "$version" "^.+$";
+        then
+            printf "\\nWARNING: %s versions below %s are untested.\\n" "$1" "$3" >&2
+            printf "Would you like to provide a path to a valid %s? (y/N) " "$1" >&2
+            read -r choice
+            case "$choice" in
+                [Yy])
+                    printf "Provide a path to a valid %s.\\n> " "$1" >&2
+                    read -r path
+                    continue
+                    ;;
+                *)
+                    break
+                    ;;
+            esac
+        else
+            printf "\\nWARNING: %s was not found.\\n" "$1" >&2
+            printf "Would you like to provide a path to a valid %s? (y/N) " "$1" >&2
+            read -r choice
+            case "$choice" in
+                [Yy])
+                    printf "Provide a path to a valid %s.\\n> " "$1" >&2
+                    read -r path
+                    continue
+                    ;;
+                *)
+                    path=""
+                    break
+                    ;;
+            esac
+        fi
+    done
+    printf "%s\\n" "$path"
+}
+
+## 1. Check the total amount of free memory.
+
+printf "Checking memory ... "
+available_memory=$(sed -n -e 's/'"$available_memory_regex"'/\1/p' /proc/meminfo)
+if [ "$available_memory" -le "$minimum_required_memory" ];
 then
-    printf "\\nWARNING: pipcore required more than 8GB of RAM in order to compile proofs ...\\n"
+    printf "\\nWARNING: pipcore required more than 8GB of memory \
+in order to compile proofs ...\\n"
 else
     printf "Ok\\n"
 fi
 
-# Check toolchain
-
-printf "Checking GNU Make ... "
-make_binary_path=$(command -v make)
-while :
-do
-    make_version=$($make_binary_path -v 2>/dev/null | head -1 | sed -n -e 's/^GNU Make //p')
-    case "$make_version" in
-        4.[3-9]*|4.[1-9][0-9]*|[5-9].*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$make_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: GNU Make versions below 4.3 may not support required features.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Make? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Make: "
-                    read -r make_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: Either GNU Make was not found, or it is not GNU Make.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Make? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Make: "
-                    read -r make_binary_path
-                    continue;;
-                [Nn]|*)
-                    make_binary_path="make"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking Coq ... "
-coq_binary_path=$(command -v coqc)
-while :
-do
-    coq_version=$($coq_binary_path -v 2>/dev/null | sed -n -e 's/The Coq Proof Assistant, version \([^ ]*\).*$/\1/p')
-    case "$coq_version" in
-        8.13.1)
-            printf "Ok (%s)\\n" "$coq_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: Coq Compiler versions below 8.13.1 are not supported.\\n"
-            printf "Would you like to provide an absolute path to a valid Coq Compiler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid Coq Compiler: "
-                    read -r coq_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: Coq Compiler was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid Coq Compiler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid Coq Compiler: "
-                    read -r coq_binary_path
-                    continue;;
-                [Nn]|*)
-                    coq_binary_path="coqc"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking Coq Makfile ... "
-coq_makefile_binary_path=$(command -v coq_makefile)
-while :
-do
-    if [ -z "$coq_makefile_binary_path" ]; then
-        printf "\\nWARNING: Coq Makefile was not found.\\n"
-        printf "Would you like to provide an absolute path to a valid Coq Makfile? (y/N) "
-        read -r choice
-        case "$choice" in
-            [Yy])
-                printf "Provide an absolute path to a valid Coq Makfile: "
-                read -r coq_makefile_binary_path
-                continue;;
-            [Nn]|*)
-                coq_makefile_binary_path="coq_makefile"
-                break;;
-        esac
-    fi
-    printf "Ok\\n"
-    break
-done
-
-printf "Checking GNU C Compiler ... "
-gcc_binary_path=$(command -v gcc)
-while :
-do
-    gcc_version=$($gcc_binary_path --version 2>/dev/null | head -1 | sed -n -e 's/^.* //p')
-    case "$gcc_version" in
-        8.[3-9]*|8.[1-9][0-9]*|9.*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$gcc_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: GNU C Compiler versions below 8.3.0 are untested.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU C Compiler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU C Compiler: "
-                    read -r gcc_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: GNU C Compiler was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU C Compiler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU C Compiler: "
-                    read -r gcc_binary_path
-                    continue;;
-                [Nn]|*)
-                    gcc_binary_path="gcc"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking Netwide assembler ... "
-nasm_binary_path=$(command -v nasm)
-while :
-do
-    nasm_version=$($nasm_binary_path -v 2>/dev/null | sed -n -e 's/^NASM version //p')
-    case "$nasm_version" in
-        2.1[4-9]*|2.[2-9][0-9]*|[3-9].*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$nasm_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: Netwide assembler versions below 2.14 are untested.\\n"
-            printf "Would you like to provide an absolute path to a valid Netwide assembler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid Netwide assembler: "
-                    read -r nasm_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: Netwide assembler was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid Netwide assembler? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid Netwide assembler: "
-                    read -r nasm_binary_path
-                    continue;;
-                [Nn]|*)
-                    nasm_binary_path="nasm"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking GNU Linker ... "
-ld_binary_path=$(command -v ld)
-while :
-do
-    ld_version=$($ld_binary_path -v 2>/dev/null | sed -n -e 's/^.* //p')
-    case "$ld_version" in
-        2.3[1-9]*|2.[4-9][0-9]*|[3-9].*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$ld_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: GNU Linker versions below 2.31.1 are untested.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Linker? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Linker: "
-                    read -r ld_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: GNU Linker was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Linker? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Linker: "
-                    read -r ld_binary_path
-                    continue;;
-                [Nn]|*)
-                    ld_binary_path="ld"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking QEMU ... "
-qemu_binary_path=$(command -v qemu-system-i386)
-while :
-do
-    qemu_version=$($qemu_binary_path --version 2>/dev/null | head -1 | sed -e 's/^QEMU emulator version //')
-    case "$qemu_version" in
-        3.[1-9]*|3.[2-9][0-9]*|[4-9].*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$qemu_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: QEMU versions below 3.1.0 are untested.\\n"
-            printf "Would you like to provide an absolute path to a valid QEMU? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid QEMU: "
-                    read -r qemu_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: QEMU was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid QEMU? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid QEMU: "
-                    read -r qemu_binary_path
-                    continue;;
-                [Nn]|*)
-                    qemu_binary_path="qemu"
-                    break;;
-            esac
-    esac
-done
-
-printf "Checking GNU Debugger ... "
-gdb_binary_path=$(command -v gdb)
-while :
-do
-    gdb_version=$($gdb_binary_path -v 2>/dev/null | head -1 | sed -n -e 's/^.* //p')
-    case "$gdb_version" in
-        8.[2-9]*|8.[3-9][0-9]*|9.*|[1-9][0-9].*)
-            printf "Ok (%s)\\n" "$gdb_version"
-            break;;
-        ?*)
-            printf "\\nWARNING: GNU Debugger versions below 8.2.1 are untested.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Debugger? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Debugger: "
-                    read -r gdb_binary_path
-                    continue;;
-                [Nn]|*)
-                    break;;
-            esac;;
-        "")
-            printf "\\nWARNING: GNU Debugger was not found.\\n"
-            printf "Would you like to provide an absolute path to a valid GNU Debugger? (y/N) "
-            read -r choice
-            case "$choice" in
-                [Yy])
-                    printf "Provide an absolute path to a valid GNU Debugger: "
-                    read -r gdb_binary_path
-                    continue;;
-                [Nn]|*)
-                    gdb_binary_path="gdb"
-                    break;;
-            esac
-    esac
-done
+## 2. Select the target architecture.
 
 while :
 do
-    printf "Choose a target architecture (type \"list\" to list available target architectures): "
+    printf "Choose a target architecture (type \"list\" to \
+list available target architectures).\\n> "
     read -r choice
     case "$choice" in
         i386)
-            target_architecture="x86_multiboot"
-            architecture_flags="ARCH_CFLAGS=-march=pentium -m32
-ARCH_LDFLAGS=-m elf_i386
-ARCH_ASFLAGS=-f elf"
-            break;;
+            target="x86_multiboot"
+            arch_cflags="-march=pentium -m32"
+            arch_ldflags="-m elf_i386"
+            arch_asflags="-f elf"
+            break
+            ;;
         list)
-            printf "i386 (Intel 80386)\\n";;
+            printf "i386 (Intel 80386)\\n"
+            ;;
     esac
 done
 
+## 3. Check the tool version.
+
+as=$(get_tool_path_if_exists "nasm" "-v" \
+        "$as_minimum_version" "$as_regex_1" "$as_regex_2")
+
+cc=$(get_tool_path_if_exists "gcc" "--version" \
+        "$cc_minimum_version" "$cc_regex_1" "$cc_regex_2")
+
+coqc=$(get_tool_path_if_exists "coqc" "-v" \
+        "$coqc_minimum_version" "$coqc_regex_1" "$coqc_regex_2")
+
+doxygen=$(get_tool_path_if_exists "doxygen" "-v" \
+        "$doxygen_minimum_version" "$doxygen_regex_1" "$doxygen_regex_2")
+
+gdb=$(get_tool_path_if_exists "gdb" "-v" \
+        "$gdb_minimum_version" "$gdb_regex_1" "$gdb_regex_2")
+
+grub_mkrescue=$(get_tool_path_if_exists "grub-mkrescue" "--version" \
+        "$grub_mkrescue_minimum_version" "$grub_mkrescue_regex_1" "$grub_mkrescue_regex_2")
+
+ld=$(get_tool_path_if_exists "ld" "-v" \
+        "$ld_minimum_version" "$ld_regex_1" "$ld_regex_2")
+
+make=$(get_tool_path_if_exists "make" "-v" \
+        "$make_minimum_version" "$make_regex_1" "$make_regex_2")
+
+pdflatex=$(get_tool_path_if_exists "pdflatex" "-v" \
+        "$pdflatex_minimum_version" "$pdflatex_regex_1" "$pdflatex_regex_2")
+
+qemu=$(get_tool_path_if_exists "qemu-system-i386" "--version" \
+        "$qemu_minimum_version" "$qemu_regex_1" "$qemu_regex_2")
+
+if ! [ -z "$coqc" ];
+then
+    coqdirname=$(dirname "$coqc")
+    coq_makefile="$coqdirname/coq_makefile"
+    coqdep="$coqdirname/coqdep"
+    coqdoc="$coqdirname/coqdoc"
+    coqtop="$coqdirname/coqtop"
+else
+    coq_makefile=""
+    coqdep=""
+    coqdoc=""
+    coqtop=""
+fi
+
+## 5. Select the partition name.
+
 while :
 do
-    printf "Enter the name of the partition to build: "
-    read -r partition_name
-    case "$partition_name" in
+    printf "Enter the name of the partition to build.\\n> "
+    read -r partition
+    case "$partition" in
         ?*)
             break
     esac
 done
 
-# Generate the toolchain.mk file
+## 6. Generate toolchain.mk used to compile pipcore.
 
 cat <<EOF > toolchain.mk
 DIGGER_DIR=tools/digger
 DIGGER=\$(DIGGER_DIR)/digger
 
 # GNU Make
-MAKE="$make_binary_path"
+MAKE="$make"
 
 # Coq Proof Assistant
-COQ_MAKEFILE="$coq_makefile_binary_path"
-COQ="$coq_binary_path"
+COQ_MAKEFILE="$coq_makefile"
+COQ_ENV=COQC = "$coqc" COQDEP = "$coqdep" COQDOC = "$coqdoc" COQTOP = "$coqtop"
 
 # GNU C Compiler
-CC="$gcc_binary_path"
+CC="$cc"
 
 # Netwide assembler
-AS="$nasm_binary_path"
+AS="$as"
 
 # GNU Linker
-LD="$ld_binary_path"
+LD="$ld"
 
 # Qemu (for 32 bits architectures)
-QEMU="$qemu_binary_path"
+QEMU="$qemu"
 
 # GNU Debugger
-GDB="$gdb_binary_path"
+GDB="$gdb"
+
+# Doxygen
+DOXYGEN="$doxygen"
+
+# Pdflatex
+PDFLATEX="$pdflatex"
+
+# GRUB rescue
+GRUBMKRESCUE="$grub_mkrescue"
 
 ######################### Compilation options ###################
 
-TARGET=$target_architecture
-PARTITION=$partition_name
+TARGET=$target
+PARTITION=$partition
 
 # Arch related options
-$architecture_flags
+ARCH_CFLAGS=$arch_cflags
+ARCH_LDFLAGS=$arch_ldflags
+ARCH_ASFLAGS=$arch_asflags
 
 # Debug related options
 DEBUG_CFLAGS=-g -DPIPDEBUG -DLOGLEVEL=TRACE
 
+# If the DEBUG variable is set, the output binary will
+# be in debug mode. Otherwise, if the DEBUG variable is
+# not set, the output binary will be in released mode.
 DEBUG=ENABLED
 
 ######################### Execution options ###################
 
-GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file \$(PARTITION).elf" 
+GDBARGS=-iex "target remote localhost:1234" -iex "symbol-file \$(BUILD_DIR)/\$(TARGET)/\$(KERNEL_ELF)"
 
 QEMUARGS=-cpu Haswell -m 64
-QEMUARGS+=-nographic -kernel
-
-QEMU_DEBUG_ARGS=-S -s
+QEMUARGS+=-nographic
+#QEMUARGS+= -S -s
 EOF

@@ -1,0 +1,325 @@
+\documentclass[10pt,a4paper,titlepage]{refart}
+
+\usepackage[utf8x]{inputenc}
+\usepackage{ucs}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+
+\title{Get Started with Pip}
+
+\lstset{
+basicstyle=\ttfamily,
+frame=single
+}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\pagebreak
+
+\section{Setting up your development environment}
+
+To get started with Pip, it is required to install the appropriate development
+environment. This section describes the tools required by Pip as well as the
+three ways to obtain a functional development environment.
+
+\subsection{Required tools}
+
+\index{coq} \marginlabel{Coq Proof Assistant:}
+Pip's source code and formal proof of its memory isolation properties are
+written using the Coq proof assistant. In order to compile Coq files and
+generate the required intermediate files for the kernel to build, you will need
+the 8.13.1 version of Coq. A proper way to install Coq is via opam.
+
+\index{doxygen} \marginlabel{Doxygen:}
+Pip's documentation is generated through CoqDoc (included with Coq) for the Coq
+part, and Doxygen for the C part. The documentation is not mandatory to compile
+Pip, but it is highly required that you compile it and keep it somewhere safe so
+you always have some reference to read if you need some information about Pip's
+internals.
+
+\index{gcc} \marginlabel{GNU C Compiler:}
+GCC is the only C compiler known to compile Pip correctly. CLANG, for example,
+is not yet supported. To that end, you need a version of GCC capable of
+producing 32bits ELF binaries.
+
+\index{gdb} \marginlabel{GNU Debugger:}
+The GNU Debugger allows you to debug a partition while it is executed on the
+top of Pip. This is very useful during the development process. That's the
+reason why GDB is not mandatory but highly recommended.
+
+\index{gnu} \marginlabel{GNU Make:}
+Althought Pip is known to compile on FreeBSD and OSX hosts, these need a GNU
+software in order to perform the compilation, which is GNU Make.
+
+\index{grub-mkrescue} \marginlabel{GNU GRUB:}
+GNU GRUB is a boot loader which allows to create bootable ISO file. It is not
+mandatory but required if you want to produce a bootable ISO file of your
+project.
+
+\index{nasm} \marginlabel{Netwide Assembler:}
+Pip's assembly sources are compiled using the Netwide Assembler (NASM). A known
+working version is version 2.14, although any version since 2.0 should be
+working.
+
+\index{opam} \marginlabel{OCaml Package Manager:}
+Opam is the package manager for the OCaml programming language, the language in
+which Coq is implemented. This is the proper way to install and pin the Coq
+Proof Assistant to a specific version.
+
+\index{pdflatex} \marginlabel{TeX Live}
+TeX Live is an open source TeX distribution required to generate the
+\textit{getting started} of Pip. It not mandatory, but required if you want to
+generate this document.
+
+\index{qemu} \marginlabel{QEMU:}
+Although it is not required to build Pip, it is highly recommended to run Pip on
+emulated hardware rather than physical hardware during development. As such,
+QEMU is a known, multi-platform emulator, and is fully integrated into Pip's
+toolchain.
+
+\index{stack} \marginlabel{Haskell Stack:}
+Pip uses a home-made extractor to convert Coq code into C code. In order to
+compile this Extractor, which is written in Haskell, we use the Stack tool to
+download and install automatically the required GHC and libraries.
+
+\subsection{Virtual machine image}
+
+This section describes step-by-step how to get a development environment from a
+virtual machine image.
+
+Before starting, you need to install a virtualization software such as
+VirtualBox or VMware and download the virtual machine image. Once the download
+is complete, you need to import the image into the virtualization software, then
+start the virtual machine.
+
+The login credentials are:
+
+\begin{lstlisting}
+Login: pip
+Password: pip
+\end{lstlisting}
+
+or
+
+\begin{lstlisting}
+Login: root
+Password: pip
+\end{lstlisting}
+
+Your development environment is ready.
+
+\subsection{Docker image}
+
+This section describes step-by-step how to get a development environment from
+the Docker image of Pip. Before starting, you need to install Docker on your
+machine and download the Docker image.
+
+You can either run a new container from the Pip Docker image in interactive
+mode with:
+
+\begin{lstlisting}[language=bash]
+    # Run Pip's image inside of a new container
+    $ docker run -it --name pip pip bash
+
+    # Run a command in the running container
+    $ whoami
+
+    # Exit the shell
+    $ exit
+\end{lstlisting}
+
+or in detached interactive mode with:
+
+\begin{lstlisting}[language=bash]
+    # Run Pip's image inside of a new container
+    $ docker run -dit --name pip pip bash
+
+    # Run a command in the running container
+    $ docker exec pip whoami
+\end{lstlisting}
+
+Once you are done with the container, you can stop it and remove it with:
+
+\begin{lstlisting}[language=bash]
+    # Stop the container
+    $ docker stop pip
+
+    # Remove the container
+    $ docker rm pip
+\end{lstlisting}
+
+Before removing the container, make sure that you have saved all your changes:
+any unsaved changes will be lost.
+
+Your development environment is ready.
+
+\subsection{Step-by-step installation}
+
+This section describes step-by-step how to get a development environment on your
+host machine. We assume that your machine is running a Debian-based Linux
+distribution.
+
+\subsubsection{Installing the required packages}
+
+Update the apt package index:
+
+\begin{lstlisting}[language=bash]
+    $ sudo apt update
+\end{lstlisting}
+
+Install the required packages:
+
+\begin{lstlisting}[language=bash]
+    $ sudo apt install \
+        build-essential \
+        doxygen \
+        gdb \
+        git \
+        grub2-common \
+        grub-pc \
+        haskell-stack \
+        nasm \
+        opam \
+        qemu-system-i386 \
+        texlive-base \
+        xorriso
+\end{lstlisting}
+
+Download the GHC compiler if necessary in the \texttt{\$HOME/.stack}:
+
+\begin{lstlisting}[language=bash]
+    $ stack setup
+\end{lstlisting}
+
+Initialize the internal state of opam in the \texttt{\$HOME/.opam} directory:
+
+\begin{lstlisting}[language=bash]
+    $ opam init
+    $ eval $(opam env)
+\end{lstlisting}
+
+Build Coq from source with opam:
+
+\begin{lstlisting}[language=bash]
+    $ opam pin add coq 8.13.1
+\end{lstlisting}
+
+\subsubsection{Getting source code}
+
+Clone the git repository of the projects:
+
+\begin{lstlisting}[language=bash]
+    $ git clone ...
+    $ git clone ...
+\end{lstlisting}
+
+\subsubsection{Building LibPip}
+
+In order to build a partition, you will probably need to build LibPip:
+
+\begin{lstlisting}[language=bash]
+    # Build the libpip library
+    $ make -C /path/to/libpip
+\end{lstlisting}
+
+Remember the path to the repository.
+
+\subsubsection{Building Digger}
+
+Build Digger through the stack tool:
+
+\begin{lstlisting}[language=bash]
+    # Initialize the submodules of pipcore
+    $ git -C /path/to/pipcore submodule init
+
+    # Update the submodules of pipcore
+    $ git -C /path/to/pipcore submodule update
+
+    # Compile Digger
+    $ make -C /path/to/pipcore/tools/digger
+\end{lstlisting}
+
+\subsubsection{Partition toolchain configuration}
+
+Configure the partition building toolchain:
+
+\begin{itemize}
+\item Open a terminal emulator
+\item Go to Pip's repository
+\item Navigate to the \texttt{src/arch/x86\_multiboot/partitions} directory
+\item Copy the \texttt{toolchain.mk.template} file into \texttt{toolchain.mk}
+\item Open \texttt{toolchain.mk} with a text editor
+\end{itemize}
+
+Here, you need to specify which compiler and LibPip to use. Basically, we will
+use GCC as C compiler and assembler, and LD as linker. Set LIBPIP to
+\texttt{/path/to/libpip}, which we defined previously as the path to LibPip's
+repository. Feel free to replace those with your favourite toolchain (e.g.
+i386-elf-gcc on Mac OSX):
+
+\begin{lstlisting}[language=bash]
+CC=gcc
+LD=ld
+AS=gcc
+
+LIBPIP=/path/to/libpip
+\end{lstlisting}
+
+Your development environment is ready.
+
+\section{Testing your development environment}
+
+This section describes how to test your development environment, whether it is
+from a virtual machine image, a Docker image or your host machine.
+
+\subsection{Building the minimal partition}
+
+Before to build pipcore, you need to build the minimal partition:
+
+\begin{lstlisting}[language=bash]
+    $ make -C \
+    /path/to/pipcore/src/arch/
+    x86_multiboot/partitions/minimal
+\end{lstlisting}
+
+\subsection{Building pipcore}
+
+Now that you have built the minimal partition, you can build pipcore with the
+partition on top of it:
+
+\begin{lstlisting}[language=bash]
+    $ make -C /path/to/pipcore
+\end{lstlisting}
+
+If it is the first time you run \texttt{make} command, it will execute the
+\texttt{configure.sh} script. Follow the instructions on the screen to generate
+the \texttt{toolchain.mk} file needed for the compilation.
+
+
+You should find in \texttt{/path/to/pipcore} the ELF binary and an ISO image of
+Pip.
+
+\subsection{Testing in QEMU}
+
+Now, you can run the ELF version of Pip in QEMU with:
+
+\begin{lstlisting}[language=bash]
+    $ make -C /path/to/pipcore qemu-elf
+\end{lstlisting}
+
+or run the ISO version with:
+
+\begin{lstlisting}[language=bash]
+    $ make -C /path/to/pipcore qemu-iso
+\end{lstlisting}
+
+This should display ``Hello world!'' on the serial link after a few seconds.
+
+\end{document}

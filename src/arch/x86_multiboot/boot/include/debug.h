@@ -65,7 +65,7 @@
 #endif
 
 /**
- * \brief Defines the appropriate DEBUGRAW behavior. 
+ * \brief Defines the appropriate DEBUGRAW behavior.
  */
 #define DEBUGRAW(a) krn_puts(a)
 
@@ -83,18 +83,26 @@
  * \brief Defines the appropriate DEBUGDEC behavior. 
  */
 #define DEBUGDEC(a) putdec(a)
+
 #else
+
 /**
- * \brief Defines the appropriate DEBUG behavior. 
+ * \brief Defines the appropriate DEBUGRAW behavior.
+ */
+#define DEBUGRAW(...)
+
+/**
+ * \brief Defines the appropriate DEBUG behavior.
  */
 #define DEBUG(...)
-#define DEBUGRAW(...)
+
 /**
- * \brief Defines the appropriate DEBUGHEX behavior. 
+ * \brief Defines the appropriate DEBUGHEX behavior.
  */
 #define DEBUGHEX(...)
+
 /**
- * \brief Defines the appropriate DEBUGDEC behavior. 
+ * \brief Defines the appropriate DEBUGDEC behavior.
  */
 #define DEBUGDEC(...)
 

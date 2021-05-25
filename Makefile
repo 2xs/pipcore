@@ -56,6 +56,9 @@ CFLAGS+=$(if $(DEBUG), $(DEBUG_CFLAGS))
 
 SRC_DIR=src
 GENERATED_FILES_DIR=generated
+DOC_DIR=doc
+C_DOC_DIR=$(DOC_DIR)/c
+COQ_DOC_DIR=$(DOC_DIR)/coq
 
 ########################## Coq related dirs #########################
 
@@ -129,7 +132,7 @@ COQ_PROOF_FILES=$(foreach dir, $(COQ_PROOF_DIR)\
 
 ######################### Partition files ###########################
 
-INTERMEDIATE_BIN=$(C_SRC_TARGET_DIR)/root_partition.bin
+PARTITION_INTERMEDIATE_BIN=$(C_SRC_TARGET_DIR)/root_partition.bin
 PARTITION_BIN=$(TARGET_PARTITION_DIR)/$(PARTITION)/$(PARTITION).bin
 
 ######################## Miscellaneous files ########################
@@ -147,7 +150,7 @@ JSONS:=$(addprefix $(GENERATED_FILES_DIR)/, $(JSONS))
 ##                    Default Makefile target                      ##
 #####################################################################
 
-all : $(PARTITION).elf
+all : $(PARTITION).elf $(PARTITION).iso
 
 #####################################################################
 ##                    Code compilation targets                     ##
@@ -229,7 +232,7 @@ $(C_TARGET_MAL_OBJ):\
 
 ########################## Partition Binary #########################
 
-$(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(INTERMEDIATE_BIN)\
+$(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(PARTITION_INTERMEDIATE_BIN)\
                               | $(GENERATED_FILES_DIR)
 	$(AS) $(ASFLAGS) -o $@ $<
 
@@ -260,28 +263,64 @@ proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES) | $(GENERATED_FILES_DIR
 ##                        Utility targets                         ##
 ####################################################################
 
-Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
-	coq_makefile -f _CoqProject -o Makefile.coq $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
+####################### Documentation targets ######################
 
-$(GENERATED_FILES_DIR):
+doc: doc-c doc-coq gettingstarted
+
+doc-c: | $(C_DOC_DIR)
+	cd doc && $(DOXYGEN) doxygen.conf
+
+doc-coq: Makefile.coq | $(GENERATED_FILES_DIR) $(COQ_DOC_DIR)
+	$(MAKE) -f $< html
+	# Should not be do like this but html dir is hardcoded...
+	mv -f html $(COQ_DOC_DIR)
+
+gettingstarted:
+	cd doc/getting-started && $(PDFLATEX) GettingStarted.tex
+
+########################### ISO targets ############################
+
+INTERMEDIATE_ELF=tools/grub/boot/pip.elf
+
+$(INTERMEDIATE_ELF): $(PARTITION).elf
+	ln $< $@
+
+$(PARTITION).iso: $(INTERMEDIATE_ELF)
+	$(GRUBMKRESCUE) -o $@ tools/grub
+
+########################### QEMU targets ###########################
+
+qemu-elf: $(PARTITION).elf
+	$(QEMU) $(QEMUARGS) -kernel $<
+
+qemu-iso: $(PARTITION).iso
+	$(QEMU) $(QEMUARGS) -boot d -cdrom $<
+
+####################################################################
+
+toolchain.mk:
+	sh configure.sh
+
+Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
+	$(COQ_MAKEFILE) $(COQ_ENV) -f _CoqProject -o Makefile.coq $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
+
+$(GENERATED_FILES_DIR) $(C_DOC_DIR) $(COQ_DOC_DIR):
 	mkdir -p $@
 
 # Using a hard link to prevent copy
-$(INTERMEDIATE_BIN): $(PARTITION_BIN)
+$(PARTITION_INTERMEDIATE_BIN): $(PARTITION_BIN)
 	ln $< $@
 
-# Do not trigger compilation if $(INTERMEDIATE_BIN) is missing
-# and delete $(INTERMEDIATE_BIN) after compilation if it was created
-.INTERMEDIATE: $(INTERMEDIATE_BIN)
+# Do not trigger compilation if $(PARTITION_INTERMEDIATE_BIN) is missing
+# and delete $(PARTITION_INTERMEDIATE_BIN) after compilation if it was created
+.INTERMEDIATE: $(PARTITION_INTERMEDIATE_BIN) $(INTERMEDIATE_ELF)
 
-qemu: $(PARTITION).elf
-	$(QEMU) $(QEMUARGS) $<
-
-qemu_debug: $(PARTITION).elf
-	$(QEMU) $(QEMU_DEBUG_ARGS) $(QEMUARGS) $<
-
-gdb: $(PARTITION).elf
-	$(GDB) $(GDBARGS)
+realclean: clean
+	rm -rf $(COQ_DOC_DIR) $(C_DOC_DIR)
+	rm -f $(DOC_DIR)/getting-started/GettingStarted.aux\
+              $(DOC_DIR)/getting-started/GettingStarted.toc\
+              $(DOC_DIR)/getting-started/GettingStarted.log\
+              $(DOC_DIR)/getting-started/GettingStarted.pdf
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
@@ -289,5 +328,6 @@ clean: Makefile.coq
 	rm -rf $(GENERATED_FILES_DIR)
 	rm -f $(OBJECT_FILES)
 	rm -f $(PARTITION).elf
+	rm -f $(PARTITION).iso
 
-.PHONY: all proofs clean
+.PHONY: all proofs doc doc-c doc-coq gettingstarted clean
