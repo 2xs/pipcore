@@ -330,4 +330,7 @@ clean: Makefile.coq
 	rm -f $(PARTITION).elf
 	rm -f $(PARTITION).iso
 
-.PHONY: all proofs doc doc-c doc-coq gettingstarted clean
+gdb: $(PARTITION).elf
+	gdb $(GDBARGS) $<
+
+.PHONY: all proofs doc doc-c doc-coq gettingstarted clean gdb
