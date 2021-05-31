@@ -346,6 +346,7 @@ CG_GLUE_CTX outlGlue            , 2
 CG_GLUE_CTX inlGlue             , 1
 CG_GLUE_CTX outaddrlGlue        , 2
 CG_GLUE_CTX yieldGlue           , 5
+CG_GLUE_CTX set_int_state       , 1
 
 ; Those ones won't trigger a fault in caller
 CG_GLUE createPartition         , 5
@@ -356,7 +357,4 @@ CG_GLUE removeVAddr             , 2
 CG_GLUE	mappedInChild           , 1
 CG_GLUE	deletePartition         , 1
 CG_GLUE	collect                 , 2
-CG_GLUE set_int_state           , 1
 CG_GLUE get_int_state           , 1
-
-;CG_GLUE_NOARG  timerGlue

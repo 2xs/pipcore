@@ -45,13 +45,13 @@
 //  - any other value => partition accepts to be interrupted
 
 // sets the interrupt state of the current partition
-void set_int_state(uint32_t interrupt_state) {
+void set_int_state(gate_ctx_t *ctx, uint32_t interrupt_state) {
 	uint32_t currentPartDesc = getCurPartition();
 	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
 	if (currentPartDesc == getRootPartition()) {
 		if (interrupt_state == 0)
-			asm("cli");
-		else	asm("sti");
+			ctx->eflags &= ~0x200; //disable interrupts
+		else	ctx->eflags |=  0x200; // enable interrupts
 	}
 	return;
 }
