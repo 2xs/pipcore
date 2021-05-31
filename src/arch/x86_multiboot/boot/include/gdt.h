@@ -212,13 +212,10 @@ struct tss_s {
 };
 
 typedef struct tss_s tss_t;
-
+extern tss_t tss;
 
 void gdt_init();
 
 void setKernelStack(uint32_t stack);
-
-/* Farcalls to API methods */
-extern bool createPartitionGlue(uint32_t ref, uint32_t pd, uint32_t sh1, uint32_t sh2, uint32_t sh3) ;
 
 #endif

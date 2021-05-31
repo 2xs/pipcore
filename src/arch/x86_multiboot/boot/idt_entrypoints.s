@@ -228,7 +228,7 @@ extern %1InterruptHandler
         ; ESP holds a pointer to it.
 	push esp
 
-	; call c handler (user_ctx_t *ctx)
+	; call c handler (int_ctx_t *ctx)
 	call %1InterruptHandler
 	; should not return but...
 	; in case an interrupt occurred at the very

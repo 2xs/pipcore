@@ -45,6 +45,7 @@
 #include "asm_int.h"
 
 #include "segment_selectors.h"
+#include "gdt.h"
 
 /* TODO remove me once the new service is written in Coq */
 #include "yield_c.h"
@@ -77,12 +78,80 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	 * single instruction back, and execute the far call 
 	 *
 	 * But that's for another time */
+
+/*              Handler's stack
+		;-------------;
+		;             ;  <-- SS0:ESP0 in TSS
+            +---;-------------;
+            |   ; userland SS ;
+            |   ;-------------;
+            |   ; userland ESP;
+            |   ;-------------;-+
+            |   ;     argn    ; |
+            |   ;-------------; |
+  callgate -+   ;     ...     ; +-- Args copied by the callgate
+            |   ;-------------; |
+            |   ;     arg1    ; |
+            |   ;-------------;-+
+            |   ; userland CS ;
+            |   ;-------------;
+            |   ; userland EIP; <-- SS:ESP before interrupt occured
+            >---;-------------;
+            |   ;uland EFLAGS ; <-- Note : the interrupt flag has been cleared
+            |   ;-------------;
+ interrupt -+   ; callgate CS ;
+    gate    |   ;-------------;
+            |   ; callgate EIP; <-- SS:ESP right after interrupt
+            >---;-------------;
+            |   ;      0      ;
+            |   ;-------------;
+            |   ;    int_no   ;
+            |   ;-------------;
+  assembly -+   ;             ;
+    code    |   ; General regs;
+            |   ;             ;
+            |   ;-------------;
+            |   ; int_ctx_t * ; <-- SS:ESP when checking for cs == KERNEL_CODE_SEGMENT_SELECTOR
+            +---;-------------;
+		;     |||     ;
+		;---- vvv ----;
+
+*/
+
+
 	if (ctx->cs == KERNEL_CODE_SEGMENT_SELECTOR) {
-		DEBUG(TRACE, "Infamous interrupt on the callgate cli, we just lost an interrupt\n");
-		return;
+		DEBUG(WARN, "Infamous interrupt on the callgate cli, trying to fix the context\n");
+		ctx->cs  = ctx->ss;          // copy userland CS over callgate CS
+		ctx->eip = ctx->useresp - 7; // copy userland EIP over callgate EIP
+		                             // and fix eip so that a return reexecutes the farcall
+		ctx->eflags |= 0x200;        // restore the interrupt flag that was cleared upon interrupt gate entry
+
+		uint32_t userland_esp;
+		uint16_t userland_ss;
+
+		asm("mov %%esp, %%eax;"  // save current esp
+		    "mov %2,    %%esp;"  // get esp from TSS
+		    "sub %3,    %%esp;"  // jump 2 words down the stack
+		    "pop %0;"            // dump userland esp in a register
+		    "pop %1;"            // dump userland ss  in a register
+		    "mov %%eax, %%esp;"  // restore esp
+		    // output operands
+		    : "=r" (userland_esp),
+		      "=r" (userland_ss)
+		    // input operands
+		    : "rm"(tss.esp0),
+		      "ir"(2 * 4) // jump 2 words
+		    // cloberred and scratch registers
+		    : "memory",
+		      "eax"
+		);
+		ctx->ss      = userland_ss;
+		ctx->useresp = userland_esp;
+		// int_ctx_t should now be fixed
+		DEBUG(WARN, "Context SHOULD be fixed\n");
 	}
 
-	/* We need to convert the int_stack_s ctx 
+	/* We need to convert the int_ctx_t ctx
 	 * into a generic user_ctx_t */
 	user_ctx_t uctx;
 	uctx.eip = ctx->eip;
