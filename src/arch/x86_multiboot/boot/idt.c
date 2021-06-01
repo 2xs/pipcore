@@ -120,7 +120,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 
 
 	if (ctx->cs == KERNEL_CODE_SEGMENT_SELECTOR) {
-		DEBUG(WARN, "Infamous interrupt on the callgate cli, trying to fix the context\n");
+		DEBUG(WARNING, "Infamous interrupt on the callgate cli, trying to fix the context\n");
 		ctx->cs  = ctx->ss;          // copy userland CS over callgate CS
 		ctx->eip = ctx->useresp - 7; // copy userland EIP over callgate EIP
 		                             // and fix eip so that a return reexecutes the farcall
@@ -148,7 +148,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 		ctx->ss      = userland_ss;
 		ctx->useresp = userland_esp;
 		// int_ctx_t should now be fixed
-		DEBUG(WARN, "Context SHOULD be fixed\n");
+		DEBUG(WARNING, "Context SHOULD be fixed\n");
 	}
 
 	/* We need to convert the int_ctx_t ctx
