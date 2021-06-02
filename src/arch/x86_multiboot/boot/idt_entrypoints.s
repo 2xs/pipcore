@@ -170,55 +170,6 @@ software_%1_asm:
 	jmp software_common_code
 %endmacro
 
-;%macro INTERRUPT_TYPE 1
-;extern %1InterruptHandler
-;%1_common_code:
-;	; push general purpose registers
-;	pusha
-;	; the int_ctx_t struct is now complete
-;        ; ESP holds a pointer to it.
-;	; temporarily storing it in EAX register
-;        mov eax, esp
-;	; push current data segment to restore it
-;	; in case the handler returns
-;	; (assumes a common data segment for DS ES FS GS)
-;	; `push ds` pushes 4 bytes (instead of expected 2 bytes)
-;	push ds
-;        ; push the pointer stored in EAX for the C handler
-;	push eax
-;
-;	; TODO Use KERNEL_DATA_SEGMENT macro instead of 0x10
-;	mov ds, 0x10
-;	mov es, 0x10
-;	mov fs, 0x10
-;	mov gs, 0x10
-;
-;
-;	; call c handler (user_ctx_t *ctx)
-;	call %1InterruptHandler
-;	; should not return but...
-;	; in case an interrupt occurred at the very
-;	; first instruction of any callgate (`cli`)
-;	; we just return for now
-;	; TODO see possible fix described in idt.c
-;
-;
-;	; skip the pointer to the context
-;	add esp, 4
-;	; restore the data segments
-;	; (assuming a common data segment for DS ES FS GS)
-;	pop eax
-;	mov ds, ax
-;	mov es, ax
-;	mov fs, ax
-;	mov gs, ax
-;	; restore the general purpose registers
-;	popa
-;	; skip err_code & int_no
-;	add esp, 8
-;	iret
-;%endmacro
-
 %macro INTERRUPT_TYPE 1
 extern %1InterruptHandler
 %1_common_code:
@@ -228,22 +179,158 @@ extern %1InterruptHandler
         ; ESP holds a pointer to it.
 	push esp
 
+	; conditional assembly, only if %1 == hardware
+	; https://www.nasm.us/doc/nasmdoc4.html#section-4.4.5
+	; see later in this file why we need to check the stack
+	%ifidni %1,hardware
+		; stack sanity check
+		STACK_SANITY_CHECK
+	%endif
+
 	; call c handler (int_ctx_t *ctx)
 	call %1InterruptHandler
-	; should not return but...
-	; in case an interrupt occurred at the very
-	; first instruction of any callgate (`cli`)
-	; we just return for now
-	; TODO see possible fix described in idt.c
+	; should not return, likely a bug
+;
+;	; skip the pointer to the context
+;	add esp, 4
+;	; restore the general purpose registers
+;	popa
+;	; skip err_code & int_no
+;	add esp, 8
+;	iret
+%endmacro
+
+; About the stack sanity check in hardware_common_code
+; --------------------------------------------------------------
+; It might happen that, at the very first instruction of a callgate,
+; an interrupt occurs, thus receiving an interrupt in kernelland.
+; There is no way to prevent that. Nonetheless, no stack switch would
+; occur in that case, because we are already on ring 0. Thus, the
+; calling (userland) context of the callgate would still be accessible.
+; What we could do is to ignore the far call, as if userland was about
+; to execute the far call when the interrupt occured, and handle the
+; interrupt as usual.
+; Then, we can modify the userland context's EIP in order to roll it
+; back by a single instruction as if the far call never occured.
+; Hence when executing IRET, the userland context would be restored a
+; single instruction back, and execute the far call
+;
+;                Handler's stack
+;                ;-------------;
+;                ;             ;  <-- SS0:ESP0 in TSS
+;            +---;-------------;
+;            |   ; userland SS ;
+;            |   ;-------------;
+;            |   ; userland ESP;
+;            |   ;-------------;-+
+;            |   ;     argn    ; |
+;            |   ;-------------; |
+;  callgate -+   ;     ...     ; +-- Args copied by the callgate
+;            |   ;-------------; |
+;            |   ;     arg1    ; |
+;            |   ;-------------;-+
+;            |   ; userland CS ;
+;            |   ;-------------;
+;            |   ; userland EIP; <-- SS:ESP before interrupt occured
+;            >---;-------------;
+;            |   ;uland EFLAGS ; <-- Note : the interrupt flag has been cleared
+;            |   ;-------------;
+; interrupt -+   ; callgate CS ;
+;    gate    |   ;-------------;
+;            |   ; callgate EIP; <-- SS:ESP right after interrupt
+;            >---;-------------;
+;            |   ;      0      ;
+;            |   ;-------------;
+;            |   ;    int_no   ;
+;            |   ;-------------;
+;  assembly -+   ;             ;
+;    code    |   ; General regs;
+;            |   ;             ;
+;            |   ;-------------;
+;            |   ; int_ctx_t * ; <-- SS:ESP
+;            +---;-------------;
+;                ;     |||     ;
+;                ;---- vvv ----;
+
+; Mimicking the tss C struct to get the offsets
+struc tss_t
+	.prev_tss  resw 1 ; 16 bits
+	.reserved0 resw 1 ; 16 bits
+	.esp0      resd 1 ; 32 bits
+; ------ end of the struct is omitted here
+endstruc
+
+struc crooked_stack
+	.ret_addr  resd 1 ; 32 bits
+	.ctx_ptr   resd 1 ; 32 bits
+	.regs      resd 8 ; 8 * 32 bits
+	.int_no    resd 1 ; 32 bits
+	.err_code  resd 1 ; 32 bits
+	.cg_eip    resd 1 ; 32 bits
+	.cg_cs     resd 1 ; 32 bits
+	.eflags    resd 1 ; 32 bits
+	.ul_eip    resd 1 ; 32 bits
+	.ul_cs     resd 1 ; 32 bits
+; ----- callgate args (variable size)
+; ----- .ul_esp    resd 1 ; 32 bits
+; ----- .ul_ss     resd 1 ; 32 bits
+endstruc
 
 
-	; skip the pointer to the context
-	add esp, 4
-	; restore the general purpose registers
-	popa
-	; skip err_code & int_no
-	add esp, 8
-	iret
+; --------------------------------------------------
+; Accessing a global variable declared in C code
+; https://www.nasm.us/doc/nasmdo10.html#section-10.1.3
+; --------------------------------------------------
+; Though here we don't need the underscore to access
+; the variable we are trying to access ¯\_(ツ)_/¯
+; --------------------------------------------------
+extern tss
+%macro STACK_SANITY_CHECK 0
+	; get current esp in eax
+	mov eax, [esp + crooked_stack.cg_cs]
+	; compare eax to KERNEL_CODE_SEGMENT
+	cmp eax, 8
+	; jump if cs != KERNEL_CODE_SEGMENT
+	jne %%stack_ok
+
+	; stack is crooked
+	; cs must be retrieved from early callgate pushes
+	mov eax, [esp + crooked_stack.ul_cs]
+	mov [esp + crooked_stack.cg_cs], eax
+
+	; eip must be retrieved from early callgate pushes
+	mov eax, [esp + crooked_stack.ul_eip]
+	; and fixed so that the far call is executed again
+	sub eax, 7
+	mov [esp + crooked_stack.cg_eip], eax
+
+	; restore the interrupt flags in eflags
+	or dword[esp + crooked_stack.eflags], 0x200
+
+	; remember the current stack top
+	mov eax, esp
+
+	; move to the bottom of the stack to retrieve ss and esp
+	mov esp, [tss + tss_t.esp0]
+
+	; place the stack pointer above esp / ss
+	sub esp, 8
+
+	; store userland esp in edx
+	pop edx
+	; store userland ss in ecx
+	pop ecx
+
+	; go back to the initial stack top
+	mov esp, eax
+
+	; replace saved ss and esp at their correct location
+	mov [esp + crooked_stack.ul_cs] , ecx
+	mov [esp + crooked_stack.ul_eip], edx
+
+; Macro-local labels
+; https://www.nasm.us/doc/nasmdoc4.html#section-4.3.2
+%%stack_ok:
 %endmacro
 
 INTERRUPT_TYPE fault

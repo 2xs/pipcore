@@ -209,7 +209,7 @@ struct tss_s {
 	unsigned trap       :  1; //!< Flag to raise an exception when a task switch to this task occurs (static)
 	unsigned reserved11 : 15;
 	unsigned iomap_base : 16; //!< IOMMU base
-};
+} __attribute__((packed));
 
 typedef struct tss_s tss_t;
 extern tss_t tss;
