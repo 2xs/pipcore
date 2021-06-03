@@ -174,7 +174,6 @@ partition's VIDT, from which the interrupted context info can be found as well.
 
 #### On occurence of an hardware interrupt
 
-* If the interrupt happens in kernel-land, it is ignored
 * If the root partition has no handler registered for this interrupt, it is
   ignored as well
 * The current partition's context is saved and interrupted
