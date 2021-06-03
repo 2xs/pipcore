@@ -337,4 +337,4 @@ clean: Makefile.coq
 gdb: $(PARTITION).elf
 	gdb $(GDBARGS) $<
 
-.PHONY: all proofs doc doc-c doc-coq gettingstarted qemu-elf qemu-iso realclean clean
+.PHONY: all proofs doc doc-c doc-coq gettingstarted qemu-elf qemu-iso realclean clean gdb
