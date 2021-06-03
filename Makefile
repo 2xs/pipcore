@@ -272,7 +272,8 @@ doc-c: | $(C_DOC_DIR)
 
 doc-coq: Makefile.coq | $(GENERATED_FILES_DIR) $(COQ_DOC_DIR)
 	$(MAKE) -f $< html
-	# Should not be do like this but html dir is hardcoded...
+	# Should not be done like this but the html directory
+	# is hardcoded in the Makefile.coq
 	mv -f html $(COQ_DOC_DIR)
 
 gettingstarted:
