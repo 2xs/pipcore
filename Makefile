@@ -276,7 +276,9 @@ doc-coq: Makefile.coq | $(GENERATED_FILES_DIR) $(COQ_DOC_DIR)
 	mv -f html $(COQ_DOC_DIR)
 
 gettingstarted:
-	cd doc/getting-started && $(PDFLATEX) GettingStarted.tex
+	cd doc/getting-started/ &&\
+        $(PDFLATEX) getting-started.tex &&\
+        $(PDFLATEX) getting-started.tex
 
 ########################### ISO targets ############################
 
@@ -317,10 +319,11 @@ $(PARTITION_INTERMEDIATE_BIN): $(PARTITION_BIN)
 
 realclean: clean
 	rm -rf $(COQ_DOC_DIR) $(C_DOC_DIR)
-	rm -f $(DOC_DIR)/getting-started/GettingStarted.aux\
-              $(DOC_DIR)/getting-started/GettingStarted.toc\
-              $(DOC_DIR)/getting-started/GettingStarted.log\
-              $(DOC_DIR)/getting-started/GettingStarted.pdf
+	rm -f $(DOC_DIR)/getting-started/getting-started.aux\
+              $(DOC_DIR)/getting-started/getting-started.out\
+              $(DOC_DIR)/getting-started/getting-started.toc\
+              $(DOC_DIR)/getting-started/getting-started.log\
+              $(DOC_DIR)/getting-started/getting-started.pdf\
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
