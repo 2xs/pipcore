@@ -1,0 +1,950 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  © Université de Lille, The Pip Development Team (2015-2021)                %
+%                                                                             %
+%  This software is a computer program whose purpose is to run a minimal,     %
+%  hypervisor relying on proven properties such as memory isolation.          %
+%                                                                             %
+%  This software is governed by the CeCILL license under French law and       %
+%  abiding by the rules of distribution of free software.  You can  use,      %
+%  modify and/ or redistribute the software under the terms of the CeCILL     %
+%  license as circulated by CEA, CNRS and INRIA at the following URL          %
+%  "http://www.cecill.info".                                                  %
+%                                                                             %
+%  As a counterpart to the access to the source code and  rights to copy,     %
+%  modify and redistribute granted by the license, users are provided only    %
+%  with a limited warranty  and the software's author,  the holder of the     %
+%  economic rights,  and the successive licensors  have only  limited         %
+%  liability.                                                                 %
+%                                                                             %
+%  In this respect, the user's attention is drawn to the risks associated     %
+%  with loading,  using,  modifying and/or developing or reproducing the      %
+%  software by the user in light of its specific status of free software,     %
+%  that may mean  that it is complicated to manipulate,  and  that  also      %
+%  therefore means  that it is reserved for developers  and  experienced      %
+%  professionals having in-depth computer knowledge. Users are therefore      %
+%  encouraged to load and test the software's suitability as regards their    %
+%  requirements in conditions enabling the security of their systems and/or   %
+%  data to be ensured and,  more generally, to use and operate it in the      %
+%  same conditions as regards security.                                       %
+%                                                                             %
+%  The fact that you are presently reading this means that you have had       %
+%  knowledge of the CeCILL license and that you accept its terms.             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[10pt,a4paper,titlepage]{refart}
+
+\usepackage[utf8x]{inputenc}
+\usepackage{ucs}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\title{Get Started with Pip}
+
+\definecolor{commentcolor}{rgb}{0,0.6,0}
+\definecolor{numbercolor}{rgb}{0.5,0.5,0.5}
+\definecolor{stringcolor}{rgb}{0.58,0,0.82}
+\definecolor{backgroundcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset {
+    backgroundcolor=\color{backgroundcolour},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4,
+    frame=single
+}
+
+\lstdefinestyle{BashStyle} {
+    commentstyle=\color{commentcolor},
+    keywordstyle=\color{black},
+    stringstyle=\color{stringcolor},
+    language=bash
+}
+
+\lstdefinestyle{CStyle} {
+    emph={uint32_t},
+    emphstyle={\color{magenta}},
+    commentstyle=\color{commentcolor},
+    keywordstyle=\color{magenta},
+    stringstyle=\color{stringcolor},
+    language=C
+}
+
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\pagebreak
+
+\section{Setting up your development environment}
+
+To get started with Pip, it is required to install the appropriate development
+environment. This section describes the tools required by Pip as well as the
+three ways to obtain a functional development environment.
+
+\subsection{Required tools}
+
+\index{coq} \marginlabel{Coq Proof Assistant:}
+Pip's source code and formal proof of its memory isolation properties are
+written using the Coq proof assistant. In order to compile Coq files and
+generate the required intermediate files for the kernel to build, you will need
+the 8.13.1 version of Coq. A proper way to install Coq is via opam.
+
+\index{doxygen} \marginlabel{Doxygen:}
+Pip's documentation is generated through CoqDoc (included with Coq) for the Coq
+part, and Doxygen for the C part. The documentation is not mandatory to compile
+Pip, but it is highly required that you compile it and keep it somewhere safe so
+you always have some reference to read if you need some information about Pip's
+internals.
+
+\index{gcc} \marginlabel{GNU C Compiler:}
+GCC is the only C compiler known to compile Pip correctly. CLANG, for example,
+is not yet supported. To that end, you need a version of GCC capable of
+producing 32bits ELF binaries.
+
+\index{gdb} \marginlabel{GNU Debugger:}
+The GNU Debugger allows you to debug a partition while it is executed on the
+top of Pip. This is very useful during the development process. That's the
+reason why GDB is not mandatory but highly recommended.
+
+\index{gnu} \marginlabel{GNU Make:}
+Althought Pip is known to compile on FreeBSD and OSX hosts, these need a GNU
+software in order to perform the compilation, which is GNU Make.
+
+\index{grub-mkrescue} \marginlabel{GNU GRUB:}
+GNU GRUB is a boot loader which allows to create bootable ISO file. It is not
+mandatory but required if you want to produce a bootable ISO file of your
+project.
+
+\index{nasm} \marginlabel{Netwide Assembler:}
+Pip's assembly sources are compiled using the Netwide Assembler (NASM). A known
+working version is version 2.14, although any version since 2.0 should be
+working.
+
+\index{opam} \marginlabel{OCaml Package Manager:}
+Opam is the package manager for the OCaml programming language, the language in
+which Coq is implemented. This is the proper way to install and pin the Coq
+Proof Assistant to a specific version.
+
+\index{pdflatex} \marginlabel{TeX Live}
+TeX Live is an open source TeX distribution required to generate the
+\textit{getting started} of Pip. It not mandatory, but required if you want to
+generate this document.
+
+\index{qemu} \marginlabel{QEMU:}
+Although it is not required to build Pip, it is highly recommended to run Pip on
+emulated hardware rather than physical hardware during development. As such,
+QEMU is a known, multi-platform emulator, and is fully integrated into Pip's
+toolchain.
+
+\index{stack} \marginlabel{Haskell Stack:}
+Pip uses a home-made extractor to convert Coq code into C code. In order to
+compile this Extractor, which is written in Haskell, we use the Stack tool to
+download and install automatically the required GHC and libraries.
+
+\subsection{Virtual machine image}
+
+This section describes step-by-step how to get a development environment from a
+virtual machine image.
+
+Before starting, you need to install a virtualization software such as
+VirtualBox or VMware. Once the installation is completed, you need to download
+the OVA image of the virtual machine and the SHA-256 message digest:
+
+\begin{lstlisting}[style=BashStyle]
+$ wget http://pip.univ-lille1.fr/image/vm/pip.ova
+
+$ wget http://pip.univ-lille1.fr/image/vm/pip.ova.sha256sum
+\end{lstlisting}
+
+When the download is complete, you can check the integrity of the downloaded
+file with:
+
+\begin{lstlisting}[style=BashStyle]
+$ sha256sum -c pip.ova.sha256sum
+\end{lstlisting}
+
+Now, you have to import the OVA image into the virtualization software, then
+start the virtual machine.
+
+The login credentials are:
+
+\begin{lstlisting}
+Login: pip
+Password: pip
+\end{lstlisting}
+
+or
+
+\begin{lstlisting}
+Login: root
+Password: pip
+\end{lstlisting}
+
+Your development environment is ready.
+
+\subsection{Docker image}
+
+This section describes step-by-step how to get a development environment from
+the Docker image of Pip.
+
+Before starting, you need to install Docker on your machine. Once the
+installation is completed, you need to download the Docker image and the SHA-256
+message digest:
+
+\begin{lstlisting}[style=BashStyle]
+$ wget http://pip.univ-lille1.fr/image/docker/pip.tar
+
+$ wget http://pip.univ-lille1.fr/image/docker/pip.tar.sha256sum
+\end{lstlisting}
+
+When the download is complete, you can check the integrity of the downloaded
+file with:
+
+\begin{lstlisting}[style=BashStyle]
+$ sha256sum -c pip.tar.sha256sum
+\end{lstlisting}
+
+Now, you have to import the Docker image with:
+
+\begin{lstlisting}[style=BashStyle]
+$ docker load --input pip.tar
+\end{lstlisting}
+
+and check that it is imported with:
+
+\begin{lstlisting}[style=BashStyle]
+$ docker image ls
+\end{lstlisting}
+
+Once the Docker image imported, you can either run a new container from the
+Docker image of Pip in interactive mode with:
+
+\begin{lstlisting}[style=BashStyle]
+    # Run Pip's image inside of a new container
+    $ docker run -it --name pip pip bash
+
+    # Run a command in the running container
+    $ whoami
+
+    # Exit the shell
+    $ exit
+\end{lstlisting}
+
+or in detached mode with:
+
+\begin{lstlisting}[style=BashStyle]
+    # Run Pip's image inside of a new container
+    $ docker run -dit --name pip pip bash
+
+    # Run a command in the running container
+    $ docker exec pip whoami
+\end{lstlisting}
+
+Once you are done with the container, you can stop it and remove it with:
+
+\begin{lstlisting}[style=BashStyle]
+    # Stop the container
+    $ docker stop pip
+
+    # Remove the container
+    $ docker rm pip
+\end{lstlisting}
+
+Before removing the container, make sure that you have saved all your changes:
+any unsaved changes will be lost.
+
+Your development environment is ready.
+
+\subsection{Step-by-step installation}
+
+This section describes step-by-step how to get a development environment on your
+host machine. We assume that your machine is running a Debian-based Linux
+distribution.
+
+\subsubsection{Installing the required packages}
+
+Update the apt package index:
+
+\begin{lstlisting}[style=BashStyle]
+    $ sudo apt update
+\end{lstlisting}
+
+Install the required packages:
+
+\begin{lstlisting}[style=BashStyle]
+    $ sudo apt install build-essential doxygen gdb git grub2-common grub-pc haskell-stack nasm opam qemu-system-i386 texlive-base xorriso
+\end{lstlisting}
+
+Download the GHC compiler if necessary in the \texttt{\$HOME/.stack}:
+
+\begin{lstlisting}[style=BashStyle]
+    $ stack setup
+\end{lstlisting}
+
+Initialize the internal state of opam in the \texttt{\$HOME/.opam} directory:
+
+\begin{lstlisting}[style=BashStyle]
+    $ opam init
+    $ eval $(opam env)
+\end{lstlisting}
+
+Build Coq from source with \texttt{opam}:
+
+\begin{lstlisting}[style=BashStyle]
+    $ opam pin add coq 8.13.1
+\end{lstlisting}
+
+\subsubsection{Getting source code}
+
+To get sources, clone the git repository of the projects with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ git -C /path/to/pipcore clone ...
+
+    $ git -C /path/to/libpip clone ...
+\end{lstlisting}
+
+The first repository contains the kernel, proof and documentation of Pip.
+
+The second repository contains the userland library of Pip, called LibPip, which
+provides useful functions for calling the API or managing the data structures of
+Pip.
+
+\subsubsection{Building LibPip}
+
+In order to build a partition, you will probably need to build LibPip:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/libpip
+\end{lstlisting}
+
+\subsubsection{Building Digger}
+
+Initialize the submodules of pipcore with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ git -C /path/to/pipcore submodule init
+\end{lstlisting}
+
+Then, update the submodules with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ git -C /path/to/pipcore submodule update
+\end{lstlisting}
+
+Finally, build Digger through the stack tool with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/pipcore/tools/digger
+\end{lstlisting}
+
+\subsubsection{Partition toolchain configuration}
+
+Configure the partition building toolchain:
+
+\begin{itemize}
+\item Go to pipcore repository
+\item Navigate to the \texttt{src/arch/x86\_multiboot/partitions} directory
+\item Copy the \texttt{toolchain.mk.template} file into \texttt{toolchain.mk}
+\item Open \texttt{toolchain.mk} with a text editor
+\end{itemize}
+
+Here, you need to specify which compiler and LibPip to use. Basically, we will
+use GCC as C compiler and assembler, and LD as linker. Set LIBPIP to
+\texttt{/path/to/libpip}, which we defined previously as the path to LibPip's
+repository. Feel free to replace those with your favourite toolchain (e.g.
+i386-elf-gcc on Mac OSX):
+
+\begin{lstlisting}
+CC=gcc
+LD=ld
+AS=gcc
+
+LIBPIP=/path/to/libpip
+\end{lstlisting}
+
+Your development environment is ready.
+
+\section{Testing your development environment}
+
+This section describes how to test your development environment, whether it is
+from a virtual machine image, a Docker image or your host machine.
+
+\subsection{Building the minimal partition}
+
+Before to build pipcore, you need to build the minimal partition with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/pipcore/src/arch/x86_multiboot/partitions/minimal
+\end{lstlisting}
+
+\subsection{Building pipcore}
+
+Now that you have built the minimal partition, you can build pipcore with the
+partition on top of it with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/pipcore
+\end{lstlisting}
+
+If it is the first time you run \texttt{make} command, it will execute the
+\texttt{configure.sh} script. Follow the instructions on the screen to generate
+the \texttt{toolchain.mk} file needed for the compilation.
+
+You should find in \texttt{/path/to/pipcore} the ELF binary and the ISO image
+of Pip.
+
+\subsection{Testing in QEMU}
+
+You can test the ELF version of Pip in QEMU with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/pipcore qemu-elf
+\end{lstlisting}
+
+or test the ISO version with:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/pipcore qemu-iso
+\end{lstlisting}
+
+This should display ``Hello world!'' on the serial link after a few seconds.
+
+\section{Tutorials}
+
+\subsection{The minimal partition}
+
+The purpose of the minimal partition is to show how to make a functional minimal
+partition that prints ``Hello World'' on the serial link without the LibPip. To
+go into details, see the source code of the minimal partition.
+
+\subsubsection{Calling the API of Pip}
+
+In order to keep the minimal partition as minimal as possible, we will not use
+the LibPip library, but rather call the Pip API directly using inline
+assembler.
+
+Before writing a character on the serial link, it is necessary to check if it is
+ready to transmit. We must therefore write a function that allows us to retrieve
+the state of the transmitting cycle of the serial link contained in the Line
+Status Register (LSR). This register is accessible in read mode at address
+\texttt{0x3FD} (\texttt{SERIAL\_PORT+5}). Since we are in ring 3, we cannot
+directly read the I/O port using the \texttt{IN} instruction. We will have to
+call the corresponding Pip service which is located at index \texttt{0x38} in
+the Global Descriptor Table (GDT).
+
+The function of the minimal partition that call the \texttt{IN} service of Pip
+to retrieves the state of the transmitting cycle is the following:
+
+\begin{lstlisting}[style=CStyle]
+uint32_t serial_transmit_ready(void) {
+    register uint32_t result asm("eax");
+    asm (
+       "push %1;"
+       "lcall $0x38,$0x0;"
+       "add $0x4, %%esp;"
+       /* Outputs */
+       : "=r" (result)
+       /* Inputs */
+       : "i" (SERIAL_PORT+5)
+       /* Clobbers */
+       :
+    );
+    return result & 0x20;
+}
+\end{lstlisting}
+
+We will describe below, instruction by instruction, how the function works.
+
+Pip expects to return the value read on the I/O port in the \texttt{EAX}
+register of the CPU. We therefore declare a variable that will be stored in this
+register:
+
+\begin{lstlisting}[style=CStyle]
+register uint32_t result asm("eax");
+\end{lstlisting}
+
+Pip expects to have an argument on the stack which is the address of the I/O
+port to read. So we push on the stack the argument \texttt{\%1}, which is the
+\texttt{SERIAL\_PORT+5} argument present as input operand:
+
+\begin{lstlisting}
+push %1;
+\end{lstlisting}
+
+Now that we have a variable stored in the \texttt{EAX} register and the stack is
+ready, we can make our far call:
+
+\begin{lstlisting}
+lcall $0x38,$0x0;
+\end{lstlisting}
+
+We clear the stack after the far call by adding \texttt{4} to the \texttt{ESP}
+register:
+
+\begin{lstlisting}
+add $0x4, %%esp;
+\end{lstlisting}
+
+We define as output operand our \texttt{result} variable which will contain the
+state of the LSR after the far call. \texttt{"=r"} is an operand constraint
+where \texttt{"="} means that it is an output operand and \texttt{"r"} means that the
+operand is a register:
+
+\begin{lstlisting}[style=CStyle]
+/* Outputs */
+: "=r" (result)
+\end{lstlisting}
+
+We define as input operand the value \texttt{SERIAL\_PORT+5} which is the
+address of the I/O port to read. \texttt{"i"} means that it is an immediate value:
+
+\begin{lstlisting}[style=CStyle]
+/* Inputs */
+: "i" (SERIAL_PORT+5)
+\end{lstlisting}
+
+Since we have not clobbers any registers other than the output register, we can
+provide an empty list:
+
+\begin{lstlisting}[style=CStyle]
+/* Clobbers */
+:
+\end{lstlisting}
+
+We return \texttt{result \& 0x20} because the state of the transmitting cycle is
+set on bit \texttt{5} of the LSR:
+
+\begin{lstlisting}[style=CStyle]
+return result & 0x20;
+\end{lstlisting}
+
+So this function returns \texttt{0} if the serial link is not ready or a value
+other than \texttt{0} otherwise.
+
+Now that we have a function to check if the serial link is ready to transmit, we
+can write a function to print a character. In order to print a character on the
+serial link, we must write to address \texttt{0x3F8} (\texttt{SERIAL\_PORT}). As
+we are still in ring 3, we cannot write directly to the I/O port using the
+\texttt{OUT} instruction. We will have to use the corresponding Pip service
+which is located at index \texttt{0x30} in the GDT.
+
+The function of the minimal partition that call the \texttt{OUT} service of Pip
+to prints a character on the serial link is the following:
+
+\begin{lstlisting}[style=CStyle]
+void serial_putc(char c) {
+    asm (
+        "push %1;"
+        "push %0;"
+        "lcall $0x30, $0x0;"
+        "add $0x8, %%esp"
+        /* Outputs */
+        :
+        /* Inputs */
+        : "i" (SERIAL_PORT),
+          "r" ((uint32_t) c)
+        /* Clobbers */
+        :
+    );
+}
+\end{lstlisting}
+
+Now that we have these two functions, we can write our \texttt{serial\_puts}
+which writes a string to the serial link:
+
+\begin{lstlisting}[style=CStyle]
+void serial_puts(const char *str) {
+    for (char *it = str; *it; ++it) {
+        while(!serial_transmit_ready());
+        serial_putc(*it);
+    }
+}
+\end{lstlisting}
+
+Finally, we can print our ``Hello World'' on the serial link using our
+\texttt{serial\_puts} function:
+
+\begin{lstlisting}[style=CStyle]
+void _main()
+{
+    const char *Hello_world_str = "Hello World !\n";
+    serial_puts(Hello_world_str);
+    for(;;);
+}
+\end{lstlisting}
+
+\subsubsection{Linker script}
+
+The linker script is use to specify the format and layout of the final
+executable.
+
+We start by defining the output format, which is always a flat binary, and then
+the entry point of the partition which is \texttt{\_main}:
+
+\begin{lstlisting}
+OUTPUT_FORMAT(binary)
+ENTRY(_main)
+\end{lstlisting}
+
+We define the mandatory \texttt{.text} section at address \texttt{0x700000},
+a \texttt{.data} section for the \texttt{.data} and \texttt{.rodata} and a
+\texttt{.bss} section for the \texttt{.bss}:
+
+\begin{lstlisting}
+SECTIONS {
+    .text 0x700000 :
+    {
+        *(.text)
+        . = ALIGN(0x1000);
+    }
+
+    .data :
+    {
+        *(.data)
+        *(.rodata)
+        . = ALIGN(0x1000);
+    }
+
+    .bss :
+    {
+        *(.bss)
+    }
+    end = .;
+}
+\end{lstlisting}
+
+The \texttt{.text} and \texttt{.data} sections are aligned to the size of a page
+using \texttt{ALIGN(0x1000)}.
+
+\subsubsection{Makefile}
+
+The Makefile is a file allowing to describe the steps necessary to the
+generation of executables.
+
+We start by declaring the \texttt{CFLAGS} which contains the flags used to
+compile the minimal partition into intermediate objects:
+
+\begin{lstlisting}
+CFLAGS=-m32 -c -nostdlib --freestanding -fno-stack-protector -fno-pic -no-pie
+\end{lstlisting}
+
+The meaning of the flags is:
+
+\index{dzadaz} \marginlabel{\texttt{-m32}}
+Generate code for a 32-bit environment.
+
+\marginlabel{\texttt{-c}}
+Do not use the linker.
+
+\marginlabel{\texttt{-nostdlib}}
+Do not use the standard system startup files or libraries when linking.
+
+\marginlabel{\texttt{--freestanding}}
+Do not assume that standard functions have their usual definition.
+
+\marginlabel{\texttt{-fno-stack-protector}}
+Disable the stack protection.
+
+\marginlabel{\texttt{-fno-pic}}
+Disable the generation of position-independent code.
+
+\marginlabel{\texttt{-no-pie}}
+Disable the generation of position independent executable.
+
+We then declare the \texttt{LDFLAGS} which contains the flags used to
+link the minimal partition executable:
+
+\begin{lstlisting}
+LDFLAGS=-m elf_i386 -T link.ld
+\end{lstlisting}
+
+The meaning of the flags is:
+
+\marginlabel{\texttt{-m elf\_i386}}
+Create an executable that can run on \texttt{elf\_i386} processor.
+
+\marginlabel{\texttt{-T link.ld}}
+Use the linker script that we declare in the previous section.
+
+Finally, we define some generic rules for our sources, and invoke the required
+compiler for each one, calling the linker once everything has been done:
+
+\begin{lstlisting}
+CSOURCES=$(wildcard *.c)
+
+COBJ=$(CSOURCES:.c=.o)
+
+EXEC=minimal.bin
+
+all: $(EXEC)
+        @echo Done.
+
+clean:
+        rm -f $(COBJ) $(EXEC)
+
+$(EXEC): $(COBJ)
+        $(LD) $^ -o $@ $(LDFLAGS)
+
+%.o: %.c
+        $(CC) $(CFLAGS) $< -o $@
+\end{lstlisting}
+
+\subsection{The launcher partition}
+
+The purpose of the launcher partition is to show how a parent partition creates
+and transfers its execution flow to a child partition. To go into details, see
+the source code of the launcher partition.
+
+\subsubsection{Creating a child partition}
+
+The first step to create a child partition is to allocate five memory pages,
+using the \texttt{Pip\_AllocPage} function, for the data structures
+\texttt{descChild}, \texttt{pdChild}, \texttt{shadow1Child},
+\texttt{shadow2Child} and \texttt{configPagesList}:
+
+\begin{lstlisting}[style=CStyle]
+uint32_t descChild       = Pip_AllocPage();
+uint32_t pdChild         = Pip_AllocPage();
+uint32_t shadow1Child    = Pip_AllocPage();
+uint32_t shadow2Child    = Pip_AllocPage();
+uint32_t configPagesList = Pip_AllocPage();
+\end{lstlisting}
+
+For more information about these data structure, please read the PipInternals.md
+file.
+
+We ask Pip to create a child partition using the \texttt{Pip\_CreatePartition}
+function, providing the previous five memory pages as arguments:
+
+\begin{lstlisting}[style=CStyle]
+Pip_CreatePartition(descChild, pdChild,
+    shadow1Child, shadow2Child, configPagesList);
+\end{lstlisting}
+
+Once the child partition has been created, we need to map, using the
+\texttt{Pip\_MapPageWrapper} function, each page of the child partition image,
+starting with the one at the \texttt{base} address, into the virtual memory of
+the newly created partition, starting at the \texttt{loadAddress} address:
+
+\begin{lstlisting}[style=CStyle]
+for (uint32_t offset = 0; offset < size; offset += PAGE_SIZE)
+{
+    Pip_MapPageWrapper(base + offset, descChild, loadAddress + offset);
+}
+\end{lstlisting}
+
+When all pages have been mapped, we need to allocate a memory page for the stack
+of the child partition:
+
+\begin{lstlisting}[style=CStyle]
+uint32_t stackPage = Pip_AllocPage();
+\end{lstlisting}
+
+It is now necessary to create a context for the child partition. This context
+must be at the beginning of the stack. Since the stack grows downwards from the
+top of the memory page, the context must be at the end of the page, at the
+physical address \texttt{stackPage + PAGE\_SIZE - sizeof(user\_ctx\_t)}:
+
+\begin{lstlisting}[style=CStyle]
+user_ctx_t *contextPAddr = (user_ctx_t*) (stackPage + PAGE_SIZE - sizeof(user_ctx_t));
+\end{lstlisting}
+
+and at the virtual address \texttt{STACK\_TOP\_VADDR + PAGE\_SIZE -
+sizeof( user\_ctx\_t)} where \texttt{STACK\_TOP\_VADDR} is the virtual address
+where the stack will be mapped:
+
+\begin{lstlisting}[style=CStyle]
+user_ctx_t *contextVAddr = (user_ctx_t*) (STACK_TOP_VADDR + PAGE_SIZE - sizeof(user_ctx_t));
+\end{lstlisting}
+
+The \texttt{user\_ctx\_t} structure contains the following members:
+
+\marginlabel{\texttt{valid}}
+This member indicates whether the structure is valid or not.
+
+\marginlabel{\texttt{eip}}
+This member must point to the first instruction of the child.
+
+\marginlabel{\texttt{pipflags}}
+This member member indicates whether the structure wants to be in virtual
+\texttt{sti} or in virtual \texttt{cli}.
+
+\marginlabel{\texttt{eflags}}
+This member member indicates the state of the context (it is forced to
+\texttt{0x202}).
+
+\marginlabel{\texttt{ebp}}
+This member must point to the base address of the stack page.
+
+\marginlabel{\texttt{esp}}
+This member must point to the top of stack.
+
+We now fill the data structure with the appropriate values:
+
+\begin{lstlisting}[style=CStyle]
+contextPAddr->valid    = 0;
+contextPAddr->eip      = loadAddress;
+contextPAddr->pipflags = 0;
+contextPAddr->eflags   = 0x202;
+contextPAddr->regs.ebp = STACK_TOP_VADDR + PAGE_SIZE;
+contextPAddr->regs.esp = contextPAddr->regs.ebp - sizeof(user_ctx_t);
+contextPAddr->valid    = 1;
+\end{lstlisting}
+
+Once the data structure is filled, we need to map the stack of the child
+partition to the virtual address \texttt{STACK\_TOP\_VADDR}:
+
+\begin{lstlisting}[style=CStyle]
+Pip_MapPageWrapper(stackPage, descChild, STACK_TOP_VADDR);
+\end{lstlisting}
+
+We now need to allocate a new memory page for the virtual Interrupt Descriptor
+Table (IDT):
+
+\begin{lstlisting}[style=CStyle]
+user_ctx_t **vidtPage = Pip_AllocPage();
+\end{lstlisting}
+
+This table allows the child partition to associate an interrupt with a handler.
+Here, we register the virtual address of the context of the child partition at
+address \texttt{0}, \texttt{48} and \texttt{49}:
+
+\begin{lstlisting}[style=CStyle]
+vidtPage[ 0] = contextVAddr;
+vidtPage[48] = contextVAddr;
+vidtPage[49] = contextVAddr;
+\end{lstlisting}
+
+Finally, we map the virtual IDT memory page to the virtual memory address
+\texttt{VIDT\_VADDR}:
+
+\begin{lstlisting}[style=CStyle]
+Pip_MapPageWrapper(vidtPage, descChild, VIDT_VADDR);
+\end{lstlisting}
+
+\subsubsection{Yielding to a child partition}
+
+To transfer the execution flow from a parent partition to a child partition, we
+have to use the \texttt{Pip\_Yield} service. Thus, the transfer of the execution
+flow from the root partition of the launcher to the child partition looks like:
+
+\begin{lstlisting}[style=CStyle]
+Pip_Yield(descChild, 0, 49, 0, 0);
+\end{lstlisting}
+
+This will save the caller context at index \texttt{49}. Then this triggers
+interrupt \texttt{0} in the virtual IDT of the child partition designated by
+\texttt{descChild} and loads the context that was saved at that index, which is
+the child context.
+
+\subsubsection{Handling an interruption}
+
+The root partition of the launcher handles two interrupts which are the timer
+interrupt and the keyboard interrupt.
+
+To handle an interrupt, we need to create an interrupt handler. An interrupt
+handler is simply a function that will be called if the corresponding interrupt
+has been triggered. The timer interrupt handler of the root partition looks
+like:
+
+\begin{lstlisting}[style=CStyle]
+void timerHandler(void)
+{
+	printf("A timer interruption was triggered ...\n");
+
+	// Yield to the child partition
+	doYield();
+
+	// Should never be reached
+	PANIC();
+}
+\end{lstlisting}
+
+Once we have declared an interrupt handler, we need to allocate a page for the
+handler stack using the \texttt{Pip\_AllocPage} service:
+
+\begin{lstlisting}[style=CStyle]
+uint32_t handlerStackAddress = Pip_AllocPage();
+\end{lstlisting}
+
+And an interruption context using the \texttt{Pip\_AllocContext} service:
+
+\begin{lstlisting}[style=CStyle]
+user_ctx_t *timerHandlerContext = Pip_AllocContext();
+\end{lstlisting}
+
+Now we need to register the level \texttt{32} interrupt, which is the timer
+interrupt, with the timer handler using the \texttt{Pip\_RegisterInterrupt}
+service:
+
+\begin{lstlisting}[style=CStyle]
+Pip_RegisterInterrupt(timerHandlerContext, 32, timerHandler, handlerStackAddress, 0);
+\end{lstlisting}
+
+\subsection{The nanny busy beaver partition}
+
+The purpose of the nanny busy beaver partition is to test the proper functioning
+of the LibPip services by calling each of them. To go into details, see the
+source code of the nanny busy beaver partition.
+
+\subsubsection{Deleting a child partition}
+
+The nanny busy beaver partition is similar to the launcher partition in that it
+creates and transfers its execution flow to a child partition. The only
+difference is that the partition shows how a parent partition deletes a child
+partition.
+
+Before deleting a child partition, the parent partition must remove the memory
+pages given to the child partition. To do this, we must call the
+\texttt{Pip\_RemoveVAddr} service:
+
+\begin{lstlisting}[style=CStyle]
+Pip_RemoveVAddr(descChild, removableVPage);
+\end{lstlisting}
+
+This service takes as argument the partition descriptor of the partition and the
+address of the memory page to remove.
+
+Once the memory pages are removed, we must ask the kernel to collect the removed
+memory pages. To do this, we have to use the \texttt{Pip\_Collect} service:
+
+\begin{lstlisting}[style=CStyle]
+Pip_Collect(descChild, removedVPage);
+\end{lstlisting}
+
+This service takes as argument the partition descriptor of the partition and the
+address of the removed memory page.
+
+Finally, when all the memory pages have been recovered by the parent partition,
+we can delete the child partition using the \texttt{Pip\_DeletePartition}
+service:
+
+\begin{lstlisting}[style=CStyle]
+Pip_DeletePartition(descChild);
+\end{lstlisting}
+
+This service takes as argument the partition descriptor of the partition to be
+deleted.
+
+\end{document}
