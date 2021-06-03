@@ -328,7 +328,7 @@ realclean: clean
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq Makefile.coq.conf
+	rm -f Makefile.coq Makefile.coq.conf .lia.cache
 	rm -rf $(GENERATED_FILES_DIR)
 	rm -f $(OBJECT_FILES)
 	rm -f $(PARTITION).elf
