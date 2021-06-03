@@ -1,53 +1,96 @@
-generated
-toolchain.mk
+#################################################################################
+#   © Université de Lille, The Pip Development Team (2015-2021)                 #
+#                                                                               #
+#   This software is a computer program whose purpose is to run a minimal,      #
+#   hypervisor relying on proven properties such as memory isolation.           #
+#                                                                               #
+#   This software is governed by the CeCILL license under French law and        #
+#   abiding by the rules of distribution of free software.  You can  use,       #
+#   modify and/ or redistribute the software under the terms of the CeCILL      #
+#   license as circulated by CEA, CNRS and INRIA at the following URL           #
+#   "http://www.cecill.info".                                                   #
+#                                                                               #
+#   As a counterpart to the access to the source code and  rights to copy,      #
+#   modify and redistribute granted by the license, users are provided only     #
+#   with a limited warranty  and the software's author,  the holder of the      #
+#   economic rights,  and the successive licensors  have only  limited          #
+#   liability.                                                                  #
+#                                                                               #
+#   In this respect, the user's attention is drawn to the risks associated      #
+#   with loading,  using,  modifying and/or developing or reproducing the       #
+#   software by the user in light of its specific status of free software,      #
+#   that may mean  that it is complicated to manipulate,  and  that  also       #
+#   therefore means  that it is reserved for developers  and  experienced       #
+#   professionals having in-depth computer knowledge. Users are therefore       #
+#   encouraged to load and test the software's suitability as regards their     #
+#   requirements in conditions enabling the security of their systems and/or    #
+#   data to be ensured and,  more generally, to use and operate it in the       #
+#   same conditions as regards security.                                        #
+#                                                                               #
+#   The fact that you are presently reading this means that you have had        #
+#   knowledge of the CeCILL license and that you accept its terms.              #
+#################################################################################
+
+################################################################
+### Coq Proof Assistant files
+################################################################
+.*.aux
+.*.d
+*.a
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.cmxs
+*.glob
+*.ml.d
+*.ml4.d
+*.mli.d
+*.mllib.d
+*.mlpack.d
+*.native
+*.o
+*.v.d
+*.vio
+*.vo
+*.vok
+*.vos
+*.crashcoqide
+.coq-native/
+.csdp.cache
+.lia.cache
+.nia.cache
+.nlia.cache
+.nra.cache
+csdp.cache
+lia.cache
+nia.cache
+nlia.cache
+nra.cache
+makefile.autocoq
 makefile.dep
 Makefile.coq
 Makefile.coq.conf
 .Makefile.coq.d
-doc/html
-doc/latex
+
+################################################################
+### C files
+################################################################
 *.o
-*.hi
-doc/hs
-*.legacy
-*.bin
-*.iso
-*.map
+*.obj
 *.elf
+*.bin
+*.map
 
-# Coq
-makefile.autocoq
-*.aux
-*.v.d
-*.vo
-*.glob
-*.crashcoqide
-\#*\#
-*.vio
-*.vos
-*.vok
-*lia.cache
+################################################################
+### Haskell files
+################################################################
+*.hi
 
-# Misc
-tags
-*.json
-*.tar
-*.pcap
-
-# Ignore documentation
-*.html
-*.htm
-*.css
-doc/UserGuide/UserGuide.lol
-doc/c-doc/
-
-# Mac OSX-related files
-.DS_Store
-
-# Toolchain configuration
-src/partitions/*/toolchain.mk
-
-# Latex
+################################################################
+### LaTex files
+################################################################
 *.aux
 *.glo
 *.idx
@@ -65,6 +108,7 @@ src/partitions/*/toolchain.mk
 *.ilg
 *.ind
 *.lof
+*.lol
 *.lot
 *.maf
 *.mtc
@@ -72,3 +116,55 @@ src/partitions/*/toolchain.mk
 *.out
 *.synctex.gz
 *.pdf
+
+################################################################
+### Generated directory and file
+################################################################
+generated
+git.h
+
+################################################################
+### Toolchain configuration files
+################################################################
+toolchain.mk
+
+################################################################
+### Documentation directories
+################################################################
+doc/c
+doc/coq
+
+################################################################
+### Emacs-related files
+################################################################
+*~
+\#*\#
+
+################################################################
+### Vim-related files
+################################################################
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+tags
+
+################################################################
+### Mac OSX-related files
+################################################################
+.DS_Store
+.AppleDouble
+.LSOverride
+
+################################################################
+### Miscellaneous files
+################################################################
+*.json
+*.tar
+*.pcap
+*.iso
+*.legacy
+*.html
+*.htm
+*.css
