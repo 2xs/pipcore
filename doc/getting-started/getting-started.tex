@@ -204,8 +204,8 @@ Your development environment is ready.
 
 \subsection{Docker image}
 
-This section describes step-by-step how to get a development environment from
-the Docker image of Pip.
+This section describes step-by-step how to get a development environment from a
+Docker image of Pip.
 
 Before starting, you need to install Docker on your machine. Once the
 installation is completed, you need to download the Docker image and the SHA-256
@@ -237,7 +237,7 @@ $ docker image ls
 \end{lstlisting}
 
 Once the Docker image imported, you can either run a new container from the
-Docker image of Pip in interactive mode with:
+image in interactive mode with:
 
 \begin{lstlisting}[style=BashStyle]
     # Run Pip's image inside of a new container
@@ -316,19 +316,34 @@ Build Coq from source with \texttt{opam}:
 
 \subsubsection{Getting source code}
 
-To get sources, clone the git repository of the projects with:
+First, you have to download the \texttt{pipcore} source code which contains the
+kernel, proof and documentation of Pip:
 
 \begin{lstlisting}[style=BashStyle]
-    $ git -C /path/to/pipcore clone ...
+    # Download the pipcore source code
+    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.zip
 
-    $ git -C /path/to/libpip clone ...
+    # Download the SHA-256 message digest
+    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.zip.sha256sum
+
+    # Check downloaded source code integrity
+    $ sha256sum -c pipcore.zip.sha256sum
 \end{lstlisting}
 
-The first repository contains the kernel, proof and documentation of Pip.
+Then, you may need the source code of the userland library of Pip, called
+LibPip, which provides useful functions for calling the API or managing the data
+structures of Pip:
 
-The second repository contains the userland library of Pip, called LibPip, which
-provides useful functions for calling the API or managing the data structures of
-Pip.
+\begin{lstlisting}[style=BashStyle]
+    # Download the libpip source code
+    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.zip
+
+    # Download the SHA-256 message digest
+    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.zip.sha256sum
+
+    # Check downloaded source code integrity
+    $ sha256sum -c libpip.zip.sha256sum
+\end{lstlisting}
 
 \subsubsection{Building LibPip}
 
@@ -340,19 +355,8 @@ In order to build a partition, you will probably need to build LibPip:
 
 \subsubsection{Building Digger}
 
-Initialize the submodules of pipcore with:
-
-\begin{lstlisting}[style=BashStyle]
-    $ git -C /path/to/pipcore submodule init
-\end{lstlisting}
-
-Then, update the submodules with:
-
-\begin{lstlisting}[style=BashStyle]
-    $ git -C /path/to/pipcore submodule update
-\end{lstlisting}
-
-Finally, build Digger through the stack tool with:
+In order to convert the Coq code into C code, you need to build the extractor,
+called Digger, through the stack tool with:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore/tools/digger
@@ -409,10 +413,12 @@ partition on top of it with:
 
 If it is the first time you run \texttt{make} command, it will execute the
 \texttt{configure.sh} script. Follow the instructions on the screen to generate
-the \texttt{toolchain.mk} file needed for the compilation.
+the \texttt{toolchain.mk} file needed for the compilation. If you need to change
+your configuration later, e.g. change the partition you want to build, you can
+edit this file.
 
-You should find in \texttt{/path/to/pipcore} the ELF binary and the ISO image
-of Pip.
+You should find in \texttt{/path/to/pipcore} directory the ELF binary and the
+ISO image of Pip.
 
 \subsection{Testing in QEMU}
 
@@ -441,15 +447,14 @@ go into details, see the source code of the minimal partition.
 \subsubsection{Calling the API of Pip}
 
 In order to keep the minimal partition as minimal as possible, we will not use
-the LibPip library, but rather call the Pip API directly using inline
-assembler.
+the LibPip library, but rather call the Pip API directly using inline assembly.
 
 Before writing a character on the serial link, it is necessary to check if it is
 ready to transmit. We must therefore write a function that allows us to retrieve
 the state of the transmitting cycle of the serial link contained in the Line
 Status Register (LSR). This register is accessible in read mode at address
 \texttt{0x3FD} (\texttt{SERIAL\_PORT+5}). Since we are in ring 3, we cannot
-directly read the I/O port using the \texttt{IN} instruction. We will have to
+directly read the IO port using the \texttt{IN} instruction. We will have to
 call the corresponding Pip service which is located at index \texttt{0x38} in
 the Global Descriptor Table (GDT).
 
@@ -476,16 +481,16 @@ uint32_t serial_transmit_ready(void) {
 
 We will describe below, instruction by instruction, how the function works.
 
-Pip expects to return the value read on the I/O port in the \texttt{EAX}
-register of the CPU. We therefore declare a variable that will be stored in this
+Pip expects to return the value read on the IO port in the \texttt{EAX} register
+of the CPU. We therefore declare a variable that will be stored in this
 register:
 
 \begin{lstlisting}[style=CStyle]
 register uint32_t result asm("eax");
 \end{lstlisting}
 
-Pip expects to have an argument on the stack which is the address of the I/O
-port to read. So we push on the stack the argument \texttt{\%1}, which is the
+Pip expects to have an argument on the stack which is the address of the IO port
+to read. So we push on the stack the argument \texttt{\%1}, which is the
 \texttt{SERIAL\_PORT+5} argument present as input operand:
 
 \begin{lstlisting}
@@ -517,7 +522,8 @@ operand is a register:
 \end{lstlisting}
 
 We define as input operand the value \texttt{SERIAL\_PORT+5} which is the
-address of the I/O port to read. \texttt{"i"} means that it is an immediate value:
+address of the IO port to read. \texttt{"i"} means that it is an immediate
+value:
 
 \begin{lstlisting}[style=CStyle]
 /* Inputs */
@@ -545,7 +551,7 @@ other than \texttt{0} otherwise.
 Now that we have a function to check if the serial link is ready to transmit, we
 can write a function to print a character. In order to print a character on the
 serial link, we must write to address \texttt{0x3F8} (\texttt{SERIAL\_PORT}). As
-we are still in ring 3, we cannot write directly to the I/O port using the
+we are still in ring 3, we cannot write directly to the IO port using the
 \texttt{OUT} instruction. We will have to use the corresponding Pip service
 which is located at index \texttt{0x30} in the GDT.
 
@@ -714,7 +720,8 @@ $(EXEC): $(COBJ)
 
 The purpose of the launcher partition is to show how a parent partition creates
 and transfers its execution flow to a child partition. To go into details, see
-the source code of the launcher partition.
+the source code of the launcher partition, which can be downloaded on the Pip
+Protokernel website.
 
 \subsubsection{Creating a child partition}
 
@@ -904,9 +911,9 @@ Pip_RegisterInterrupt(timerHandlerContext, 32, timerHandler, handlerStackAddress
 
 \subsection{The nanny busy beaver partition}
 
-The purpose of the nanny busy beaver partition is to test the proper functioning
-of the Pip services by calling each of them. To go into details, see the source
-code of the nanny busy beaver partition.
+The purpose of this partition is to loosely test most of Pip services. To go
+into details, see the source code of the nanny busy beaver partition, which can
+be downloaded on the Pip Protokernel website.
 
 \subsubsection{Deleting a child partition}
 
