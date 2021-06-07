@@ -757,7 +757,8 @@ the newly created partition, starting at the \texttt{loadAddress} address:
 \begin{lstlisting}[style=CStyle]
 for (uint32_t offset = 0; offset < size; offset += PAGE_SIZE)
 {
-    Pip_MapPageWrapper(base + offset, descChild, loadAddress + offset);
+    map_page_rcode = Pip_MapPageWrapper(base + offset, descChild, loadAddress + offset);
+    /* Error handling */
 }
 \end{lstlisting}
 
@@ -823,7 +824,8 @@ Once the data structure is filled, we need to map the stack of the child
 partition to the virtual address \texttt{STACK\_TOP\_VADDR}:
 
 \begin{lstlisting}[style=CStyle]
-Pip_MapPageWrapper(stackPage, descChild, STACK_TOP_VADDR);
+map_page_rcode = Pip_MapPageWrapper(stackPage, descChild, STACK_TOP_VADDR);
+/* Error handling */
 \end{lstlisting}
 
 We now need to allocate a new memory page for the virtual Interrupt Descriptor
@@ -847,7 +849,8 @@ Finally, we map the virtual IDT memory page to the virtual memory address
 \texttt{VIDT\_VADDR}:
 
 \begin{lstlisting}[style=CStyle]
-Pip_MapPageWrapper(vidtPage, descChild, VIDT_VADDR);
+map_page_rcode = Pip_MapPageWrapper((uint32_t) vidtPage, descChild, VIDT_VADDR);
+/* Error handling */
 \end{lstlisting}
 
 \subsubsection{Yielding to a child partition}
