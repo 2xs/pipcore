@@ -31,7 +31,7 @@ Pip is known to build correctly with this toolchain:
 * Doxygen version 1.8.13 and above (for documentation generation)
 * GCC version 8.3.0 and above
 * GDB version 8.2.1 and above
-* GNU Make version 4.2.1 and above
+* GNU Make version 4.3 and above
 * grub-mkrescue (for ISO image generation; unnecessary for i386 target though)
 * haskell-stack version 1.7.1 and above (is a cross-platform program for
   developing Haskell projects)

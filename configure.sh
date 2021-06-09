@@ -46,7 +46,7 @@ doxygen_minimum_version='1.8.13'
 gdb_minimum_version='8.2.1'
 grub_mkrescue_minimum_version='2.02'
 ld_minimum_version='2.31.1'
-make_minimum_version='4.2.1'
+make_minimum_version='4.3'
 pdflatex_minimum_version='3.14'
 qemu_minimum_version='3.1.0'
 
