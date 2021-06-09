@@ -212,19 +212,25 @@ installation is completed, you need to download the Docker image and the SHA-256
 message digest:
 
 \begin{lstlisting}[style=BashStyle]
-$ wget http://pip.univ-lille1.fr/image/docker/pip.tar
+$ wget http://pip.univ-lille1.fr/image/docker/pip.tar.gz
 
-$ wget http://pip.univ-lille1.fr/image/docker/pip.tar.sha256sum
+$ wget http://pip.univ-lille1.fr/image/docker/pip.tar.gz.sha256sum
 \end{lstlisting}
 
 When the download is complete, you can check the integrity of the downloaded
 file with:
 
 \begin{lstlisting}[style=BashStyle]
-$ sha256sum -c pip.tar.sha256sum
+$ sha256sum -c pip.tar.gz.sha256sum
 \end{lstlisting}
 
-Now, you have to import the Docker image with:
+Now, you have to decompress the file with:
+
+\begin{lstlisting}[style=BashStyle]
+$ gzip -kd pip.tar.gz
+\end{lstlisting}
+
+Once the file decompressed, you have to import the Docker image with:
 
 \begin{lstlisting}[style=BashStyle]
 $ docker load --input pip.tar
@@ -236,7 +242,7 @@ and check that it is imported with:
 $ docker image ls
 \end{lstlisting}
 
-Once the Docker image imported, you can either run a new container from the
+When the Docker image imported, you can either run a new container from the
 image in interactive mode with:
 
 \begin{lstlisting}[style=BashStyle]
@@ -321,13 +327,16 @@ kernel, proof and documentation of Pip:
 
 \begin{lstlisting}[style=BashStyle]
     # Download the pipcore source code
-    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.zip
+    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.tar.gz
 
     # Download the SHA-256 message digest
-    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.zip.sha256sum
+    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.tar.gz.sha256sum
 
     # Check downloaded source code integrity
-    $ sha256sum -c pipcore.zip.sha256sum
+    $ sha256sum -c pipcore.tar.gz.sha256sum
+
+    # Decompress archive
+    $ tar -xvf pipcore.tar.gz
 \end{lstlisting}
 
 Then, you may need the source code of the userland library of Pip, called
@@ -336,13 +345,16 @@ structures of Pip:
 
 \begin{lstlisting}[style=BashStyle]
     # Download the libpip source code
-    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.zip
+    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.tar.gz
 
     # Download the SHA-256 message digest
-    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.zip.sha256sum
+    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.tar.gz.sha256sum
 
     # Check downloaded source code integrity
-    $ sha256sum -c libpip.zip.sha256sum
+    $ sha256sum -c libpip.tar.gz.sha256sum
+
+    # Decompress archive
+    $ tar -xvf libpip.tar.gz
 \end{lstlisting}
 
 \subsubsection{Building LibPip}
