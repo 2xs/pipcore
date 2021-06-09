@@ -261,7 +261,6 @@ struc tss_t
 endstruc
 
 struc crooked_stack
-	.ret_addr  resd 1 ; 32 bits
 	.ctx_ptr   resd 1 ; 32 bits
 	.regs      resd 8 ; 8 * 32 bits
 	.int_no    resd 1 ; 32 bits
@@ -286,8 +285,15 @@ endstruc
 ; --------------------------------------------------
 extern tss
 %macro STACK_SANITY_CHECK 0
-	; get current esp in eax
+	; get cs of interrupted context in eax
 	mov eax, [esp + crooked_stack.cg_cs]
+	;---------------------------------------------------------
+	;   Intel IA-32 Architectures Software Developers Manual
+	;                 Vol. 3a - Section 5.5
+	;                    Privilege levels
+	;---------------------------------------------------------
+	; filter out RPL (Requested privilege level)
+	and eax, ~0b11
 	; compare eax to KERNEL_CODE_SEGMENT
 	cmp eax, 8
 	; jump if cs != KERNEL_CODE_SEGMENT
