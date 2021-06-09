@@ -128,7 +128,7 @@ reason why GDB is not mandatory but highly recommended.
 
 \index{gnu} \marginlabel{GNU Make:}
 Althought Pip is known to compile on FreeBSD and OSX hosts, these need a GNU
-software in order to perform the compilation, which is GNU Make.
+software in order to perform the compilation, which is GNU Make 4.3 and above.
 
 \index{grub-mkrescue} \marginlabel{GNU GRUB:}
 GNU GRUB is a boot loader which allows to create bootable ISO file. It is not
@@ -163,28 +163,34 @@ download and install automatically the required GHC and libraries.
 
 \subsection{Virtual machine image}
 
-This section describes step-by-step how to get a development environment from a
-virtual machine image.
-
 Before starting, you need to install a virtualization software such as
-VirtualBox or VMware. Once the installation is completed, you need to download
-the OVA image of the virtual machine and the SHA-256 message digest:
+VirtualBox or VMware. You can follow the procedure on their websites. Once the
+installation is completed, you need to download the archived OVA image of the
+virtual machine and the SHA-256 message digest:
 
 \begin{lstlisting}[style=BashStyle]
-$ wget http://pip.univ-lille1.fr/image/vm/pip.ova
+# Download the archived OVA image of the virtual machine
+$ wget http://pip.univ-lille1.fr/image/vm/pip.tar.gz
 
-$ wget http://pip.univ-lille1.fr/image/vm/pip.ova.sha256sum
+# Download the SHA-256 message digest of the archived image
+$ wget http://pip.univ-lille1.fr/image/vm/pip.tar.gz.sha256sum
 \end{lstlisting}
 
 When the download is complete, you can check the integrity of the downloaded
-file with:
+file:
 
 \begin{lstlisting}[style=BashStyle]
-$ sha256sum -c pip.ova.sha256sum
+$ sha256sum -c pip.tar.gz.sha256sum
 \end{lstlisting}
 
-Now, you have to import the OVA image into the virtualization software, then
-start the virtual machine.
+Now, you have to extract the archived image:
+
+\begin{lstlisting}[style=BashStyle]
+$ tar -xvf pip.tar.gz
+\end{lstlisting}
+
+Once the extraction is complete, you have to import the OVA image into the
+virtualization software, then start the virtual machine.
 
 The login credentials are:
 
@@ -204,46 +210,39 @@ Your development environment is ready.
 
 \subsection{Docker image}
 
-This section describes step-by-step how to get a development environment from a
-Docker image of Pip.
-
-Before starting, you need to install Docker on your machine. Once the
-installation is completed, you need to download the Docker image and the SHA-256
-message digest:
+Before starting, you need to install Docker on your machine. You can follow the
+procedure on their website. Once the installation is completed, you have to
+download the archived Docker image and the SHA-256 message digest:
 
 \begin{lstlisting}[style=BashStyle]
+# Download the archived Docker image of Pip
 $ wget http://pip.univ-lille1.fr/image/docker/pip.tar.gz
 
+# Download the SHA-256 message digest of the archived image
 $ wget http://pip.univ-lille1.fr/image/docker/pip.tar.gz.sha256sum
 \end{lstlisting}
 
 When the download is complete, you can check the integrity of the downloaded
-file with:
+file:
 
 \begin{lstlisting}[style=BashStyle]
 $ sha256sum -c pip.tar.gz.sha256sum
 \end{lstlisting}
 
-Now, you have to decompress the file with:
+Now, you need to import the archived image:
 
 \begin{lstlisting}[style=BashStyle]
-$ gzip -kd pip.tar.gz
+$ docker load -i pip.tar.gz
 \end{lstlisting}
 
-Once the file decompressed, you have to import the Docker image with:
-
-\begin{lstlisting}[style=BashStyle]
-$ docker load --input pip.tar
-\end{lstlisting}
-
-and check that it is imported with:
+and check that it is imported:
 
 \begin{lstlisting}[style=BashStyle]
 $ docker image ls
 \end{lstlisting}
 
-When the Docker image imported, you can either run a new container from the
-image in interactive mode with:
+Once the Docker image imported, you can either run a new container from the
+image in interactive mode:
 
 \begin{lstlisting}[style=BashStyle]
     # Run Pip's image inside of a new container
@@ -256,7 +255,7 @@ image in interactive mode with:
     $ exit
 \end{lstlisting}
 
-or in detached mode with:
+or in detached mode:
 
 \begin{lstlisting}[style=BashStyle]
     # Run Pip's image inside of a new container
@@ -266,7 +265,7 @@ or in detached mode with:
     $ docker exec pip whoami
 \end{lstlisting}
 
-Once you are done with the container, you can stop it and remove it with:
+When you are done with the container, you can stop it and remove it:
 
 \begin{lstlisting}[style=BashStyle]
     # Stop the container
@@ -368,7 +367,13 @@ In order to build a partition, you will probably need to build LibPip:
 \subsubsection{Building Digger}
 
 In order to convert the Coq code into C code, you need to build the extractor,
-called Digger, through the stack tool with:
+called Digger. The first step is to download the source code:
+
+\begin{lstlisting}[style=BashStyle]
+$ git -C /path/to/pipcore/tools clone https://github.com/2xs/digger.git
+\end{lstlisting}
+
+Then, build Digger through the stack tool:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore/tools/digger
@@ -408,7 +413,7 @@ from a virtual machine image, a Docker image or your host machine.
 
 \subsection{Building the minimal partition}
 
-Before to build pipcore, you need to build the minimal partition with:
+Before to build pipcore, you need to build the minimal partition:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore/src/arch/x86_multiboot/partitions/minimal
@@ -417,7 +422,7 @@ Before to build pipcore, you need to build the minimal partition with:
 \subsection{Building pipcore}
 
 Now that you have built the minimal partition, you can build pipcore with the
-partition on top of it with:
+partition on top of it:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore
@@ -434,13 +439,13 @@ ISO image of Pip.
 
 \subsection{Testing in QEMU}
 
-You can test the ELF version of Pip in QEMU with:
+You can test the ELF version of Pip in QEMU:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore qemu-elf
 \end{lstlisting}
 
-or test the ISO version with:
+or test the ISO version:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore qemu-iso
@@ -448,7 +453,7 @@ or test the ISO version with:
 
 This should display ``Hello world!'' on the serial link after a few seconds.
 
-\section{Tutorials}
+\section{User Guide}
 
 \subsection{The minimal partition}
 
@@ -465,10 +470,10 @@ Before writing a character on the serial link, it is necessary to check if it is
 ready to transmit. We must therefore write a function that allows us to retrieve
 the state of the transmitting cycle of the serial link contained in the Line
 Status Register (LSR). This register is accessible in read mode at address
-\texttt{0x3FD} (\texttt{SERIAL\_PORT+5}). Since we are in ring 3, we cannot
-directly read the IO port using the \texttt{IN} instruction. We will have to
-call the corresponding Pip service which is located at index \texttt{0x38} in
-the Global Descriptor Table (GDT).
+\texttt{0x3FD} (\texttt{SERIAL\_PORT+5}). Since we are in \textit{userland}, we
+cannot directly read the IO port using the \texttt{IN} instruction. We will have
+to call the corresponding Pip service which is located at index \texttt{0x38}
+in the Global Descriptor Table (GDT).
 
 The function of the minimal partition that call the \texttt{IN} service of Pip
 to retrieves the state of the transmitting cycle is the following:
@@ -491,26 +496,24 @@ uint32_t serial_transmit_ready(void) {
 }
 \end{lstlisting}
 
-We will describe below, instruction by instruction, how the function works.
-
-Pip expects to return the value read on the IO port in the \texttt{EAX} register
-of the CPU. We therefore declare a variable that will be stored in this
-register:
+This Pip service expects to return the value read on the IO port in the
+\texttt{EAX} register of the CPU. We therefore declare a variable that will be
+stored in this register:
 
 \begin{lstlisting}[style=CStyle]
 register uint32_t result asm("eax");
 \end{lstlisting}
 
-Pip expects to have an argument on the stack which is the address of the IO port
-to read. So we push on the stack the argument \texttt{\%1}, which is the
+It also expects to have one argument on the stack, which is the address of the
+IO port to read. So we push on the stack the argument \texttt{\%1}, which is the
 \texttt{SERIAL\_PORT+5} argument present as input operand:
 
 \begin{lstlisting}
 push %1;
 \end{lstlisting}
 
-Now that we have a variable stored in the \texttt{EAX} register and the stack is
-ready, we can make our far call:
+Now that we have a variable stored in the \texttt{EAX} register and pushed the
+argument onto the stack, we can make our far call:
 
 \begin{lstlisting}
 lcall $0x38,$0x0;
@@ -563,8 +566,8 @@ other than \texttt{0} otherwise.
 Now that we have a function to check if the serial link is ready to transmit, we
 can write a function to print a character. In order to print a character on the
 serial link, we must write to address \texttt{0x3F8} (\texttt{SERIAL\_PORT}). As
-we are still in ring 3, we cannot write directly to the IO port using the
-\texttt{OUT} instruction. We will have to use the corresponding Pip service
+we are still in \textit{userland}, we cannot write directly to the IO port using
+the \texttt{OUT} instruction. We will have to use the corresponding Pip service
 which is located at index \texttt{0x30} in the GDT.
 
 The function of the minimal partition that call the \texttt{OUT} service of Pip
