@@ -358,7 +358,7 @@ structures of Pip:
 
 \subsubsection{Building LibPip}
 
-In order to build a partition, you will probably need to build LibPip:
+To build a partition on top of Pip, you will probably need LibPip:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/libpip
@@ -913,7 +913,7 @@ handler stack using the \texttt{Pip\_AllocPage} service:
 uint32_t handlerStackAddress = Pip_AllocPage();
 \end{lstlisting}
 
-And an interruption context using the \texttt{Pip\_AllocContext} service:
+and an interruption context using the \texttt{Pip\_AllocContext} service:
 
 \begin{lstlisting}[style=CStyle]
 user_ctx_t *timerHandlerContext = Pip_AllocContext();
