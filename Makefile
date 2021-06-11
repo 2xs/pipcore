@@ -324,7 +324,7 @@ realclean: clean
               $(DOC_DIR)/getting-started/getting-started.out\
               $(DOC_DIR)/getting-started/getting-started.toc\
               $(DOC_DIR)/getting-started/getting-started.log\
-              $(DOC_DIR)/getting-started/getting-started.pdf\
+              $(DOC_DIR)/getting-started/getting-started.pdf
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
