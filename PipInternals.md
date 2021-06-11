@@ -16,7 +16,7 @@ Pip exports 8 primitives related to memory management:
 * `countToMap`: returns the amount of pages required to perform a prepare
   operation
 * `prepare`: prepares a child partition for page map, given the required amount
-  of pages (see pageCount)
+  of pages (see `countToMap`)
 * `addVAddr`: maps a page from the current partition into the given child
   partition
 * `removeVAddr`: gets back a page from a child partition
