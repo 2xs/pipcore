@@ -102,6 +102,7 @@ This data structure is inaccessible by any partition.
 
 The Shadow 1 and Shadow 2 data structures are exactly the same as Page
 Directories, the only difference being the data stored within it. The Shadow 1
+tracks which pages were given to child partitions and also
 contains some flags related to derivation, such as the is_page_directory() flag,
 which defines whether a page has become a child partition or not. The Shadow 2
 contains some tracking information, which are the virtual address of a page into
@@ -118,105 +119,50 @@ parent partition. As those pages aren't even mapped in a partition, but only are
 in their parent, we can't use Shadow 1 or 2 to this purpose. It is structured as
 list of <VAddr, PAddr> couples.
 
-    |------------------|
-    | First free index |
-    | @V. Page Table   |
-    | @P. Page Table   |
-    | @V. Shadow PT1   |
-    | @P. Shadow PT1   |
-    |       ...        |
-    |  @P. Next page   |
-    |------------------|
+```
+            |------------------|
+            | First free index | 0
+    Entry 1 | @V. Page Table   | 1
+            | @P. Page Table   | 2
+    Entry 2 | @V. Shadow PT1   | 3
+            | @P. Shadow PT1   | 4
+      ...   |       ...        | ...
+            |     (empty)      | maxIndex-1 
+            |  @P. Next page   | maxIndex 
+            |------------------|
+```
 
 This data structure is not accessible by any partition.
 
-## Interrupt layer and scheduling
+## Control flow transfer
 
-### Functional description
+### VIDT and *CPU contexts*
 
-In addition to memory management, we need to allow proper interrupts
-multiplexing and dispatching to the right child partition. (`dispatch`)
+Pip requires each partition to provide a VIDT (Virtual Interrupt Descriptor Table) which is a data structure that holds pointers to *cpu contexts*. These CPU contexts are a "snapshot" of the computer's state. When Pip transfers the execution flow, it fetches and applies one of these *contexts* to the machine, optionnally saving the previous one.
 
-We also want to provide a way of implementing ~trap calls between parent and
-child partitions. (`notify`)
+```
+   |------------------|
+   |    ctx_pointer   | 0
+   |------------------| 
+   |                  |
+   |        ...       |
+   |                  |
+   |                  |
+   |------------------|
+   |    ctx_pointer   | maxInterrupt
+   |------------------|
+```
 
-### Design
+The VIDT address is constant and defined for each architecture. The *contexts* are defined for each architectures too.
 
-In order to keep the Pip kernel as 'exo' as possible, we keep most of the
-scheduler out of the kernel. The Pip kernel provides only context saving and
-switching primitives. All the complex scheduling logics must be implemented
-in userland.
+*Contexts* live in userland : partitions are free to tamper with them ; if a partition creates a *context*, it must ensure that it is valid, otherwise the partition might trigger a fault when that context is restored.
 
-We keep the same hierarchical organisation that was used for the memory.
-Therefore, a parent partition should take care of managing the execution
-flow of its children partitions.
+### Interrupts and fault
 
-#### Pipflags
+Pip does not handle faults or interrupts, it forwards them to the appropriate partition, which should have *contexts* set up to handle them. Interrupts go directly to the root partition, faults and software interrupts go to the partition's parent. If a partition did not set up a *context* to handle the fault/interrupt it receives, the fault is propagated to its parent. This chain reaction can lead as far back as the root partition, which will eventually trigger a system panic if the root partition has not set up a *context* to handle the fault either.
 
-For now, pipflags holds only the `vcli` flag (bit 0), which enables a partition
-to mask virtual interrupts, and the `stack fault` flag, which is set when the
-interrupted stack overflowed.
+### Automatic context saving
 
-#### Saved contexts
+When explicitly asking Pip to transfer the control flow (i.e. by calling `Yield`), a partition can choose where its current context will be saved by providing an index in the VIDT. Pip will look for a valid context pointer at this index. If the pointer is present and valid, Pip will write the context of the current partition to the pointed location.
 
-When an interrupt occurs, the interrupted context can be saved in two different
-places according to the current state of the partition:
-
-* If the VCLI flag is not set, Pip tries to push the interrupted context info
-  onto the interrupted stack; if the stack overflows, the context is instead
-  pushed onto the VIDT's context buffer, which is located at offset 0xF0C from
-  the beginning of the VIDT, and sets the `stack fault` flag
-* If the VCLI flag is set, Pip pushes the interrupted context info onto the
-  VIDT's context buffer.
-
-The interrupted context's stack can be found at entry ESP(0) of the interrupted
-partition's VIDT, from which the interrupted context info can be found as well.
-
-#### On occurence of an hardware interrupt
-
-* If the root partition has no handler registered for this interrupt, it is
-  ignored as well
-* The current partition's context is saved and interrupted
-* The root partition is notified of the signal
-
-#### On occurence of an exception
-
-* Kernel-land exceptions trigger a panic
-* If the current partition is the root partition, it is notified to itself
-* Else, the target partition is the parent partition
-* The interrupted context is saved
-* The target partition is notified
-
-#### Context switching
-
-To resume a child context, a pip-service has been added: `resume`. This service
-allows a parent partition to activate a child partition and switch to one of its
-contexts. ie. `resume(part_no, 0)` to activate child partition `part_no` and
-resume its interrupted context, resetting or not the VCLI flag.
-
-#### Dispatch
-
-The `dispatch` service allows a partition to dispatch an interrupt to a child
-partition or to its parent. This function triggers a partition/context switch.
-It does not save the caller context, and never returns. It is mainly meant to
-forward a hardware interrupt to a child partition (discarding the parent's
-interrupt handler context).
-
-PipFlags:
-
-* In the calling partition: If target is a child, `vcli` = 0
-* In the target partition:  `vcli` = 1
-
-#### Resume
-
-The `resume` service activates another partition, and restores the execution of
-the specified saved context. This function is meant to be called from an
-interrupt/notify handler, and never returns to the caller. Arguments are: target
-partition, and context to resume.
-
-This service is usually used by a parent when implementing the scheduling of its
-child partitions.
-
-PipFlags:
-
-* In the calling partition: `vcli` = 0
+When a fault/interrupt occurs, Pip will also try to save the current partition's execution state. There are 2 indices reserved in the VIDT for that purpose (which should be defined for each architecture). Then Pip will behave just like explicit calls : it will look for a valid *context* pointer at one of these indices in the VIDT, etc... The index chosen by Pip depends on whether the partition has declared it does not want to be interrupted or not through the `set_int_state` call.
