@@ -244,48 +244,51 @@ EOF
 parse_arguments() {
     for argument in "$@"
     do
-        case $argument in
+        value=${argument#*=}
+        flag=${argument%=*}
+
+        case $flag in
             --help)
                 usage && exit 0
                 ;;
             --check-commands)
                 check_commands=1
                 ;;
-            --architecture=?*)
-                architecture=${argument#*=}
+            --architecture)
+                architecture=$value
                 ;;
-            --partition-name=?*)
-                partition_name=${argument#*=}
+            --partition-name)
+                partition_name=$value
                 ;;
-            --nasm-path=?*)
-                nasm_path=${argument#*=}
+            --nasm-path)
+                nasm_path=$value
                 ;;
-            --gcc-path=?*)
-                gcc_path=${argument#*=}
+            --gcc-path)
+                gcc_path=$value
                 ;;
-            --coq-path=?*)
-                coq_path=${argument#*=}
+            --coq-path)
+                coq_path=$value
                 ;;
-            --doxygen-path=?*)
-                doxygen_path=${argument#*=}
+            --doxygen-path)
+                doxygen_path=$value
                 ;;
-            --gdb-path=?*)
-                gdb_path=${argument#*=}
+            --gdb-path)
+                gdb_path=$value
                 ;;
-            --grub-mkrescue-path=?*)
-                grub_mkrescue_path=${argument#*=}
+            --grub-mkrescue-path)
+                grub_mkrescue_path=$value
                 ;;
-            --ld-path=?*)
-                ld_path=${argument#*=}
+            --ld-path)
+                ld_path=$value
                 ;;
-            --make-path=?*)
-                make_path=${argument#*=}
+            --make-path)
+                make_path=$value
                 ;;
-            --pdflatex-path=?*)
-                pdflatex_path=${argument#*=}
+            --pdflatex-path)
+                pdflatex_path=$value
                 ;;
-            --qemu-path=?*)
-                qemu_path=${argument#*=}
+            --qemu-path)
+                qemu_path=$value
                 ;;
         esac
     done
