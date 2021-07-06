@@ -52,7 +52,6 @@ qemu_minimum_version="3.1.0"
 
 ### Regular expressions used to get the version number
 nasm_regex_1='^NASM version \([^ ]*\).*$'
-gcc_regex_1='^gcc .* \([^ ]*\)$'
 coqc_regex_1='^The Coq Proof Assistant, version \([^ ]*\).*$'
 doxygen_regex_1='^\([^ ]*\)$'
 gdb_regex_1='^GNU gdb .* \([^ ]*\)$'
@@ -82,6 +81,7 @@ target=
 arch_cflags=
 arch_ldflags=
 arch_asflags=
+arch_qemuflags=
 nasm_path=
 gcc_path=
 coq_path=
@@ -97,6 +97,8 @@ ld_path=
 make_path=
 pdflatex_path=
 qemu_path=
+gnu_prefix=
+qemu_suffix=
 
 ### Show the usage of this script
 usage() {
@@ -233,9 +235,8 @@ DEBUG=ENABLED
 GDBARGS  = -iex "target remote localhost:1234"
 GDBARGS += -iex "symbol-file \$(BUILD_DIR)/\$(TARGET)/\$(KERNEL_ELF)"
 
-QEMUARGS=-cpu Haswell -m 64
-QEMUARGS+=-nographic
-#QEMUARGS+= -S -s
+QEMUARGS  = $arch_qemuflags
+# QEMUARGS += -S -s
 EOF
 }
 
@@ -298,11 +299,38 @@ parse_arguments() {
 ### $1 Command to execute to get version from stdout
 ### $2 Regular expression used to get the version number from stdout
 ### Returns 0 if the version number is set, 1 otherwise
-command_get_version_number() {
+command_get_version_number_generic() {
     version_number="$( $1 2>/dev/null | sed -n -e 's/'"$2"'/\1/p' )"
     [ -z "$version_number" ] && retval=1 || retval=0
     printf "%s\\n" "$version_number"
     return $retval
+}
+
+### GCC-specific way to get version number
+### $1 Command to execute to get version from stdout
+### $2 Regular expression used to get the version number from stdout
+### Returns 0 if the version number is set, 1 otherwise
+command_get_version_number_gcc() {
+    major=$(printf "%s" "__GNUC__" | "$1" -E -xc - | tail -n 1) || return 1
+    minor=$(printf "%s" "__GNUC_MINOR__" | "$1" -E -xc - | tail -n 1) || return 1
+    patch_level=$(printf "%s" "__GNUC_PATCHLEVEL__" | "$1" -E -xc - | tail -n 1) || return 1
+    printf "%s.%s.%s\\n" "$major" "$minor" "$patch_level"
+}
+
+command_get_version_number() {
+    version_number=
+    case "$1" in
+        *gcc)
+            version_number=$(command_get_version_number_gcc "$1") || return 1
+            ;;
+        ?*)
+            version_number=$(command_get_version_number_generic "$1 $2" "$3") || return 1
+            ;;
+        *)
+            return 1
+    esac
+    printf "%s\\n" "$version_number"
+    return 0
 }
 
 ### Check if the version number of the command is correct
@@ -321,7 +349,7 @@ command_is_correct_version() {
 ### Returns 0 if the version of the command is correct, 1 if the command was
 ### not found at the specified path, 2 if the command has not a correct version
 command_check_version() {
-    version_number=$(command_get_version_number "$1 $2" "$3") || return 1
+    version_number=$(command_get_version_number "$1" "$2" "$3") || return 1
     command_is_correct_version "$version_number" "$4" || return 2
     return 0
 }
@@ -396,24 +424,56 @@ interactive_mode() {
         printf "Choose a target architecture (type \"?\" to see target list).\\n> "
         read -r architecture
         case "$architecture" in
-            i386)
+            x86)
+                gnu_prefix="x86_64-linux-gnu"
+                qemu_suffix="i386"
                 target="x86_multiboot"
                 arch_cflags="-march=pentium -m32"
                 arch_ldflags="-m elf_i386"
                 arch_asflags="-f elf"
+                arch_qemuflags="-cpu Haswell"
+                arch_qemuflags="$arch_qemuflags -m 64"
+                arch_qemuflags="$arch_qemuflags -nographic"
+                break
+                ;;
+            armv7)
+                gnu_prefix="arm-none-eabi"
+                qemu_suffix="aarch64"
+                target="armv7"
+                arch_cflags="-mcpu=cortex-a72"
+                arch_ldflags="-m armelf"
+                arch_asflags="-ffreestanding"
+                arch_asflags="$arch_asflags -nostdinc"
+                arch_asflags="$arch_asflags -nostdlib"
+                arch_asflags="$arch_asflags -nostartfiles"
+                arch_asflags="$arch_asflags -c"
+                arch_qemuflags="-M raspi2"
+                arch_qemuflags="$arch_qemuflags -cpu cortex-a72"
+                arch_qemuflags="$arch_qemuflags -serial null"
+                arch_qemuflags="$arch_qemuflags -serial stdio"
                 break
                 ;;
             \?)
-                printf "i386  (Intel 80386)\\n"
+                printf "x86\\n"
+                printf "armv7\\n"
         esac
     done
 
     # Check the command version
-    nasm_path=$(interactive_command_check "nasm" "-v" \
-        "$nasm_minimum_version" "$nasm_regex_1" "$nasm_regex_2")
 
-    gcc_path=$(interactive_command_check "gcc" "--version" \
-        "$gcc_minimum_version" "$gcc_regex_1" "$gcc_regex_2")
+    if [ "$architecture" = "x86" ]
+    then
+        nasm_path=$(interactive_command_check "nasm" "-v" \
+            "$nasm_minimum_version" "$nasm_regex_1" "$nasm_regex_2")
+    fi
+
+    gcc_path=$(interactive_command_check "$gnu_prefix-gcc" "" \
+        "$gcc_minimum_version" "" "$gcc_regex_2")
+
+    if [ "$architecture" != "x86" ]
+    then
+        nasm_path="$gcc_path"
+    fi
 
     coqc_path=$(interactive_command_check "coqc" "-v" \
         "$coq_minimum_version" "$coqc_regex_1" "$coqc_regex_2")
@@ -421,14 +481,14 @@ interactive_mode() {
     doxygen_path=$(interactive_command_check "doxygen" "-v" \
         "$doxygen_minimum_version" "$doxygen_regex_1" "$doxygen_regex_2")
 
-    gdb_path=$(interactive_command_check "gdb" "-v" \
+    gdb_path=$(interactive_command_check "$gnu_prefix-gdb" "-v" \
         "$gdb_minimum_version" "$gdb_regex_1" "$gdb_regex_2")
 
     grub_mkrescue_path=$(interactive_command_check "grub-mkrescue" \
         "--version" "$grub_mkrescue_minimum_version" "$grub_mkrescue_regex_1" \
         "$grub_mkrescue_regex_2")
 
-    ld_path=$(interactive_command_check "ld" "-v" "$ld_minimum_version" \
+    ld_path=$(interactive_command_check "$gnu_prefix-ld" "-v" "$ld_minimum_version" \
         "$ld_regex_1" "$ld_regex_2")
 
     make_path=$(interactive_command_check "make" "-v" \
@@ -437,7 +497,7 @@ interactive_mode() {
     pdflatex_path=$(interactive_command_check "pdflatex" "-v" \
         "$pdflatex_minimum_version" "$pdflatex_regex_1" "$pdflatex_regex_2")
 
-    qemu_path=$(interactive_command_check "qemu-system-$architecture" "--version" \
+    qemu_path=$(interactive_command_check "qemu-system-$qemu_suffix" "--version" \
         "$qemu_minimum_version" "$qemu_regex_1" "$qemu_regex_2")
 
     if [ ! -z "$coqc_path" ]
@@ -476,11 +536,28 @@ non_interactive_mode() {
 
     # Fail if the architecture name is unknown
     case "$architecture" in
-        i386)
+        x86)
             target="x86_multiboot"
             arch_cflags="-march=pentium -m32"
             arch_ldflags="-m elf_i386"
             arch_asflags="-f elf"
+            arch_qemuflags="-cpu Haswell"
+            arch_qemuflags="$arch_qemuflags -m 64"
+            arch_qemuflags="$arch_qemuflags -nographic"
+            ;;
+        armv7)
+            target="armv7"
+            arch_cflags="-mcpu=cortex-a72"
+            arch_ldflags="-m armelf"
+            arch_asflags="-ffreestanding"
+            arch_asflags="$arch_asflags -nostdinc"
+            arch_asflags="$arch_asflags -nostdlib"
+            arch_asflags="$arch_asflags -nostartfiles"
+            arch_asflags="$arch_asflags -c"
+            arch_qemuflags="-M raspi2"
+            arch_qemuflags="$arch_qemuflags -cpu cortex-a72"
+            arch_qemuflags="$arch_qemuflags -serial null"
+            arch_qemuflags="$arch_qemuflags -serial stdio"
             ;;
         *)
             return 1
@@ -499,11 +576,13 @@ non_interactive_mode() {
     # Check the command version if the `--check-commands` flag is set
     if [ ! -z "$check_commands" ]
     then
-        command_check_version "$nasm_path" "-v" "$nasm_regex_1" \
-            "$nasm_regex_2" || return 1
+        if [ "$architecture" = "x86" ]
+        then
+            command_check_version "$nasm_path" "-v" "$nasm_regex_1" \
+                "$nasm_regex_2" || return 1
+        fi
 
-        command_check_version "$gcc_path" "--version" "$gcc_regex_1" \
-            "$gcc_regex_2" || return 1
+        command_check_version "$gcc_path" "" "" "$gcc_regex_2" || return 1
 
         command_check_version "$coqc_path" "-v" "$coqc_regex_1" \
             "$coqc_regex_2" || return 1
