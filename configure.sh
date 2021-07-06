@@ -103,7 +103,7 @@ qemu_suffix=
 ### Show the usage of this script
 usage() {
     printf "\
-Usage: %s [ARGUMENTS]\\n\
+USAGE: %s [ARGUMENTS]
 
   This configuration script aims to check the availability and the version of
   the commands required by the project.
@@ -125,38 +125,39 @@ Usage: %s [ARGUMENTS]\\n\
   non-zero exit code if a command was not found at the specified path or if it
   does not have a correct version. The omitted arguments are empty.
 
-  ARGUMENTS:\\n\
+  ARGUMENTS:
 
-    --help                    Show this message and exit\\n\
+    --help                    Show this message and exit
 
     --check-commands          Fail if a command was not found at the specified
-                              path or if does not have a correct version\\n\
+                              path or if does not have a correct version
 
-    --architecture=<x>        The target architecture name:\\n\
-                                - \`i386\`  (Intel 80386)
+    --architecture=<x>        The target architecture names:
+                                - \`x86\`
+                                - \`armv7\`
 
-    --partition-name=<x>      The name of the partition to build\\n\
+    --partition-name=<x>      The name of the partition to build
 
-    --nasm-path=<x>           A path to nasm version %s or higher\\n\
+    --nasm-path=<x>           A path to nasm version %s or higher
 
-    --gcc-path=<x>            A path to gcc version %s or higher\\n\
+    --gcc-path=<x>            A path to gcc version %s or higher
 
-    --coq-path=<x>            A path to the directory where coq version %s or
-                              higher is installed\\n\
+    --coq-path=<x>            A path to the directory where coq version %s
+                              or higher is installed
 
-    --doxygen-path=<x>        A path to doxygen version %s or higher\\n\
+    --doxygen-path=<x>        A path to doxygen version %s or higher
 
-    --gdb-path=<x>            A path to gdb version %s or higher\\n\
+    --gdb-path=<x>            A path to gdb version %s or higher
 
-    --grub-mkrescue-path=<x>  A path to grub-mkrescue version %s or higher\\n\
+    --grub-mkrescue-path=<x>  A path to grub-mkrescue version %s or higher
 
-    --ld-path=<x>             A path to ld version %s or higher\\n\
+    --ld-path=<x>             A path to ld version %s or higher
 
-    --make-path=<x>           A path to make version %s or higher\\n\
+    --make-path=<x>           A path to make version %s or higher
 
-    --pdflatex-path=<x>       A path to pdflatex version %s or higher\\n\
+    --pdflatex-path=<x>       A path to pdflatex version %s or higher
 
-    --qemu-path=<x>           A path to qemu version %s or higher\\n\
+    --qemu-path=<x>           A path to qemu version %s or higher
 
 " \
 "$0" \
@@ -175,6 +176,39 @@ Usage: %s [ARGUMENTS]\\n\
 ### Generate the toolchain.mk file
 generate_toolchain() {
 cat <<EOF > toolchain.mk
+#################################################################################
+#   © Université de Lille, The Pip Development Team (2015-2021)                 #
+#                                                                               #
+#   This software is a computer program whose purpose is to run a minimal,      #
+#   hypervisor relying on proven properties such as memory isolation.           #
+#                                                                               #
+#   This software is governed by the CeCILL license under French law and        #
+#   abiding by the rules of distribution of free software.  You can  use,       #
+#   modify and/ or redistribute the software under the terms of the CeCILL      #
+#   license as circulated by CEA, CNRS and INRIA at the following URL           #
+#   "http://www.cecill.info".                                                   #
+#                                                                               #
+#   As a counterpart to the access to the source code and  rights to copy,      #
+#   modify and redistribute granted by the license, users are provided only     #
+#   with a limited warranty  and the software's author,  the holder of the      #
+#   economic rights,  and the successive licensors  have only  limited          #
+#   liability.                                                                  #
+#                                                                               #
+#   In this respect, the user's attention is drawn to the risks associated      #
+#   with loading,  using,  modifying and/or developing or reproducing the       #
+#   software by the user in light of its specific status of free software,      #
+#   that may mean  that it is complicated to manipulate,  and  that  also       #
+#   therefore means  that it is reserved for developers  and  experienced       #
+#   professionals having in-depth computer knowledge. Users are therefore       #
+#   encouraged to load and test the software's suitability as regards their     #
+#   requirements in conditions enabling the security of their systems and/or    #
+#   data to be ensured and,  more generally, to use and operate it in the       #
+#   same conditions as regards security.                                        #
+#                                                                               #
+#   The fact that you are presently reading this means that you have had        #
+#   knowledge of the CeCILL license and that you accept its terms.              #
+#################################################################################
+
 DIGGER_DIR=tools/digger
 DIGGER=\$(DIGGER_DIR)/digger
 
