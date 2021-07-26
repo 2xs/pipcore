@@ -32,7 +32,6 @@
 ###############################################################################
 
 include toolchain.mk
-MAKEFLAGS += -j
 
 CFLAGS=-Wall -Wextra
 # -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
@@ -161,7 +160,7 @@ all : $(PARTITION).elf $(PARTITION).iso
 # Rely on Makefile.coq to handle dependencies of coq code and
 # compile it. Extracts necessary information for generation of C files
 $(JSONS) &: Makefile.coq $(COQ_SRC_FILES) | $(GENERATED_FILES_DIR)
-	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$(COQ_EXTRACTION_FILES:.v=.vo)" -j
+	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$(COQ_EXTRACTION_FILES:.v=.vo)"
 
 ###################### Generation from Coq to C #####################
 
@@ -257,7 +256,7 @@ proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES) | $(GENERATED_FILES_DIR
 	$(MAKE) -f Makefile.coq all
 
 %.vo : Makefile.coq
-	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$@" -j
+	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$@"
 
 ####################################################################
 ##                        Utility targets                         ##
