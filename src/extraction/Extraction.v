@@ -39,13 +39,6 @@ Require Import Pip.Model.MAL Pip.Model.Hardware Pip.Model.ADT Pip.Core.Services 
 Require Extraction.
 Extraction Language JSON.
 
-(*
-   Place the extracted AST inside the "generated" folder at root
-   What ? Stop staring at me like that, even CompCert uses this. Yikes
-   https://github.com/AbsInt/CompCert/blob/master/extraction/extraction.v#L158
-*)
-Cd "generated".
-
 (** Coq standard library *)
 (* Tell Coq to extract those names verbatim, instead of using if-then-else *)
 Extract Inlined Constant andb => "andb".
@@ -57,5 +50,3 @@ Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Internal.
 Extraction Library Services.
-
-Cd "..".

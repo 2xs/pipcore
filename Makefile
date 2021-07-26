@@ -33,6 +33,12 @@
 
 include toolchain.mk
 
+# Default tools
+CAT := cat
+SED := sed
+COQC := coqc
+COQDEP := coqdep
+
 CFLAGS=-Wall -Wextra
 # -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
 CFLAGS+=-std=gnu99
@@ -48,6 +54,10 @@ LDFLAGS=$(ARCH_LDFLAGS)
 
 # Enable debug symbols and logs
 CFLAGS+=$(if $(DEBUG), $(DEBUG_CFLAGS))
+
+COQFLAGS := $(shell $(CAT) _CoqProject)
+COQCFLAGS := $(COQFLAGS) -w all,-nonprimitive-projection-syntax
+COQCEXTRFLAGS := $(shell $(SED) 's/-[RQ]  */&..\//g' _CoqProject) -w all,-extraction
 
 #####################################################################
 ##                      Directory variables                        ##
@@ -155,13 +165,6 @@ all : $(PARTITION).elf $(PARTITION).iso
 ##                    Code compilation targets                     ##
 #####################################################################
 
-####################### Jsons (AST) generation ######################
-
-# Rely on Makefile.coq to handle dependencies of coq code and
-# compile it. Extracts necessary information for generation of C files
-$(JSONS) &: Makefile.coq $(COQ_SRC_FILES) | $(GENERATED_FILES_DIR)
-	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$(COQ_EXTRACTION_FILES:.v=.vo)"
-
 ###################### Generation from Coq to C #####################
 
 # Drop purely model related coq modules
@@ -194,6 +197,27 @@ $(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)
 	$(DIGGER) $(DIGGERFLAGS) -m Internal -d :$(GENERATED_FILES_DIR)/Internal.json\
 	                         -q Internal.h\
 				 $< -o $@
+
+############################## Coq rules ############################
+
+.depend.coq: $(COQ_SRC_FILES) $(COQ_PROOF_FILES) $(COQ_EXTRACTION_FILES)
+	$(COQDEP) $(COQFLAGS) $^ > $@
+
+-include .depend.coq
+
+%.vo: %.v
+	$(COQC) $(COQCFLAGS) $<
+
+ifneq (,$(findstring grouped-target,$(.FEATURES)))
+$(JSONS) src/extraction/Extraction.vo &: src/extraction/Extraction.v | $(GENERATED_FILES_DIR)
+	cd $(GENERATED_FILES_DIR) && $(COQC) $(COQCEXTRFLAGS) ../$<
+else
+# Unfortunately, without grouped-target we cannot inherit dependencies
+# computed by coqdep, so we must mv files after the fact
+$(JSONS): src/extraction/Extraction.vo | $(GENERATED_FILES_DIR)
+	mv $(notdir $@) $(GENERATED_FILES_DIR)
+endif
+
 
 ########################### C object rules ##########################
 
@@ -252,11 +276,7 @@ $(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
 ##                      Proof related targets                      ##
 #####################################################################
 
-proofs: Makefile.coq $(COQ_SRC_FILES) $(COQ_PROOF_FILES) | $(GENERATED_FILES_DIR)
-	$(MAKE) -f Makefile.coq all
-
-%.vo : Makefile.coq
-	$(MAKE) --no-print-directory -f Makefile.coq only TGTS="$@"
+proofs: $(COQ_PROOF_FILES:.v=.vo)
 
 ####################################################################
 ##                        Utility targets                         ##
