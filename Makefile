@@ -320,9 +320,6 @@ qemu-iso: $(PARTITION).iso
 
 ####################################################################
 
-toolchain.mk:
-	sh configure.sh
-
 Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
 	$(COQ_MAKEFILE) $(COQ_ENV) -f _CoqProject -o Makefile.coq $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
 
