@@ -877,10 +877,10 @@ Proof.
 apply ret.
 Qed.
 
-Lemma setInterruptMask (vidt : page) (mask : interruptMask)
+Lemma setInterruptMask (mask : interruptMask)
 (P : unit -> state -> Prop) :
 {{fun s => P tt s}}
-setInterruptMask vidt mask
+setInterruptMask mask
 {{P}}.
 Proof.
 apply ret.
