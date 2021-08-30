@@ -40,6 +40,7 @@
 #define __MAL_DEFINES__
 
 #include "mal.h"
+#include "x86int.h"
 #include <stdint.h>
 
 /* bool */
@@ -137,5 +138,24 @@ typedef uint32_t boolvaddr;
 
 /* FIXME */
 #define maxFreeLL() ((tableSize / 2) - 2)
+
+typedef uint32_t interruptMask;
+typedef enum yield_checks_e {
+	coq_SUCCESS=0,
+	coq_FAIL_INVALID_INT_LEVEL=1,
+	coq_FAIL_INVALID_CTX_SAVE_INDEX=2,
+	coq_FAIL_ROOT_CALLER=3,
+	coq_FAIL_INVALID_CHILD=4,
+	coq_FAIL_UNAVAILABLE_TARGET_VIDT=5,
+	coq_FAIL_UNAVAILABLE_CALLER_VIDT=6,
+	coq_FAIL_MASKED_INTERRUPT=7,
+	coq_FAIL_UNAVAILABLE_TARGET_CTX=8,
+	coq_FAIL_CALLER_CONTEXT_SAVE=9
+} yield_checks;
+#define contextAddr user_ctx_t *
+
+#define contextSizeMinusOne (sizeof(user_ctx_t) - 1)
+
+#define userValue uint32_t
 
 #endif

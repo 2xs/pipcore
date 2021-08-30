@@ -48,7 +48,7 @@
 #include "gdt.h"
 
 /* TODO remove me once the new service is written in Coq */
-#include "yield_c.h"
+//#include "yield_c.h"
 
 /* TODO possibly rewrite me in Coq too */
 #include "pip_interrupt_calls.h"
@@ -79,7 +79,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
 	page intPartitionPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got interrupted partition : %x\n", intPartitionPartDesc);
-	int_mask_t intPartitionIntState = get_self_int_state();
+	interruptMask intPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (intPartitionIntState == 0) {
 		//DEBUG(TRACE, "Hardware interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
@@ -92,11 +92,11 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupt state from interrupted partition : %d\n", intPartitionIntState);
 	page intPartitionPageDir  = getPd(intPartitionPartDesc);
 	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupted partition page dir : %x\n", intPartitionPageDir);
-	yield_checks_t rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, saveIndex, getNbLevel(), intPartitionIntState, intPartitionIntState, &uctx);
+	yield_checks rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, saveIndex, getNbLevel(), intPartitionIntState, intPartitionIntState, &uctx);
 	switch(rc) {
-		case FAIL_UNAVAILABLE_CALLER_VIDT:
-		case FAIL_CALLER_CONTEXT_SAVE:
-			if (rc == FAIL_UNAVAILABLE_CALLER_VIDT) {
+		case coq_FAIL_UNAVAILABLE_CALLER_VIDT:
+		case coq_FAIL_CALLER_CONTEXT_SAVE:
+			if (rc == coq_FAIL_UNAVAILABLE_CALLER_VIDT) {
 				DEBUG(INFO, "Interrupted partition's VIDT is unavailable, can not salvage its context\n");
 			}
 			else {// (rc == CALLER_CONTEXT_SAVE)
@@ -130,7 +130,7 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Software interrupt handler - Got current partition : %x\n", currentPartDesc);
-	int_mask_t currentPartitionIntState = get_self_int_state();
+	interruptMask currentPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (currentPartitionIntState == 0) {
 		//DEBUG(TRACE, "Software interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
@@ -143,14 +143,14 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	//DEBUG(TRACE, "Software interrupt handler - Retrieved interrupt state from current partition : %d\n", intPartitionIntState);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
-	yield_checks_t rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, saveIndex, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
+	yield_checks rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, saveIndex, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
 	DEBUG(TRACE, "Returned from software interrupt, an error occurred : %d\n", rc);
 	//Set return value
 	uctx.regs.eax = rc;
 }
 
 
-void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
+void propagateFault(page callerPartDesc, page callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, interruptMask flagsOnYield, interruptMask flagsOnWake, user_ctx_t *callerInterruptedContext);
 
 /* C handler called when faults are triggered
  * e.g when trying to divide by zero 
@@ -171,7 +171,7 @@ void faultInterruptHandler(int_ctx_t *ctx)
 
 	page currentPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Fault interrupt handler - Got current partition : %x\n", currentPartDesc);
-	int_mask_t currentPartitionIntState = get_self_int_state();
+	interruptMask currentPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (currentPartitionIntState == 0) {
 		//DEBUG(TRACE, "Fault interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
@@ -188,22 +188,22 @@ void faultInterruptHandler(int_ctx_t *ctx)
 }
 
 //TODO could be written in Coq
-void propagateFault(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext)
+void propagateFault(page callerPartDesc, page callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, interruptMask flagsOnYield, interruptMask flagsOnWake, user_ctx_t *callerInterruptedContext)
 {
-	int rc = getParentPartDescCont(callerPartDesc, callerPageDir, targetInterrupt, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);
+	yield_checks rc = getParentPartDescCont(callerPartDesc, callerPageDir, targetInterrupt, callerContextSaveIndex, nbL, flagsOnYield, flagsOnWake, callerInterruptedContext);
 	switch(rc) {
-		case FAIL_UNAVAILABLE_CALLER_VIDT:
-		case FAIL_CALLER_CONTEXT_SAVE:
-			if (rc == FAIL_UNAVAILABLE_CALLER_VIDT) {
+		case coq_FAIL_UNAVAILABLE_CALLER_VIDT:
+		case coq_FAIL_CALLER_CONTEXT_SAVE:
+			if (rc == coq_FAIL_UNAVAILABLE_CALLER_VIDT) {
 				DEBUG(INFO, "Faulting partition's VIDT is unavailable, can not salvage its context\n");
 			}
-			else {// (rc == CALLER_CONTEXT_SAVE)
+			else {// (rc == coq_CALLER_CONTEXT_SAVE)
 				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
 			getTargetPartVidtCont(getParent(callerPartDesc), callerPageDir, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
 			break;
-		case FAIL_ROOT_CALLER:
+		case coq_FAIL_ROOT_CALLER:
 			DEBUG(CRITICAL, "Root partition faulted, guru meditation.\n");
 			for(;;);
 			break;

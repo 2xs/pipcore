@@ -64,7 +64,7 @@
 #include "idt.h"
 
 /* TODO Remove me once rewritten in Coq */
-#include "yield_c.h"
+//#include "yield_c.h"
 
 #define STACK_TOP_ADDR 0XFFFFE000
 

@@ -200,10 +200,12 @@ $(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)
 
 # Static pattern rule for constructing object files from generated C files
 $(C_GENERATED_OBJ):\
-    %.o: %.c $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)
+    %.o: %.c $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)\
+             $(C_TARGET_MAL_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
                         -I $(C_GENERATED_HEADERS_DIR)\
                         -I $(C_TARGET_BOOT_INCLUDE_DIR)\
+                        -I $(C_TARGET_MAL_INCLUDE_DIR)\
                         -c -o $@ $<
 
 # Static pattern rule for constructing object files from target boot C files
