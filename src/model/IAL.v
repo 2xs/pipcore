@@ -66,7 +66,7 @@ Program Definition userValueToIndex (userIndex : userValue) : LLI index :=
   | _ => ret defaultVAddr
   end. *)
 
-Definition FAIL_VINT := FAIL_VINT_Cons.
+Definition FAIL_INVALID_INT_LEVEL := FAIL_INVALID_INT_LEVEL_Cons.
 Definition FAIL_INVALID_CTX_SAVE_INDEX := FAIL_INVALID_CTX_SAVE_INDEX_Cons.
 Definition FAIL_CALLER_CONTEXT_SAVE := FAIL_CALLER_CONTEXT_SAVE_Cons.
 Definition FAIL_UNAVAILABLE_TARGET_VIDT := FAIL_UNAVAILABLE_TARGET_VIDT_Cons.

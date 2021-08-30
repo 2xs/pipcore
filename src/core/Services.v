@@ -1524,7 +1524,7 @@ Definition checkIntLevelCont (targetPartDescVAddr : vaddr)
   (* checkIndexPropertyLTB *)
   perform userTargetInterruptIsValid := checkIndexPropertyLTB userTargetInterrupt in
   if negb userTargetInterruptIsValid then
-    ret FAIL_VINT
+    ret FAIL_INVALID_INT_LEVEL
   else
 
   perform targetInterrupt := userValueToIndex userTargetInterrupt in

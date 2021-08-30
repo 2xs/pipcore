@@ -104,7 +104,7 @@ Record state : Type := {
 }.
 
 Inductive yield_checks : Type :=
-| FAIL_VINT_Cons
+| FAIL_INVALID_INT_LEVEL_Cons
 | FAIL_INVALID_CTX_SAVE_INDEX_Cons
 | FAIL_CALLER_CONTEXT_SAVE_Cons
 | FAIL_UNAVAILABLE_TARGET_VIDT_Cons
