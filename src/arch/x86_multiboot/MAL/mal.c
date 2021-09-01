@@ -38,8 +38,10 @@
 
 #include <stdint.h>
 #include "mal.h"
+#include "maldefines.h"
 #include "structures.h"
 #include "debug.h"
+#include "segment_selectors.h"
 
 uint32_t current_partition; /* Current partition's CR3 */
 uint32_t root_partition; /* Multiplexer's partition descriptor */
@@ -514,4 +516,129 @@ void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page, uint32_t kernel_ind
 uint32_t prepareType(int b, uint32_t vaddr)
 {
     return (vaddr & ~1) | (b ? 1 : 0);
+}
+
+vaddr getVidtVAddr() {
+	return 0xFFFFF000;
+}
+
+vaddr getNthVAddrFrom(page base, uint32_t size) {
+	return ((uint32_t) base) + size;
+}
+
+interruptMask getInterruptMaskFromCtx(contextAddr targetContext) {
+	return targetContext->pipflags;
+}
+
+bool noInterruptRequest(interruptMask flagsOnWake) {
+	return flagsOnWake == 0;	
+}
+
+bool firstVAddrGreaterThanSecond(vaddr vaddr1, vaddr vaddr2) {
+	return ((uintptr_t) vaddr1) > ((uintptr_t) vaddr2);
+}
+
+contextAddr vaddrToContextAddr(vaddr contextVAddr) {
+	return (contextAddr) contextVAddr;
+}
+
+bool checkIndexPropertyLTB(userValue userIndex) {
+	return userIndex < getMaxIndex();
+}
+
+index userValueToIndex(userValue userIndex) {
+	return (index) userIndex;
+}
+
+void writeContext(contextAddr ctx, vaddr ctxSaveVAddr, interruptMask flagsOnWake) {
+	user_ctx_t *userland_save_ptr = (user_ctx_t *) ctxSaveVAddr;
+	userland_save_ptr->eip      = ctx->eip;
+	userland_save_ptr->pipflags = flagsOnWake;
+	userland_save_ptr->eflags   = ctx->eflags;
+	userland_save_ptr->regs     = ctx->regs;
+	userland_save_ptr->valid    = 1;
+}
+
+/* copies or pushes SS, ESP, EFLAGS, CS, EIP from the given context to the stack
+ * and then executes an `iret` in order to go back to userland
+ * see x86int.h for infos related to user_ctx_t struct */
+void loadContext(contextAddr ctx, bool enforce_interrupts) {
+	asm(
+	    /* retrieve user_ctx_t * in EAX register */
+	    "mov %0, %%eax;"
+	    "mov %1, %%ecx;"
+
+	    /* push user ss */
+	    "push %2;"
+
+	    /* push user esp */
+	    "push 0x18(%%eax);"
+
+	    /* push eflags */
+	    "push 0x8(%%eax);"
+
+	    /* fix eflags to prevent potential security issues */
+	    "orl %3, (%%esp);"
+	    /* -- skip enable interrupts depending on parameter */
+	    "jcxz 1f;" /* <------+ */
+	    "orl %4, (%%esp);"/* | */
+	    "1:;" /* <-----------+ */
+
+	    "andl %5, (%%esp);"
+
+	    /* push cs */
+	    "push %6;"
+
+	    /* push eip */
+	    "push (%%eax);"
+
+	    /* restore general purpose registers */
+	    /* maybe we could `popad` but it seems complicated */
+	    /* restore EDI */
+	    "mov  0xC(%%eax), %%edi;"
+
+	    /* restore ESI */
+	    "mov 0x10(%%eax), %%esi;"
+
+	    /* restore EBP */
+	    "mov 0x14(%%eax), %%ebp;"
+
+	    /* skipped ESP which was already pushed */
+
+	    /* restore EBX */
+	    "mov 0x1C(%%eax), %%ebx;"
+
+	    /* restore EDX */
+	    "mov 0x20(%%eax), %%edx;"
+
+	    /* restore ECX */
+	    "mov 0x24(%%eax), %%ecx;"
+
+	    /* restore EAX */
+	    "mov 0x28(%%eax), %%eax;"
+
+	    /* switch to userland */
+	    "iret;"
+
+	    /* output operands */
+	    :
+	    /* input operands */
+	    : "m"(ctx),
+	      "m"(enforce_interrupts),
+	      "i"(USER_DATA_SEGMENT_SELECTOR | USER_RING), /* TODO Correct ? Check RPL */
+	    /* eflags related constants */
+	    /* set bit 1 : always 1 */
+	      "i"(0x2),
+	    /* set bit conditional :
+	     * 	       9 : interrupt enable
+	     * controlled by parameter */
+	      "i"(0x200),
+	    /* unset bit 8 : trap flag
+	     * 	     12-13 : I/O privilege level
+	     *       14-32 : various system flags */
+	      "i"(0xEFF),
+	      "i"(USER_CODE_SEGMENT_SELECTOR | USER_RING)  /* TODO Correct ? Check RPL */
+	    /* registers changed during inline assembly */
+	    :
+	);
 }

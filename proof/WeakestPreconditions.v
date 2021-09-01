@@ -749,12 +749,12 @@ eapply bind .
   - eapply weaken. eapply get . intuition.  
 Qed.
 
-Lemma activate (partitionDescriptor : page) (P : unit -> state -> Prop) :
+Lemma updateCurPartition (partitionDescriptor : page) (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
   currentPartition := partitionDescriptor;
-  memory := memory s |} }}activate partitionDescriptor {{P}}.
+  memory := memory s |} }}updateCurPartition partitionDescriptor {{P}}.
 Proof.
-unfold activate.
+unfold updateCurPartition.
 eapply weaken.
 eapply modify .
 intros. simpl.
@@ -765,6 +765,17 @@ Lemma checkIndexPropertyLTB (userIndex : userValue) (P : bool -> state -> Prop) 
 {{fun s => P (Nat.ltb userIndex tableSize) s }} checkIndexPropertyLTB userIndex {{P}}.
 Proof.
 unfold checkIndexPropertyLTB.
+eapply weaken.
+eapply ret.
+trivial.
+Qed.
+
+Lemma updateMMURoot (MMURoot : page) (P : unit -> state -> Prop) :
+{{fun s => P tt s }}
+updateMMURoot MMURoot
+{{ P }}.
+Proof.
+unfold updateMMURoot.
 eapply weaken.
 eapply ret.
 trivial.
@@ -884,24 +895,4 @@ setInterruptMask mask
 {{P}}.
 Proof.
 apply ret.
-Qed.
-
-Lemma updateCurPartAndActivate (partDesc pageDir : page)
-(P : unit -> state -> Prop) :
-{{ fun s => P tt {|
-  currentPartition := partDesc;
-  memory := memory s |} }}
-updateCurPartAndActivate partDesc pageDir
-{{P}}.
-Proof.
-unfold updateCurPartAndActivate.
-eapply bindRev.
-eapply weaken.
-apply activate.
-intros.
-cbn.
-apply H.
-intro a.
-case a.
-eapply ret.
 Qed.

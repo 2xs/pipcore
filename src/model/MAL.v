@@ -283,8 +283,8 @@ ret (Build_boolvaddr val1 val2).
 Definition getCurPartition : LLI page:=
   perform s := get in  ret s.(currentPartition).
 
-(** The 'activate' function update the current Partition *)
-Definition activate (phyPartition : page) : LLI unit := 
+(** The 'updateCurPartition' function update the current Partition *)
+Definition updateCurPartition (phyPartition : page) : LLI unit := 
   modify (fun s => {| currentPartition := phyPartition;
   memory := s.(memory)|} ).
 

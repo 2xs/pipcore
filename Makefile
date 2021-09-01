@@ -102,7 +102,7 @@ C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
 AS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.s)
 AS_ROOTPART_BIN_WRAPPER_SRC=$(C_SRC_TARGET_DIR)/rootpart_bin_wrapper.s
 
-C_GENERATED_HEADERS=$(C_GENERATED_HEADERS_DIR)/Internal.h
+C_GENERATED_HEADERS=$(C_GENERATED_HEADERS_DIR)/Internal.h $(C_GENERATED_HEADERS_DIR)/Services.h
 C_MODEL_INTERFACE_HEADERS=$(wildcard $(C_MODEL_INTERFACE_INCLUDE_DIR)/*.h)
 C_TARGET_MAL_HEADERS=$(wildcard $(C_TARGET_MAL_INCLUDE_DIR)/*.h)
 C_TARGET_BOOT_HEADERS=$(wildcard $(C_TARGET_BOOT_INCLUDE_DIR)/*.h)
@@ -185,27 +185,32 @@ $(GENERATED_FILES_DIR)/Internal.h: $(GENERATED_FILES_DIR)/Internal.json $(JSONS)
 $(GENERATED_FILES_DIR)/Internal.c: $(GENERATED_FILES_DIR)/Internal.json $(JSONS)\
 	                           $(GENERATED_FILES_DIR)/Internal.h\
                                  | $(GENERATED_FILES_DIR) $(DIGGER)
-	$(DIGGER) $(DIGGERFLAGS) -q Internal.h\
+	$(DIGGER) $(DIGGERFLAGS) -q Internal.h -q mal.h\
 	                         $< -o $@
 
+$(GENERATED_FILES_DIR)/Services.h: $(GENERATED_FILES_DIR)/Services.json $(JSONS)\
+                                 | $(GENERATED_FILES_DIR) $(DIGGER)
+	$(DIGGER) $(DIGGERFLAGS) --header\
+		                 $< -o $@
 $(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)\
+	                           $(GENERATED_FILES_DIR)/Services.h\
 	                           $(GENERATED_FILES_DIR)/Internal.json\
 	                           $(GENERATED_FILES_DIR)/Internal.h\
                                  | $(GENERATED_FILES_DIR) $(DIGGER)
 	$(DIGGER) $(DIGGERFLAGS) -m Internal -d :$(GENERATED_FILES_DIR)/Internal.json\
-	                         -q Internal.h\
+	                         -q Services.h -q Internal.h -q mal.h\
 				 $< -o $@
 
 ########################### C object rules ##########################
 
 # Static pattern rule for constructing object files from generated C files
 $(C_GENERATED_OBJ):\
-    %.o: %.c $(C_MODEL_INTERFACE_HEADERS) $(C_GENERATED_HEADERS)\
-             $(C_TARGET_MAL_HEADERS)
+    %.o : %.c $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
+              $(C_TARGET_BOOT_HEADERS) $(C_GENERATED_HEADERS)
 	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
-                        -I $(C_GENERATED_HEADERS_DIR)\
-                        -I $(C_TARGET_BOOT_INCLUDE_DIR)\
                         -I $(C_TARGET_MAL_INCLUDE_DIR)\
+                        -I $(C_TARGET_BOOT_INCLUDE_DIR)\
+                        -I $(C_GENERATED_HEADERS_DIR)\
                         -c -o $@ $<
 
 # Static pattern rule for constructing object files from target boot C files

@@ -1261,6 +1261,11 @@ Definition getTargetContextCont (targetPartDesc : page)
   perform sourceContextSaveVaddrIsNull := compareVAddrToNull sourceContextSaveVaddr in
   if (sourceContextSaveVaddrIsNull)
   then
+    switchContextCont targetPartDesc
+                      targetPageDir
+                      flagsOnYield
+                      targetContext
+  else
     saveSourceContextCont targetPartDesc
                           targetPageDir
                           sourcePageDir
@@ -1269,12 +1274,7 @@ Definition getTargetContextCont (targetPartDesc : page)
                           flagsOnYield
                           flagsOnWake
                           sourceInterruptedContext
-                          targetContext
-  else
-    switchContextCont targetPartDesc
-                      targetPageDir
-                      flagsOnYield
-                      targetContext.
+                          targetContext.
 
 Definition getTargetVidtCont (targetPartDesc : page)
 				                     (sourcePageDir : page)
@@ -1522,8 +1522,8 @@ Definition checkIntLevelCont (targetPartDescVAddr : vaddr)
                  : LLI yield_checks :=
 
   (* checkIndexPropertyLTB *)
-  perform userTargetInterruptIsValid := checkIndexPropertyLTB userTargetInterrupt in
-  if negb userTargetInterruptIsValid then
+  perform userTargetInterruptIsValidIndex := checkIndexPropertyLTB userTargetInterrupt in
+  if negb userTargetInterruptIsValidIndex then
     ret FAIL_INVALID_INT_LEVEL
   else
 

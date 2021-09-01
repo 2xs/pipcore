@@ -97,11 +97,8 @@ Definition vaddrToContextAddr (va : vaddr) : LLI contextAddr :=
 Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
           : LLI unit := ret tt.
 
-Definition updateCR3(pageDir : page)
+Definition updateMMURoot(pageDir : page)
           : LLI unit := ret tt.
-
-Definition updateCurPartAndActivate(partDesc pageDir : page)
-          : LLI unit := activate partDesc;; updateCR3 pageDir.
 
 Definition getNthVAddrFrom (start : vaddr) (range : nat) : LLI vaddr :=
   ret (getNthVAddrFromAux start range).

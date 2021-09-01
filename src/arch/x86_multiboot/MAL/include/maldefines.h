@@ -39,8 +39,8 @@
 #ifndef __MAL_DEFINES__
 #define __MAL_DEFINES__
 
-#include "mal.h"
 #include "x86int.h"
+#include "pip_interrupt_calls.h"
 #include <stdint.h>
 
 /* bool */
@@ -157,5 +157,6 @@ typedef enum yield_checks_e {
 #define contextSizeMinusOne (sizeof(user_ctx_t) - 1)
 
 #define userValue uint32_t
+#define setInterruptMask kernel_set_int_state
 
 #endif

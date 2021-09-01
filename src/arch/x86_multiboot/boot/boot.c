@@ -63,8 +63,8 @@
 /* IDT configuration */
 #include "idt.h"
 
-/* TODO Remove me once rewritten in Coq */
-//#include "yield_c.h"
+/* Prototypes of control flow transfer services entrypoints */
+#include "Services.h"
 
 #define STACK_TOP_ADDR 0XFFFFE000
 

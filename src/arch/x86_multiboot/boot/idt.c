@@ -47,8 +47,8 @@
 #include "segment_selectors.h"
 #include "gdt.h"
 
-/* TODO remove me once the new service is written in Coq */
-//#include "yield_c.h"
+/* Prototypes of control flow transfer blocks of code */
+#include "Services.h"
 
 /* TODO possibly rewrite me in Coq too */
 #include "pip_interrupt_calls.h"
@@ -82,17 +82,17 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 	interruptMask intPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (intPartitionIntState == 0) {
-		//DEBUG(TRACE, "Hardware interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
+		//DEBUG(TRACE, "Hardware interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_SAVE_INDEX);
 		saveIndex = CLI_SAVE_INDEX;
 	}
 	else {
-		//DEBUG(TRACE, "Hardware interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_INDEX_SAVE);
+		//DEBUG(TRACE, "Hardware interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_SAVE_INDEX);
 		saveIndex = STI_SAVE_INDEX;
 	}
 	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupt state from interrupted partition : %d\n", intPartitionIntState);
 	page intPartitionPageDir  = getPd(intPartitionPartDesc);
 	//DEBUG(TRACE, "Hardware interrupt handler - Retrieved interrupted partition page dir : %x\n", intPartitionPageDir);
-	yield_checks rc = getSourcePartVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, saveIndex, getNbLevel(), intPartitionIntState, intPartitionIntState, &uctx);
+	yield_checks rc = getSourceVidtCont(rootPartDesc, intPartitionPageDir, ctx->int_no, saveIndex, getNbLevel(), intPartitionIntState, intPartitionIntState, &uctx);
 	switch(rc) {
 		case coq_FAIL_UNAVAILABLE_CALLER_VIDT:
 		case coq_FAIL_CALLER_CONTEXT_SAVE:
@@ -103,7 +103,7 @@ void hardwareInterruptHandler(int_ctx_t *ctx)
 				DEBUG(INFO, "Interrupted partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetPartVidtCont(rootPartDesc, intPartitionPageDir, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
+			getTargetVidtCont(rootPartDesc, intPartitionPageDir, getVidtVAddr(), 0, ctx->int_no, getNbLevel(), getIndexOfAddr(getVidtVAddr(), fstLevel), 0, 0, &uctx);
 			break;
 		default:
 			DEBUG(CRITICAL, "Unrecoverable error occured during while loading the root interruption handler - guru meditation\n");
@@ -133,14 +133,14 @@ void softwareInterruptHandler(int_ctx_t *ctx)
 	interruptMask currentPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (currentPartitionIntState == 0) {
-		//DEBUG(TRACE, "Software interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
+		//DEBUG(TRACE, "Software interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_SAVE_INDEX);
 		saveIndex = CLI_SAVE_INDEX;
 	}
 	else {
-		//DEBUG(TRACE, "Software interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_INDEX_SAVE);
+		//DEBUG(TRACE, "Software interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_SAVE_INDEX);
 		saveIndex = STI_SAVE_INDEX;
 	}
-	//DEBUG(TRACE, "Software interrupt handler - Retrieved interrupt state from current partition : %d\n", intPartitionIntState);
+	//DEBUG(TRACE, "Software interrupt handler - Retrieved interrupt state from current partition : %d\n", currentPartitionIntState);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Software interrupt handler - Got current page dir : %x\n", currentPageDir);
 	yield_checks rc = getParentPartDescCont(currentPartDesc, currentPageDir, ctx->int_no, saveIndex, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
@@ -174,14 +174,14 @@ void faultInterruptHandler(int_ctx_t *ctx)
 	interruptMask currentPartitionIntState = get_self_int_state();
 	unsigned saveIndex;
 	if (currentPartitionIntState == 0) {
-		//DEBUG(TRACE, "Fault interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_INDEX_SAVE);
+		//DEBUG(TRACE, "Fault interrupt handler - Partition is VCLI'd, saving its context in index %x\n", CLI_SAVE_INDEX);
 		saveIndex = CLI_SAVE_INDEX;
 	}
 	else {
-		//DEBUG(TRACE, "Fault interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_INDEX_SAVE);
+		//DEBUG(TRACE, "Fault interrupt handler - Partition is VSTI'd, saving its context in index %x\n", STI_SAVE_INDEX);
 		saveIndex = STI_SAVE_INDEX;
 	}
-	//DEBUG(TRACE, "Fault interrupt handler - Retrieved interrupt state from current partition : %d\n", intPartitionIntState);
+	//DEBUG(TRACE, "Fault interrupt handler - Retrieved interrupt state from current partition : %d\n", currentPartitionIntState);
 	page currentPageDir  = getPd(currentPartDesc);
 	//DEBUG(TRACE, "Fault interrupt handler - Got current page dir : %x\n", currentPageDir);
 	propagateFault(currentPartDesc, currentPageDir, ctx->int_no, saveIndex, getNbLevel(), currentPartitionIntState, currentPartitionIntState, &uctx);
@@ -201,7 +201,7 @@ void propagateFault(page callerPartDesc, page callerPageDir, unsigned targetInte
 				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetPartVidtCont(getParent(callerPartDesc), callerPageDir, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
+			getTargetVidtCont(getParent(callerPartDesc), callerPageDir, getVidtVAddr(), 0, targetInterrupt, nbL, getIndexOfAddr(getVidtVAddr(), fstLevel), flagsOnYield, flagsOnWake, 0);
 			break;
 		case coq_FAIL_ROOT_CALLER:
 			DEBUG(CRITICAL, "Root partition faulted, guru meditation.\n");
