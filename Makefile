@@ -38,6 +38,7 @@ CAT := cat
 SED := sed
 COQC := coqc
 COQDEP := coqdep
+COQDOC := coqdoc
 
 CFLAGS=-Wall -Wextra
 # -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
@@ -139,6 +140,42 @@ COQ_PROOF_FILES=$(foreach dir, $(COQ_PROOF_DIR)\
                              , $(wildcard $(dir)/*.v)\
                  )
 
+# Group of Coq files written by humans
+COQ_VFILES=$(COQ_PROOF_FILES) $(COQ_SRC_FILES)
+
+# Coq compiled sources
+COQ_VOFILES=$(COQ_VFILES:.v=.vo)
+# Coq glob files (needed for html generation)
+COQ_GLOBFILES=$(COQ_VFILES:.v=.glob)
+# Unused but still produced by Coq sources compilation
+# and thus need to be tracked and cleaned
+COQ_VOSFILES=$(COQ_VFILES:.v=.vos)
+COQ_VOKFILES=$(COQ_VFILES:.v=.vok)
+COQ_AUXFILES=$(COQ_VFILES:.v=.aux)
+# Prepends a '.' to .aux file names (dir/.name.aux)
+COQ_AUXFILES:=$(join\
+		$(dir $(COQ_AUXFILES)),\
+		$(addprefix ., $(notdir $(COQ_AUXFILES)))\
+	      )
+
+# Coq extraction "compilation" files
+COQ_EXTR_VOFILE=$(COQ_EXTRACTION_FILES:.v=.vo)
+COQ_EXTR_GLOBFILE=$(COQ_EXTRACTION_FILES:.v=.glob)
+COQ_EXTR_VOSFILE=$(COQ_EXTRACTION_FILES:.v=.vos)
+COQ_EXTR_VOKFILE=$(COQ_EXTRACTION_FILES:.v=.vok)
+COQ_EXTR_AUXFILE=$(COQ_EXTRACTION_FILES:.v=.aux)
+COQ_EXTR_AUXFILE:=$(addprefix $(dir $(COQ_EXTR_AUXFILE))., $(notdir $(COQ_EXTR_AUXFILE)))
+
+COQ_EXTR_COMPILED_FILES:=$(COQ_EXTR_VOFILE) $(COQ_EXTR_GLOBFILE)\
+	$(COQ_EXTR_VOSFILE) $(COQ_EXTR_VOKFILE) $(COQ_EXTR_AUXFILE)
+
+# Group of Coq files produced by the compilation process
+COQ_COMPILED_FILES=$(COQ_VOFILES) $(COQ_VOKFILES) $(COQ_VOSFILES)\
+		   $(COQ_GLOBFILES) $(COQ_AUXFILES)\
+		   $(COQ_EXTR_COMPILED_FILES)
+
+COQ_DEPENDENCY_FILE=.depend.coq
+
 ######################### Partition files ###########################
 
 PARTITION_INTERMEDIATE_BIN=$(C_SRC_TARGET_DIR)/root_partition.bin
@@ -200,22 +237,27 @@ $(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)
 
 ############################## Coq rules ############################
 
-.depend.coq: $(COQ_SRC_FILES) $(COQ_PROOF_FILES) $(COQ_EXTRACTION_FILES)
+$(COQ_DEPENDENCY_FILE): $(COQ_VFILES) $(COQ_EXTRACTION_FILES)
 	$(COQDEP) $(COQFLAGS) $^ > $@
 
--include .depend.coq
-
-%.vo: %.v
-	$(COQC) $(COQCFLAGS) $<
+-include $(COQ_DEPENDENCY_FILE)
 
 ifneq (,$(findstring grouped-target,$(.FEATURES)))
-$(JSONS) src/extraction/Extraction.vo &: src/extraction/Extraction.v | $(GENERATED_FILES_DIR)
+$(JSONS) $(COQ_EXTR_COMPILED_FILES) &:\
+		$(COQ_EXTRACTION_FILES) $(COQ_DEPENDENCY_FILE)\
+		| $(GENERATED_FILES_DIR)
 	cd $(GENERATED_FILES_DIR) && $(COQC) $(COQCEXTRFLAGS) ../$<
+
+%.vo %.vok %.vos %.glob .%.aux &: %.v $(COQ_DEPENDENCY_FILE)
+	$(COQC) $(COQCFLAGS) $<
 else
 # Unfortunately, without grouped-target we cannot inherit dependencies
 # computed by coqdep, so we must mv files after the fact
 $(JSONS): src/extraction/Extraction.vo | $(GENERATED_FILES_DIR)
 	mv $(notdir $@) $(GENERATED_FILES_DIR)
+
+%.vo %.vok %.vos %.glob .%.aux : %.v $(COQ_DEPENDENCY_FILE)
+	$(COQC) $(COQCFLAGS) $<
 endif
 
 
@@ -289,11 +331,10 @@ doc: doc-c doc-coq gettingstarted
 doc-c: | $(C_DOC_DIR)
 	cd doc && $(DOXYGEN) doxygen.conf
 
-doc-coq: Makefile.coq | $(GENERATED_FILES_DIR) $(COQ_DOC_DIR)
-	$(MAKE) -f $< html
-	# Should not be done like this but the html directory
-	# is hardcoded in the Makefile.coq
-	mv -f html $(COQ_DOC_DIR)
+doc-coq: $(COQ_VFILES) $(COQ_GLOBFILES) | $(COQ_DOC_DIR)
+	$(COQDOC)\
+		-toc -interpolate -utf8 -html -g $(COQFLAGS) -d $(COQ_DOC_DIR)\
+		$(COQ_VFILES)
 
 gettingstarted:
 	cd doc/getting-started/ &&\
@@ -320,9 +361,6 @@ qemu-iso: $(PARTITION).iso
 
 ####################################################################
 
-Makefile.coq: Makefile _CoqProject $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
-	$(COQ_MAKEFILE) $(COQ_ENV) -f _CoqProject -o Makefile.coq $(COQ_EXTRACTION_FILES) $(COQ_SRC_FILES) $(COQ_PROOF_FILES)
-
 $(GENERATED_FILES_DIR) $(C_DOC_DIR) $(COQ_DOC_DIR):
 	mkdir -p $@
 
@@ -345,9 +383,9 @@ realclean: clean
               $(DOC_DIR)/getting-started/getting-started.log\
               $(DOC_DIR)/getting-started/getting-started.pdf
 
-clean: Makefile.coq
-	$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq Makefile.coq.conf .lia.cache
+clean:
+	rm -f .lia.cache $(COQ_DEPENDENCY_FILE)
+	rm -rf $(COQ_COMPILED_FILES)
 	rm -rf $(GENERATED_FILES_DIR)
 	rm -f $(OBJECT_FILES)
 	rm -f $(PARTITION).elf
