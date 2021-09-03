@@ -591,7 +591,7 @@ apply H2.
 rewrite <- isDerivedUpdateCurrentPartition;trivial.
 Qed.
 
-Lemma activateChild descChild vaNotNulll currPart
+Lemma updateCurPartitionToChild descChild vaNotNulll currPart
 root isMultiplexer nbL  ptpd lastIndex phyVA pd: 
 {{ fun s : state =>((((((((((((partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s) /\
               beqVAddr defaultVAddr descChild = vaNotNulll) /\ currPart = currentPartition s) /\
@@ -606,11 +606,11 @@ root isMultiplexer nbL  ptpd lastIndex phyVA pd:
          StateLib.getIndexOfAddr descChild fstLevel = idx -> isPE ptpd idx s))) /\
       (Nat.eqb defaultPage ptpd) = false) /\
      StateLib.getIndexOfAddr descChild fstLevel = lastIndex) /\
-    isEntryPage ptpd lastIndex phyVA s) /\ entryPresentFlag ptpd lastIndex true s   }} MAL.activate phyVA {{ fun _ (s : state) =>
+    isEntryPage ptpd lastIndex phyVA s) /\ entryPresentFlag ptpd lastIndex true s   }} MAL.updateCurPartition phyVA {{ fun _ (s : state) =>
                        partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof.
 eapply weaken.
-eapply WP.activate.
+eapply WP.updateCurPartition.
 simpl.
 intros.
 try repeat rewrite and_assoc in H.
@@ -847,15 +847,15 @@ split.
           rewrite <- getMappedPageUpdateCurrentPartition in *;trivial.  }
 Qed.
 
-Lemma activateParent parent currPart root descChild :
+Lemma updateCurPartitionToParent parent currPart root descChild :
 {{ fun s : state =>
    (((((partitionsIsolation s /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s) /\ beqVAddr defaultVAddr descChild = true) /\
       currPart = currentPartition s) /\ root = multiplexer) /\ false = StateLib.Page.eqb currPart root) /\
    nextEntryIsPP currPart PPRidx parent s }}  
-  MAL.activate parent {{ fun _ s => partitionsIsolation s/\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
+  MAL.updateCurPartition parent {{ fun _ s => partitionsIsolation s/\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof. 
 eapply weaken.
-eapply WP.activate.
+eapply WP.updateCurPartition.
 simpl.
 intros.
 try repeat rewrite and_assoc in H.
@@ -1702,7 +1702,7 @@ intuition.
 - apply wellFormedFstShadowIfDefaultValuesActivate; assumption.
 Qed.
 
-Lemma activatePartition (partDesc : page) :
+Lemma updateCurPartitionToPartition (partDesc : page) :
 {{fun s => partitionsIsolation s /\
            kernelDataIsolation s /\
            verticalSharing s /\
@@ -1711,7 +1711,7 @@ Lemma activatePartition (partDesc : page) :
            In partDesc (getPartitions multiplexer s) /\
            partDesc <> defaultPage
 }}
-MAL.activate partDesc
+MAL.updateCurPartition partDesc
 {{fun _ s' => partitionsIsolation s' /\
             kernelDataIsolation s' /\
             verticalSharing s' /\
@@ -1719,7 +1719,7 @@ MAL.activate partDesc
 }}.
 Proof.
 eapply weaken.
-apply WP.activate.
+apply WP.updateCurPartition.
 cbn.
 intros.
 set (s' := {| currentPartition := _ |}).

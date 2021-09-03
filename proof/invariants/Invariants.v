@@ -1301,10 +1301,10 @@ cbn.
 trivial.
 Qed.
 
-Lemma setInterruptMask (vidt : page) (mask : interruptMask)
+Lemma setInterruptMask (mask : interruptMask)
 (P : state -> Prop) :
 {{fun s => P s}}
-IAL.setInterruptMask vidt mask
+IAL.setInterruptMask mask
 {{fun _ s => P s}}.
 Proof.
 eapply WP.weaken.

@@ -41,11 +41,10 @@
 
 #include <stdint.h>
 
+#include "maldefines.h"
+
 void enable_paging();
 void disable_paging();
-
-/* Activate : deprecated */
-void activate(uint32_t dir);
 
 /* Current page directory */
 uint32_t getCurPartition(void); //!< Interface to get the current Page Directory
@@ -123,5 +122,18 @@ void writeKernelPhysicalEntry(uint32_t mmu_root_page, uint32_t kernel_index); //
 uint32_t extractPreIndex(uint32_t vaddr, uint32_t index);
 
 uint32_t prepareType(int b, uint32_t vaddr);
+
+
+void updateMMURoot(page MMURoot);
+interruptMask getInterruptMaskFromCtx(contextAddr context);
+bool noInterruptRequest(interruptMask flagsOnWake);
+bool firstVAddrGreaterThanSecond(vaddr vaddr1, vaddr vaddr2);
+contextAddr vaddrToContextAddr(vaddr contextVAddr);
+bool checkIndexPropertyLTB(userValue userIndex);
+index userValueToIndex(userValue userIndex);
+uint32_t getVidtVAddr();
+uint32_t getNthVAddrFrom(uint32_t base, uint32_t size);
+void writeContext(contextAddr ctx, uint32_t ctxSaveVAddr, interruptMask flagsOnWake);
+void loadContext(contextAddr ctx, bool enforce_interrupts);
 
 #endif

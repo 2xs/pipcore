@@ -891,7 +891,7 @@ Eval vm_compute in testYield_FAIL_CTX_SAVE_ADDR_VIDT_end_addr_not_accessible.
 
 Definition testYield_from_child_FAIL_TARGET_VIDT_mmu_root :=
 addChildVidtMMURoot ;;
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
                  1 (* vint *)
                  defaultVAddr (* contextSaveAddr *)
@@ -904,7 +904,7 @@ Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_mmu_root.
 
 Definition testYield_from_child_FAIL_TARGET_VIDT_not_present :=
 addChildVidtNotPresent ;;
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
                  1 (* vint *)
                  defaultVAddr (* contextSaveAddr *)
@@ -917,7 +917,7 @@ Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_not_present.
 
 Definition testYield_from_child_FAIL_TARGET_VIDT_not_accessible :=
 addChildVidtInaccessible ;;
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 Services.yield   defaultVAddr (* targetPartitionDesc *)
                  1 (* vint *)
                  defaultVAddr (* contextSaveAddr *)
@@ -932,7 +932,7 @@ Eval vm_compute in testYield_from_child_FAIL_TARGET_VIDT_not_accessible.
 
 Definition testYield_SUCCESS_FROM_CHILD_no_save :=
 addChildVidt ;;
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 Services.yield   defaultVAddr
                  1 (* vint *)
                  defaultVAddr
@@ -990,7 +990,7 @@ Services.addVAddr (CVaddr [(CIndex  2); (CIndex 11); (CIndex  0)])
                   (CVaddr [(CIndex 11); (CIndex 10); (CIndex  0)])
                   false false false ;;
 (* switch to child partition *)
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 (* create a grandchild partition whose parent is the child, and give the kernel the child's VIDT  *)
 Services.createPartition (CVaddr [(CIndex 11); (CIndex 11);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex 10);(CIndex 0)])
@@ -998,7 +998,7 @@ Services.createPartition (CVaddr [(CIndex 11); (CIndex 11);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex  8);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex  7);(CIndex 0)]) ;;
 (* switch back to the root partition *)
-activate((CPage  1)) ;;
+updateCurPartition((CPage  1)) ;;
 (* try to pass the execution flow to the child, whose VIDT isn't accessible anymore *)
 Services.yield   (CVaddr [(CIndex 2); (CIndex 0) ;(CIndex 0)])
                  1 (* > maxVint *)
@@ -1065,7 +1065,7 @@ Services.addVAddr (CVaddr [(CIndex 11); (CIndex  5); (CIndex  0)])
                   (CVaddr [(CIndex 11); (CIndex  5); (CIndex  0)])
                   false false false ;;
 (* switch to child partition *)
-activate((CPage 12)) ;;
+updateCurPartition((CPage 12)) ;;
 (* create a grandchild partition whose parent is the child, and give the kernel the child's VIDT  *)
 Services.createPartition (CVaddr [(CIndex 11); (CIndex  1);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex  2);(CIndex 0)])
@@ -1073,7 +1073,7 @@ Services.createPartition (CVaddr [(CIndex 11); (CIndex  1);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex  4);(CIndex 0)])
                          (CVaddr [(CIndex 11); (CIndex  5);(CIndex 0)]) ;;
 (* switch back to the root partition *)
-activate((CPage  1)) ;;
+updateCurPartition((CPage  1)) ;;
 (* try to pass the execution flow to the child, whose VIDT isn't accessible anymore *)
 Services.yield (CVaddr [(CIndex  2); (CIndex  0); (CIndex 0)])
                1 (* > maxVint *)

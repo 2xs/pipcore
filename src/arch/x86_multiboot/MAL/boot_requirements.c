@@ -42,12 +42,12 @@
 #include "debug.h"
 #include "libc.h"
 
-/*!	\fn void activate(uintptr_t dir)
-	\brief activates the virtual space dir
+/*!	\fn void updateMMURoot(uintptr_t dir)
+	\brief updates the virtual address space root page
 	\param dir a page directory
 	\post dir is the current virtual space
  */
-void activate(uintptr_t dir)
+void updateMMURoot(uintptr_t dir)
 {
   	// Set CR3 to the address of our Page Directory
 	asm volatile("mov %0, %%cr3"

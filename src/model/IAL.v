@@ -66,23 +66,23 @@ Program Definition userValueToIndex (userIndex : userValue) : LLI index :=
   | _ => ret defaultVAddr
   end. *)
 
-Definition FAIL_VINT := FAIL_VINT_Cons.
-Definition FAIL_CTX_SAVE_INDEX := FAIL_CTX_SAVE_INDEX_Cons.
+Definition FAIL_INVALID_INT_LEVEL := FAIL_INVALID_INT_LEVEL_Cons.
+Definition FAIL_INVALID_CTX_SAVE_INDEX := FAIL_INVALID_CTX_SAVE_INDEX_Cons.
 Definition FAIL_CALLER_CONTEXT_SAVE := FAIL_CALLER_CONTEXT_SAVE_Cons.
-Definition FAIL_TARGET_VIDT := FAIL_TARGET_VIDT_Cons.
-Definition FAIL_TARGET_CTX := FAIL_TARGET_CTX_Cons.
+Definition FAIL_UNAVAILABLE_TARGET_VIDT := FAIL_UNAVAILABLE_TARGET_VIDT_Cons.
+Definition FAIL_UNAVAILABLE_TARGET_CTX := FAIL_UNAVAILABLE_TARGET_CTX_Cons.
 Definition FAIL_UNAVAILABLE_CALLER_VIDT := FAIL_UNAVAILABLE_CALLER_VIDT_Cons.
 Definition FAIL_ROOT_CALLER := FAIL_ROOT_CALLER_Cons.
 Definition FAIL_INVALID_CHILD := FAIL_INVALID_CHILD_Cons.
 Definition FAIL_MASKED_INTERRUPT := FAIL_MASKED_INTERRUPT_Cons.
 Definition SUCCESS := SUCCESS_Cons.
 
-Definition loadContext (contextToLoad : contextAddr ) : LLI unit :=
+Definition loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool) : LLI unit :=
   ret tt.
 
 Definition contextSizeMinusOne := contextSize-1.
 
-Definition setInterruptMask (vidt : page) (mask : interruptMask) : LLI unit :=
+Definition setInterruptMask (mask : interruptMask) : LLI unit :=
   ret tt.
 
 Definition readInterruptMask (childVidt : page) : LLI interruptMask :=
@@ -97,14 +97,17 @@ Definition vaddrToContextAddr (va : vaddr) : LLI contextAddr :=
 Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
           : LLI unit := ret tt.
 
-Definition updateCR3(pageDir : page)
+Definition updateMMURoot(pageDir : page)
           : LLI unit := ret tt.
-
-Definition updateCurPartAndActivate(partDesc pageDir : page)
-          : LLI unit := activate partDesc;; updateCR3 pageDir.
 
 Definition getNthVAddrFrom (start : vaddr) (range : nat) : LLI vaddr :=
   ret (getNthVAddrFromAux start range).
+
+Definition getInterruptMaskFromCtx (context : contextAddr) : LLI interruptMask :=
+  ret int_mask_d.
+
+Definition noInterruptRequest (flags : interruptMask) : LLI bool :=
+  ret true.
 
 Program Definition firstVAddrGreaterThanSecond (first second : vaddr) : LLI bool :=
   ret (firstVAddrGreaterThanSecondAux first second _).

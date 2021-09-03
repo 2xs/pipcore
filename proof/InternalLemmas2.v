@@ -2529,3 +2529,24 @@ destruct ( lookup table idx (memory s) beqPage beqIndex );intros * H;try now con
 destruct v;try now contradict H;trivial.
 trivial.
 Qed.
+
+
+Lemma updateCurPartAndActivate (partDesc pageDir : page)
+(P : unit -> state -> Prop) :
+{{ fun s => P tt {|
+  currentPartition := partDesc;
+  memory := memory s |} }}
+updateCurPartAndActivate partDesc pageDir
+{{P}}.
+Proof.
+unfold Internal.updateCurPartAndActivate.
+eapply bindRev.
+eapply weaken.
+apply updateCurPartition.
+intros.
+cbn.
+apply H.
+intro a.
+case a.
+apply updateMMURoot.
+Qed.

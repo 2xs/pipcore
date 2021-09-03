@@ -466,5 +466,5 @@ void initMmu()
 	DEBUG(TRACE, "Partition environment is ready, membegin=%x, memend=%x\n", fpinfo->membegin, fpinfo->memend);
 
 	/* Our Kernel Page Directory is created, write its address into CR3. */
-	activate((uint32_t)kernelDirectory);
+	updateMMURoot((uint32_t)kernelDirectory);
 }

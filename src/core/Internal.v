@@ -857,7 +857,7 @@ perform vidtVaddr := getVidtVAddr in
 perform vidtIsAccessible := isVAddrAccessible vidtVaddr pageDirectory in
 ret vidtIsAccessible.
 
-(* Definition getContextEndAddr (contextAddr : vaddr) : LLI vaddr :=
-  perform contextEndAddr := getNthVAddrFrom contextAddr contextSizeMinusOne in
-  ret contextEndAddr. *)
+
+Definition updateCurPartAndActivate(partDesc pageDir : page)
+          : LLI unit := updateCurPartition partDesc;; updateMMURoot pageDir.
 
