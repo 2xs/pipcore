@@ -184,11 +184,6 @@ eapply WP.weaken.
 eapply WP.ret .
 intros. simpl.
 intuition.
-unfold CIndex.
-case_eq (lt_dec 0 tableSize).
-intros. f_equal. apply proof_irrelevance.
-intuition. assert (tableSize > tableSizeLowerBound). apply tableSizeBigEnough.
-unfold  tableSizeLowerBound in * . contradict H1. lia.
 Qed.
 
 Lemma succ (idx : index ) P :

@@ -1082,15 +1082,6 @@ intros;simpl.
 eapply H.
 intros zeroI'.
 simpl.
-replace ( {| i := 0; Hi := MALInternal.Index.zero_obligation_1 |}) with (CIndex 0).
-2:{ unfold CIndex. 
-    case_eq(lt_dec 0 tableSize);intros;simpl.
-    f_equal.
-    apply proof_irrelevance.
-    assert(tableSize > tableSizeLowerBound).
-    apply tableSizeBigEnough.
-    unfold tableSizeLowerBound in *.
-    lia. }
 (**  readIndex **)
 eapply bindRev.
 eapply weaken.

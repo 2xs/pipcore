@@ -15162,7 +15162,7 @@ case_eq isMultiplexer.
       unfold StateLib.VAddr.eqbList .
       assert(defaultV = defaultVAddr) by intuition.
       subst.  
-      rewrite Hvanotdef;trivial. } 
+      rewrite <- Hvanotdef; trivial. }
        (** New consistency property sh2 data structure is well-formed : 
           the vaddr into the sh2 structure is not equal to defaultVAddr *)
       rewrite <- Htrue in Hfalse.

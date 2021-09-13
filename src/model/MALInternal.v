@@ -38,144 +38,128 @@
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib.
 Require Import List Arith Lia.
 
-(** Define some constants *)
-(** default values *)
-Definition defaultIndex := CIndex 0.
-Definition defaultVAddr := CVaddr (repeat (CIndex 0) (nbLevel+1)).
-Definition lastVAddr := CVaddr (repeat (CIndex (tableSize - 1)) (nbLevel+1)).
-Definition vidtVAddr := CVaddr ((repeat (CIndex (tableSize - 1)) (nbLevel))++((CIndex 0)::nil)).
-Definition defaultPage := CPage 0.
+Require Import Pip.Model.Constants Pip.Model.Ops.
 
-(** Define first level number *)
-Definition fstLevel :=  CLevel 0.
+#[deprecated(note="Use idxDefault instead")]
+Notation defaultIndex := idxDefault (only parsing).
+#[deprecated(note="Use vaddrDefault instead")]
+Notation defaultVAddr := vaddrDefault (only parsing).
+#[deprecated(note="Use vaddrMax instead")]
+Notation lastVAddr := vaddrMax (only parsing).
+#[deprecated(note="Use vaddrVIDT instead")]
+Notation vidtVAddr := vaddrVIDT (only parsing).
+#[deprecated(note="Use pageDefault instead")]
+Notation defaultPage := pageDefault (only parsing).
+#[deprecated(note="Use pageMultiplexer instead")]
+Notation multiplexer := pageMultiplexer (only parsing).
+#[deprecated(note="Use levelMin instead")]
+Notation fstLevel := levelMin (only parsing).
+#[deprecated(note="Use idxStoreFetch instead")]
+Notation storeFetchIndex := idxStoreFetch (only parsing).
+#[deprecated(note="Use idxKernel instead")]
+Notation Kidx := idxKernel (only parsing).
+#[deprecated(note="Use idxPartDesc instead")]
+Notation PRidx := idxPartDesc (only parsing).
+#[deprecated(note="Use idxPageDir instead")]
+Notation PDidx := idxPageDir (only parsing).
+#[deprecated(note="sh1idx deprecated, use idxShadow1 instead")]
+Notation sh1idx := idxShadow1 (only parsing).
+#[deprecated(note="sh2idx deprecated, use idxShadow2 instead")]
+Notation sh2idx := idxShadow2 (only parsing).
+#[deprecated(note="sh3idx deprecated, use idxShadow3 instead")]
+Notation sh3idx := idxShadow3 (only parsing).
+#[deprecated(note="Use idxParentDesc instead")]
+Notation PPRidx := idxParentDesc (only parsing).
+#[deprecated(note="Use getPageMultiplexer instead")]
+Notation getMultiplexer := getPageMultiplexer (only parsing).
 
-(** Define the second parameter value of store and fetch *) 
-Definition storeFetchIndex := CIndex 0.
-
-(** Define the entry position of the kernel mapping into the first indirection 
-    of partitions *)
-Definition Kidx := CIndex 1.
-
-Definition multiplexer := CPage 1.
-
-(** Fix virtual addresses positions into the partition descriptor
-    of the partition (+1 to get the physical page position) *)
-Definition PRidx := CIndex 0.   (* descriptor *)
-Definition PDidx := CIndex 2.   (* page directory *)
-Definition sh1idx := CIndex 4.  (* shadow1 *) 
-Definition sh2idx := CIndex 6.  (* shadow2 *)
-Definition sh3idx := CIndex 8.  (* configuration pages list*)
-Definition PPRidx := CIndex 10. (* parent (virtual address is null) *)
 
 (** Define getter for each constant *)
-Definition getDefaultVAddr :=  ret defaultVAddr.
-Definition getDefaultPage := ret defaultPage.
-Definition getVidtVAddr := ret vidtVAddr.
-Definition getLastVAddr := ret lastVAddr.
-Definition getKidx : LLI index:= ret Kidx.
-Definition getPRidx : LLI index:= ret PRidx.
-Definition getPDidx : LLI index:= ret PDidx.
-Definition getSh1idx : LLI index:= ret sh1idx.
-Definition getSh2idx : LLI index:= ret sh2idx.
-Definition getSh3idx : LLI index:= ret sh3idx.
-Definition getPPRidx : LLI index:= ret PPRidx.
-Definition getStoreFetchIndex : LLI index := ret storeFetchIndex.
-Definition getMultiplexer : LLI page := ret multiplexer.
+#[deprecated(note="Use getVaddrDefault instead")]
+Notation getDefaultVAddr := getVaddrDefault (only parsing).
+#[deprecated(note="Use getVaddrMax instead")]
+Notation getLastVAddr := getVaddrMax (only parsing).
+#[deprecated(note="Use getVaddrVIDT instead")]
+Notation getVidtVAddr := getVaddrVIDT (only parsing).
+#[deprecated(note="Use getPageDefault instead")]
+Notation getDefaultPage := getPageDefault (only parsing).
+#[deprecated(note="Use getIdxStoreFetch instead")]
+Notation getStoreFetchIndex := getIdxStoreFetch (only parsing).
+#[deprecated(note="Use getIdxKernel instead")]
+Notation getKidx := getIdxKernel (only parsing).
+#[deprecated(note="Use getIdxPartDesc instead")]
+Notation getPRidx := getIdxPartDesc (only parsing).
+#[deprecated(note="Use getIdxPageDir instead")]
+Notation getPDidx := getIdxPageDir (only parsing).
+#[deprecated(note="Use getIdxShadow1 instead")]
+Notation getSh1idx := getIdxShadow1 (only parsing).
+#[deprecated(note="Use getIdxShadow2 instead")]
+Notation getSh2idx := getIdxShadow2 (only parsing).
+#[deprecated(note="Use getIdxShadow3 instead")]
+Notation getSh3idx := getIdxShadow3 (only parsing).
+#[deprecated(note="Use getIdxParentDesc instead")]
+Notation getPPRidx := getIdxParentDesc (only parsing).
 
-Definition beqIndex (a b : index) : bool := a =? b.
-Definition beqPage (a b : page) : bool := a =? b.
-Definition beqVAddr (a b : vaddr) : bool := eqList a b beqIndex.
+#[deprecated(note="Use idxEq instead.")]
+Notation beqIndex := idxEq (only parsing).
+#[deprecated(note="Use pageEq instead.")]
+Notation beqPage := pageEq (only parsing).
+#[deprecated(note="Use vaddrEq instead.")]
+Notation beqVAddr := vaddrEq (only parsing).
 
 Module Index.
-Definition geb (a b : index) : LLI bool := ret (b <=? a).
-Definition leb (a b : index) : LLI bool := ret (a <=? b).
-Definition ltb (a b : index) : LLI bool := ret (a <? b).
-Definition gtb (a b : index) : LLI bool := ret (b <? a).
-Definition eqb (a b : index) : LLI bool := ret (a =? b). 
-Program Definition zero : LLI index:= ret (Build_index 0 _).
-Definition const3 := ret (CIndex 3).
-Next Obligation.
-assert (tableSize > 14).
-apply tableSizeBigEnough.
-lia.
-Qed.
+  #[deprecated(note="Use idxGeM instead.")]
+  Notation geb := idxGeM (only parsing).
+  #[deprecated(note="Use idxLeM instead.")]
+  Notation leb := idxLeM (only parsing).
+  #[deprecated(note="Use idxLtM instead.")]
+  Notation ltb := idxLtM (only parsing).
+  #[deprecated(note="Use idxGtM instead.")]
+  Notation gtb := idxGtM (only parsing).
+  #[deprecated(note="Use idxEqM instead.")]
+  Notation eqb := idxEqM (only parsing).
 
-Program Definition pred (n : index) : LLI index :=
-let (i,P) := n in
-if gt_dec i 0
-then
-  let ipred := i-1 in
-  ret ( Build_index ipred _)
-else  undefined 27.
-Next Obligation.
-lia.
-Qed.
+  #[deprecated(note="Use getIdx0 instead.")]
+  Notation zero := getIdx0 (only parsing).
+  #[deprecated(note="Use getIdx3 instead.")]
+  Notation const3 := getIdx3 (only parsing).
 
-Program Definition succ (n : index) : LLI index :=
-(* let (i,P) := n in*)
-let isucc := n+1 in
-if (lt_dec isucc tableSize )
-then
-  ret (Build_index isucc _ )
-else  undefined 28.
-(* Next Obligation.
-  omega.
-Qed.
- *)
-End Index. 
+  #[deprecated(note="Use idxPredM instead.")]
+  Notation pred := idxPredM (only parsing).
+  #[deprecated(note="Use idxSuccM instead.")]
+  Notation succ := idxSuccM (only parsing).
+End Index.
 
 Module Page.
-Definition eqb (p1 : page)  (p2 : page) : LLI bool := ret (p1 =? p2).
+  #[deprecated(note="Use pageEqM instead.")]
+  Notation eqb := pageEqM (only parsing).
 End Page.
 
 Module Level.
-Program Definition pred (n : level) : LLI level :=
-if gt_dec n 0
-then
-  let ipred := n-1 in
-  ret (Build_level ipred _ )
-else  undefined 30.
-Next Obligation.
-destruct n;simpl;lia.
-Qed.
-
-Program Definition succ (n : level) : LLI level :=
-let isucc := n+1 in
-if lt_dec isucc nbLevel
-then
-  ret (Build_level isucc _ )
-else  undefined 31.
-Definition gtb (a b : level) : LLI bool := ret (b <? a).
-Definition eqb (a b : level) : LLI bool:= ret (a =? b).
+  #[deprecated(note="Use levelGtM instead.")]
+  Notation gtb := levelGtM (only parsing).
+  #[deprecated(note="Use levelEqM instead.")]
+  Notation eqb := levelEqM (only parsing).
+  #[deprecated(note="Use levelPredM instead.")]
+  Notation pred := levelPredM (only parsing).
+  #[deprecated(note="Use levelSuccM instead.")]
+  Notation succ := levelSuccM (only parsing).
 End Level.
 
 Module VAddr.
-Definition eqbList(vaddr1 : vaddr) (vaddr2 : vaddr) : LLI bool :=
-  ret (beqVAddr vaddr1 vaddr2).
+  #[deprecated(note="Use vaddrEqM instead.")]
+  Notation eqbList := vaddrEqM (only parsing).
 End VAddr.
 
 Module Count.
-Program Definition mul3 (a : level) : LLI count :=
-ret (Build_count (a * 3) _).
-Next Obligation.
-destruct a; simpl.
-(* BEGIN SIMULATION
-  unfold nbLevel in Hl.
-   END SIMULATION *)
-lia.
-Qed.
-Definition geb (a b : count) : LLI bool := ret (b <=? a).
-Program Definition zero : LLI count :=  ret (Build_count 0 _).
-Next Obligation.
-lia.
-Qed.
-Definition eqb (a b : count) : LLI bool := ret (b =? a).
-
-Program Definition succ (n : count) : LLI count :=
-let isucc := n+1 in
-if le_dec isucc ((3*nbLevel) + 1)
-then
-  ret (Build_count isucc _ )
-else  undefined 34.
-
+  #[deprecated(note="Use countGeM instead.")]
+  Notation geb := countGeM (only parsing).
+  #[deprecated(note="Use countEqM instead.")]
+  Notation eqb := countEqM (only parsing).
+  #[deprecated(note="Use getCount0 instead.")]
+  Notation zero := getCount0 (only parsing).
+  #[deprecated(note="Use countSuccM instead.")]
+  Notation succ := countSuccM (only parsing).
+  #[deprecated(note="Use countFromLevelM instead.")]
+  Notation mul3 := countFromLevelM (only parsing).
 End Count.

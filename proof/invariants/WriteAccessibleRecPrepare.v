@@ -1564,7 +1564,7 @@ case_eq isMultiplexer.
   unfold StateLib.VAddr.eqbList .
   assert(defaultV = defaultVAddr) by intuition.
   subst.  
-  rewrite Hvanotdef;trivial. } 
+  rewrite <- Hvanotdef;trivial. }
   rewrite <- Htrue in Hfalse.
   now contradict Hfalse.
   (** vaddr in parent not default **)

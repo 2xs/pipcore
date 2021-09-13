@@ -272,6 +272,7 @@ contradict H1.
 symmetrynot.
 apply not_true_iff_false.
 apply NPeano.Nat.leb_nle.
+unfold Constants.idx3.
 lia.
 (** getMaxIndex *)
 eapply WP.bindRev.

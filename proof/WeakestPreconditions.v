@@ -205,7 +205,7 @@ Qed.
 
 Lemma succ  (idx : index) (P: index -> state -> Prop) :
 {{fun s => idx < (tableSize -1) /\ forall  l : idx + 1 < tableSize , 
-    P {| i := idx + 1; Hi := MALInternal.Index.succ_obligation_1 idx l |} s}} MALInternal.Index.succ idx {{ P }}.
+    P {| i := idx + 1; Hi := Ops.idxSuccM_obligation_1 idx l |} s}} Ops.idxSuccM idx {{ P }}.
 Proof.
 unfold MALInternal.Index.succ.
 case_eq (lt_dec (idx + 1) tableSize) .

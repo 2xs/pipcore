@@ -878,7 +878,7 @@ assert (tableSize > tableSizeLowerBound).
 apply tableSizeBigEnough.
 unfold tableSizeLowerBound in *.
 lia. }
- unfold MALInternal.Index.succ_obligation_1 in *.
+ unfold Ops.idxSuccM_obligation_1 in *.
 rewrite H0 in *.
 case_eq(lt_dec 1 tableSize);intros;simpl in *;
 rewrite H1 in *;try lia.

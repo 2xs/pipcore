@@ -31,29 +31,59 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-(** * Summary
-    In this file we define the required configuration to extract the Internal
-    and Services modules, along with the modules they depend on, from Coq to
-    JSON. The JSON output will be analyzed to generate the corresponding C
-    implementation. *)
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib.
+Require Import List Arith Lia.
+Import ListNotations.
 
-Require Import Pip.Model.MAL Pip.Model.Hardware Pip.Model.ADT.
-Require Import Pip.Model.Constants Pip.Model.Ops.
-Require Import Pip.Core.Internal Pip.Core.Services.
+Definition idxDefault := CIndex 0.
+(* TODO: Use semantical names rather than factual? *)
+Definition idx0 := CIndex 0.
+Definition idx3 := CIndex 3.
 
-Require Extraction.
-Extraction Language JSON.
+(** Define the second parameter value of store and fetch *)
+Definition idxStoreFetch := CIndex 0.
 
-(** Coq standard library *)
-(* Tell Coq to extract those names verbatim, instead of using if-then-else *)
-Extract Inlined Constant andb => "andb".
-Extract Inlined Constant orb => "orb".
+(** Define the entry position of the kernel mapping into the first indirection
+    of partitions *)
+Definition idxKernel := CIndex 1.
 
-(** EXTRACTION *)
-Extraction Library IAL.
-Extraction Library MALInternal.
-Extraction Library MAL.
-Extraction Library Constants.
-Extraction Library Ops.
-Extraction Library Internal.
-Extraction Library Services.
+(** Fix virtual addresses positions into the partition descriptor
+    of the partition (+1 to get the physical page position) *)
+Definition idxPartDesc   := CIndex 0.  (* descriptor *)
+Definition idxPageDir    := CIndex 2.  (* page directory *)
+Definition idxShadow1    := CIndex 4.  (* shadow1 *)
+Definition idxShadow2    := CIndex 6.  (* shadow2 *)
+Definition idxShadow3    := CIndex 8.  (* configuration pages list*)
+Definition idxParentDesc := CIndex 10. (* parent (virtual address is null) *)
+
+Definition vaddrDefault := CVaddr (repeat (CIndex 0) (nbLevel+1)).
+Definition vaddrMax     := CVaddr (repeat (CIndex (tableSize - 1)) (nbLevel+1)).
+Definition vaddrVIDT    := CVaddr (repeat (CIndex (tableSize - 1)) nbLevel ++ [CIndex 0]).
+
+Definition pageDefault     := CPage 0.
+Definition pageMultiplexer := CPage 1.
+
+Definition levelMin     := CLevel 0.
+Definition count0       := CCount 0.
+
+
+(* Monadic getters *)
+
+Definition getIdxDefault      := ret idxDefault.
+Definition getIdx0            := ret idx0.
+Definition getIdx3            := ret idx3.
+Definition getIdxStoreFetch   := ret idxStoreFetch.
+Definition getIdxKernel       := ret idxKernel.
+Definition getIdxPartDesc     := ret idxPartDesc.
+Definition getIdxPageDir      := ret idxPageDir.
+Definition getIdxShadow1      := ret idxShadow1.
+Definition getIdxShadow2      := ret idxShadow2.
+Definition getIdxShadow3      := ret idxShadow3.
+Definition getIdxParentDesc   := ret idxParentDesc.
+Definition getVaddrDefault    := ret vaddrDefault.
+Definition getVaddrMax        := ret vaddrMax.
+Definition getVaddrVIDT       := ret vaddrVIDT.
+Definition getPageDefault     := ret pageDefault.
+Definition getPageMultiplexer := ret pageMultiplexer.
+Definition getLevelMin        := ret levelMin.
+Definition getCount0          := ret count0.

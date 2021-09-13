@@ -38,17 +38,25 @@ Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
 Require Import ProofIrrelevance Coq.Program.Equality Arith List Lia Bool.
 Import List.ListNotations.
 
+Require Import Pip.Model.Ops.
+
 Module Index.
-Definition geb (a b : index) : bool := b <=? a.
-Definition leb (a b : index) : bool := a <=? b.
-Definition ltb (a b : index) : bool := a <? b.
-Definition gtb (a b : index) : bool := b <? a.
-Definition eqb (a b : index) : bool := a =? b.
+  #[deprecated(note="Use idxGe instead.")]
+  Notation geb := idxGe (only parsing).
+  #[deprecated(note="Use idxLe instead.")]
+  Notation leb := idxLe (only parsing).
+  #[deprecated(note="Use idxLt instead.")]
+  Notation ltb := idxLt (only parsing).
+  #[deprecated(note="Use idxGt instead.")]
+  Notation gtb := idxGt (only parsing).
+  #[deprecated(note="Use idxEq instead.")]
+  Notation eqb := idxEq (only parsing).
+
 Definition succ (n : index): option index:=
 let isucc := n + 1 in
 match lt_dec isucc tableSize with
 | left x =>
-    Some {| i := isucc; Hi := MALInternal.Index.succ_obligation_1 n x |}
+    Some {| i := isucc; Hi := Ops.idxSuccM_obligation_1 n x |}
 | right _ => None
 end.
 
@@ -65,13 +73,17 @@ Qed.
 
 End Index. 
 
-Module Page. 
-Definition eqb (p1 : page)  (p2 : page) : bool := (p1 =? p2).
+Module Page.
+  #[deprecated(note="Use pageEq instead.")]
+  Notation eqb := pageEq (only parsing).
 End Page.
 
-Module Level. 
-Definition gtb (a b : level) : bool := b <? a .
-Definition eqb (a b : level) : bool:= a =? b.
+Module Level.
+  #[deprecated(note="Use levelGt instead.")]
+  Notation gtb := levelGt (only parsing).
+  #[deprecated(note="Use levelEq instead.")]
+  Notation eqb := levelEq (only parsing).
+
 Program Definition pred (n : level) : option level := 
 if gt_dec n 0 then
 let ipred := n-1 in 
@@ -85,8 +97,8 @@ Qed.
 End Level. 
 
 Module VAddr.
-Definition eqbList(vaddr1 : vaddr) (vaddr2 : vaddr) : bool :=
- beqVAddr vaddr1 vaddr2.
+  #[deprecated(note="Use vaddrEq instead.")]
+  Notation eqbList := vaddrEq (only parsing).
 End VAddr.
 
 (** The [getCurPartition] function returns the current partition descriptor of a given state *)
