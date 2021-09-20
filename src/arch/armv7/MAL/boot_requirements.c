@@ -38,97 +38,51 @@
 
 #include <stdint.h>
 
+#include "structures.h"
+#include "mmu.h"
+#include "string.h"
+#include "debug.h"
+#include "coproc.h"
+#include "mal.h"
+
 /*!
  * \brief activates the virtual space dir
  * \param dir a page directory
  * \post dir is the current virtual space
  */
-void activate(uintptr_t dir)
+void activate(uint32_t dir)
 {
-    /* TODO */
-    (void) dir;
-    return;
-}
+	uint32_t ttbr0 = mmu_make_ttbr(
+		(void **) dir,          // Translation Table
+		RGN_CACHE_WBACK_WALLOC, // Enable inner cache write-back write-alloc
+		RGN_CACHE_WBACK_WALLOC, // Enable outer cache write-back write-alloc
+		0, 1                    // Non shareable
+	);
 
-/*!
- * \brief Gets the offset from an address
- * \param addr The address
- * \return The offset calculated from this address
- */
-uint32_t getOffsetOfAddr(uintptr_t addr)
-{
-    /* TODO */
-    (void) addr;
-    return (uint32_t) 0;
-}
+	disable_paging();
+	DSB();
 
-/*!
- * \brief TODO
- * \param array TODO
- * \param index TODO
- * \return TODO
- */
-uintptr_t readArray(uintptr_t array, uint32_t index)
-{
-    /* TODO */
-    (void) array;
-    (void) index;
-    return (uintptr_t) 0;
-}
+	/* ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
+	 * B3.10.4  Synchronization of changes of ASID and TTBR
+	 *
+	 * This approach ensures that any non-global pages fetched at a
+	 * time when it is uncertain whether the old or new translation
+	 * tables are being accessed are associated with the unused ASID
+	 * value of 0. Since the ASID value of 0 is not used for any
+	 * normal operations these entries cannot cause corruption of
+	 * execution.
+	 */
 
-/*!
- * \brief TODO
- * \param table TODO
- * \param index TODO
- * \return TODO
- */
-uintptr_t readTableVirtualNoFlags(uintptr_t table, uint32_t index)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uintptr_t) 0;
-}
+	// Change ASID to 0
+	WRITE_TLBIASID(0);
+	ISB();
 
-/*!
- * \brief TODO
- * \param table TODO
- * \param index TODO
- * \param addr TODO
- */
-void writeTableVirtualNoFlags(uintptr_t table, uint32_t index, uintptr_t addr)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) addr;
-    return;
-}
+	// Change Translation Table Base Register
+	WRITE_TTBR0(ttbr0);
+	ISB();
 
-/*!
- * \brief Returns 1 if the page is derivated.
- * \param table The shadow table's last indirection
- * \param index The index into this shadow table
- * \return 1 if derivated, 0 else
- */
-uint32_t derivated(uintptr_t table, uint32_t index)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
-}
-
-/*!
- * \brief Cleans a page entry
- * \param table The table in which to find the entry
- * \param index The index of the entry
- */
-void cleanPageEntry(uintptr_t table, uint32_t index){
-    /* TODO */
-    (void) table;
-    (void) index;
-    return;
+	DSB();
+	enable_paging();
 }
 
 /*!
@@ -138,12 +92,17 @@ void cleanPageEntry(uintptr_t table, uint32_t index){
  * \param index The index in the table
  * \return The index stored in the given slot
  */
-uint32_t readIndex(uintptr_t table, uint32_t index)
+uint32_t readIndex(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t *paddr, val;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	val = *paddr;
+	enable_paging();
+
+	return val;
 }
 
 /*!
@@ -153,13 +112,15 @@ uint32_t readIndex(uintptr_t table, uint32_t index)
  * \param index The index in the table
  * \param addr The index to store
  */
-void writeIndex(uintptr_t table, uint32_t index, uint32_t addr)
+void writeIndex(uint32_t table, uint32_t index, uint32_t idx)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) addr;
-    return;
+	uint32_t *paddr;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	*paddr = idx;
+	enable_paging();
 }
 
 /**
@@ -168,43 +129,20 @@ void writeIndex(uintptr_t table, uint32_t index, uint32_t addr)
  * \return The same integer as an address
  * \note This is only for Haskell. C doesn't need this!
  */
-uintptr_t toAddr(uint32_t input)
+uint32_t toAddr(uint32_t input)
 {
-    /* TODO */
-    (void) input;
-    return (uintptr_t) 0;
+	return input;
 }
 
 /**
  * \brief Cleans a given page, filling it with zeroes.
  * \param paddr The page's physical address
  */
-void cleanPage(uintptr_t paddr)
+void cleanPage(uint32_t paddr)
 {
-    /* TODO */
-    (void) paddr;
-    return;
-}
-
-/**
- * \param table The indirection table in which we find the entry
- * \param index The index in this table, targeting the specified entry
- * \param read The read right
- * \param write The write right
- * \param execute The execute right
- * \brief Applies the given rights on the given entry
- * \return 1 if the rights were applied, 0 otherwise
- */
-uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read,
-        uint32_t write, uint32_t execute)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) read;
-    (void) write;
-    (void) execute;
-    return (uint32_t) 0;
+	disable_paging();
+	memset((uint32_t*)paddr, 0x00000000, PAGE_SIZE);
+	enable_paging();
 }
 
 /**
@@ -218,20 +156,45 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read,
  * \param execute The execute right
  * \brief Applies the given rights on the given entry
  */
-void writePhysicalWithLotsOfFlags(uintptr_t table, uint32_t index,
-        uintptr_t addr, uint32_t present, uint32_t user, uint32_t read,
-        uint32_t write, uint32_t execute)
+void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr,
+	uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) addr;
-    (void) present;
-    (void) user;
-    (void) read;
-    (void) write;
-    (void) execute;
-    return;
+	unsigned entry;
+
+	/* TODO */
+
+	if (!present && !user && !read && !write && !execute)
+	{
+		/* This is just a physical address, write is as it */
+		entry = addr;
+	}
+	else if (present && user && read && write && execute)
+	{
+		/* Guess this is a PD entry, write a page table entry */
+		entry = addr | 1;
+	}
+	else
+	{
+		/* Consider this is L2 physical entry
+		 * To make this distinguishable from a PD entry, we make userland
+		 * pass execute=0 (in libpip). Please forgive me because i'm a sinner.*/
+		if (!present)
+		{
+			PANIC("WE HAVE A PROBLEM: Cannot write non-present L2 entry!\n");
+			for(;;);
+		}
+		if (index >= MMU_L2_ENT_COUNT)
+		{
+			PANIC("WE HAVE A PROBLEM: index = %d in ARM PT\n", index);
+		}
+		entry = mmu_make_small_page((void*)addr, user, !write,
+			0, /* TODO: xn */
+			0  /* TODO: cache attributes */,
+			!user   /* set kernel memory as global */
+		).aslong;
+	}
+
+	writePhysical(table, index, entry);
 }
 
 /**
@@ -240,9 +203,7 @@ void writePhysicalWithLotsOfFlags(uintptr_t table, uint32_t index,
  * \warning I don't think this is still used. Anyway, it should never be. Never.
  *          Removing this soon.
  */
-uint32_t dereferenceVirtual(uintptr_t addr)
+uint32_t dereferenceVirtual(uint32_t addr)
 {
-    /* TODO */
-    (void) addr;
-    return (uint32_t) 0;
+	return *(uint32_t*) addr;
 }

@@ -38,7 +38,14 @@
 
 #include <stdint.h>
 
-const uint32_t nbLevel = 0;
+#include "structures.h"
+#include "periph.h"
+#include "maldefines.h"
+
+uint32_t current_partition = 0;
+uint32_t root_partition = 0;
+
+const uint32_t nbLevel = 2;
 
 /*!
  * \brief enables paging
@@ -46,8 +53,8 @@ const uint32_t nbLevel = 0;
  */
 void enable_paging()
 {
-    /* TODO */
-    return;
+	cache_and_mmu_enable();
+	periph_notify_ioremap(1);
 }
 
 /*!
@@ -56,8 +63,8 @@ void enable_paging()
  */
 void disable_paging()
 {
-    /* TODO */
-    return;
+	cache_and_mmu_disable();
+	periph_notify_ioremap(0);
 }
 
 /*!
@@ -69,11 +76,13 @@ void disable_paging()
  */
 void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) val;
-    return;
+	uint32_t *paddr;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	*paddr = val;
+	enable_paging();
 }
 
 /*!
@@ -88,10 +97,15 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
  */
 uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t *paddr, val;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	val = *paddr & ~0xfff;
+	enable_paging();
+
+	return val;
 }
 
 /*!
@@ -100,10 +114,8 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
  */
 uint32_t getTableSize()
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return (uint32_t) MMU_L1_ENT_COUNT;
 }
-
 
 /*!
  * \brief Gets the index of this address into the given indirection table level
@@ -113,10 +125,23 @@ uint32_t getTableSize()
  */
 uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
 {
-    /* TODO */
-    (void) addr;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t idx;
+
+	/* First check the index value */
+	if (index > 1)
+		return 0;
+
+	/* Index 1 is the first indirection and 2 is the second. */
+	if(index == 1)
+	{
+		/* First level : Page Directory */
+		idx = MAL_L1_IDX(addr);
+	} else /* index == 0*/{
+		/* Second level : Page Table */
+		idx = MAL_L2_IDX(addr);
+	}
+
+	return idx;
 }
 
 /*!
@@ -127,10 +152,14 @@ uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  */
 uint32_t readAccessible(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t ret;
+	page_table_t *pt = (page_table_t*) table;
+
+	disable_paging();
+	ret = pt->pages[index].AP1;
+	enable_paging();
+
+	return ret;
 }
 
 /*!
@@ -142,11 +171,11 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
  */
 void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) value;
-    return;
+	page_table_t *pt = (page_table_t*) table;
+
+	disable_paging();
+	pt->pages[index].AP1 = value;
+	enable_paging();
 }
 
 /*!
@@ -155,8 +184,7 @@ void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
  */
 uint32_t getCurPartition(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return current_partition;
 }
 
 /*!
@@ -165,9 +193,7 @@ uint32_t getCurPartition(void)
  */
 void updateCurPartition (uint32_t descriptor)
 {
-    /* TODO */
-    (void) descriptor;
-    return;
+	current_partition = descriptor;
 }
 
 /*!
@@ -176,8 +202,7 @@ void updateCurPartition (uint32_t descriptor)
  */
 uint32_t getRootPartition(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return root_partition;
 }
 
 /*!
@@ -186,9 +211,7 @@ uint32_t getRootPartition(void)
  */
 void updateRootPartition(uint32_t partition)
 {
-    /* TODO */
-    (void) partition;
-    return;
+	root_partition = partition;
 }
 
 /*!
@@ -199,28 +222,19 @@ void updateRootPartition(uint32_t partition)
  */
 uint32_t readPresent(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
-}
+	uint32_t ret;
+	uint32_t *paddr;
 
-/*!
- * \brief Marks a page as present or not.
- * \param table The indirection table
- * \param index The index into this indirection table
- * \param value 0 if the page is not present, 1 else (any other value should be
- *        forbidden...)
- */
-void writePresent(uint32_t table, uint32_t index, uint32_t value)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) value;
-    return;
-}
+	paddr = &((uint32_t*)table)[index];
 
+	disable_paging();
+	/* TODO */
+	ret = (*paddr & 3) != 0;
+	enable_paging();
+
+	/* Now return the present flag */
+	return ret;
+}
 
 /*!
  * \brief Writes the Page Directory flag into a shadow table
@@ -230,11 +244,13 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
  */
 void writePDflag(uint32_t table, uint32_t index, uint32_t value)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) value;
-    return;
+	uint32_t *paddr;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	*paddr = (*paddr&~1) | (value&1);
+	enable_paging();
 }
 
 /*!
@@ -245,10 +261,15 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
  */
 uint32_t readPDflag(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t *paddr, curval;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	curval = *paddr;
+	enable_paging();
+
+	return (curval & 1);
 }
 
 /*!
@@ -259,10 +280,15 @@ uint32_t readPDflag(uint32_t table, uint32_t index)
  */
 uint32_t readPhysical(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t *paddr, val;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	val = *paddr;
+	enable_paging();
+
+	return val;
 }
 
 /*!
@@ -274,12 +300,15 @@ uint32_t readPhysical(uint32_t table, uint32_t index)
  */
 void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) addr;
-    return;
+	uint32_t *paddr;
+
+	paddr = &((uint32_t*)table)[index];
+
+	disable_paging();
+	*paddr = (*paddr & 0xfff) | (addr & ~0xfff);
+	enable_paging();
 }
+
 
 /*!
  * \brief Gets the amount of indirection tables
@@ -287,24 +316,7 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  */
 uint32_t getNbIndex(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
-}
-
-/*!
- * \brief Stores the given address into the given indirection table, at the
- *        given index
- * \param table The table to store into
- * \param index The index in the table
- * \param addr The address to store
- */
-void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr)
-{
-    /* TODO */
-    (void) table;
-    (void) index;
-    (void) addr;
-    return;
+	return nbLevel-1;
 }
 
 /*!
@@ -315,10 +327,12 @@ void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr)
  */
 uint32_t readTableVirtual(uint32_t table, uint32_t index)
 {
-    /* TODO */
-    (void) table;
-    (void) index;
-    return (uint32_t) 0;
+	uint32_t *vaddr, val;
+
+	vaddr = &((uint32_t*)table)[index];
+	val = *vaddr & ~0xfff;
+
+	return val;
 }
 
 /*!
@@ -331,24 +345,19 @@ uint32_t readTableVirtual(uint32_t table, uint32_t index)
  */
 uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 {
-    /* TODO */
-    (void) read;
-    (void) write;
-    (void) execute;
-    return (uint32_t) 0;
-}
+	// Read has to be 1 (only user/kernel in x86)
+	if(read==0)
+		return 0;
 
-/*!
- * \brief TODO
- * \param addr TODO
- * \param index TODO
- */
-uint32_t extractPreIndex(uint32_t addr, uint32_t index)
-{
-    /* TODO */
-    (void) addr;
-    (void) index;
-    return (uint32_t) 0;
+	/* FIXME: We don't support xn, but return 1.
+	 * This is part of the writePhysicalWithLotsOfFlags hack */
+	if(execute==0)
+		return 1;
+
+	// Well the complier will complain about a unused parameter thing so...
+	if(write==0 || write == 1)
+		return 1;
+	else return 0;
 }
 
 /*!
@@ -358,13 +367,12 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
  * looked up in the MMU configuration pages of the parent partition and written
  * at the same place.
  */
-void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page,
-        uint32_t kernel_index)
+void writeKernelPhysicalEntry(uint32_t child_mmu_root_page, uint32_t kernel_index)
 {
-    /* TODO */
-    (void) child_mmu_root_page;
-    (void) kernel_index;
-    return;
+	uint32_t tt = readPhysical(current_partition, getPDidx() + 1);
+	uint32_t kpt = readPhysical(tt, kernelIndex());
+	writePhysicalWithLotsOfFlags(child_mmu_root_page, kernel_index, kpt, 0, 0, 0, 0, 0);
+	return;
 }
 
 /*!
@@ -375,8 +383,5 @@ void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page,
  */
 uint32_t prepareType(int b, uint32_t vaddr)
 {
-    /* TODO */
-    (void) b;
-    (void) vaddr;
-    return (uint32_t) 0;
+	return (vaddr & ~1) | (b ? 1 : 0);
 }

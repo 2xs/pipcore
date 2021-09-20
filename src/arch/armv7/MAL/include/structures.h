@@ -39,13 +39,33 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 
-#include <stdint.h>
+#include "mmu.h"
 
-/*!
- * Page size
+typedef mmu_sd_pt_t page_table_entry_t;
+
+/**
+ * \type page_directory_t
+ * \brief Page Directory structure
+ * Pointing to short-descriptor page table
  */
-#define PAGE_SIZE 4096
+typedef struct page_directory
+{
+	mmu_sd_pt_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
+} page_directory_t;
 
-/* TODO */
+/**
+ * \type page_table_t
+ * \brief Page Table structure
+ * Pointing to short-descriptor small-page
+ */
+typedef struct page_table
+{
+	mmu_sd_sp_t pages[1024]; //!< Page Table Entries in this Page Table
+} page_table_t;
+
+#define PAGE_SIZE 0x1000
+
+#define MAL_L1_IDX(addr) (((addr) & 0x3FF00000) >> 20)
+#define MAL_L2_IDX(addr) (((addr) & 0x000FF000) >> 12)
 
 #endif

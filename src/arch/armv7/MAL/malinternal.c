@@ -39,9 +39,10 @@
  */
 
 #include <stdint.h>
-#include "structures.h"
 
-uint32_t defaultVAddr = 0;
+#include "maldefines.h"
+
+const uint32_t defaultVAddr = 0;
 
 /*!
  * \brief Returns the default null address.
@@ -49,8 +50,7 @@ uint32_t defaultVAddr = 0;
  */
 uint32_t defaultAddr(void)
 {
-    /* TODO */
-    return 0;
+	return 0;
 }
 
 /*!
@@ -59,8 +59,7 @@ uint32_t defaultAddr(void)
  */
 uint32_t kernelIndex(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return 0;
 }
 
 /*!
@@ -69,8 +68,7 @@ uint32_t kernelIndex(void)
  */
 uint32_t indexPR(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return 0;
 }
 
 /*!
@@ -79,7 +77,7 @@ uint32_t indexPR(void)
  */
 uint32_t zero(void)
 {
-    return 0;
+	return 0;
 }
 
 /*!
@@ -88,7 +86,7 @@ uint32_t zero(void)
  */
 uint32_t indexPD(void)
 {
-    return 2;
+	return 2;
 }
 
 /*!
@@ -97,7 +95,7 @@ uint32_t indexPD(void)
  */
 uint32_t indexSh1(void)
 {
-    return 4;
+	return 4;
 }
 
 /*!
@@ -106,7 +104,7 @@ uint32_t indexSh1(void)
  */
 uint32_t indexSh2(void)
 {
-    return 6;
+	return 6;
 }
 
 /*!
@@ -115,7 +113,7 @@ uint32_t indexSh2(void)
  */
 uint32_t indexSh3(void)
 {
-    return 8;
+	return 8;
 }
 
 /*!
@@ -124,7 +122,7 @@ uint32_t indexSh3(void)
  */
 uint32_t PPRidx(void)
 {
-    return 10;
+	return 10;
 }
 
 /*!
@@ -135,7 +133,7 @@ uint32_t PPRidx(void)
  */
 uint32_t addressEquals(uint32_t addr, uint32_t addr2)
 {
-    return (addr == addr2);
+	return (addr == addr2);
 }
 
 /*!
@@ -144,7 +142,7 @@ uint32_t addressEquals(uint32_t addr, uint32_t addr2)
  */
 int geb(const uint32_t a, const uint32_t b)
 {
-    return a >= b;
+	return a >= b;
 }
 
 /*!
@@ -153,7 +151,7 @@ int geb(const uint32_t a, const uint32_t b)
  */
 int gtb(const uint32_t a, const uint32_t b)
 {
-    return a > b;
+	return a > b;
 }
 
 /*!
@@ -162,7 +160,7 @@ int gtb(const uint32_t a, const uint32_t b)
  */
 int leb(const uint32_t a, const uint32_t b)
 {
-    return a <= b;
+	return a <= b;
 }
 
 /*!
@@ -171,7 +169,7 @@ int leb(const uint32_t a, const uint32_t b)
  */
 int ltb(const uint32_t a, const uint32_t b)
 {
-    return a < b;
+	return a < b;
 }
 
 /*!
@@ -180,7 +178,7 @@ int ltb(const uint32_t a, const uint32_t b)
  */
 int eqb(const uint32_t a, const uint32_t b)
 {
-    return a == b;
+	return a == b;
 }
 
 /*!
@@ -189,7 +187,7 @@ int eqb(const uint32_t a, const uint32_t b)
  */
 uint32_t inc(uint32_t val)
 {
-    return ++val;
+	return ++val;
 }
 
 /*!
@@ -198,7 +196,7 @@ uint32_t inc(uint32_t val)
  */
 uint32_t sub(uint32_t val)
 {
-    return --val;
+	return --val;
 }
 
 /*!
@@ -207,7 +205,7 @@ uint32_t sub(uint32_t val)
  */
 uint32_t mul3(uint32_t v)
 {
-    return 3 * v;
+	return 3 * v;
 }
 
 /*!
@@ -216,6 +214,5 @@ uint32_t mul3(uint32_t v)
  */
 uint32_t getMaxIndex(void)
 {
-    /* TODO */
-    return (uint32_t) 0;
+	return getTableSize() - 1;
 }
