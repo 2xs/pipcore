@@ -31,10 +31,23 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_MEM_LAYOUT_H_
+#define DEF_MEM_LAYOUT_H_
 
-int puts(const char*);
-int putchar(int);
+extern char kernel_bss_start[];
+extern char kernel_bss_end[];
+
+extern char kernel_text_start[];
+extern char kernel_ro_start[];
+extern char kernel_rw_start[];
+extern char kernel_rw_end[];
+extern char root_part_start[];
+extern char root_part_end[];
+extern char user_mem_start[];
+extern char user_mem_end[];
+
+#define STACK_VADDR     0x3FFFD000
+#define FPINFO_VADDR    0x3FFFE000
+#define VIDT_VADDR      0x3FFFF000
 
 #endif

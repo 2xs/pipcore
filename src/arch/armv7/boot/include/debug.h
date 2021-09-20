@@ -31,10 +31,28 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_DEBUG_H_
+#define DEF_DEBUG_H_
+#include <printf.h>
 
-int puts(const char*);
-int putchar(int);
+enum loglevel_e { ERROR = 0, WARNING, INFO, TRACE};
+
+static unsigned debug_color[] = {
+	[ERROR]		= 31,
+	[WARNING]	= 33,
+	[INFO]		= 32,
+	[TRACE]		= 36,
+};
+
+#ifndef LOGLEVEL
+#define LOGLEVEL ERROR
+#endif
+
+//#define DEBUG(lvl, fmt, ...) if (LOGLEVEL >= lvl){ printf("[" #lvl "] " fmt, #__VA_ARGS__);}
+#define DEBUG(lvl, fmt, ...) if (LOGLEVEL >= lvl) { printf("\e[35m%s\e[0m:\e[31m%d\e[0m: " "\e[%dm" fmt "\e[0m", __FILE__, __LINE__, debug_color[lvl], ##__VA_ARGS__);}
+
+/* FIXME: MOVE THIS
+ * and also: mask interrupts  */
+#define PANIC(fmt,...) { DEBUG(ERROR,fmt "\n", ##__VA_ARGS__); for(;;); }
 
 #endif

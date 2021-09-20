@@ -31,10 +31,77 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#include <stdint.h>
 
-int puts(const char*);
-int putchar(int);
+#include "coproc.h"
+#include "Internal.h"
+#include "pip_interrupt_calls.h"
+#include "context.h"
 
-#endif
+// interrupt state is located at INTERRUPT_STATE_IDX in every partition descriptor
+// Its semantic is the same as the CPU interrupt_enable flag :
+//  - 0               => partition does not want to be interrupted
+//  - any other value => partition accepts to be interrupted
+
+// sets the interrupt state of the current partition
+void set_int_state(gate_ctx_t *ctx, uint32_t interrupt_state) {
+	uint32_t currentPartDesc = getCurPartition();
+	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
+	if (currentPartDesc == getRootPartition()) {
+		if (interrupt_state == 0)
+			ctx->spsr &= ~(CPSR_IRQ); //disable interrupts
+		else	ctx->spsr |=  CPSR_IRQ; // enable interrupts
+	}
+	return;
+}
+
+void kernel_set_int_state(uint32_t interrupt_state) {
+	uint32_t currentPartDesc = getCurPartition();
+	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
+	return;
+}
+
+void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
+	uint32_t currentPartDesc = getCurPartition();
+	if (currentPartDesc != getRootPartition()
+	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
+		ctx->spsr |=  CPSR_IRQ; // enable interrupts
+	}
+	return;
+}
+
+/*
+void fix_eflags_iret_ctx(iret_ctx_t *ctx) {
+	uint32_t currentPartDesc = getCurPartition();
+	if (currentPartDesc != getRootPartition()
+	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
+		ctx->spsr |=  CPSR_IRQ; // enable interrupts
+	}
+	return;
+}
+*/
+
+// gets the interrupt state of the current partition
+uint32_t get_self_int_state() {
+	uint32_t currentPartDesc = getCurPartition();
+	return readPhysical(currentPartDesc, INTERRUPT_STATE_IDX);
+}
+
+//FIXME the function should have a reserved return code for errors
+// gets the interrupt state of a child partition
+uint32_t get_int_state(uint32_t child_vaddr) {
+	uint32_t currentPartDesc = getCurPartition();
+	uint32_t currentPageDir  = getPd(currentPartDesc);
+	uint32_t nbL = getNbLevel();
+	uint32_t childPartDescLastMMUPage = getTableAddr(currentPageDir, child_vaddr, nbL);
+	if (childPartDescLastMMUPage == 0)
+		return ~0;
+	uint32_t idxChildPartDesc = getIndexOfAddr(child_vaddr, fstLevel);
+	if (!(readPresent(childPartDescLastMMUPage, idxChildPartDesc)))
+		return ~0;
+	if (!(checkChild(currentPartDesc, nbL, child_vaddr)))
+		return ~0;
+	uint32_t childPartDesc = readPhyEntry(childPartDescLastMMUPage, idxChildPartDesc);
+	return readPhysical(childPartDesc, INTERRUPT_STATE_IDX);
+}
+

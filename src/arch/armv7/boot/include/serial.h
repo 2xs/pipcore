@@ -31,10 +31,9 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_UART_H_
+#define DEF_UART_H_
 
-int puts(const char*);
-int putchar(int);
+int uart_putchar(int c);
 
 #endif

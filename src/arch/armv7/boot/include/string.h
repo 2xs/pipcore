@@ -31,10 +31,11 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_STRING_H_
+#define DEF_STRING_H_
 
-int puts(const char*);
-int putchar(int);
+void *memset(void *dst, int v, unsigned size);
+int memcmp(const void *s1, const void *s2, unsigned size);
+void *memcpy(void *dst, const void *src, unsigned size);
 
 #endif

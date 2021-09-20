@@ -31,10 +31,42 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_PERIPH_H_
+#define DEF_PERIPH_H_
 
-int puts(const char*);
-int putchar(int);
+#include "types.h"
+#include "machine.h"
+
+#define PERIPH_RBASE (io_remapped ? PERIPH_VBASE : PERIPH_BASE)
+
+#define CORE0_IRQ_SOURCE        ((uint32_t *) 0x40000060)
+#define LOCAL_TIMER_WRITE_FLAGS ((uint32_t *) 0x40000038)
+
+#define IRQ2836_CONTROL               0
+#define IRQ2836_TIMER_PRESCALER	      0x8
+#define IRQ2836_GPU_ROUTING           0xC
+#define IRQ2836_PMU_ROUTING_SET	      0x10
+#define IRQ2836_PMU_ROUTING_CLR	      0x14
+#define IRQ2836_CORE_TIMER_LOW        0x1C
+#define IRQ2836_CORE_TIMER_HIGH       0x20
+#define IRQ2836_LOCAL_INT_ROUTING     0x24
+#define IRQ2836_AXI_OUTSTD_CTR        0x2C
+#define IRQ2836_AXI_OUTSTD_CTL        0x30
+#define IRQ2836_LOCAL_TIMER_CTL       0x34
+#define IRQ2836_LOCAL_TIMER_CLR_RLD   0x38
+#define IRQ2836_TIMER_CTL             0x40
+#define IRQ2836_MAILBOX_CTL           0x50
+#define IRQ2836_IRQ_SOURCE            0x60
+#define IRQ2836_FIQ_SOURCE            0x70
+#define IRQ2836_MAILBOX_SET           0x80
+#define IRQ2836_MAILBOX_CLR           0xC0
+
+#define IRQ2836REG(reg)	*(unsigned int*)((IRQ2836_##reg)+PERIPH_CONTROL)
+
+#define UART0 (PERIPH_RBASE+UART0_OFFSET)
+
+extern bool_t io_remapped;
+
+void periph_notify_ioremap(int v);
 
 #endif

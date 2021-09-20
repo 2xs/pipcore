@@ -31,10 +31,50 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_CONTEXT_H_
+#define DEF_CONTEXT_H_
 
-int puts(const char*);
-int putchar(int);
+#include <stdint.h>
+
+typedef enum arm_ctxreg_e {
+	CTX_SP  ,
+	CTX_LR  ,
+	CTX_R0  ,
+	CTX_R1  ,
+	CTX_R2  ,
+	CTX_R3  ,
+	CTX_R4  ,
+	CTX_R5  ,
+	CTX_R6  ,
+	CTX_R7  ,
+	CTX_R8  ,
+	CTX_R9  ,
+	CTX_R10 ,
+	CTX_R11 ,
+	CTX_R12 ,
+	CTX_PC
+} arm_ctxreg_t;
+
+/**
+ * \struct gate_stack_s
+ * \brief Stack context from callgate after assembly magic
+ */
+typedef struct gate_ctx_s
+{
+	uint32_t spsr;
+	uint32_t reg[16];
+} arm_ctx_t, gate_ctx_t;
+
+/**
+ * \struct user_ctx_s
+ * \brief User saved context
+ */
+typedef struct user_ctx_s
+{
+	uint32_t spsr;
+	uint32_t reg[16];
+	uint32_t pipflags;
+	uint32_t valid;
+} user_ctx_t;
 
 #endif

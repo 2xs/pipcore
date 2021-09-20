@@ -31,10 +31,146 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#include "svc.h"
+#include "yield_c.h"
+#include "pip_interrupt_calls.h"
+#include "stdio.h"
 
-int puts(const char*);
-int putchar(int);
+bool createPartition(vaddr descChild,
+		vaddr pdChild,
+		vaddr shadow1Child,
+		vaddr shadow2Child,
+		vaddr configPagesList);
 
-#endif
+bool deletePartition(vaddr descChild);
+
+count countToMap(vaddr descChild, vaddr vaChild);
+
+boolvaddr prepare(vaddr descChild, vaddr va, vaddr fstVA);
+
+bool addVAddr(vaddr vaInCurrentPartition,
+		vaddr descChild,
+		vaddr vaChild,
+		bool r,
+		bool w,
+		bool e);
+
+bool removeVAddr(vaddr descChild, vaddr vaChild);
+
+vaddr mappedInChild(vaddr vaChild);
+
+bool collect(vaddr descChild, vaddr vaToCollect);
+
+yield_checks_t yieldGlue(gate_ctx_t *gate_ctx,
+		vaddr_t calleePartDescVAddr,
+		uservalue_t userTargetInterrupt,
+		uservalue_t userCallerContextSaveIndex,
+		int_mask_t flagsOnYield,
+		int_mask_t flagsOnWake);
+
+void c_svc_handler(uint32_t svc_number, gate_ctx_t *ctx)
+{
+	uint32_t result;
+
+	switch (svc_number)
+	{
+		case SVC_CREATEPARTITION:
+			result = createPartition(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1],
+				ctx->reg[CTX_R2],
+				ctx->reg[CTX_R3],
+				ctx->reg[CTX_R4]
+			);
+			break;
+
+		case SVC_COUNTTOMAP:
+			result = countToMap(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1]
+			);
+			break;
+
+		case SVC_PREPARE:
+			result = prepare(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1],
+				ctx->reg[CTX_R2]
+			);
+			break;
+
+		case SVC_ADDVADDR:
+			result = addVAddr(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1],
+				ctx->reg[CTX_R2],
+				ctx->reg[CTX_R3],
+				ctx->reg[CTX_R4],
+				ctx->reg[CTX_R5]
+			);
+			break;
+
+		case SVC_GET_INT_STATE:
+			result = get_int_state(
+				ctx->reg[CTX_R0]
+			);
+			break;
+
+		case SVC_SET_INT_STATE:
+			set_int_state(
+				ctx,
+				ctx->reg[CTX_R0]
+			);
+			result = 1;
+			break;
+
+		case SVC_REMOVEVADDR:
+			result = removeVAddr(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1]
+			);
+			break;
+
+		case SVC_MAPPEDINCHILD:
+			result = mappedInChild(
+				ctx->reg[CTX_R0]
+			);
+			break;
+
+		case SVC_DELETEPARTITION:
+			result = deletePartition(
+				ctx->reg[CTX_R0]
+			);
+			break;
+
+		case SVC_COLLECT:
+			result = collect(
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1]
+			);
+			break;
+
+		case SVC_YIELD:
+			result = yieldGlue(
+				ctx,
+				ctx->reg[CTX_R0],
+				ctx->reg[CTX_R1],
+				ctx->reg[CTX_R2],
+				ctx->reg[CTX_R3],
+				ctx->reg[CTX_R4]
+			);
+			break;
+
+		case SVC_PUTCHAR:
+			result = putchar(
+				ctx->reg[CTX_R0]
+			);
+			break;
+
+		default:
+			DEBUG(WARNING, "Invalid SVC number: %d\n", svc_number);
+			result = SVC_INVALID_NUMBER;
+	}
+
+	ctx->reg[CTX_R0] = result;
+}

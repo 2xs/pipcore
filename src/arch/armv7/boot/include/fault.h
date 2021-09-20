@@ -31,10 +31,11 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_FAULT_H_
+#define DEF_FAULT_H_
 
-int puts(const char*);
-int putchar(int);
+#define FAULT_UNDEF           0
+#define FAULT_PREFETCH_ABORT  1
+#define FAULT_DATA_ABORT      2
 
 #endif

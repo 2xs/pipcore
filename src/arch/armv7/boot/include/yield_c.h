@@ -31,76 +31,44 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include "gpio.h"
+#ifndef YIELD_C_H
+#define YIELD_C_H
 
-#define AUX_ENABLE      ((volatile unsigned int*)(MMIO_BASE+0x00215004))
-#define AUX_MU_IO       ((volatile unsigned int*)(MMIO_BASE+0x00215040))
-#define AUX_MU_IER      ((volatile unsigned int*)(MMIO_BASE+0x00215044))
-#define AUX_MU_IIR      ((volatile unsigned int*)(MMIO_BASE+0x00215048))
-#define AUX_MU_LCR      ((volatile unsigned int*)(MMIO_BASE+0x0021504C))
-#define AUX_MU_MCR      ((volatile unsigned int*)(MMIO_BASE+0x00215050))
-#define AUX_MU_LSR      ((volatile unsigned int*)(MMIO_BASE+0x00215054))
-#define AUX_MU_MSR      ((volatile unsigned int*)(MMIO_BASE+0x00215058))
-#define AUX_MU_SCRATCH  ((volatile unsigned int*)(MMIO_BASE+0x0021505C))
-#define AUX_MU_CNTL     ((volatile unsigned int*)(MMIO_BASE+0x00215060))
-#define AUX_MU_STAT     ((volatile unsigned int*)(MMIO_BASE+0x00215064))
-#define AUX_MU_BAUD     ((volatile unsigned int*)(MMIO_BASE+0x00215068))
+#include "debug.h"
+#include "context.h"
+#include "maldefines.h"
+#include "Internal.h"
 
-void uart_init()
-{
-    register unsigned int r;
+typedef uint32_t vaddr_t;
+typedef uint32_t page_t;
+typedef uint32_t uservalue_t;
+typedef uint32_t int_mask_t;
+typedef enum yield_checks_e {
+	SUCCESS=0,
+	FAIL_INVALID_INT_LEVEL=1,
+	FAIL_INVALID_CTX_SAVE_INDEX=2,
+	FAIL_ROOT_CALLER=3,
+	FAIL_INVALID_CHILD=4,
+	FAIL_UNAVAILABLE_TARGET_VIDT=5,
+	FAIL_UNAVAILABLE_CALLER_VIDT=6,
+	FAIL_MASKED_INTERRUPT=7,
+	FAIL_UNAVAILABLE_TARGET_CTX=8,
+	FAIL_CALLER_CONTEXT_SAVE=9
+} yield_checks_t;
 
-    *AUX_ENABLE  |= 1;
-    *AUX_MU_CNTL  = 0;
-    *AUX_MU_LCR   = 3;
-    *AUX_MU_MCR   = 0;
-    *AUX_MU_IER   = 0;
-    *AUX_MU_IIR   = 0xc6;
-    *AUX_MU_BAUD  = 270;
+vaddr_t getVidtVAddr();
 
-    r  = *GPFSEL1;
-    r &= ~((7 << 12) | (7 << 15));
-    r |= (2 << 12) | (2 << 15);
+#define contextSizeMinusOne sizeof(user_ctx_t)-4
 
-    *GPFSEL1  = r;
-    *GPPUD    = 0;
+yield_checks_t checkIntLevelCont(vaddr_t calleePartDescVAddr, uservalue_t userTargetInterrupt, uservalue_t userCallerContextSaveIndex, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-    r = 150;
-    while(r--) {
-        asm volatile("nop");
-    }
+yield_checks_t getParentPartDescCont(page_t callerPartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-    *GPPUDCLK0 = (1 << 14) | (1 << 15);
+yield_checks_t getSourcePartVidtCont(page_t calleePartDesc, page_t callerPageDir, unsigned targetInterrupt, unsigned callerContextSaveIndex, unsigned nbL, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-    r = 150;
-    while (r--) {
-        asm volatile("nop");
-    }
+yield_checks_t getTargetPartVidtCont(page_t calleePartDesc, page_t callerPageDir,
+vaddr_t vidtVaddr, vaddr_t callerContextSaveVAddr, unsigned targetInterrupt, unsigned nbL, unsigned idxVidtInLastMMUPage, int_mask_t flagsOnYield, int_mask_t flagsOnWake, user_ctx_t *callerInterruptedContext);
 
-    *GPPUDCLK0 = 0;
-    *AUX_MU_CNTL = 3;
-}
+yield_checks_t switchContextCont(page_t calleePartDesc, page_t calleePageDir, int_mask_t flagsOnYield, user_ctx_t *ctx);
 
-void uart_send(unsigned int c) {
-    do {
-        asm volatile("nop");
-    } while(!(*AUX_MU_LSR & 0x20));
-    *AUX_MU_IO = c;
-}
-
-char uart_getc() {
-    char r;
-    do {
-        asm volatile("nop");
-    } while(!(*AUX_MU_LSR & 0x01));
-    r = (char)(*AUX_MU_IO);
-    return r == '\r' ? '\n' : r;
-}
-
-void uart_puts(char *s) {
-    while(*s) {
-        if(*s=='\n')
-            uart_send('\r');
-        uart_send(*s++);
-    }
-}
+#endif

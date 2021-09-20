@@ -31,10 +31,114 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_CACHE_H_
+#define DEF_CACHE_H_
 
-int puts(const char*);
-int putchar(int);
+#include "coproc.h"
+
+/* B2.2.6 About ARMv7 cache and branch predictor maintenance functionality */
+
+/* B4.2.1 Cache and branch predictor maintenance operations, VMSA */
+
+/* branch_pred_enable: Enable branch predictor */
+static inline void branch_pred_enable(void)
+{
+	unsigned reg;
+
+	READ_CP(reg, ID_SCTLR);
+	/* Set branch predictor bit in SCTLR*/
+	reg |= SCTLR_BRANCH_PRED;
+	WRITE_CP(reg, ID_SCTLR);
+}
+/* branch_pred_disable: Disable branch predictor */
+static inline void branch_pred_disable(void)
+{
+	unsigned reg;
+
+	READ_CP(reg, ID_SCTLR);
+	/* Set branch predictor bit in SCTLR*/
+	reg &= ~SCTLR_BRANCH_PRED;
+	WRITE_CP(reg, ID_SCTLR);
+}
+/* caches_enable: Enable instruction & data caches */
+static inline void caches_enable(void)
+{
+	unsigned reg;
+
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg |= SCTLR_ICACHE | SCTLR_DCACHE;
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* caches_disable: Enable instruction & data caches */
+static inline void caches_disable(void)
+{
+	unsigned reg;
+
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg &= ~(SCTLR_ICACHE | SCTLR_DCACHE);
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* dcache_enable: Enable data cache  */
+static inline void dcache_enable(void)
+{
+	unsigned reg;
+
+	/* Use ISB & DSB to ensure memory operations ordering */
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg |= SCTLR_DCACHE;
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* dcache_disable: Disable data cache  */
+static inline void dcache_disable(void)
+{
+	unsigned reg;
+
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg &= ~SCTLR_DCACHE;
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* icache_enable: Enable instruction cache  */
+static inline void icache_enable(void)
+{
+	unsigned reg;
+
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg |= SCTLR_ICACHE;
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* icache_enable: Disable instruction cache  */
+static inline void icache_disable(void)
+{
+	unsigned reg;
+
+	ISB(); DSB();
+	READ_CP(reg, ID_SCTLR);
+	reg &= ~SCTLR_ICACHE;
+	WRITE_CP(reg, ID_SCTLR);
+	ISB(); DSB();
+}
+/* dcache_clean_range: Clean data cache of memory range */
+void dcache_clean_range(void *addr_, unsigned size);
+
+/* dcache_inval_range: Invalidate data cache of memory range */
+void dcache_inval_range(void *addr_, unsigned size);
+
+/* dcache_flush_range: Clean & invalidate data cache of memory range */
+void dcache_flush_range(void *addr_, unsigned size);
+
+/* dcache_flush_all: Clean & invalidate all data cache */
+void dcache_flush_all(void);
+
+void dcache_flush_disable(void);
 
 #endif

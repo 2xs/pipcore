@@ -31,82 +31,90 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-.equ MODE_FIQ, 0x11
-.equ MODE_IRQ, 0x12
-.equ MODE_SVC, 0x13
-.equ MODE_MON, 0x16
-.equ MODE_ABT, 0x17
-.equ MODE_UND, 0x1b
-.equ MODE_SYS, 0x1f
+#include "coproc.h"
 
-.global start
-.extern main
+.extern kernel_start
+.extern svc_entrypoint
+.extern ial_undef_handler
+.extern ial_prefetch_abort_handler
+.extern ial_data_abort_handler
+.extern ial_irq_handler_s
+.extern ial_fiq_handler_s
 
-.section .text.vector_table
+.set MASK_BITS, CPSR_FIQ|CPSR_IRQ|CPSR_A
 
-start:
-vector_table_base_address:
-    b       reset_handler
-    b       .
-    b       .
-    b       .
-    b       .
-    nop     // Reserved vector
-    b       .
-    b       .
+.code 32
+.section .text.start
+.global vector_table
+vector_table:
+	ldr pc, =boot_reset
+	ldr pc, =ial_undef_handler
+	ldr pc, =svc_entrypoint
+	ldr pc, =ial_prefetch_abort_handler
+	ldr pc, =ial_data_abort_handler
+	ldr pc, =boot_reserved
+	ldr pc, =ial_irq_handler_s
+	ldr pc, =ial_fiq_handler_s
 
-.section .text.reset_handler
+boot_reserved:
+	b .
 
-/*
- * This execption occurs when the reset button is pressed.
- */
+boot_reset:
+	READ_CP_ASM(r5, ID_MPIDR)
+	dsb
+	ands r5, #0xff
+	beq .core0
+1:
+	wfe
+	b 1b
 
-reset_handler:
+.core0:
+	/* Go supervisor, interrupt masked */
+	ldr r5, =(ARM_MODE_SVC|CPSR_FIQ|CPSR_IRQ)
+	msr cpsr, r5
 
-     /*
-      * Only core 0 performs initialization. Other cores branch to idle.
-      */
+	ldr r5, =vector_table               @ Setup VBAR
+	WRITE_CP_ASM(r5, ID_VBAR)
 
-     mrc    p15, 0, r1, c0, c0, 5   // Read Multiprocessor Affinity Register
-     and    r1, r1, #0x3            // Extract CPU ID bits
-     cmp    r1, #0                  // Are we on core 0?
-     bne    idle                    // If not, branch to idle
+	ldr sp, =svc_stack                  @ Setup SVC stack
 
-core0:
+	ldr r5, =(ARM_MODE_ABORT|MASK_BITS) @ Set Abort stack
+	msr cpsr_fc, r5
+	ldr sp, =abort_stack
 
-    /*
-     * Initializing the Vector Base Address Register (VBAR).
-     */
+	ldr r5, =(ARM_MODE_UNDEF|MASK_BITS) @ Set undef stack
+	msr cpsr_fc, r5
+	ldr sp, =undef_stack
 
-    ldr     r1, =vector_table_base_address
-    mcr     p15, 0, r1, c12, c0, 0
+	ldr r5, =(ARM_MODE_IRQ|MASK_BITS)   @ Set irq stack
+	msr cpsr_fc, r5
+	ldr sp, =irq_stack
 
-    /*
-     * Initializing the stack pointer registers.
-     */
+	ldr r5, =(ARM_MODE_FIQ|MASK_BITS)   @ Set fiq stack
+	msr cpsr_fc, r5
+	ldr sp, =fiq_stack
 
-    msr     cpsr_c, MODE_SVC
-    ldr     sp, =_svc_stack_base
+	ldr r5, =(ARM_MODE_SVC|MASK_BITS)   @ back to SVC
+	msr cpsr_fc, r5
 
-    /*
-     * Initializing bss segment.
-     */
+	blx kernel_start
+loop:
+	wfe
+	b loop
 
-    mov     r0, #0
-    ldr     r1, =_bss_start
-    ldr     r2, =_bss_end
-
-clear_bss:
-    cmp     r1, r2
-    strlt   r0, [r1], #4
-    blt     clear_bss
-
-    /*
-     * Branch to C main.
-     */
-
-    bl      main
-
-idle:
-    wfi
-    b       idle
+/* TODO: right stacks */
+.section .bss.kstack
+.align(4)
+stack_base:
+.org .+0x1000
+.global svc_stack
+svc_stack:
+/* Fake stacks for 5 registers */
+abort_stack:
+.org .+20
+undef_stack:
+.org .+20
+irq_stack:
+.org .+20
+fiq_stack:
+.org .+20

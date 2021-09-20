@@ -31,10 +31,13 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_MACHINE_H_
+#define DEF_MACHINE_H_
 
-int puts(const char*);
-int putchar(int);
+#define PERIPH_BASE     0x3F000000
+#define PERIPH_CONTROL	0x40000000
+#define UART0_OFFSET	0x00215040 // actually its uart1
+/* Start of memory handled in TTBR1 with TTBCR.N = 2 */
+#define PERIPH_VBASE	0x41000000
 
 #endif

@@ -31,10 +31,46 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#include "cache.h"
+#include "mmu.h"
+#include "memlayout.h"
+#include "string.h"
+#include "irq.h"
+/* TODO Remove me once rewritten in Coq */
+#include "yield_c.h"
 
-int puts(const char*);
-int putchar(int);
+extern bool_t mmu_io_remapped;
+extern uint32_t current_partition;
 
-#endif
+void mal_init(void);
+
+int kernel_start(void)
+{
+	/* Clear bss */
+	memset(kernel_bss_start, 0, (unsigned)(kernel_bss_end-kernel_bss_start));
+
+	/* Enable D/I caches and branch predictor */
+	caches_enable();
+	branch_pred_enable();
+
+	/* Configure timer & interrupts */
+	irq_init();
+
+	/* Configure the mmu */
+	mmu_init();
+
+	/* Initialize the root partition */
+	mal_init();
+
+	/* Activate and run the multiplexer */
+	activate((uint32_t) ((void **) getRootPartition())[indexPD()+1]);
+
+	uint32_t pageDir = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
+	user_ctx_t *user_ctx = ((user_ctx_t **) 0x3FFFF000)[0];
+
+	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
+	switchContextCont(getRootPartition(), pageDir, 0, user_ctx);
+
+	/* Should never be reached */
+	for (;;);
+}

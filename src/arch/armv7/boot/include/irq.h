@@ -31,10 +31,9 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_IRQ_H_
+#define DEF_IRQ_H_
 
-int puts(const char*);
-int putchar(int);
+void irq_init(void);
 
 #endif

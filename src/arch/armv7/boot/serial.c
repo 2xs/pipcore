@@ -31,10 +31,11 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#include "periph.h"
 
-int puts(const char*);
-int putchar(int);
-
-#endif
+int uart_putchar(int c)
+{
+	while (*(unsigned int*)(UART0+0x18) & 0x20);
+	*(unsigned int*)UART0 = c;
+	return c;
+}

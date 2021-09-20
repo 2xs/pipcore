@@ -31,12 +31,60 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef __DEF_UART_H__
-#define __DEF_UART_H__
+#include "debug.h"
+#include "periph.h"
 
-void uart_init();
-void uart_send(unsigned int c);
-char uart_getc();
-void uart_puts(char *s);
+/* See QA7_rev3.4.pdf */
 
-#endif /* __DEF_UART_H__ */
+#define CPU_FREQ 900000000
+#define TIMER_HZ 160
+#define TIMER_RELOAD (CPU_FREQ / TIMER_HZ)
+
+/* Defines for bcm2836  */
+#define LOCAL_TIMER_INT_EN       (1<<29)
+#define LOCAL_TIMER_EN           (1<<28)
+#define	LOCAL_TIMER_RELOAD_MASK  ((1<<28)-1)
+
+void irq_init_2836(void)
+{
+	int i;
+	DEBUG(ERROR, "%s: %p\n", __FUNCTION__, PERIPH_CONTROL);
+
+	/* 4.2 Control register:
+	 * source = ABP clock ( clocked at half the ARM clock)
+	 * increment = 2 */
+	IRQ2836REG(CONTROL) = 3<<8;
+	/* Set the prescaler 1/1. (timer_freq = (2^31/prescaler)*source_freq)*/
+	IRQ2836REG(TIMER_PRESCALER) = 1<<31;
+
+	/* 4.4 GPU interrupts routing: route all to core 0 */
+	IRQ2836REG(GPU_ROUTING) = 0;
+
+	/* 4.5 Performance monitors: disabled */
+	IRQ2836REG(PMU_ROUTING_CLR) = 0xf;
+
+	/* 4.6 Core timer interrupts: Enable all timer IRQs */
+	IRQ2836REG(TIMER_CTL) = 0xf;
+
+	/* 4.7 Core mailbox interrupts: FIXME Disable all */
+	IRQ2836REG(MAILBOX_CTL) = 0;
+
+	/* 4.9 Axi outstanding: Disable irq */
+	IRQ2836REG(AXI_OUTSTD_CTL) = 0;
+
+	/* 4.10 Core interrupt sources: Enable all on core 0, disable others */
+	IRQ2836REG(IRQ_SOURCE) = 0xffffffff;
+	DEBUG(ERROR, "irq_source read: %08x\n", IRQ2836REG(IRQ_SOURCE));
+	for (i=1;i<4;i++)
+		IRQ2836REG(IRQ_SOURCE+4*i) = 0;
+
+	/* 4.11 Local timer: give timer to core 0 */
+	IRQ2836REG(LOCAL_INT_ROUTING) = 0;
+	IRQ2836REG(LOCAL_TIMER_CTL) = LOCAL_TIMER_INT_EN | LOCAL_TIMER_EN | TIMER_RELOAD;
+	IRQ2836REG(LOCAL_TIMER_CLR_RLD) = 3<<30;
+}
+
+void irq_init(void)
+{
+	irq_init_2836();
+}

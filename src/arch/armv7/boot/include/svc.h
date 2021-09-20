@@ -31,10 +31,23 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_SVC_H_
+#define DEF_SVC_H_
 
-int puts(const char*);
-int putchar(int);
+#define SVC_INVALID_NUMBER      0xdeadbeef
+
+#define SVC_CREATEPARTITION      0
+#define SVC_COUNTTOMAP           1
+#define SVC_PREPARE              2
+#define SVC_ADDVADDR             3
+#define SVC_GET_INT_STATE        4
+#define SVC_SET_INT_STATE        5
+#define SVC_REMOVEVADDR          6
+#define SVC_MAPPEDINCHILD        7
+#define SVC_DELETEPARTITION      8
+#define SVC_COLLECT              9
+#define SVC_YIELD               10
+/* TODO */
+#define SVC_PUTCHAR             11
 
 #endif

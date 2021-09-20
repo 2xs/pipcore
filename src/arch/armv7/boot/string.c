@@ -31,10 +31,39 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+void *memset(void *dst, int v, unsigned size)
+{
+	unsigned char *d = (unsigned char*)dst;
+	unsigned i;
 
-int puts(const char*);
-int putchar(int);
+	for (i=0;i<size;i++)
+	{
+		d[i] = v;
+	}
+	return dst;
+}
 
-#endif
+void *memcpy(void *dst, const void *src, unsigned size)
+{
+	unsigned char*d = (unsigned char*) dst;
+	const unsigned char *s = (const unsigned char*)src;
+
+	for(;size;size--)
+		*d++=*s++;
+
+	return dst;
+}
+
+int memcmp(const void *s1, const void *s2, unsigned size)
+{
+	const unsigned char *a = s1, *b = s2;
+	int ret;
+
+	while(size--)
+	{
+		ret = *a++-*b++;
+		if (ret)
+			return ret;
+	}
+	return 0;
+}

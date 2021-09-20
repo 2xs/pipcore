@@ -31,28 +31,26 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef __DEF_GPIO_H__
-#define __DEF_GPIO_H__
+#define GATE_CTX_T_SIZE (4+16*4)
 
-#define MMIO_BASE       0x3F000000
+.global svc_entrypoint
 
-#define GPFSEL0         ((volatile unsigned int*)(MMIO_BASE+0x00200000))
-#define GPFSEL1         ((volatile unsigned int*)(MMIO_BASE+0x00200004))
-#define GPFSEL2         ((volatile unsigned int*)(MMIO_BASE+0x00200008))
-#define GPFSEL3         ((volatile unsigned int*)(MMIO_BASE+0x0020000C))
-#define GPFSEL4         ((volatile unsigned int*)(MMIO_BASE+0x00200010))
-#define GPFSEL5         ((volatile unsigned int*)(MMIO_BASE+0x00200014))
-#define GPSET0          ((volatile unsigned int*)(MMIO_BASE+0x0020001C))
-#define GPSET1          ((volatile unsigned int*)(MMIO_BASE+0x00200020))
-#define GPCLR0          ((volatile unsigned int*)(MMIO_BASE+0x00200028))
-#define GPLEV0          ((volatile unsigned int*)(MMIO_BASE+0x00200034))
-#define GPLEV1          ((volatile unsigned int*)(MMIO_BASE+0x00200038))
-#define GPEDS0          ((volatile unsigned int*)(MMIO_BASE+0x00200040))
-#define GPEDS1          ((volatile unsigned int*)(MMIO_BASE+0x00200044))
-#define GPHEN0          ((volatile unsigned int*)(MMIO_BASE+0x00200064))
-#define GPHEN1          ((volatile unsigned int*)(MMIO_BASE+0x00200068))
-#define GPPUD           ((volatile unsigned int*)(MMIO_BASE+0x00200094))
-#define GPPUDCLK0       ((volatile unsigned int*)(MMIO_BASE+0x00200098))
-#define GPPUDCLK1       ((volatile unsigned int*)(MMIO_BASE+0x0020009C))
+svc_entrypoint:
+	push       {r0-r12,lr}
 
-#endif /* __DEF_GPIO_H__ */
+	ldr        r0, [lr,#-4]         /* Calculate address of SVC instruction and load it into R0 */
+	bic        r0, r0, #0xFF000000  /* Mask off top 8 bits of instruction to give SVC number */
+
+	stmfd   sp, {sp, lr}^           /* Save banked registers, then manually adjust */
+	sub     sp, #8                  /* sp because write-back is unpredictable here */
+
+	mrs     r12, SPSR               /* Writes the contents of the CP15 coprocessor register SCTLR into R12 */
+	stmfd   sp!, {r12}              /* Save the previous spsr */
+	mov     r1, sp                  /* Points r1 to the full current gate_ctx_t */
+
+	bl      c_svc_handler           /* Call handler with r0 pointing on the context */
+
+	mov     r0, sp                  /* Now resume the context, assuming r0 has been */
+                                        /* updated with the syscall return value */
+	add     sp, #GATE_CTX_T_SIZE    /* Adjust the stack */
+	b       ial_resume_ctx          /* Return to user context */

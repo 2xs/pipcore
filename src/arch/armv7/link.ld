@@ -31,49 +31,65 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-OUTPUT_FORMAT(
-    "elf32-littlearm",
-    "elf32-littlearm",
-    "elf32-littlearm"
-)
+OUTPUT_FORMAT("elf32-littlearm")
+ENTRY(vector_table)
 
-OUTPUT_ARCH(arm)
+MEMBASE = 0x8000 ;
 
-ENTRY(start)
+MEMORY
+{
+	RAM (rwx) : ORIGIN = MEMBASE, LENGTH = 1024M
+}
 
-PAGE_SIZE = 0x1000 ;
+PHDRS
+{
+	kernel PT_LOAD ;
+}
 
 SECTIONS
 {
-    . = 0x00000000 ;
+	. = MEMBASE;
+	.kstart ALIGN(0x1000):
+	{
+		kernel_text_start = .;
+		*(.text.start);
+		*(.text);
+	} > RAM : kernel
 
-    .text :
-    {
-        . = ALIGN(0x20) ;
-        *(.text.vector_table)
-        *(.text.reset_handler)
-        *(.text)
-        . = ALIGN(PAGE_SIZE) ;
-    }
+	.krodata ALIGN(0x1000):
+	{
+		kernel_ro_start = .;
+		*(.rodata);
+	} > RAM : kernel
 
-    .data :
-    {
-        *(.data)
-        *(.rodata)
-        . = ALIGN(PAGE_SIZE) ;
-    }
+	.kdata ALIGN (0x1000):
+	{
+		kernel_rw_start = .;
+		*(.data);
+	} > RAM : kernel
 
-    .bss :
-    {
-        _bss_start = . ;
-        *(.bss)
-        . = ALIGN(PAGE_SIZE) ;
-        _bss_end = . ;
-    }
+	.kbss :
+	{
+		*(.bss.kstack COMMON);
+		kernel_bss_start = .;
+		*(.bss COMMON);
+		kernel_bss_end = .;
+		kernel_rw_end = .;
+	} > RAM : kernel
 
-    _stack_top      = . ;
-    _fiq_stack_base = _stack_top + PAGE_SIZE ;
-    _irq_stack_base = _fiq_stack_base + PAGE_SIZE ;
-    _svc_stack_base = _irq_stack_base + PAGE_SIZE ;
-    _stack_base     = _svc_stack_base ;
+	/* Kernel / Userland boundary */
+	.user_code 0x700000:
+	{
+		root_part_start = .;
+		*(.multiplexer);
+		. = ALIGN(0x1000);
+		root_part_end = .;
+	} > RAM : kernel
+
+	.user_mem ALIGN(0x1000) :
+	{
+		user_mem_start = .;
+		. = 0x200000;
+		user_mem_end = .;
+	} > RAM
 }

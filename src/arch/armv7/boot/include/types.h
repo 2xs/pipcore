@@ -31,10 +31,18 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#ifndef DEF_TYPES_H_
+#define DEF_TYPES_H_
 
-int puts(const char*);
-int putchar(int);
+typedef unsigned char bool_t;
+
+typedef enum retcode_e {
+	RET_SUCCESS         = 0,
+	RET_ERROR           = -1,
+	RET_SYSCALL_INVALID = -2,
+} retcode_t;
+
+#define FALSE 0
+#define TRUE  1
 
 #endif

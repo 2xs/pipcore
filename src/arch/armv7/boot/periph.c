@@ -31,10 +31,11 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef DEF_STDIO_H_
-#define DEF_STDIO_H_
+#include "types.h"
 
-int puts(const char*);
-int putchar(int);
+bool_t io_remapped;
 
-#endif
+void periph_notify_ioremap(int v)
+{
+	io_remapped = v;
+}
