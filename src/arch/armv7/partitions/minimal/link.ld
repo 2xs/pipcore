@@ -31,34 +31,28 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-OUTPUT_FORMAT(
-    "elf32-littlearm",
-    "elf32-littlearm",
-    "elf32-littlearm"
-)
-
 OUTPUT_ARCH(arm)
-
 ENTRY(main)
 
+PHDRS
+{
+	code	PT_LOAD	FLAGS(5);
+	rwdata	PT_LOAD	FLAGS(6);
+}
 SECTIONS
 {
-    .text 0x700000:
-    {
-        *(.text);
-        . = ALIGN(4K);
-    }
+	/* User memory start */
+	.text 0x700000:
+	{
+		code_start = .;
+		*(.text);
+		*(.rodata);
+		code_end = .;
+	} :code
 
-    .data :
-    {
-        *(.data)
-        *(.rodata)
-        . = ALIGN(4K);
-    }
-
-    .bss :
-    {
-        *(.bss)
-        . = ALIGN(4K);
-    }
+	.data ALIGN(0x1000):
+	{
+		*(.data);
+		*(.bss COMMON);
+	} :rwdata
 }

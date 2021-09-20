@@ -31,7 +31,33 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+void serial_putc(char c);
+void serial_puts(char *str);
+
 void main(void)
 {
+    char *Hello_world_str = "Hello World !\n";
+    serial_puts(Hello_world_str);
     for(;;);
+}
+
+void serial_putc(char c)
+{
+    register unsigned r0 asm("r0") = c;
+
+    asm volatile
+    (
+        "svc #11"
+        : "=r" (r0)
+        : "0"  (r0)
+        : "memory"
+    );
+}
+
+void serial_puts(char *str)
+{
+    for (char *it = str; *it; ++it)
+    {
+        serial_putc(*it);
+    }
 }

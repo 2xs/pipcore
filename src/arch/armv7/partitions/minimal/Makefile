@@ -37,36 +37,33 @@ CFLAGS     = -Wall
 CFLAGS    += -Wextra
 CFLAGS    += -Werror
 CFLAGS    += -mcpu=cortex-a7
+CFLAGS    += -marm
 CFLAGS    += -ffreestanding
-CFLAGS    += -nostdinc
-CFLAGS    += -nostdlib
-CFLAGS    += -nostartfiles
-
-LDFLAGS    = -T link.ld
+CFLAGS    += -c
+CFLAGS    += -O2
 
 ASFLAGS    = $(CFLAGS)
 
 CSOURCES   = $(wildcard *.c)
 ASSOURCES  = $(wildcard *.S)
 
-OBJS       = $(ASSOURCES:.S=.o)
-OBJS      += $(CSOURCES:.c=.o)
+ASOBJ      = $(ASSOURCES:.S=.o)
+COBJ       = $(CSOURCES:.c=.o)
 
-TARGET     = minimal
-ELF        = $(TARGET).bin
+EXEC       = $(shell basename $$(pwd)).bin
 
-all: $(ELF)
+all: $(EXEC)
 
-$(ELF): $(OBJS)
-	$(LD) -o $@ $^ $(LDFLAGS)
+$(EXEC): $(ASOBJ) $(COBJ)
+	$(LD) $^ -T link.ld -o $@
 
 %.o: %.S
-	$(AS) $(CFLAGS) -c -o $@ $^ $(ASFLAGS)
+	$(AS) $(ASFLAGS) $< -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $^ $(CFLAGS)
+	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -f $(TARGET).bin $(OBJS)
+	rm -f $(ASOBJ) $(COBJ) $(EXEC)
 
 .PHONY: all clean
