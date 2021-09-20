@@ -136,9 +136,9 @@ mandatory but required if you want to produce a bootable ISO file of your
 project.
 
 \index{nasm} \marginlabel{Netwide Assembler:}
-Pip's assembly sources are compiled using the Netwide Assembler (NASM). A known
-working version is version 2.14, although any version since 2.0 should be
-working.
+Pip's assembly sources for the x86 architecture are assembled using the Netwide
+Assembler (NASM). A known working version is version 2.14, although any version
+since 2.0 should be working.
 
 \index{opam} \marginlabel{OCaml Package Manager:}
 Opam is the package manager for the OCaml programming language, the language in
@@ -294,10 +294,16 @@ Update the apt package index:
     $ sudo apt update
 \end{lstlisting}
 
-Install the required packages:
+For the x86 architecture, install the following necessary packages:
 
 \begin{lstlisting}[style=BashStyle]
     $ sudo apt install build-essential doxygen gdb git grub2-common grub-pc haskell-stack nasm opam qemu-system-i386 texlive texlive-latex-extra xorriso
+\end{lstlisting}
+
+For the ARMv7 architecture, install the following necessary packages:
+
+\begin{lstlisting}[style=BashStyle]
+    $ sudo apt install build-essential doxygen gcc-arm-none-eabi gdb-multiarch git grub2-common grub-pc haskell-stack opam qemu-system-arm texlive texlive-latex-extra xorriso
 \end{lstlisting}
 
 Download the GHC compiler if necessary in the \texttt{\$HOME/.stack}:
@@ -321,21 +327,11 @@ Build Coq from source with \texttt{opam}:
 
 \subsubsection{Getting source code}
 
-First, you have to download the \texttt{pipcore} source code which contains the
+First, you have to clone the \texttt{pipcore} repository which contains the
 kernel, proof and documentation of Pip:
 
 \begin{lstlisting}[style=BashStyle]
-    # Download the pipcore source code
-    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.tar.gz
-
-    # Download the SHA-256 message digest
-    $ wget http://pip.univ-lille1.fr/release/pipcore/pipcore.tar.gz.sha256sum
-
-    # Check downloaded source code integrity
-    $ sha256sum -c pipcore.tar.gz.sha256sum
-
-    # Decompress archive
-    $ tar -xvf pipcore.tar.gz
+    $ git clone https://github.com/2xs/pipcore.git
 \end{lstlisting}
 
 Then, you may need the source code of the userland library of Pip, called
@@ -343,25 +339,23 @@ LibPip, which provides useful functions for calling the API or managing the data
 structures of Pip:
 
 \begin{lstlisting}[style=BashStyle]
-    # Download the libpip source code
-    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.tar.gz
-
-    # Download the SHA-256 message digest
-    $ wget http://pip.univ-lille1.fr/release/libpip/libpip.tar.gz.sha256sum
-
-    # Check downloaded source code integrity
-    $ sha256sum -c libpip.tar.gz.sha256sum
-
-    # Decompress archive
-    $ tar -xvf libpip.tar.gz
+    $ git clone https://github.com/2xs/libpip.git
 \end{lstlisting}
 
 \subsubsection{Building LibPip}
 
-To build a partition on top of Pip, you will probably need LibPip:
+To build a partition on top of Pip, you will probably need LibPip.
+
+To build Libpip for the x86 architecture:
 
 \begin{lstlisting}[style=BashStyle]
-    $ make -C /path/to/libpip
+    $ make -C /path/to/libpip ARCH=x86
+\end{lstlisting}
+
+To build LibPip for the ARMv7 architecture:
+
+\begin{lstlisting}[style=BashStyle]
+    $ make -C /path/to/libpip ARCH=armv7
 \end{lstlisting}
 
 \subsubsection{Building Digger}
@@ -379,29 +373,35 @@ Then, build Digger through the stack tool:
     $ make -C /path/to/pipcore/tools/digger
 \end{lstlisting}
 
-\subsubsection{Partition toolchain configuration}
+\subsubsection{Configuration script}
 
-Configure the partition building toolchain:
+The purpose of the configuration script is to detect whether the tools needed to
+compile the project are installed. This script expects three mandatory
+arguments: the target architecture, the name of the root partition and the path
+to the LibPip. Optional arguments can also be provided. For more information:
 
-\begin{itemize}
-\item Go to pipcore repository
-\item Navigate to the \texttt{src/arch/x86\_multiboot/partitions} directory
-\item Copy the \texttt{toolchain.mk.template} file into \texttt{toolchain.mk}
-\item Open \texttt{toolchain.mk} with a text editor
-\end{itemize}
+\begin{lstlisting}[style=BashStyle]
+./path/to/pipcore/configure.sh --help
+\end{lstlisting}
 
-Here, you need to specify which compiler and LibPip to use. Basically, we will
-use GCC as C compiler and assembler, and LD as linker. Set LIBPIP to
-\texttt{/path/to/libpip}, which we defined previously as the path to LibPip's
-repository. Feel free to replace those with your favourite toolchain (e.g.
-i386-elf-gcc on Mac OSX):
+To configure the project for the x86 architecture and the minimal root
+partition:
 
-\begin{lstlisting}
-CC=gcc
-LD=ld
-AS=gcc
+\begin{lstlisting}[style=BashStyle]
+./path/to/pipcore/configure.sh \
+    --architecture=x86 \
+    --partition-name=minimal \
+    --libpip=/path/to/libpip
+\end{lstlisting}
 
-LIBPIP=/path/to/libpip
+To configure the project for the ARMv7 architecture and the minimal root
+partition:
+
+\begin{lstlisting}[style=BashStyle]
+./path/to/pipcore/configure.sh \
+    --architecture=armv7 \
+    --partition-name=minimal \
+    --libpip=/path/to/libpip
 \end{lstlisting}
 
 Your development environment is ready.
@@ -411,28 +411,13 @@ Your development environment is ready.
 This section describes how to test your development environment, whether it is
 from a virtual machine image, a Docker image or your host machine.
 
-\subsection{Building the minimal partition}
-
-Before to build pipcore, you need to build the minimal partition:
-
-\begin{lstlisting}[style=BashStyle]
-    $ make -C /path/to/pipcore/src/arch/x86_multiboot/partitions/minimal
-\end{lstlisting}
-
 \subsection{Building pipcore}
 
-Now that you have built the minimal partition, you can build pipcore with the
-partition on top of it:
+You can build pipcore with the root partition on top of it:
 
 \begin{lstlisting}[style=BashStyle]
     $ make -C /path/to/pipcore
 \end{lstlisting}
-
-If it is the first time you run \texttt{make} command, it will execute the
-\texttt{configure.sh} script. Follow the instructions on the screen to generate
-the \texttt{toolchain.mk} file needed for the compilation. If you need to change
-your configuration later, e.g. change the partition you want to build, you can
-edit this file.
 
 You should find in \texttt{/path/to/pipcore} directory the ELF binary and the
 ISO image of Pip.

@@ -36,9 +36,6 @@ include toolchain.mk
 # Default tools
 CAT := cat
 SED := sed
-COQC := coqc
-COQDEP := coqdep
-COQDOC := coqdoc
 
 CFLAGS=-Wall -Wextra
 # -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
@@ -110,6 +107,7 @@ C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Interna
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
 AS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.s)
+GAS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.S)
 AS_ROOTPART_BIN_WRAPPER_SRC=$(C_SRC_TARGET_DIR)/rootpart_bin_wrapper.s
 
 C_GENERATED_HEADERS=$(C_GENERATED_HEADERS_DIR)/Internal.h $(C_GENERATED_HEADERS_DIR)/Services.h
@@ -121,6 +119,7 @@ C_GENERATED_OBJ=$(C_GENERATED_SRC:.c=.o)
 C_TARGET_BOOT_OBJ=$(C_TARGET_BOOT_SRC:.c=.o)
 C_TARGET_MAL_OBJ=$(C_TARGET_MAL_SRC:.c=.o)
 AS_TARGET_BOOT_OBJ=$(AS_TARGET_BOOT_SRC:.s=.o)
+GAS_TARGET_BOOT_OBJ=$(GAS_TARGET_BOOT_SRC:.S=.o)
 AS_ROOTPART_BIN_WRAPPER_OBJ=$(GENERATED_PARTITION_OBJ_DIR)/$(PARTITION).o
 
 ########################### Coq files ###############################
@@ -188,7 +187,7 @@ PARTITION_BIN=$(TARGET_PARTITION_DIR)/$(PARTITION)/$(PARTITION).bin
 
 TARGET_PARTITIONS_OBJ=$(wildcard $(TARGET_PARTITION_DIR)/*.o)
 OBJECT_FILES=$(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
-             $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ)\
+             $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
              $(TARGET_PARTITIONS_OBJ)
 
 # Jsons (Coq extracted AST)
@@ -259,7 +258,7 @@ $(JSONS) $(COQ_EXTR_COMPILED_FILES) &:\
 	cd $(GENERATED_FILES_DIR) && $(COQC) $(COQCEXTRFLAGS) ../$<
 
 %.vo %.vok %.vos %.glob .%.aux &: %.v %.v.d
-	$(COQC) $(COQCFLAGS) $< 
+	$(COQC) $(COQCFLAGS) $<
 else
 # Unfortunately, without grouped-target we cannot inherit dependencies
 # computed by coqdep, so we must mv files after the fact
@@ -297,6 +296,10 @@ $(AS_TARGET_BOOT_OBJ):\
     %.o : %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
+$(GAS_TARGET_BOOT_OBJ):\
+    %.o : %.S
+	$(AS) $(ASFLAGS) -o $@ $<
+
 # Static pattern rule for constructing object files from target MAL C files
 $(C_TARGET_MAL_OBJ):\
     %.o : %.c $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
@@ -316,14 +319,14 @@ $(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(PARTITION_INTER
 
 # $(AS_TARGET_BOOT_OBJ) must be the first object file arg to the linker
 $(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
-                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ)\
+                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
 		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
 		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)
-	$(LD) $(LDFLAGS)\
-                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ)\
+	$(LD) \
+                  $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
                   $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
                   $(AS_ROOTPART_BIN_WRAPPER_OBJ)\
-                  -T $< -o $@
+                  -T $< -o $@ $(LDFLAGS)
 
 #####################################################################
 ##                      Proof related targets                      ##
@@ -340,7 +343,7 @@ proofs: $(COQ_PROOF_FILES:.v=.vo)
 doc: doc-c doc-coq gettingstarted
 
 doc-c: | $(C_DOC_DIR)
-	cd doc && $(DOXYGEN) doxygen.conf
+	cd doc && doxygen doxygen.conf
 
 doc-coq: $(COQ_VFILES) $(COQ_GLOBFILES) | $(COQ_DOC_DIR)
 	$(COQDOC)\
@@ -349,8 +352,8 @@ doc-coq: $(COQ_VFILES) $(COQ_GLOBFILES) | $(COQ_DOC_DIR)
 
 gettingstarted:
 	cd doc/getting-started/ &&\
-        $(PDFLATEX) getting-started.tex &&\
-        $(PDFLATEX) getting-started.tex
+        pdflatex getting-started.tex &&\
+        pdflatex getting-started.tex
 
 ########################### ISO targets ############################
 
@@ -360,7 +363,7 @@ $(INTERMEDIATE_ELF): $(PARTITION).elf
 	ln $< $@
 
 $(PARTITION).iso: $(INTERMEDIATE_ELF)
-	$(GRUBMKRESCUE) -o $@ tools/grub
+	grub-mkrescue -o $@ tools/grub
 
 ########################### QEMU targets ###########################
 
@@ -403,6 +406,6 @@ clean:
 	rm -f $(PARTITION).iso
 
 gdb: $(PARTITION).elf
-	gdb $(GDBARGS) $<
+	$(GDB) $(GDBARGS) $<
 
 .PHONY: all proofs doc doc-c doc-coq gettingstarted qemu-elf qemu-iso realclean clean gdb

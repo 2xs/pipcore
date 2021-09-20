@@ -31,10 +31,39 @@
 #  knowledge of the CeCILL license and that you accept its terms.             #
 ###############################################################################
 
-# Edit this to suit your needs, and copy to toolchain.mk.
+include ../toolchain.mk
 
-CC=gcc
-LD=ld
-AS=gcc
+CFLAGS     = -Wall
+CFLAGS    += -Wextra
+CFLAGS    += -Werror
+CFLAGS    += -mcpu=cortex-a7
+CFLAGS    += -marm
+CFLAGS    += -ffreestanding
+CFLAGS    += -c
+CFLAGS    += -O2
 
-LIBPIP=/path/to/libpip
+ASFLAGS    = $(CFLAGS)
+
+CSOURCES   = $(wildcard *.c)
+ASSOURCES  = $(wildcard *.S)
+
+ASOBJ      = $(ASSOURCES:.S=.o)
+COBJ       = $(CSOURCES:.c=.o)
+
+EXEC       = $(shell basename $$(pwd)).bin
+
+all: $(EXEC)
+
+$(EXEC): $(ASOBJ) $(COBJ)
+	$(LD) $^ -T link.ld -o $@
+
+%.o: %.S
+	$(AS) $(ASFLAGS) $< -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) $< -o $@
+
+clean:
+	rm -f $(ASOBJ) $(COBJ) $(EXEC)
+
+.PHONY: all clean

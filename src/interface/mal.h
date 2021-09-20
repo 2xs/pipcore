@@ -131,9 +131,9 @@ bool firstVAddrGreaterThanSecond(vaddr vaddr1, vaddr vaddr2);
 contextAddr vaddrToContextAddr(vaddr contextVAddr);
 bool checkIndexPropertyLTB(userValue userIndex);
 index userValueToIndex(userValue userIndex);
-uint32_t getVidtVAddr();
-uint32_t getNthVAddrFrom(uint32_t base, uint32_t size);
-void writeContext(contextAddr ctx, uint32_t ctxSaveVAddr, interruptMask flagsOnWake);
+vaddr getVidtVAddr();
+vaddr getNthVAddrFrom(page base, uint32_t size);
+void writeContext(contextAddr ctx, vaddr ctxSaveVAddr, interruptMask flagsOnWake);
 void loadContext(contextAddr ctx, bool enforce_interrupts);
 
 #endif
