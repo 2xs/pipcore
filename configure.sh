@@ -1,250 +1,196 @@
 #!/bin/sh
-#################################################################################
-#   © Université de Lille, The Pip Development Team (2015-2021)                 #
-#                                                                               #
-#   This software is a computer program whose purpose is to run a minimal,      #
-#   hypervisor relying on proven properties such as memory isolation.           #
-#                                                                               #
-#   This software is governed by the CeCILL license under French law and        #
-#   abiding by the rules of distribution of free software.  You can  use,       #
-#   modify and/ or redistribute the software under the terms of the CeCILL      #
-#   license as circulated by CEA, CNRS and INRIA at the following URL           #
-#   "http://www.cecill.info".                                                   #
-#                                                                               #
-#   As a counterpart to the access to the source code and  rights to copy,      #
-#   modify and redistribute granted by the license, users are provided only     #
-#   with a limited warranty  and the software's author,  the holder of the      #
-#   economic rights,  and the successive licensors  have only  limited          #
-#   liability.                                                                  #
-#                                                                               #
-#   In this respect, the user's attention is drawn to the risks associated      #
-#   with loading,  using,  modifying and/or developing or reproducing the       #
-#   software by the user in light of its specific status of free software,      #
-#   that may mean  that it is complicated to manipulate,  and  that  also       #
-#   therefore means  that it is reserved for developers  and  experienced       #
-#   professionals having in-depth computer knowledge. Users are therefore       #
-#   encouraged to load and test the software's suitability as regards their     #
-#   requirements in conditions enabling the security of their systems and/or    #
-#   data to be ensured and,  more generally, to use and operate it in the       #
-#   same conditions as regards security.                                        #
-#                                                                               #
-#   The fact that you are presently reading this means that you have had        #
-#   knowledge of the CeCILL license and that you accept its terms.              #
-#################################################################################
+###############################################################################
+#  © Université de Lille, The Pip Development Team (2015-2021)                #
+#                                                                             #
+#  This software is a computer program whose purpose is to run a minimal,     #
+#  hypervisor relying on proven properties such as memory isolation.          #
+#                                                                             #
+#  This software is governed by the CeCILL license under French law and       #
+#  abiding by the rules of distribution of free software.  You can  use,      #
+#  modify and/ or redistribute the software under the terms of the CeCILL     #
+#  license as circulated by CEA, CNRS and INRIA at the following URL          #
+#  "http://www.cecill.info".                                                  #
+#                                                                             #
+#  As a counterpart to the access to the source code and  rights to copy,     #
+#  modify and redistribute granted by the license, users are provided only    #
+#  with a limited warranty  and the software's author,  the holder of the     #
+#  economic rights,  and the successive licensors  have only  limited         #
+#  liability.                                                                 #
+#                                                                             #
+#  In this respect, the user's attention is drawn to the risks associated     #
+#  with loading,  using,  modifying and/or developing or reproducing the      #
+#  software by the user in light of its specific status of free software,     #
+#  that may mean  that it is complicated to manipulate,  and  that  also      #
+#  therefore means  that it is reserved for developers  and  experienced      #
+#  professionals having in-depth computer knowledge. Users are therefore      #
+#  encouraged to load and test the software's suitability as regards their    #
+#  requirements in conditions enabling the security of their systems and/or   #
+#  data to be ensured and,  more generally, to use and operate it in the      #
+#  same conditions as regards security.                                       #
+#                                                                             #
+#  The fact that you are presently reading this means that you have had       #
+#  knowledge of the CeCILL license and that you accept its terms.             #
+###############################################################################
 
-### Regular expression used to extract the total amount of available memory
-available_memory_regex='^MemTotal:[[:space:]]*\([^[:space:]]*\).*'
+set -e
 
-### Minimum amount of memory in KB required to compile proofs
-minimum_required_memory="8388604" # (8 GB)
+# Minimum required version of the commands
+as_minimum_version=
+cc_minimum_version=
+ld_minimum_version=
+qemu_minimum_version=
+coqc_minimum_version=
 
-### Minimum required version of commands
-nasm_minimum_version="2.14"
-gcc_minimum_version="8.3.0"
-coq_minimum_version="8.13.1"
-doxygen_minimum_version="1.8.13"
-gdb_minimum_version="8.2.1"
-grub_mkrescue_minimum_version="2.02"
-ld_minimum_version="2.31.1"
-make_minimum_version="4.3"
-pdflatex_minimum_version="3.14"
-qemu_minimum_version="3.1.0"
+# Regular expressions used to extract version number
+cc_regex=
+as_regex=
+ld_regex=
+qemu_regex=
+coqc_regex=
 
-### Regular expressions used to get the version number
-nasm_regex_1='^NASM version \([^ ]*\).*$'
-coqc_regex_1='^The Coq Proof Assistant, version \([^ ]*\).*$'
-doxygen_regex_1='^\([^ ]*\)$'
-gdb_regex_1='^GNU gdb .* \([^ ]*\)$'
-grub_mkrescue_regex_1='^.*grub-mkrescue .* \([^ ]*\)$'
-ld_regex_1='^GNU ld .* \([^ ]*\)$'
-make_regex_1='^GNU Make \([^ ]*\).*$'
-pdflatex_regex_1='^pdfTeX \([^ ]*\).*$'
-qemu_regex_1='^QEMU emulator version \([^ ]*\).*$'
-
-### Regular expressions used to check if the version number is correct
-nasm_regex_2='^2[.]14.*$|^2[.]1[5-9].*$|^2[.][2-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
-gcc_regex_2='^8[.][3-9].*$|^8[.][1-9][0-9].*$|^9[.].*$|^[1-9][0-9][.].*$'
-coqc_regex_2='^8[.]13[.][1-2]$'
-doxygen_regex_2='^1[.]8[.]1[3-9].*$|^1[.]8[.][2-9][0-9].*$|^1[.]9.*$|^1[.][1-9][0-9].*$|^[2-9][.].*$|^[1-9][0-9][.].*$'
-gdb_regex_2='^8[.]2[.][1-9].*$|^8[.][3-9].*$|^8[.][1-9][0-9].*$|^9[.].*$|^[1-9][0-9][.].*$'
-grub_mkrescue_regex_2='^2[.]0[2-9].*$|^2[.][1-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
-ld_regex_2='^2[.]31[.][1-9].*$|^2[.]3[2-9].*$|^2[.][4-9][0-9].*$|^[3-9][.].*$|^[1-9][0-9][.].*$'
-make_regex_2='^4[.][3-9].*$|^4[.][1-9][0-9].*$|^[5-9][.].*$|^[1-9][0-9][.].*$'
-pdflatex_regex_2='^3[.]1[4-9].*$|^3[.][2-9][0-9].*$|^[4-9][.].*$|^[1-9][0-9][.].*$'
-qemu_regex_2='^3[.][1-9].*$|^[4-9][.].*$|^[1-9][0-9][.].*$'
-
-### Global variables
-check_commands=
-partition_name=
+# Global variables
+cc=
+as=
+ld=
+objcopy=
+qemu=
+coqc=
+coq_makefile=
+coqdep=
+coqdoc=
+coqtop=
+grub_mkrescue=
+pdflatex=
+gdb=
+doxygen=
+make=
+no_command_check=
 architecture=
-target=
-arch_cflags=
-arch_ldflags=
-arch_asflags=
-arch_qemuflags=
-nasm_path=
-gcc_path=
-coq_path=
-coq_makefile_path=
-coqc_path=
-coqdep_path=
-coqdoc_path=
-coqtop_path=
-doxygen_path=
-gdb_path=
-grub_mkrescue_path=
-ld_path=
-make_path=
-pdflatex_path=
-qemu_path=
-gnu_prefix=
-qemu_suffix=
+partition_name=
+quiet=
+libpip=
 
-### Show the usage of this script
+# Print the script usage
 usage() {
     printf "\
-USAGE: %s [ARGUMENTS]
+Usage: %s <MANDATORY ARGUMENTS> [OPTIONAL ARGUMENTS]
 
   This configuration script aims to check the availability and the version of
   the commands required by the project.
 
-  This script has two execution modes:
+  The default behavior of the script is to look for the commands needed for the
+  architecture, specified by the \"--architecture\" argument, in the \$PATH
+  variable and check their version numbers. If a command could not be found or
+  if the version number is not the expected one, the script fails by returning a
+  non-zero error code. The user can then specify a path to the command
+  explicitly using the optional arguments or disable the default behavior by
+  passing the \"--no-command-check\" argument.
 
-  If no arguments are given to the script, it will run in interactive mode. In
-  this mode, it will first try to search for each command in the \$PATH
-  environment variable. If it fails to find it or if its version is not correct,
-  it will display a message asking the user if he wants to enter a path to a
-  correct version of the command.
+  MANDATORY ARGUMENTS:
 
-  If at least one argument is given to the script, it will run in
-  non-interactive mode. By default, the arguments given to the script, with the
-  exception of the \`--architecture\` and \`--partition-name\` arguments, are
-  considered correct. It is the user's responsibility to provide a path to a
-  correct version of the command. To change this behavior, you can use the
-  \`--check-commands\` argument. In this case, the script will fail with a
-  non-zero exit code if a command was not found at the specified path or if it
-  does not have a correct version. The omitted arguments are empty.
-
-  ARGUMENTS:
-
-    --help                    Show this message and exit
-
-    --check-commands          Fail if a command was not found at the specified
-                              path or if does not have a correct version
-
-    --architecture=<x>        The target architecture names:
-                                - \`x86\`
-                                - \`armv7\`
+    --architecture=<x>        The target architecture name:
+                                  - \"armv7\" (ARMv7)
+                                  - \"x86\" (Intel 80386)
 
     --partition-name=<x>      The name of the partition to build
 
-    --nasm-path=<x>           A path to nasm version %s or higher
+    --libpip=<x>              Path to the PIP standart library
 
-    --gcc-path=<x>            A path to gcc version %s or higher
+  OPTIONAL ARGUMENTS:
 
-    --coq-path=<x>            A path to the directory where coq version %s
-                              or higher is installed
+    --help                    Show this message and exit
 
-    --doxygen-path=<x>        A path to doxygen version %s or higher
+    --no-command-check        Disable command check
 
-    --gdb-path=<x>            A path to gdb version %s or higher
+    --quiet                   Turn off the script's error output
 
-    --grub-mkrescue-path=<x>  A path to grub-mkrescue version %s or higher
+    --c-compiler=<x>          Explicitly use a path to a C compiler rather than
+                              trying to find it in the \$PATH variable.
 
-    --ld-path=<x>             A path to ld version %s or higher
+    --assembler=<x>           Explicitly use a path to an assembler rather than
+                              trying to find it in the \$PATH variable.
 
-    --make-path=<x>           A path to make version %s or higher
+    --linker=<x>              Explicitly use a path to a linker rather than
+                              trying to find it in the \$PATH variable.
 
-    --pdflatex-path=<x>       A path to pdflatex version %s or higher
+    --objcopy=<x>             Explicitly use a path to objcopy rather than
+                              trying to find it in the \$PATH variable.
 
-    --qemu-path=<x>           A path to qemu version %s or higher
+    --coq-compiler=<x>        Explicitly use a path to the Coq compiler rather
+                              than trying to find it in the \$PATH variable.
 
+    --coq-makefile=<x>        Explicitly use a path to coq_makefile rather
+                              than trying to find it in the \$PATH variable.
+
+    --coqdep=<x>              Explicitly use a path to coqdep rather than trying
+                              to find it in the \$PATH variable.
+
+    --coqdoc=<x>              Explicitly use a path to coqdoc rather than trying
+                              to find it in the \$PATH variable.
+
+    --coqtop=<x>              Explicitly use a path to coqtop rather than trying
+                              to find it in the \$PATH variable.
+
+    --doxygen=<x>             Explicitly use a path to Doxygen rather than
+                              trying to find it in the \$PATH variable.
+
+    --gdb=<x>                 Explicitly use a path to GDB rather than trying to
+                              find it in the \$PATH variable.
+
+    --grub-mkrescue=<x>       Explicitly use a path to GRUB rather than trying
+                              to find it in the \$PATH variable.
+
+    --make=<x>                Explicitly use a path to Make rather than trying
+                              to find it in the \$PATH variable.
+
+    --pdflatex=<x>            Explicitly use a path to pdflatex rather than
+                              trying to find it in the \$PATH variable.
+
+    --qemu=<x>                Explicitly use a path to QEMU rather than trying to
+                              find it in the \$PATH variable.
 " \
-"$0" \
-"$nasm_minimum_version" \
-"$gcc_minimum_version" \
-"$coq_minimum_version" \
-"$doxygen_minimum_version" \
-"$gdb_minimum_version" \
-"$grub_mkrescue_minimum_version" \
-"$ld_minimum_version" \
-"$make_minimum_version" \
-"$pdflatex_minimum_version" \
-"$qemu_minimum_version"
+"$0"
 }
 
-### Generate the toolchain.mk file
-generate_toolchain() {
+# Generate toolchains with validated commands
+generate_toolchains() {
 cat <<EOF > toolchain.mk
-#################################################################################
-#   © Université de Lille, The Pip Development Team (2015-2021)                 #
-#                                                                               #
-#   This software is a computer program whose purpose is to run a minimal,      #
-#   hypervisor relying on proven properties such as memory isolation.           #
-#                                                                               #
-#   This software is governed by the CeCILL license under French law and        #
-#   abiding by the rules of distribution of free software.  You can  use,       #
-#   modify and/ or redistribute the software under the terms of the CeCILL      #
-#   license as circulated by CEA, CNRS and INRIA at the following URL           #
-#   "http://www.cecill.info".                                                   #
-#                                                                               #
-#   As a counterpart to the access to the source code and  rights to copy,      #
-#   modify and redistribute granted by the license, users are provided only     #
-#   with a limited warranty  and the software's author,  the holder of the      #
-#   economic rights,  and the successive licensors  have only  limited          #
-#   liability.                                                                  #
-#                                                                               #
-#   In this respect, the user's attention is drawn to the risks associated      #
-#   with loading,  using,  modifying and/or developing or reproducing the       #
-#   software by the user in light of its specific status of free software,      #
-#   that may mean  that it is complicated to manipulate,  and  that  also       #
-#   therefore means  that it is reserved for developers  and  experienced       #
-#   professionals having in-depth computer knowledge. Users are therefore       #
-#   encouraged to load and test the software's suitability as regards their     #
-#   requirements in conditions enabling the security of their systems and/or    #
-#   data to be ensured and,  more generally, to use and operate it in the       #
-#   same conditions as regards security.                                        #
-#                                                                               #
-#   The fact that you are presently reading this means that you have had        #
-#   knowledge of the CeCILL license and that you accept its terms.              #
-#################################################################################
-
 DIGGER_DIR=tools/digger
 DIGGER=\$(DIGGER_DIR)/digger
 
 # GNU Make
-MAKE="$make_path"
+MAKE="$make"
 
 # Coq Proof Assistant
-COQ_MAKEFILE="$coq_makefile_path"
-COQ_ENV  = COQC = "$coqc_path"
-COQ_ENV += COQDEP = "$coqdep_path"
-COQ_ENV += COQDOC = "$coqdoc_path"
-COQ_ENV += COQTOP = "$coqtop_path"
+COQ_MAKEFILE="$coq_makefile"
+COQ_ENV  = COQC = "$coqc"
+COQ_ENV += COQDEP = "$coqdep"
+COQ_ENV += COQDOC = "$coqdoc"
+COQ_ENV += COQTOP = "$coqtop"
 
 # GNU C Compiler
-CC="$gcc_path"
+CC="$cc"
 
 # Netwide assembler
-AS="$nasm_path"
+AS="$as"
 
 # GNU Linker
-LD="$ld_path"
+LD="$ld"
 
 # Qemu (for 32 bits architectures)
-QEMU="$qemu_path"
+QEMU="$qemu"
 
 # GNU Debugger
-GDB="$gdb_path"
+GDB="$gdb"
 
 # Doxygen
-DOXYGEN="$doxygen_path"
+DOXYGEN="$doxygen"
 
 # Pdflatex
-PDFLATEX="$pdflatex_path"
+PDFLATEX="$pdflatex"
 
 # GRUB rescue
-GRUBMKRESCUE="$grub_mkrescue_path"
+GRUBMKRESCUE="$grub_mkrescue"
 
 ################# Compilation options #################
 
@@ -269,399 +215,514 @@ DEBUG=ENABLED
 GDBARGS  = -iex "target remote localhost:1234"
 GDBARGS += -iex "symbol-file \$(BUILD_DIR)/\$(TARGET)/\$(KERNEL_ELF)"
 
-QEMUARGS  = $arch_qemuflags
-# QEMUARGS += -S -s
+QEMUARGS=$arch_qemuflags
+#QEMUARGS+= -S -s
+EOF
+
+cat <<EOF > src/arch/"$target"/partitions/toolchain.mk
+###############################################################################
+#  © Université de Lille, The Pip Development Team (2015-2021)                #
+#                                                                             #
+#  This software is a computer program whose purpose is to run a minimal,     #
+#  hypervisor relying on proven properties such as memory isolation.          #
+#                                                                             #
+#  This software is governed by the CeCILL license under French law and       #
+#  abiding by the rules of distribution of free software.  You can  use,      #
+#  modify and/ or redistribute the software under the terms of the CeCILL     #
+#  license as circulated by CEA, CNRS and INRIA at the following URL          #
+#  "http://www.cecill.info".                                                  #
+#                                                                             #
+#  As a counterpart to the access to the source code and  rights to copy,     #
+#  modify and redistribute granted by the license, users are provided only    #
+#  with a limited warranty  and the software's author,  the holder of the     #
+#  economic rights,  and the successive licensors  have only  limited         #
+#  liability.                                                                 #
+#                                                                             #
+#  In this respect, the user's attention is drawn to the risks associated     #
+#  with loading,  using,  modifying and/or developing or reproducing the      #
+#  software by the user in light of its specific status of free software,     #
+#  that may mean  that it is complicated to manipulate,  and  that  also      #
+#  therefore means  that it is reserved for developers  and  experienced      #
+#  professionals having in-depth computer knowledge. Users are therefore      #
+#  encouraged to load and test the software's suitability as regards their    #
+#  requirements in conditions enabling the security of their systems and/or   #
+#  data to be ensured and,  more generally, to use and operate it in the      #
+#  same conditions as regards security.                                       #
+#                                                                             #
+#  The fact that you are presently reading this means that you have had       #
+#  knowledge of the CeCILL license and that you accept its terms.             #
+###############################################################################
+
+# Edit this to suit your needs
+
+CC=$cc
+LD=$ld
+AS=$as
+OBJCOPY=$objcopy
+
+LIBPIP=$libpip
 EOF
 }
 
-### Parse arguments provided to the script
-### $@ A space-separated list of all arguments
+# Parse provided arguments
 parse_arguments() {
-    for argument in "$@"
-    do
-        value=${argument#*=}
-        flag=${argument%=*}
+	for argument in "$@"
+	do
+		value=${argument#*=}
+		flag=${argument%=*}
 
-        case $flag in
-            --help)
-                usage && exit 0
-                ;;
-            --check-commands)
-                check_commands=1
-                ;;
-            --architecture)
-                architecture=$value
-                ;;
-            --partition-name)
-                partition_name=$value
-                ;;
-            --nasm-path)
-                nasm_path=$value
-                ;;
-            --gcc-path)
-                gcc_path=$value
-                ;;
-            --coq-path)
-                coq_path=$value
-                ;;
-            --doxygen-path)
-                doxygen_path=$value
-                ;;
-            --gdb-path)
-                gdb_path=$value
-                ;;
-            --grub-mkrescue-path)
-                grub_mkrescue_path=$value
-                ;;
-            --ld-path)
-                ld_path=$value
-                ;;
-            --make-path)
-                make_path=$value
-                ;;
-            --pdflatex-path)
-                pdflatex_path=$value
-                ;;
-            --qemu-path)
-                qemu_path=$value
-                ;;
-        esac
-    done
+		case $flag in
+			--help)
+				usage && exit 1
+				;;
+			--architecture)
+				architecture=$value
+				;;
+			--partition-name)
+				partition_name=$value
+				;;
+			--no-command-check)
+				no_command_check=1
+				;;
+			--quiet)
+				quiet=1
+				;;
+			--libpip)
+				libpip=$value
+				;;
+			--c-compiler)
+				cc=$value
+				;;
+			--assembler)
+				as=$value
+				;;
+			--linker)
+				ld=$value
+				;;
+			--objcopy)
+				objcopy=$value
+				;;
+			--coq-compiler)
+				coqc=$value
+				;;
+			--coq-makefile)
+				coq_makefile=$value
+				;;
+			--coqdep)
+				coqdep=$value
+				;;
+			--coqdoc)
+				coqdoc=$value
+				;;
+			--coqtop)
+				coqtop=$value
+				;;
+			--gdb)
+				gdb=$value
+				;;
+			--qemu)
+				qemu=$value
+				;;
+			--grub-mkrescue)
+				grub_mkrescue=$value
+				;;
+			--doxygen)
+				doxygen=$value
+				;;
+			--make)
+				make=$value
+				;;
+			--pdflatex)
+				pdflatex=$value
+				;;
+		esac
+	done
 }
 
-### Get the version number of the command from stdout
-### $1 Command to execute to get version from stdout
-### $2 Regular expression used to get the version number from stdout
-### Returns 0 if the version number is set, 1 otherwise
-command_get_version_number_generic() {
-    version_number="$( $1 2>/dev/null | sed -n -e 's/'"$2"'/\1/p' )"
-    [ -z "$version_number" ] && retval=1 || retval=0
-    printf "%s\\n" "$version_number"
-    return $retval
+# Print message to the stderr
+# $1 The message to print
+print_error() {
+	# Check if the "--quiet" argument is set
+	if [ -z "$quiet" ]
+	then
+		printf "\\033[91m" >&2
+		printf "$@" >&2
+		printf "\\033[0m" >&2
+	fi
 }
 
-### GCC-specific way to get version number
-### $1 Command to execute to get version from stdout
-### $2 Regular expression used to get the version number from stdout
-### Returns 0 if the version number is set, 1 otherwise
-command_get_version_number_gcc() {
-    major=$(printf "%s" "__GNUC__" | "$1" -E -xc - | tail -n 1) || return 1
-    minor=$(printf "%s" "__GNUC_MINOR__" | "$1" -E -xc - | tail -n 1) || return 1
-    patch_level=$(printf "%s" "__GNUC_PATCHLEVEL__" | "$1" -E -xc - | tail -n 1) || return 1
-    printf "%s.%s.%s\\n" "$major" "$minor" "$patch_level"
+# Select this version group
+select_group='\([^.]\+\)'
+# Ignore this version group
+ignore_group='[0-9]\+'
+
+# Select the MAJOR version number
+# $1 The version number from which to select
+# Return the MAJOR version number
+select_version_major() {
+	regex='^'"$select_group"'.*$'
+	printf '%s\n' "$1" | sed -n -e 's/'"$regex"'/\1/p'
 }
 
-command_get_version_number() {
-    version_number=
-    case "$1" in
-        *gcc)
-            version_number=$(command_get_version_number_gcc "$1") || return 1
-            ;;
-        ?*)
-            version_number=$(command_get_version_number_generic "$1 $2" "$3") || return 1
-            ;;
-        *)
-            return 1
-    esac
-    printf "%s\\n" "$version_number"
-    return 0
+# Select the MINOR version number
+# $1 The version number from which to select
+# Return the MINOR version number
+select_version_minor() {
+	regex='^'"$ignore_group"'\.'"$select_group"'.*$'
+	printf '%s\n' "$1" | sed -n -e 's/'"$regex"'/\1/p'
 }
 
-### Check if the version number of the command is correct
-### $1 Version number of the command
-### $2 Regular expression used to check the version number
-### Returns 0 if the version number is correct, 1 otherwise
-command_is_correct_version() {
-    printf "%s\\n" "$1" | grep -E "$2" >/dev/null 2>&1
+# Select the PATCH version number
+# $1 The version number from which to select
+# Return the PATCH version number
+select_version_patch() {
+	regex='^'"$ignore_group"'\.'"$ignore_group"'\.'"$select_group"'.*$'
+	printf '%s\n' "$1" | sed -n -e 's/'"$regex"'/\1/p'
 }
 
-### Check the version of a command from stdout
-### $1 Command to execute to get version from stdout
-### $2 Option to get version from stdout
-### $3 Regular expression used to get the version number from stdout
-### $4 Regular expression used to check the version number
-### Returns 0 if the version of the command is correct, 1 if the command was
-### not found at the specified path, 2 if the command has not a correct version
-command_check_version() {
-    version_number=$(command_get_version_number "$1" "$2" "$3") || return 1
-    command_is_correct_version "$version_number" "$4" || return 2
-    return 0
+# Select the BUILD version number
+# $1 The version number from which to select
+# Return the BUILD version number
+select_version_build() {
+	regex='^'"$ignore_group"'\.'"$ignore_group"'\.'"$ignore_group"'\.'"$select_group"'.*$'
+	printf '%s\n' "$1" | sed -n -e 's/'"$regex"'/\1/p'
 }
 
-### Check the commands interactively
-### $1 Command to execute to get version from stdout
-### $2 Option to get version from stdout
-### $3 Minimum version of the command
-### $4 Regular expression used to get the version number from stdout
-### $5 Regular expression used to check the version number
-interactive_command_check() {
-    printf "Checking %s ... " "$1" >&2
-    command_path=$(command -v "$1")
-    while :
-    do
-        command_check_version "$command_path" "$2" "$4" "$5"
-        case "$?" in
-            0)
-                printf "OK (>= %s)\\n" "$3" >&2
-                break
-                ;;
-            1)
-                printf "KO\\nWARNING: %s was not found.\\n" "$1" >&2
-                printf "Would you like to provide a path to a correct %s? (y/N) " "$1" >&2
-                read -r choice
-                case "$choice" in
-                    [Yy])
-                        printf "Provide a path to a correct %s.\\n> " "$1" >&2
-                        read -r command_path
-                        continue
-                        ;;
-                    *)
-                        command_path=""
-                        break
-                        ;;
-                esac
-                ;;
-            2)
-                printf "KO (< %s)\\nWARNING: %s versions below %s are untested.\\n" "$3" "$1" "$3" >&2
-                printf "Would you like to provide a path to a correct %s? (y/N) " "$1" >&2
-                read -r choice
-                case "$choice" in
-                    [Yy])
-                        printf "Provide a path to a correct %s.\\n> " "$1" >&2
-                        read -r command_path
-                        continue
-                        ;;
-                    *)
-                        break
-                        ;;
-                esac
-        esac
-    done
-    printf "%s\\n" "$command_path"
+# Check if the version number is valid
+# $1 The version number to check
+# Return 0 is the version number is valid, 1 otherwise
+is_valid_version_pattern() {
+	version_pattern='^[0-9]+(\.[0-9]+(\.[0-9]+(\.[0-9]+)?)?)?$'
+	printf '%s\n' "$1" | grep -E -q "$version_pattern" || return 1
 }
 
-### Run the script in interactive mode because no arguments have been provided
-interactive_mode() {
-    # Check the total amount of free memory
-    printf "Checking memory ... "
-    available_memory=$(sed -n -e 's/'"$available_memory_regex"'/\1/p' /proc/meminfo)
-    if [ "$available_memory" -le "$minimum_required_memory" ]
-    then
-        printf "\\nWARNING: pipcore required more than 8GB of memory in order to compile proofs ...\\n"
-    else
-        printf "OK\\n"
-    fi
-
-    # Select the target architecture
-    while :
-    do
-        printf "Choose a target architecture (type \"?\" to see target list).\\n> "
-        read -r architecture
-        case "$architecture" in
-            x86)
-                gnu_prefix="x86_64-linux-gnu"
-                qemu_suffix="i386"
-                target="x86_multiboot"
-                arch_cflags="-march=pentium -m32"
-                arch_ldflags="-m elf_i386"
-                arch_asflags="-f elf"
-                arch_qemuflags="-cpu Haswell"
-                arch_qemuflags="$arch_qemuflags -m 64"
-                arch_qemuflags="$arch_qemuflags -nographic"
-                break
-                ;;
-            armv7)
-                gnu_prefix="arm-none-eabi"
-                qemu_suffix="aarch64"
-                target="armv7"
-                arch_cflags="-mcpu=cortex-a72"
-                arch_ldflags="-m armelf"
-                arch_asflags="-ffreestanding"
-                arch_asflags="$arch_asflags -nostdinc"
-                arch_asflags="$arch_asflags -nostdlib"
-                arch_asflags="$arch_asflags -nostartfiles"
-                arch_asflags="$arch_asflags -c"
-                arch_qemuflags="-M raspi2"
-                arch_qemuflags="$arch_qemuflags -cpu cortex-a72"
-                arch_qemuflags="$arch_qemuflags -serial null"
-                arch_qemuflags="$arch_qemuflags -serial stdio"
-                break
-                ;;
-            \?)
-                printf "x86\\n"
-                printf "armv7\\n"
-        esac
-    done
-
-    # Check the command version
-
-    if [ "$architecture" = "x86" ]
-    then
-        nasm_path=$(interactive_command_check "nasm" "-v" \
-            "$nasm_minimum_version" "$nasm_regex_1" "$nasm_regex_2")
-    fi
-
-    gcc_path=$(interactive_command_check "$gnu_prefix-gcc" "" \
-        "$gcc_minimum_version" "" "$gcc_regex_2")
-
-    if [ "$architecture" != "x86" ]
-    then
-        nasm_path="$gcc_path"
-    fi
-
-    coqc_path=$(interactive_command_check "coqc" "-v" \
-        "$coq_minimum_version" "$coqc_regex_1" "$coqc_regex_2")
-
-    doxygen_path=$(interactive_command_check "doxygen" "-v" \
-        "$doxygen_minimum_version" "$doxygen_regex_1" "$doxygen_regex_2")
-
-    gdb_path=$(interactive_command_check "$gnu_prefix-gdb" "-v" \
-        "$gdb_minimum_version" "$gdb_regex_1" "$gdb_regex_2")
-
-    grub_mkrescue_path=$(interactive_command_check "grub-mkrescue" \
-        "--version" "$grub_mkrescue_minimum_version" "$grub_mkrescue_regex_1" \
-        "$grub_mkrescue_regex_2")
-
-    ld_path=$(interactive_command_check "$gnu_prefix-ld" "-v" "$ld_minimum_version" \
-        "$ld_regex_1" "$ld_regex_2")
-
-    make_path=$(interactive_command_check "make" "-v" \
-        "$make_minimum_version" "$make_regex_1" "$make_regex_2")
-
-    pdflatex_path=$(interactive_command_check "pdflatex" "-v" \
-        "$pdflatex_minimum_version" "$pdflatex_regex_1" "$pdflatex_regex_2")
-
-    qemu_path=$(interactive_command_check "qemu-system-$qemu_suffix" "--version" \
-        "$qemu_minimum_version" "$qemu_regex_1" "$qemu_regex_2")
-
-    if [ ! -z "$coqc_path" ]
-    then
-        coq_path=$(dirname "$coqc_path")
-        coq_makefile_path="$coq_path/coq_makefile"
-        coqdep_path="$coq_path/coqdep"
-        coqdoc_path="$coq_path/coqdoc"
-        coqtop_path="$coq_path/coqtop"
-    else
-        coq_makefile_path=
-        coqdep_path=
-        coqdoc_path=
-        coqtop_path=
-    fi
-
-    # Select the partition to build
-    printf "Enter the name of the partition to build.\\n> "
-    read -r partition_name
-    while [ ! -d "src/arch/$target/partitions/$partition_name" ]; do
-        printf "WARNING: the \"%s\" partition directory was not found...\\n" "$partition_name"
-        printf "Enter the name of the partition to build.\\n> "
-        read -r partition_name
-    done
-
-    # Generate the toolchain.mk file.
-    generate_toolchain
-
-    return 0
+# Compare two version groups
+# $1 The version group to compare with $2
+# $2 The version group to compare with $1
+# Return:
+#    0 if $1 = $2
+#    1 if $1 > $2
+#    2 if $1 < $2
+compare_version_group() {
+	# Check if both groups are set
+	[ -z "$1" ] && [ -z "$2" ] && return 0
+	[ -n "$1" ] && [ -z "$2" ] && return 1
+	[ -z "$1" ] && [ -n "$2" ] && return 2
+	# Compare both groups
+	[ "$1" -gt "$2" ] && return 1
+	[ "$1" -lt "$2" ] && return 2
+	# Both groups are equals
+	return 0
 }
 
-### Run the script in non-interactive mode because arguments have been provided
-non_interactive_mode() {
-    # Parse command line arguments
-    parse_arguments "$@"
+# Compare two version numbers in MAJOR.MINOR.PATCH.BUILD format
+# $1 The version number to compare with $2
+# $2 The version number to compare with $1
+# Return:
+#    3 if $1 or $2 are invalid
+#    0 if $1 = $2
+#    1 if $1 > $2
+#    2 if $1 < $2
+compare_version() {
+	# Checks that the version numbers are valid
+	is_valid_version_pattern "$1" || return 3
+	is_valid_version_pattern "$2" || return 3
 
-    # Fail if the architecture name is unknown
-    case "$architecture" in
-        x86)
-            target="x86_multiboot"
-            arch_cflags="-march=pentium -m32"
-            arch_ldflags="-m elf_i386"
-            arch_asflags="-f elf"
-            arch_qemuflags="-cpu Haswell"
-            arch_qemuflags="$arch_qemuflags -m 64"
-            arch_qemuflags="$arch_qemuflags -nographic"
-            ;;
-        armv7)
-            target="armv7"
-            arch_cflags="-mcpu=cortex-a72"
-            arch_ldflags="-m armelf"
-            arch_asflags="-ffreestanding"
-            arch_asflags="$arch_asflags -nostdinc"
-            arch_asflags="$arch_asflags -nostdlib"
-            arch_asflags="$arch_asflags -nostartfiles"
-            arch_asflags="$arch_asflags -c"
-            arch_qemuflags="-M raspi2"
-            arch_qemuflags="$arch_qemuflags -cpu cortex-a72"
-            arch_qemuflags="$arch_qemuflags -serial null"
-            arch_qemuflags="$arch_qemuflags -serial stdio"
-            ;;
-        *)
-            return 1
-    esac
+	# Check if the two versions are equal
+	[ "$1" = "$2" ] && return 0
 
-    # Set the coq binary paths if the `--coq-path` flag is set
-    if [ ! -z "$coq_path" ]
-    then
-        coq_makefile_path="$coq_path/coq_makefile"
-        coqdep_path="$coq_path/coqdep"
-        coqdoc_path="$coq_path/coqdoc"
-        coqtop_path="$coq_path/coqtop"
-        coqc_path="$coq_path/coqc"
-    fi
+	# Compare the two major versions
+	v1_group=$(select_version_major "$1")
+	v2_group=$(select_version_major "$2")
+	compare_version_group "$v1_group" "$v2_group" || return "$?"
 
-    # Check the command version if the `--check-commands` flag is set
-    if [ ! -z "$check_commands" ]
-    then
-        if [ "$architecture" = "x86" ]
-        then
-            command_check_version "$nasm_path" "-v" "$nasm_regex_1" \
-                "$nasm_regex_2" || return 1
-        fi
+	# Compare the two minor versions
+	v1_group=$(select_version_minor "$1")
+	v2_group=$(select_version_minor "$2")
+	compare_version_group "$v1_group" "$v2_group" || return "$?"
 
-        command_check_version "$gcc_path" "" "" "$gcc_regex_2" || return 1
+	# Compare the two patch versions
+	v1_group=$(select_version_patch "$1")
+	v2_group=$(select_version_patch "$2")
+	compare_version_group "$v1_group" "$v2_group" || return "$?"
 
-        command_check_version "$coqc_path" "-v" "$coqc_regex_1" \
-            "$coqc_regex_2" || return 1
-
-        command_check_version "$doxygen_path" "-v" "$doxygen_regex_1" \
-            "$doxygen_regex_2" || return 1
-
-        command_check_version "$gdb_path" "-v" "$gdb_regex_1" \
-            "$gdb_regex_2" || return 1
-
-        command_check_version "$grub_mkrescue_path" "--version" \
-            "$grub_mkrescue_regex_1" "$grub_mkrescue_regex_2" || return 1
-
-        command_check_version "$ld_path" "-v" "$ld_regex_1" \
-            "$ld_regex_2" || return 1
-
-        command_check_version "$make_path" "-v" "$make_regex_1" \
-            "$make_regex_2" || return 1
-
-        command_check_version "$pdflatex_path" "-v" "$pdflatex_regex_1" \
-            "$pdflatex_regex_2" || return 1
-
-        command_check_version "$qemu_path" "--version" "$qemu_regex_1" \
-            "$qemu_regex_2" || return 1
-    fi
-
-    # Exit if the partition name directory was not found in the given target
-    [ -d "src/arch/$target/partitions/$partition_name" ] || return 1
-
-    # Generate the toolchain.mk file.
-    generate_toolchain
-
-    return 0
+	# Compare the two build versions
+	v1_group=$(select_version_build "$1")
+	v2_group=$(select_version_build "$2")
+	compare_version_group "$v1_group" "$v2_group" || return "$?"
 }
 
-### Entry point of the script
+# Validate command path
+# $1 Command path or name
+# Return 0 if the function succeed, 1 otherwise
+validate_command_path() {
+	command -v "$1" >/dev/null 2>&1 || return 1
+}
+
+# Validate command version
+# $1 Command path or name
+# $2 Regular expression used to extract version number
+# $3 Minimum required version of the command
+# Return 0 if the function succeed, 1 otherwise
+validate_command_version() {
+	version=$(LC_ALL=C "$1" --version | sed -n -e 's/'"$2"'/\1/p')
+	compare_version "$version" "$3"
+	[ "$?" -le 1 ] || return 1
+}
+
+# Validate command path and version
+# $1 Command path or name
+# $2 Regular expression used to extract version number
+# $3 Minimum required version of the command
+# Return 0 if the function succeed, 1 otherwise
+validate_command_path_version() {
+	validate_command_path "$1" || return 1
+	validate_command_version "$1" "$2" "$3" || return 1
+}
+
+# Validate command path and print error message if an error occured
+# $1 Command path or name
+# Return 0 if the function succeed, 1 otherwise
+validate_command_path_wrapper() {
+	if ! validate_command_path "$1"
+	then
+		print_error 'The command "%s" could not be found in the environment ' "$1"
+		print_error 'variable $PATH.\nYou must provide a path to a valid version '
+		print_error 'of the command by passing the corresponding argument or\n'
+		print_error 'disable command checking by passing the "--no-command-check" '
+		print_error 'argument.\n'
+		return 1
+	fi
+}
+
+# Validate command path, version and print error message if an error occured
+# $1 Command path or name
+# $2 Regular expression used to extract version number
+# $3 Minimum required version of the command
+# Return 0 if the function succeed, 1 otherwise
+validate_command_path_version_wrapper() {
+	if ! validate_command_path_version "$1" "$2" "$3"
+	then
+		print_error 'The command "%s" could not be found in the environment ' "$1"
+		print_error 'variable $PATH or has a version below %s.\nYou must provide ' "$3"
+		print_error 'a path to a valid version of the command by passing the '
+		print_error 'corresponding argument or\ndisable command checking by '
+		print_error 'passing the "--no-command-check" argument.\n'
+		return 1
+	fi
+}
+
+# Configure the global variables according to the specified architecture
+configure_global_variables() {
+	case "$architecture" in
+		x86)
+			### Default names of the commands
+
+			cc=${cc:='x86_64-linux-gnu-gcc'}
+			as=${as:='nasm'}
+			ld=${ld:='x86_64-linux-gnu-ld'}
+			objcopy=${objcopy:='x86_64-linux-gnu-objcopy'}
+			qemu=${qemu:='qemu-system-i386'}
+			coqc=${coqc:='coqc'}
+			grub_mkrescue=${grub_mkrescue:='grub-mkrescue'}
+			pdflatex=${pdflatex:='pdflatex'}
+			gdb=${gdb:='gdb'}
+			doxygen=${doxygen:='doxygen'}
+			make=${make:='make'}
+			coq_makefile=${coq_makefile:='coq_makefile'}
+			coqdep=${coqdep:='coqdep'}
+			coqdoc=${coqdoc:='coqdoc'}
+			coqtop=${coqtop:='coqtop'}
+
+			### Regular expressions used to extract the version
+			### number from the "--version" output
+
+			cc_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
+			as_regex='^NASM version \([^ \n]\+\)$'
+			ld_regex='^GNU .\+ \([^ \n]\+\)$'
+			qemu_regex='^QEMU emulator version \([^ \n]\+\).*$'
+			coqc_regex='^The Coq Proof Assistant, version \([^ \n]\+\).*$'
+
+			### Minimum versions of the toolchain for the selected
+			### architecture
+
+			cc_minimum_version='8.3.0'
+			as_minimum_version='2.14'
+			ld_minimum_version='2.31.1'
+			qemu_minimum_version='3.1.0'
+			coqc_minimum_version='8.13.1'
+
+			### CFLAGS for the selected architecture
+
+			arch_cflags='-march=pentium'
+			arch_cflags="$arch_cflags"' -m32'
+
+			### LDFLAGS for the selected architecture
+
+			arch_ldflags='-m elf_i386'
+
+			### ASFLAGS for the selected architecture
+
+			arch_asflags='-f elf'
+
+			### QEMUFLAGS for the selected architecture
+
+			arch_qemuflags='-cpu Haswell'
+			arch_qemuflags="$arch_qemuflags"' -m 64'
+			arch_qemuflags="$arch_qemuflags"' -nographic'
+
+			### Directory name of the target
+
+			target='x86_multiboot'
+
+			return 0
+			;;
+		armv7)
+			### Default names of the commands
+
+			cc=${cc:='arm-none-eabi-gcc'}
+			as=${as:='arm-none-eabi-gcc'}
+			ld=${ld:='arm-none-eabi-ld'}
+			objcopy=${objcopy:='arm-none-eabi-objcopy'}
+			qemu=${qemu:='qemu-system-arm'}
+			coqc=${coqc:='coqc'}
+			grub_mkrescue=${grub_mkrescue:='grub-mkrescue'}
+			pdflatex=${pdflatex:='pdflatex'}
+			gdb=${gdb:='gdb-multiarch'}
+			doxygen=${doxygen:='doxygen'}
+			make=${make:='make'}
+			coq_makefile=${coq_makefile:='coq_makefile'}
+			coqdep=${coqdep:='coqdep'}
+			coqdoc=${coqdoc:='coqdoc'}
+			coqtop=${coqtop:='coqtop'}
+
+			### Regular expressions used to extract the version
+			### number from the "--version" output
+
+			cc_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
+			as_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
+			ld_regex='^GNU .\+ \([^ \n]\+\)$'
+			qemu_regex='^QEMU emulator version \([^ \n]\+\).*$'
+			coqc_regex='^The Coq Proof Assistant, version \([^ \n]\+\).*$'
+
+			### Minimum versions of the toolchain for the selected
+			### architecture
+
+			as_minimum_version='2.31.1'
+			cc_minimum_version='7.3.1'
+			ld_minimum_version='2.31.1'
+			# Version 4.0 of QEMU needed because the raspi2 and
+			# raspi3 models now implement the "local timer" in the
+			# bcm2836_control block
+			# @see https://wiki.qemu.org/ChangeLog/4.0
+			qemu_minimum_version='4.0'
+			coqc_minimum_version='8.13.1'
+
+			### CFLAGS for the selected architecture
+
+			arch_cflags='-march=armv7-a'
+			arch_cflags="$arch_cflags"' -marm'
+			# This flag is necessary so that GCC can optimize
+			# out the recursive calls of the initPEntryTableAux
+			# function
+			arch_cflags="$arch_cflags"' -O2'
+
+			### LDFLAGS for the selected architecture
+
+			# For some reason, the linker cannot find the libgcc.a
+			# library. This is necessary because not all ARM
+			# processors have a direct instruction for division or
+			# modulo and must therefore implement it in software
+			libgcc_path=$("$cc" -print-search-dirs | sed -n -e 's/^install: \(.*\)$/\1/p')
+
+			arch_ldflags='-m armelf'
+			arch_ldflags="$arch_ldflags"' -L'"$libgcc_path"
+			arch_ldflags="$arch_ldflags"' -lgcc'
+
+			### ASFLAGS for the selected architecture
+
+			arch_asflags='-march=armv7-a'
+			arch_asflags="$arch_asflags"' -marm'
+			arch_asflags="$arch_asflags"' -Isrc/arch/armv7/boot/include'
+			arch_asflags="$arch_asflags"' -c'
+
+			### QEMUFLAGS for the selected architecture
+
+			arch_qemuflags='-M raspi2b'
+			arch_qemuflags="$arch_qemuflags"' -cpu cortex-a7'
+			arch_qemuflags="$arch_qemuflags"' -serial null'
+			arch_qemuflags="$arch_qemuflags"' -serial stdio'
+
+			### Directory name of the target
+
+			target='armv7'
+
+			return 0
+			;;
+		*)
+			usage && return 1
+	esac
+}
+
+# The main function of the script
 main() {
-    if [ "$#" -gt 0 ]
-    then
-        non_interactive_mode "$@"
-    else
-        interactive_mode
-    fi
+	parse_arguments "$@"
 
-    exit $?
+	# Check if the mandatory arguments are set
+	if [ -z "$architecture" ] || [ -z "$partition_name" ] || [ -z "$libpip" ]
+	then
+		usage && return 1
+	fi
+
+	configure_global_variables
+
+	if [ -z "$no_command_check" ]
+	then
+		# These commands need to have their paths and version numbers validated
+		validate_command_path_version_wrapper "$cc" "$cc_regex" "$cc_minimum_version"
+		validate_command_path_version_wrapper "$as" "$as_regex" "$as_minimum_version"
+		validate_command_path_version_wrapper "$ld" "$ld_regex" "$ld_minimum_version"
+		validate_command_path_version_wrapper "$qemu" "$qemu_regex" "$qemu_minimum_version"
+		validate_command_path_version_wrapper "$coqc" "$coqc_regex" "$coqc_minimum_version"
+
+		# These commands need to have only their paths validated
+		validate_command_path_wrapper "$grub_mkrescue"
+		validate_command_path_wrapper "$coq_makefile"
+		validate_command_path_wrapper "$coqdep"
+		validate_command_path_wrapper "$coqdoc"
+		validate_command_path_wrapper "$coqtop"
+		validate_command_path_wrapper "$objcopy"
+		validate_command_path_wrapper "$pdflatex"
+		validate_command_path_wrapper "$gdb"
+		validate_command_path_wrapper "$doxygen"
+		validate_command_path_wrapper "$make"
+	fi
+
+	# Abort if the provided partition name could not be found in the target architecture
+	if [ ! -d 'src/arch/'"$target"'/partitions/'"$partition_name" ]
+	then
+		print_error 'The provided partition name "%s" could not be found at ' "$partition_name"
+		print_error '"src/arch/%s/partitions/%s" ...\n' "$target" "$partition_name"
+		return 1
+	fi
+
+	# Abort if the provided LibPIP path does not exist
+	if [ ! -d "$libpip" ]
+	then
+		print_error 'The provided LibPIP path "%s" could not be found ...\n' "$libpip"
+		return 1
+	fi
+
+	# If the provided LibPIP path is a relative one, prefix it accordingly
+	if ! printf '%s' "$libpip" | grep -q '^/.*'
+	then
+		libpip='../../../../'"$libpip"
+	fi
+
+	generate_toolchains
+
+	return 0
 }
 
+# Script entry point
 main "$@"
