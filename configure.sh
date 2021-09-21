@@ -56,10 +56,8 @@ ld=
 objcopy=
 qemu=
 coqc=
-coq_makefile=
 coqdep=
 coqdoc=
-coqtop=
 grub_mkrescue=
 pdflatex=
 gdb=
@@ -120,16 +118,10 @@ Usage: %s <MANDATORY ARGUMENTS> [OPTIONAL ARGUMENTS]
     --coq-compiler=<x>        Explicitly use a path to the Coq compiler rather
                               than trying to find it in the \$PATH variable.
 
-    --coq-makefile=<x>        Explicitly use a path to coq_makefile rather
-                              than trying to find it in the \$PATH variable.
-
     --coqdep=<x>              Explicitly use a path to coqdep rather than trying
                               to find it in the \$PATH variable.
 
     --coqdoc=<x>              Explicitly use a path to coqdoc rather than trying
-                              to find it in the \$PATH variable.
-
-    --coqtop=<x>              Explicitly use a path to coqtop rather than trying
                               to find it in the \$PATH variable.
 
     --doxygen=<x>             Explicitly use a path to Doxygen rather than
@@ -292,17 +284,11 @@ parse_arguments() {
 			--coq-compiler)
 				coqc=$value
 				;;
-			--coq-makefile)
-				coq_makefile=$value
-				;;
 			--coqdep)
 				coqdep=$value
 				;;
 			--coqdoc)
 				coqdoc=$value
-				;;
-			--coqtop)
-				coqtop=$value
 				;;
 			--gdb)
 				gdb=$value
@@ -516,10 +502,8 @@ configure_global_variables() {
 			gdb=${gdb:='gdb'}
 			doxygen=${doxygen:='doxygen'}
 			make=${make:='make'}
-			coq_makefile=${coq_makefile:='coq_makefile'}
 			coqdep=${coqdep:='coqdep'}
 			coqdoc=${coqdoc:='coqdoc'}
-			coqtop=${coqtop:='coqtop'}
 
 			# Assembler for partitions
 			as_partition='x86_64-linux-gnu-gcc'
@@ -581,10 +565,8 @@ configure_global_variables() {
 			gdb=${gdb:='gdb-multiarch'}
 			doxygen=${doxygen:='doxygen'}
 			make=${make:='make'}
-			coq_makefile=${coq_makefile:='coq_makefile'}
 			coqdep=${coqdep:='coqdep'}
 			coqdoc=${coqdoc:='coqdoc'}
-			coqtop=${coqtop:='coqtop'}
 
 			# Assembler for partitions
 			as_partition="$as"
@@ -680,10 +662,8 @@ main() {
 
 		# These commands need to have only their paths validated
 		validate_command_path_wrapper "$grub_mkrescue"
-		validate_command_path_wrapper "$coq_makefile"
 		validate_command_path_wrapper "$coqdep"
 		validate_command_path_wrapper "$coqdoc"
-		validate_command_path_wrapper "$coqtop"
 		validate_command_path_wrapper "$objcopy"
 		validate_command_path_wrapper "$pdflatex"
 		validate_command_path_wrapper "$gdb"
