@@ -364,7 +364,11 @@ In order to convert the Coq code into C code, you need to build the extractor,
 called Digger. The first step is to download the source code:
 
 \begin{lstlisting}[style=BashStyle]
-$ git -C /path/to/pipcore/tools clone https://github.com/2xs/digger.git
+    # Initialize your local configuration file
+    $ git -C /path/to/pipcore submodule init
+
+    # Fetch all the data from the digger project
+    $ git -C /path/to/pipcore submodule update --remote
 \end{lstlisting}
 
 Then, build Digger through the stack tool:
