@@ -623,7 +623,9 @@ configure_global_variables() {
 
 			### QEMUFLAGS for the selected architecture
 
-			arch_qemuflags='-M raspi2b'
+			arch_qemuflags='-nographic'
+			arch_qemuflags="$arch_qemuflags"' -monitor none'
+			arch_qemuflags="$arch_qemuflags"' -M raspi2b'
 			arch_qemuflags="$arch_qemuflags"' -cpu cortex-a7'
 			arch_qemuflags="$arch_qemuflags"' -serial null'
 			arch_qemuflags="$arch_qemuflags"' -serial stdio'
