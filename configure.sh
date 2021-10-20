@@ -576,7 +576,7 @@ configure_global_variables() {
 
 			cc_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
 			as_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
-			ld_regex='^GNU .\+ \([^ \n]\+\)$'
+			ld_regex='^GNU .\+ \([^ \n]\+\).*$'
 			qemu_regex='^QEMU emulator version \([^ \n]\+\).*$'
 			coqc_regex='^The Coq Proof Assistant, version \([^ \n]\+\).*$'
 
