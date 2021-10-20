@@ -512,8 +512,8 @@ configure_global_variables() {
 			### number from the "--version" output
 
 			cc_regex='^.*gcc ([^)]\+) \([^ \n]\+\).*$'
-			as_regex='^NASM version \([^ \n]\+\)$'
-			ld_regex='^GNU .\+ \([^ \n]\+\)$'
+			as_regex='^NASM version \([^ \n]\+\).*$'
+			ld_regex='^GNU .\+ \([^ \n]\+\).*$'
 			qemu_regex='^QEMU emulator version \([^ \n]\+\).*$'
 			coqc_regex='^The Coq Proof Assistant, version \([^ \n]\+\).*$'
 
