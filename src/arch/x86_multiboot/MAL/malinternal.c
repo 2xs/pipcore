@@ -51,7 +51,7 @@ uint32_t defaultAddr(void)
 	return 0;
 }
 
-const uint32_t defaultVAddr = 0;
+uint32_t defaultVAddr = 0;
 
 /*!
  * \fn uint32_t kernelIndex()

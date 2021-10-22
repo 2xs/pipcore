@@ -125,6 +125,12 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 }
 
 /*!
+ * \var uint32_t tableSize()
+ * \brief size (number of entries) of indirection tables
+ */
+uint32_t tableSize = 1024;
+
+/*!
  * \fn uint32_t getTableSize()
  * \brief Gets size of indirection table
  * \return The amount of entries in a page table
@@ -402,7 +408,7 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  * 	\brief Gets the amount of indirection tables
  * 	\return Amount of maximal indirection tables
  */
-const uint32_t nbLevel = 2;
+uint32_t nbLevel = 2;
 
 uint32_t getNbIndex(void)
 {

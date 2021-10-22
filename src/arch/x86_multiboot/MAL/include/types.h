@@ -32,13 +32,57 @@
 /*******************************************************************************/
 
 /**
- * \file structures.h
- * \brief x86 MAL structures
+ * \file types.h
+ * \brief 32 bits x86 implementations of Pip types
  */
 
-#ifndef STRUCT_H
-#define STRUCT_H
+#ifndef TYPES_H
+#define TYPES_H
 
-#include "types.h"
+#include <stdint.h>
+
+#define PAGE_SIZE 4096 //!< Page size
+
+/**
+ * \struct page_table_entry
+ * \brief Page Table entry structure
+ */
+typedef struct page_table_entry
+{
+    uint32_t present    : 1;   //!< Page present in memory
+    uint32_t rw         : 1;   //!< Read-only if clear, readwrite if set
+    uint32_t user       : 1;   //!< Supervisor level only if clear
+    uint32_t accessed   : 1;   //!< Has the page been accessed since last refresh?
+    uint32_t dirty      : 1;   //!< Has the page been written to since last refresh?
+    uint32_t unused     : 7;   //!< Amalgamation of unused and reserved bits
+    uint32_t frame      : 20;  //!< Frame address (shifted right 12 bits)
+} page_table_entry_t;
+
+/**
+ * \struct page_table
+ * \brief Page Table structure
+ */
+typedef struct page_table
+{
+    page_table_entry_t pages[1024]; //!< Page Table Entries in this Page Table
+} page_table_t;
+
+/**
+ * \struct page_directory
+ * \brief Page Directory structure
+ */
+typedef struct page_directory
+{
+    uint32_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
+} page_directory_t;
+
+typedef uint32_t bool;
+
+#define true    1
+#define false   0
+
+typedef uintptr_t vaddr;
+
+typedef uintptr_t page;
 
 #endif

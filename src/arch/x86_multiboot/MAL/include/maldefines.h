@@ -43,7 +43,6 @@
 #include "pip_interrupt_calls.h"
 #include <stdint.h>
 
-/* bool */
 typedef uint32_t bool;
 
 #define true    1
