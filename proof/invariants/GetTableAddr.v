@@ -45,14 +45,14 @@ Require Import List Coq.Logic.ProofIrrelevance Lia Compare_dec Lt EqNat.
 
 Lemma getTableAddr  (indirection : page) (va : vaddr) (l : level) P currentPart idxroot: 
 {{fun s => P s /\ consistency s /\ In currentPart (getPartitions multiplexer s) /\
-            (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx)/\
-            ( exists (tableroot : page), 
-                nextEntryIsPP currentPart idxroot tableroot s/\
-                tableroot <> defaultPage /\  
+            (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx) /\
+            ( exists (tableroot : page),
+                nextEntryIsPP currentPart idxroot tableroot s /\
+                tableroot <> defaultPage /\
                 ( (tableroot = indirection /\ Some l = StateLib.getNbLevel ) \/
                 (exists nbL stop, Some nbL = StateLib.getNbLevel /\ stop <= nbL /\
                 StateLib.getIndirection tableroot va nbL stop s = Some indirection /\
-                indirection <> defaultPage  /\ 
+                indirection <> defaultPage  /\
                 l = CLevel (nbL - stop)))) }}
 
 getTableAddr indirection va l

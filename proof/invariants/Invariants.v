@@ -1312,3 +1312,51 @@ apply WP.setInterruptMask.
 cbn.
 trivial.
 Qed.
+
+Lemma updateMMURoot (MMURoot : page)
+(P : state -> Prop) :
+{{fun s => P s(*  /\ StateLib.getPd (StateLib.getCurPartition s) (memory s) = Some MMURoot *)}}
+IAL.updateMMURoot MMURoot
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.updateMMURoot.
+cbn.
+trivial.
+Qed.
+
+Lemma getInterruptMaskFromCtx (context : contextAddr)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.getInterruptMaskFromCtx context
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.getInterruptMaskFromCtx.
+cbn.
+trivial.
+Qed.
+
+Lemma noInterruptRequest (flags : interruptMask)
+(P: state -> Prop) :
+{{fun s => P s}}
+IAL.noInterruptRequest flags
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.noInterruptRequest.
+cbn.
+trivial.
+Qed.
+
+Lemma loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.loadContext contextToLoad enforce_interrupt
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.loadContext.
+cbn.
+trivial.
+Qed.
