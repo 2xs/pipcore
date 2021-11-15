@@ -35,10 +35,11 @@
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL.
 Require Import Pip.Core.Services Pip.Core.Internal.
 
+Require Import Coq.Classes.RelationClasses.
 Require Import Lia.
 
 From Pip.Proof Require Import
-Consistency GetTableAddr Invariants Isolation updateCurPartition WeakestPreconditions.
+Consistency DependentTypeLemmas GetTableAddr Invariants Isolation updateCurPartition WeakestPreconditions.
 (* Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.Isolation
                Pip.Proof.InternalLemmas Pip.Proof.InternalLemmas2 Pip.Proof.StateLib
                Pip.Proof.WeakestPreconditions.
@@ -93,9 +94,10 @@ Definition saveSourceContextCont (targetPartDesc           : page)
   partitionsIsolation s /\
   kernelDataIsolation s /\
   verticalSharing s /\
-  consistency s (* /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s0) /\
-   *)
+  consistency s /\
+  Some nbL = StateLib.getNbLevel /\
+  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
+  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
 }}
 
 saveSourceContextCont targetPartDesc targetPageDir sourcePageDir
@@ -116,6 +118,176 @@ unfold saveSourceContextCont.
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply (getTableAddr sourcePageDir sourceContextSaveVAddr nbL _ sourcePartDesc PDidx).
+cbn.
+intros s preconditions.
+split.
+apply preconditions.
+destruct preconditions as ( _ & _ & _ & H_cons & H_nbL & H_srcPartDesc & H_srcPageDir ).
+do 3 (split; trivial).
+intuition.
+exists sourcePageDir.
+split; try assumption.
+(* clear H_srcPageDir. *)
+split;[ | intuition ].
+clear H_nbL.
+
+unfold consistency in H_cons.
+unfold partitionDescriptorEntry in H_cons.
+destruct H_cons as (H_partDescEntry & _).
+generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
+clear H_srcPartDesc.
+assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
+  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
+generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+clear H_idxMatch.
+destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
+destruct H_entry as (page1 & Hpd & Hnotnull).
+unfold StateLib.nextEntryIsPP in *.
+destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+         try now contradict H_srcPageDir.
+destruct v ; try now contradict H_srcPageDir.
+subst; assumption.
+
+cbn.
+intro sourceCtxLastMMUPage.
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as (H_initPreconditions & H_addProp).
+  assert ( StateLib.getTableAddrRoot' sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
+           /\ sourceCtxLastMMUPage = defaultPage
+        \/ StateLib.getTableAddrRoot sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
+           /\ sourceCtxLastMMUPage <> defaultPage /\
+            (forall idx : index,
+             StateLib.getIndexOfAddr sourceContextSaveVAddr fstLevel = idx ->
+             StateLib.isPE sourceCtxLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_addProp as [ ( H_getTableAddr & H_nullSrcCtxLastMMUPage )
+                          | ( H_getTableAddr & H_notNullSrcCtxLastMMUPage & H_entryType) ].
+    + left. split; trivial.
+    + right. do 2 (try split; trivial).
+      intros idx H_getIndexAddr.
+      generalize (H_entryType idx H_getIndexAddr); clear H_entryType; intro H_entryType.
+      destruct H_entryType as [ ( _ & Hfalse ) | [ ( _ & Hfalse ) | ( H_PE & _ ) ] ].
+      - contradict Hfalse.
+        apply InternalLemmas.idxPDidxSh1notEq.
+      - contradict Hfalse.
+        apply DependentTypeLemmas.idxPDidxSh2notEq.
+      - assumption.
+  }
+  clear H_addProp.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* sourceCtxLastMMUPageIsNull := comparePageToNull sourceCtxLastMMUPage *)
+eapply WP.bindRev.
+eapply Invariants.comparePageToNull.
+intro sourceCtxLastMMUPageIsNull. cbn.
+case_eq sourceCtxLastMMUPageIsNull.
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_srcCtxLastMMUPageIsNotNull.
+subst.
+
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_srcCtxLastMMUPageIsNotNull).
+  apply EqNat.beq_nat_false in H_srcCtxLastMMUPageIsNotNull.
+  assert (StateLib.getTableAddrRoot sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
+       /\ sourceCtxLastMMUPage <> defaultPage
+       /\ (forall idx : index,
+          StateLib.getIndexOfAddr sourceContextSaveVAddr fstLevel = idx ->
+          StateLib.isPE sourceCtxLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_postGetTableAddr as
+      [ ( H_getTableAddr & H_nullSrcCtxLastMMUPage )
+      | ( H_getTableAddr & H_notNullSrcCtxLastMMUPage & H_entryType) ].
+    + symmetry in H_nullSrcCtxLastMMUPage.
+      contradict H_srcCtxLastMMUPageIsNotNull.
+      f_equal. assumption.
+    + do 2 (try split; trivial).
+  }
+  clear H_postGetTableAddr H_srcCtxLastMMUPageIsNotNull.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  try repeat rewrite and_assoc in H_newPost.
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* idxSourceCtxInLastMMUPage := MAL.getIndexOfAddr sourceContextSaveVAddr fstLevel *)
+eapply bindRev.
+apply Invariants.getIndexOfAddr.
+intro idxSourceCtxInLastMMUPage.
+cbn.
+
+(* sourceCtxPageIsPresent := MAL.readPresent sourceCtxLastMMUPage idxSourceCtxInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readPresent.
+cbn.
+
+intros s preconditions.
+try repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+destruct preconditions as ( _ & _ & _ & _ & _ & _ & _ & _ & _ & H_isPE & H_getIdxOfAddr ).
+apply H_isPE; assumption.
+
+intro sourceCtxPageIsPresent.
+cbn.
+
+(* if negb sourceCtxPageIsPresent
+   then Hardware.ret IAL.FAIL_CALLER_CONTEXT_SAVE *)
+case_eq (negb sourceCtxPageIsPresent).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_srcCtxPageIsPresent.
+apply Bool.negb_false_iff in H_srcCtxPageIsPresent.
+subst.
+
+(* sourceCtxPageIsAccessible := MAL.readAccessible sourceCtxLastMMUPage idxSourceCtxInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readAccessible.
+cbn.
+intros s preconditions.
+try repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+destruct preconditions as ( _ & _ & _ & _ & _ & _ & _ & _ & _ & H_isPE & H_getIdxOfAddr & _ ).
+apply H_isPE; assumption.
+
+intro sourceCtxPageIsAccessible.
+cbn.
+
+(* if negb sourceCtxPageIsAccessible
+   then Hardware.ret IAL.FAIL_CALLER_CONTEXT_SAVE *)
+case_eq (negb sourceCtxPageIsAccessible).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+
+intro H_sourceCtxPageIsAccessible.
+apply Bool.negb_false_iff in H_sourceCtxPageIsAccessible.
+subst.
+
 Admitted.
 
 Lemma switchContextCont (targetPartDesc : page)
