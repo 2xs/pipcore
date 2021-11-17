@@ -1349,6 +1349,18 @@ cbn.
 trivial.
 Qed.
 
+Lemma vaddrToContextAddr (contextVAddr : vaddr)
+(P: state -> Prop) :
+{{fun s => P s}}
+IAL.vaddrToContextAddr contextVAddr
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.vaddrToContextAddr.
+cbn.
+trivial.
+Qed.
+
 Lemma loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool)
 (P : state -> Prop) :
 {{fun s => P s}}

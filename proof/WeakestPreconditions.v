@@ -915,6 +915,15 @@ Proof.
 apply ret.
 Qed.
 
+Lemma vaddrToContextAddr (contextVAddr : vaddr)
+(P: contextAddr -> state -> Prop) :
+{{fun s => P 0 s}}
+vaddrToContextAddr contextVAddr
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
 Lemma loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool)
 (P : unit -> state -> Prop) :
 {{fun s => P tt s}}
