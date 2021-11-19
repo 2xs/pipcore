@@ -1114,7 +1114,13 @@ Lemma getTargetVidtCont (targetPartDesc : page)
   partitionsIsolation s /\
   kernelDataIsolation s /\
   verticalSharing s /\
-  consistency s
+  consistency s /\
+  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
+  targetPartDesc <> defaultPage /\
+  Some nbL = StateLib.getNbLevel /\
+  StateLib.getIndexOfAddr vidtVAddr fstLevel = idxVidtInLastMMUPage /\
+  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
+  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
 }}
 
 getTargetVidtCont targetPartDesc sourcePageDir vidtVAddr sourceContextSaveVAddr targetInterrupt
@@ -1128,7 +1134,570 @@ getTargetVidtCont targetPartDesc sourcePageDir vidtVAddr sourceContextSaveVAddr 
   consistency s
 }}.
 Proof.
-Admitted.
+unfold getTargetVidtCont.
+
+(* targetPageDir := Internal.getPd targetPartDesc *)
+eapply WP.bindRev.
+eapply WP.weaken.
+apply Invariants.getPd.
+cbn.
+intros s preconditions.
+split.
+apply preconditions.
+split; unfold consistency in preconditions; try intuition.
+
+intro targetPageDir.
+cbn.
+
+(* targetVidtLastMMUPage := Internal.getTableAddr targetPageDir vidtVAddr nbL *)
+eapply WP.bindRev.
+eapply WP.weaken.
+eapply (getTableAddr targetPageDir vidtVAddr nbL _ targetPartDesc PDidx).
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+destruct preconditions as ( _ & _ & _ & H_cons & H_tgtPartDesc & _ & H_nbL & _ & _ & _ & H_tgtPageDir ).
+do 3 (split; trivial).
+intuition.
+exists targetPageDir.
+split; try assumption.
+split;[ | intuition ].
+clear H_nbL.
+
+unfold consistency in H_cons.
+unfold partitionDescriptorEntry in H_cons.
+destruct H_cons as (H_partDescEntry & _).
+generalize (H_partDescEntry targetPartDesc H_tgtPartDesc); clear H_partDescEntry; intro H_partDescEntry.
+clear H_tgtPartDesc.
+assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
+  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
+generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+clear H_idxMatch.
+destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
+destruct H_entry as (page1 & Hpd & Hnotnull).
+unfold StateLib.nextEntryIsPP in *.
+destruct (StateLib.Index.succ PDidx); try now contradict H_tgtPageDir.
+destruct (lookup targetPartDesc i (memory s) beqPage beqIndex);
+         try now contradict H_tgtPageDir.
+destruct v ; try now contradict H_tgtPageDir.
+subst; assumption.
+
+cbn.
+intro targetVidtLastMMUPage.
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as (H_initPreconditions & H_addProp).
+  assert ( StateLib.getTableAddrRoot' targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
+           /\ targetVidtLastMMUPage = defaultPage
+        \/ StateLib.getTableAddrRoot targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
+           /\ targetVidtLastMMUPage <> defaultPage /\
+            (forall idx : index,
+             StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+             StateLib.isPE targetVidtLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_addProp as [ ( H_getTableAddr & H_nullTgtCtxLastMMUPage )
+                          | ( H_getTableAddr & H_notNullTgtCtxLastMMUPage & H_entryType) ].
+    + left. split; trivial.
+    + right. do 2 (try split; trivial).
+      intros idx H_getIndexAddr.
+      generalize (H_entryType idx H_getIndexAddr); clear H_entryType; intro H_entryType.
+      destruct H_entryType as [ ( _ & Hfalse ) | [ ( _ & Hfalse ) | ( H_PE & _ ) ] ].
+      - contradict Hfalse.
+        apply InternalLemmas.idxPDidxSh1notEq.
+      - contradict Hfalse.
+        apply DependentTypeLemmas.idxPDidxSh2notEq.
+      - assumption.
+  }
+  clear H_addProp.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* targetVidtLastMMUPageisNull := Internal.comparePageToNull targetVidtLastMMUPage *)
+eapply WP.bindRev.
+eapply Invariants.comparePageToNull.
+intro targetVidtLastMMUPageisNull. cbn.
+case_eq targetVidtLastMMUPageisNull.
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_targetVidtLastMMUPageisNull.
+subst.
+
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_targetVidtLastMMUPageisNotNull).
+  apply EqNat.beq_nat_false in H_targetVidtLastMMUPageisNotNull.
+  assert (StateLib.getTableAddrRoot targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
+       /\ targetVidtLastMMUPage <> defaultPage
+       /\ (forall idx : index,
+          StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+          StateLib.isPE targetVidtLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_postGetTableAddr as
+      [ ( H_getTableAddr & H_nullTgtVidtLastMMUPage )
+      | ( H_getTableAddr & H_notNullTgtVidtLastMMUPage & H_entryType) ].
+    + symmetry in H_nullTgtVidtLastMMUPage.
+      contradict H_targetVidtLastMMUPageisNotNull.
+      f_equal. assumption.
+    + do 2 (try split; trivial).
+  }
+  clear H_postGetTableAddr H_targetVidtLastMMUPageisNotNull.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  repeat rewrite and_assoc in H_newPost.
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* targetVidtIsPresent := MAL.readPresent targetVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readPresent.
+cbn.
+
+intros s preconditions.
+try repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as ((((((( _ & H_getIdxOfAddr ) & _ ) & _ ) & _ ) & _ ) & _ ) & H_isPE).
+apply H_isPE; assumption.
+
+intro targetVidtIsPresent.
+cbn.
+
+(* if negb targetVidtIsPresent
+   then Hardware.ret IAL.FAIL_UNAVAILABLE_TARGET_VIDT *)
+case_eq (negb targetVidtIsPresent).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_targetVidtIsPresent.
+apply Bool.negb_false_iff in H_targetVidtIsPresent.
+subst.
+
+(* targetVidtIsAccessible := MAL.readAccessible targetVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readAccessible.
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as (((((((( _ & H_getIdxOfAddr ) & _ ) & _ ) & _ ) & _ ) & _ ) & H_isPE) & _ ).
+apply H_isPE; assumption.
+
+intro targetVidtIsAccessible.
+cbn.
+
+(* if negb targetVidtIsAccessible
+   then Hardware.ret IAL.FAIL_UNAVAILABLE_TARGET_VIDT *)
+case_eq (negb targetVidtIsAccessible).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_targetVidtIsAccessible.
+apply Bool.negb_false_iff in H_targetVidtIsAccessible.
+subst.
+
+
+(* targetVidt := MAL.readPhyEntry targetVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply WP.bindRev.
+eapply WP.weaken.
+apply Invariants.readPhyEntry.
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split. apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as ((((((((( _ & H_getIdxOfAddr ) & _ ) & _ ) & _ ) & _ ) & _ ) & H_isPE ) & _ ) & _ ).
+apply H_isPE; assumption.
+
+intro targetVidt.
+cbn.
+
+(* getTargetContextCont targetPartDesc targetPageDir targetVidt sourcePageDir sourceContextSaveVAddr
+                        targetInterrupt nbL flagsOnYield flagsOnWake sourceInterruptedContext *)
+eapply WP.weaken.
+apply (getTargetContextCont targetPartDesc targetPageDir targetVidt sourcePageDir sourceContextSaveVAddr
+			                      targetInterrupt nbL flagsOnYield flagsOnWake sourceInterruptedContext sourcePartDesc).
+intros s preconditions.
+cbn.
+intuition.
+Qed.
+
+Lemma getSourceVidtCont (targetPartDesc : page)
+                        (sourcePageDir  : page)
+                        (targetInterrupt : index)
+                        (sourceContextSaveIndex : index)
+                        (nbL                    : level)
+                        (flagsOnYield : interruptMask)
+                        (flagsOnWake  : interruptMask)
+                        (sourceInterruptedContext : contextAddr)
+                        (* Needed by the proof *)
+                        (sourcePartDesc           : page)
+                        :
+{{ (* Preconditions *)
+  fun s =>
+  partitionsIsolation s /\
+  kernelDataIsolation s /\
+  verticalSharing s /\
+  consistency s /\
+  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
+  targetPartDesc <> defaultPage /\
+  Some nbL = StateLib.getNbLevel /\
+  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
+  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+}}
+
+getSourceVidtCont targetPartDesc sourcePageDir targetInterrupt sourceContextSaveIndex nbL
+				          flagsOnYield flagsOnWake sourceInterruptedContext
+{{ (* Postconditions *)
+  fun _ s  =>
+  partitionsIsolation s /\
+  kernelDataIsolation s /\
+  verticalSharing s /\
+  consistency s
+}}.
+Proof.
+unfold getSourceVidtCont.
+
+(* vidtVAddr := getVidtVAddr *)
+eapply WP.bindRev.
+eapply Invariants.getVidtVAddr.
+intro vidtVAddr.
+cbn.
+
+(* idxVidtInLastMMUPage := MAL.getIndexOfAddr vidtVAddr fstLevel *)
+eapply bindRev.
+apply Invariants.getIndexOfAddr.
+intro idxVidtInLastMMUPage.
+cbn.
+
+(* sourceVidtLastMMUPage := Internal.getTableAddr sourcePageDir vidtVAddr nbL *)
+eapply WP.bindRev.
+eapply WP.weaken.
+eapply (getTableAddr sourcePageDir vidtVAddr nbL _ sourcePartDesc PDidx).
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+destruct preconditions as ( _ & _ & _ & H_cons & _ & _ & H_nbL & H_srcPartDesc & H_srcPageDir & _ ).
+do 3 (split; trivial).
+intuition.
+exists sourcePageDir.
+split; try assumption.
+split;[ | intuition ].
+clear H_nbL.
+
+unfold consistency in H_cons.
+unfold partitionDescriptorEntry in H_cons.
+destruct H_cons as (H_partDescEntry & _).
+generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
+clear H_srcPartDesc.
+assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
+  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
+generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+clear H_idxMatch.
+destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
+destruct H_entry as (page1 & Hpd & Hnotnull).
+unfold StateLib.nextEntryIsPP in *.
+destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+         try now contradict H_srcPageDir.
+destruct v ; try now contradict H_srcPageDir.
+subst; assumption.
+
+cbn.
+intro sourceVidtLastMMUPage.
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as (H_initPreconditions & H_addProp).
+  assert ( StateLib.getTableAddrRoot' sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
+           /\ sourceVidtLastMMUPage = defaultPage
+        \/ StateLib.getTableAddrRoot sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
+           /\ sourceVidtLastMMUPage <> defaultPage /\
+            (forall idx : index,
+             StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+             StateLib.isPE sourceVidtLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_addProp as [ ( H_getTableAddr & H_nullSrcVidtLastMMUPage )
+                          | ( H_getTableAddr & H_notNullSrcVidtLastMMUPage & H_entryType) ].
+    + left. split; trivial.
+    + right. do 2 (try split; trivial).
+      intros idx H_getIndexAddr.
+      generalize (H_entryType idx H_getIndexAddr); clear H_entryType; intro H_entryType.
+      destruct H_entryType as [ ( _ & Hfalse ) | [ ( _ & Hfalse ) | ( H_PE & _ ) ] ].
+      - contradict Hfalse.
+        apply InternalLemmas.idxPDidxSh1notEq.
+      - contradict Hfalse.
+        apply DependentTypeLemmas.idxPDidxSh2notEq.
+      - assumption.
+  }
+  clear H_addProp.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* sourceVidtLastMMUPageisNull := Internal.comparePageToNull sourceVidtLastMMUPage *)
+eapply WP.bindRev.
+eapply Invariants.comparePageToNull.
+intro sourceVidtLastMMUPageisNull. cbn.
+case_eq sourceVidtLastMMUPageisNull.
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_sourceVidtLastMMUPageisNull.
+subst.
+
+(* Postcondition simplification *)
+eapply WP.weaken.
+2: {
+  intros s postconditions.
+  destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_sourceVidtLastMMUPageisNotNull).
+  apply EqNat.beq_nat_false in H_sourceVidtLastMMUPageisNotNull.
+  assert (StateLib.getTableAddrRoot sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
+       /\ sourceVidtLastMMUPage <> defaultPage
+       /\ (forall idx : index,
+          StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+          StateLib.isPE sourceVidtLastMMUPage idx s)) as H_cleanedPost.
+  {
+    destruct H_postGetTableAddr as
+      [ ( H_getTableAddr & H_nullSrcVidtLastMMUPage )
+      | ( H_getTableAddr & H_notNullSrcVidtLastMMUPage & H_entryType) ].
+    + symmetry in H_nullSrcVidtLastMMUPage.
+      contradict H_sourceVidtLastMMUPageisNotNull.
+      f_equal. assumption.
+    + do 2 (try split; trivial).
+  }
+  clear H_postGetTableAddr H_sourceVidtLastMMUPageisNotNull.
+  assert (H_newPost := conj H_initPreconditions H_cleanedPost).
+  repeat rewrite and_assoc in H_newPost.
+  pattern s in H_newPost.
+  eapply H_newPost.
+}
+
+(* sourceVidtIsPresent := MAL.readPresent sourceVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readPresent.
+cbn.
+
+intros s preconditions.
+try repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as (((( _ & H_getIdxOfAddr ) & _ ) & _ ) & H_isPE).
+apply H_isPE; assumption.
+
+intro sourceVidtIsPresent.
+cbn.
+
+(* if negb sourceVidtIsPresent
+   then Hardware.ret IAL.FAIL_UNAVAILABLE_CALLER_VIDT *)
+case_eq (negb sourceVidtIsPresent).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_sourceVidtIsPresent.
+apply Bool.negb_false_iff in H_sourceVidtIsPresent.
+subst.
+
+(* sourceVidtIsAccessible := MAL.readAccessible sourceVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply bindRev.
+eapply weaken.
+apply Invariants.readAccessible.
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as ((((( _ & H_getIdxOfAddr ) & _ ) & _ ) & H_isPE) & _ ).
+apply H_isPE; assumption.
+
+intro sourceVidtIsAccessible.
+cbn.
+
+(* if negb sourceVidtIsAccessible
+   then Hardware.ret IAL.FAIL_UNAVAILABLE_CALLER_VIDT *)
+case_eq (negb sourceVidtIsAccessible).
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_sourceVidtIsAccessible.
+apply Bool.negb_false_iff in H_sourceVidtIsAccessible.
+subst.
+
+
+(* sourceVidt := MAL.readPhyEntry sourceVidtLastMMUPage idxVidtInLastMMUPage *)
+eapply WP.bindRev.
+eapply WP.weaken.
+apply Invariants.readPhyEntry.
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split. apply preconditions.
+repeat rewrite <- and_assoc in preconditions.
+destruct preconditions as (((((( _ & H_getIdxOfAddr ) & _ ) & _ ) & H_isPE ) & _ ) & _ ).
+apply H_isPE; assumption.
+
+intro sourceVidt.
+cbn.
+
+(* sourceContextSaveVAddr := MAL.readVirtualUser sourceVidt sourceContextSaveIndex *)
+eapply WP.bindRev.
+apply Invariants.readVirtualUser.
+intro sourceContextSaveVAddr.
+
+(* getTargetVidtCont targetPartDesc sourcePageDir vidtVAddr sourceContextSaveVAddr
+                     targetInterrupt nbL idxVidtInLastMMUPage flagsOnYield flagsOnWake *)
+eapply WP.weaken.
+apply (getTargetVidtCont targetPartDesc sourcePageDir vidtVAddr sourceContextSaveVAddr
+       targetInterrupt nbL idxVidtInLastMMUPage flagsOnYield flagsOnWake sourceInterruptedContext
+       sourcePartDesc).
+intros s preconditions.
+cbn.
+intuition.
+Qed.
+
+Lemma getParentPartDescCont (sourcePartDesc : page)
+                            (sourcePageDir : page)
+                            (targetInterrupt : index)
+                            (sourceContextSaveIndex : index)
+                            (nbL : level)
+                            (flagsOnYield : interruptMask)
+                            (flagsOnWake : interruptMask)
+                            (sourceInterruptedContext : contextAddr)
+                            :
+{{ (* Preconditions *)
+  fun s =>
+  partitionsIsolation s /\
+  kernelDataIsolation s /\
+  verticalSharing s /\
+  consistency s /\
+  Some nbL = StateLib.getNbLevel /\
+  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
+  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+}}
+
+getParentPartDescCont sourcePartDesc sourcePageDir targetInterrupt sourceContextSaveIndex
+                      nbL flagsOnYield flagsOnWake sourceInterruptedContext
+{{ (* Postconditions *)
+  fun _ s  =>
+  partitionsIsolation s /\
+  kernelDataIsolation s /\
+  verticalSharing s /\
+  consistency s
+}}.
+Proof.
+unfold getParentPartDescCont.
+
+(* rootPartition := MALInternal.getMultiplexer *)
+eapply WP.bindRev.
+eapply Invariants.getMultiplexer.
+intro rootPartition.
+cbn.
+
+(* sourcePartitionIsRoot := MALInternal.Page.eqb rootPartition sourcePartDesc *)
+eapply WP.bindRev.
+apply Invariants.Page.eqb.
+intro sourcePartitionIsRoot.
+cbn.
+
+(* if sourcePartitionIsRoot
+   then Hardware.ret IAL.FAIL_ROOT_CALLER *)
+case_eq sourcePartitionIsRoot.
+{ intros.
+  eapply WP.weaken.
+  eapply WP.ret.
+  simpl. intros.
+  intuition.
+}
+intros H_sourcePartitionIsRoot.
+subst.
+
+(* targetPartDesc := Internal.getParent sourcePartDesc *)
+eapply WP.bindRev.
+eapply WP.weaken.
+apply Invariants.getParent.
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split.
+apply preconditions.
+split; intuition.
+
+intro targetPartDesc.
+cbn.
+
+(* getSourceVidtCont targetPartDesc sourcePageDir targetInterrupt sourceContextSaveIndex nbL
+                     flagsOnYield flagsOnWake sourceInterruptedContext *)
+eapply WP.weaken.
+apply (getSourceVidtCont targetPartDesc sourcePageDir targetInterrupt sourceContextSaveIndex nbL
+                        flagsOnYield flagsOnWake sourceInterruptedContext sourcePartDesc).
+cbn.
+intros s preconditions.
+repeat rewrite and_assoc in preconditions.
+split. intuition.
+split. intuition.
+split. intuition.
+split. intuition.
+rewrite <- and_assoc.
+split.
+destruct preconditions as ( _ & _ & _ & H_cons & _ & H_srcPartDesc & _ & H_rootPart & H_sourcePartNotRoot & H_isPP).
+unfold consistency in H_cons.
+destruct H_cons as (H_partDescEntry & _ & _ & _ & _ & _ & _ & H_parentInPartitionList & _ ).
+unfold partitionDescriptorEntry in H_partDescEntry.
+unfold parentInPartitionList in H_parentInPartitionList.
+pose (H_speParentInPartitionList := H_parentInPartitionList sourcePartDesc H_srcPartDesc targetPartDesc H_isPP).
+split. assumption.
+assert (PPRidx = PDidx \/ PPRidx = sh1idx \/ PPRidx = sh2idx \/ PPRidx = sh3idx \/
+        PPRidx = PPRidx \/ PPRidx = PRidx) as H_idxRefl by intuition.
+pose (H_spePartDescEntry := H_partDescEntry sourcePartDesc H_srcPartDesc PPRidx H_idxRefl).
+destruct H_spePartDescEntry as ( _ & _ & H_existsTargetPartDesc).
+destruct H_existsTargetPartDesc.
+destruct H.
+unfold StateLib.nextEntryIsPP in H_isPP.
+unfold StateLib.nextEntryIsPP in H.
+clear H_partDescEntry H_parentInPartitionList H_srcPartDesc H_rootPart H_sourcePartNotRoot H_speParentInPartitionList H_idxRefl.
+destruct (StateLib.Index.succ PPRidx); try congruence.
+destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex); try congruence.
+destruct v; congruence.
+intuition.
+Qed.
 
 Lemma yield (targetPartDescVAddr : vaddr)
 				    (userTargetInterrupt : userValue)

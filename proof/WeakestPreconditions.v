@@ -932,3 +932,9 @@ loadContext contextToLoad enforce_interrupt
 Proof.
 apply ret.
 Qed.
+
+Lemma getVidtVAddr (P : vaddr -> state -> Prop) : 
+{{ wp P getVidtVAddr}} getVidtVAddr {{P}}.
+Proof.
+apply wpIsPrecondition.
+Qed.

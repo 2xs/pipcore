@@ -1372,3 +1372,13 @@ apply WP.loadContext.
 cbn.
 trivial.
 Qed.
+
+Lemma getVidtVAddr (P : state -> Prop) :
+{{ fun s => P s  }} MALInternal.getVidtVAddr
+{{ fun val s => P s /\ val = vidtVAddr }}.
+Proof.
+   eapply WP.weaken.
+   eapply WP.getVidtVAddr.
+   intros.
+   cbn. intuition.
+Qed.
