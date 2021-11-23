@@ -174,7 +174,7 @@ uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  * \param index The index in the given table
  * \return 1 if the page is user-mode accessible, 0 else
  */
-uint32_t readAccessible(uint32_t table, uint32_t index)
+bool readAccessible(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
@@ -202,7 +202,7 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
  * \param index The index into this indirection table
  * \param value 0 if the page is kernel-only, 1 else (any other value should be forbidden...)
  */
-void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
+void writeAccessible(uint32_t table, uint32_t index, bool value)
 {
 	disable_paging();
 	
@@ -274,7 +274,7 @@ updateRootPartition(uint32_t partition)
  * \param index The index in the given table
  * \return 1 if the page is present, 0 else
  */
-uint32_t readPresent(uint32_t table, uint32_t index)
+bool readPresent(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
@@ -302,7 +302,7 @@ uint32_t readPresent(uint32_t table, uint32_t index)
  * \param index The index into this indirection table
  * \param value 0 if the page is not present, 1 else (any other value should be forbidden...)
  */
-void writePresent(uint32_t table, uint32_t index, uint32_t value)
+void writePresent(uint32_t table, uint32_t index, bool value)
 {
 	disable_paging();
 	
@@ -329,7 +329,7 @@ void writePresent(uint32_t table, uint32_t index, uint32_t value)
  * \param index The index into the shadow table
  * \param value The vamue of the PD flag
  */
-void writePDflag(uint32_t table, uint32_t index, uint32_t value)
+void writePDflag(uint32_t table, uint32_t index, bool value)
 {
 	disable_paging();
 	
@@ -354,7 +354,7 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
  * \param index The index into the shadow table
  * \return The value of the PD flag
  */
-uint32_t readPDflag(uint32_t table, uint32_t index)
+bool readPDflag(uint32_t table, uint32_t index)
 {
 	disable_paging();
 	
@@ -464,7 +464,7 @@ uint32_t readTableVirtual(uint32_t table, uint32_t index)
  * \brief Checks whether we can apply the given rights on the target architecture
  * \return 1 if we can, 0 if we can't
  */
-uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
+bool checkRights(bool read, bool write, bool execute)
 {
 	// Read has to be 1 (only user/kernel in x86)
 	if(read==0)
@@ -519,7 +519,7 @@ void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page, uint32_t kernel_ind
 }
 
 /* Combines a boolean and a virtual address (boolean on the least significant bit) */
-uint32_t prepareType(int b, uint32_t vaddr)
+uint32_t prepareType(bool b, uint32_t vaddr)
 {
     return (vaddr & ~1) | (b ? 1 : 0);
 }

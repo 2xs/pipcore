@@ -62,10 +62,10 @@ uint32_t readTableVirtualNoFlags(uint32_t table, uint32_t index); //!< FETCH add
 uint32_t readArray(uint32_t table, uint32_t index); //!< Read an array's contents
 void writeTableVirtual(uint32_t table, uint32_t index, uint32_t addr); //!< STORE an address in an indirection table
 void writeTableVirtualNoFlags(uint32_t table, uint32_t index, uint32_t addr); //!< STORE an address in an indirection table
-uint32_t readPresent(uint32_t table, uint32_t index); //!< Reads the present flag 
-void writePresent(uint32_t table, uint32_t index, uint32_t value); //!< Writes the present flag
-uint32_t readAccessible(uint32_t table, uint32_t index); //!< Reads the accessible flag
-void writeAccessible(uint32_t table, uint32_t index, uint32_t value); //!< Writes the accessible flag
+bool readPresent(uint32_t table, uint32_t index); //!< Reads the present flag 
+void writePresent(uint32_t table, uint32_t index, bool value); //!< Writes the present flag
+bool readAccessible(uint32_t table, uint32_t index); //!< Reads the accessible flag
+void writeAccessible(uint32_t table, uint32_t index, bool value); //!< Writes the accessible flag
 uint32_t readPhysical(uint32_t table, uint32_t index); //!< FETCH address stored in indirection table, physical version
 uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index);
 void writePhysical(uint32_t table, uint32_t index, uint32_t addr); //!< STORE an address in an indirection table, physical version
@@ -75,8 +75,8 @@ void writeIndex(uint32_t table, uint32_t index, uint32_t idx); //!< STORE an ind
 uint32_t dereferenceVirtual(uint32_t addr);
 uint32_t derivated(uint32_t table, uint32_t index); //!< Returns 1 if the page is derivated, 0 else
 
-uint32_t readPDflag(uint32_t table, uint32_t index); //!< 
-void writePDflag(uint32_t table, uint32_t index, uint32_t value); //!< Writes the page directory flag contents
+bool readPDflag(uint32_t table, uint32_t index); //!< 
+void writePDflag(uint32_t table, uint32_t index, bool value); //!< Writes the page directory flag contents
 uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Directory
 
 void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, setting its contents to 0x00000000
@@ -88,7 +88,7 @@ uint32_t getMaxIndex(void); //!< Table size
 uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.
 void cleanPage(uint32_t paddr); //!< Cleans a given page, filling it with zero
 
-uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute); //!< Checks whether the asked rights are applicable to the architecture or not
+bool checkRights(bool read, bool write, bool execute); //!< Checks whether the asked rights are applicable to the architecture or not
 uint32_t applyRights(uint32_t table, uint32_t index, uint32_t read, uint32_t write, uint32_t execute); //!< Apply the asked rights to the given entry
 
 uint32_t toAddr(uint32_t input); //!< Converts a given uint32_t to an address (only for Haskell FFI purposes)
@@ -117,11 +117,11 @@ uint32_t indexSh2(void); //!< Shadow 2 index within partition descriptor
 uint32_t indexSh3(void); //!< Configuration tables linked list index within partition descriptor
 uint32_t PPRidx(void); //!< Parent partition index within partition descriptor
 uint32_t kernelIndex(void); //!< Index of kernel's page directory entry
-void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute); //!< Write a physical entry with all the possible flags we might need
+void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, bool present, bool user, bool read, bool write, bool execute); //!< Write a physical entry with all the possible flags we might need
 void writeKernelPhysicalEntry(uint32_t mmu_root_page, uint32_t kernel_index); //!< Writes the kernel MMU configuration page at index 'kernel_index' in the MMU root page
 uint32_t extractPreIndex(uint32_t vaddr, uint32_t index);
 
-uint32_t prepareType(int b, uint32_t vaddr);
+uint32_t prepareType(bool b, uint32_t vaddr);
 
 
 void updateMMURoot(page MMURoot);

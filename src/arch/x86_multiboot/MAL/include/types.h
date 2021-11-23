@@ -76,7 +76,7 @@ typedef struct page_directory
     uint32_t tablesPhysical[1024]; //!< Page Tables in this Page Directory
 } page_directory_t;
 
-typedef uint32_t bool;
+typedef _Bool bool;
 
 #define true    1
 #define false   0
