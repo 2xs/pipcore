@@ -84,6 +84,7 @@ void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, s
 uint32_t defaultAddr(void); //!< Default address, should be 0x00000000
 extern uint32_t tableSize;
 uint32_t getTableSize(void); //!< Table size
+index maxFreeLL();
 uint32_t getMaxIndex(void); //!< Table size
 uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.
 void cleanPage(uint32_t paddr); //!< Cleans a given page, filling it with zero

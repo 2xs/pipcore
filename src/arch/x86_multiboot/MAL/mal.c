@@ -140,6 +140,10 @@ uint32_t getTableSize()
 	return tableSize; // 1024 entries per table
 }
 
+index maxFreeLL() {
+    return (tableSize / 2) - 2;
+}
+
 /*!
  * \fn uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  * \brief Gets the index of this address into the given indirection table level
