@@ -41,13 +41,6 @@ Require Import Lia.
 From Pip.Proof Require Import
 CheckChild Consistency DependentTypeLemmas GetTableAddr InternalLemmas Invariants Isolation
 updateCurPartition WeakestPreconditions.
-(* Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.Isolation
-               Pip.Proof.InternalLemmas Pip.Proof.InternalLemmas2 Pip.Proof.StateLib
-               Pip.Proof.WeakestPreconditions.
-Require Import Invariants GetTableAddr LinkedListConfig PropagatedProperties
-               WriteAccessibleFalse WriteAccessibleRecPrepare InitPEntryTable
-               UpdateMappedPageContent InitFstShadow InitSndShadow
-               UpdateShadow1StructurePrepare InsertEntryIntoLL. *)
 
 Lemma switchContextCont (targetPartDesc : page)
                         (targetPageDir  : page)

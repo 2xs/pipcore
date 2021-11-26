@@ -1252,21 +1252,6 @@ simpl.
 trivial.
 Qed.
 
-(*
-Lemma readUserlandVAddr  (paddr : page) ( idx : index) (P : state -> Prop) :
-{{fun s => P s}}
-readUserlandVAddr paddr idx
-{{fun vaddr s => P s}}.
-Proof.
-eapply WP.weaken.
-apply WP.readUserlandVAddr.
-simpl.
-intros.
-case_eq (lookup paddr idx (memory s) beqPage beqIndex); intros; try assumption.
-case_eq v; intros; assumption.
-Qed.
-*)
-
 Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : state -> Prop) :
 {{fun s => P s}}
 IAL.getNthVAddrFrom va n
@@ -1315,7 +1300,7 @@ Qed.
 
 Lemma updateMMURoot (MMURoot : page)
 (P : state -> Prop) :
-{{fun s => P s(*  /\ StateLib.getPd (StateLib.getCurPartition s) (memory s) = Some MMURoot *)}}
+{{fun s => P s}}
 IAL.updateMMURoot MMURoot
 {{fun _ s => P s}}.
 Proof.
