@@ -1126,7 +1126,8 @@ Definition switchContextCont (targetPartDesc : page)
                              : LLI yield_checks :=
 
   setInterruptMask flagsOnYield ;;
-  updateCurPartAndActivate targetPartDesc targetPageDir ;;
+  updateMMURoot targetPageDir ;;
+  updateCurPartition targetPartDesc ;;
   perform flagsOnWake := getInterruptMaskFromCtx targetContext in
   setInterruptMask flagsOnWake ;;
   (* allow root partition to prevent Pip from enforcing interrupts *)

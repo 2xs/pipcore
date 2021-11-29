@@ -1252,21 +1252,6 @@ simpl.
 trivial.
 Qed.
 
-(*
-Lemma readUserlandVAddr  (paddr : page) ( idx : index) (P : state -> Prop) :
-{{fun s => P s}}
-readUserlandVAddr paddr idx
-{{fun vaddr s => P s}}.
-Proof.
-eapply WP.weaken.
-apply WP.readUserlandVAddr.
-simpl.
-intros.
-case_eq (lookup paddr idx (memory s) beqPage beqIndex); intros; try assumption.
-case_eq v; intros; assumption.
-Qed.
-*)
-
 Lemma getNthVAddrFrom (va : vaddr) (n : nat) (P : state -> Prop) :
 {{fun s => P s}}
 IAL.getNthVAddrFrom va n
@@ -1311,4 +1296,74 @@ eapply WP.weaken.
 apply WP.setInterruptMask.
 cbn.
 trivial.
+Qed.
+
+Lemma updateMMURoot (MMURoot : page)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.updateMMURoot MMURoot
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.updateMMURoot.
+cbn.
+trivial.
+Qed.
+
+Lemma getInterruptMaskFromCtx (context : contextAddr)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.getInterruptMaskFromCtx context
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.getInterruptMaskFromCtx.
+cbn.
+trivial.
+Qed.
+
+Lemma noInterruptRequest (flags : interruptMask)
+(P: state -> Prop) :
+{{fun s => P s}}
+IAL.noInterruptRequest flags
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.noInterruptRequest.
+cbn.
+trivial.
+Qed.
+
+Lemma vaddrToContextAddr (contextVAddr : vaddr)
+(P: state -> Prop) :
+{{fun s => P s}}
+IAL.vaddrToContextAddr contextVAddr
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.vaddrToContextAddr.
+cbn.
+trivial.
+Qed.
+
+Lemma loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.loadContext contextToLoad enforce_interrupt
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.loadContext.
+cbn.
+trivial.
+Qed.
+
+Lemma getVidtVAddr (P : state -> Prop) :
+{{ fun s => P s  }} MALInternal.getVidtVAddr
+{{ fun val s => P s /\ val = vidtVAddr }}.
+Proof.
+   eapply WP.weaken.
+   eapply WP.getVidtVAddr.
+   intros.
+   cbn. intuition.
 Qed.

@@ -896,3 +896,45 @@ setInterruptMask mask
 Proof.
 apply ret.
 Qed.
+
+Lemma getInterruptMaskFromCtx (context : contextAddr)
+(P: interruptMask -> state -> Prop) :
+{{fun s => P int_mask_d s}}
+getInterruptMaskFromCtx context
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma noInterruptRequest (flags : interruptMask)
+(P: bool -> state -> Prop) :
+{{fun s => P true s}}
+noInterruptRequest flags
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma vaddrToContextAddr (contextVAddr : vaddr)
+(P: contextAddr -> state -> Prop) :
+{{fun s => P 0 s}}
+vaddrToContextAddr contextVAddr
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+loadContext contextToLoad enforce_interrupt
+{{P}}.
+Proof.
+apply ret.
+Qed.
+
+Lemma getVidtVAddr (P : vaddr -> state -> Prop) : 
+{{ wp P getVidtVAddr}} getVidtVAddr {{P}}.
+Proof.
+apply wpIsPrecondition.
+Qed.

@@ -856,8 +856,3 @@ Definition checkVidtAccessibility (pageDirectory : page) : LLI bool :=
 perform vidtVaddr := getVidtVAddr in
 perform vidtIsAccessible := isVAddrAccessible vidtVaddr pageDirectory in
 ret vidtIsAccessible.
-
-
-Definition updateCurPartAndActivate(partDesc pageDir : page)
-          : LLI unit := updateCurPartition partDesc;; updateMMURoot pageDir.
-
