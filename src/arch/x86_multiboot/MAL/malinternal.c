@@ -233,5 +233,5 @@ uint32_t mul3(uint32_t v)
  */
 uint32_t getMaxIndex(void)
 {
-       return getTableSize() - 1;
+       return tableSize - 1;
 }

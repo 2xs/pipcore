@@ -93,7 +93,6 @@ typedef uint32_t level;
 
 #define fstLevel  0
 #define fstPreLevel 0
-#define tableSize getTableSize()
 
 #define Level_succ inc
 #define Level_pred sub

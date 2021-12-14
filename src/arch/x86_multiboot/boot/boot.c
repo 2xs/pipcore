@@ -98,8 +98,8 @@ void spawnFirstPartition(void)
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 
 	// Find virtual interrupt vector for partition
-	pt = readPhysicalNoFlags((uintptr_t)pageDir, getTableSize() - 1);
-	vidtPaddr = readPhysicalNoFlags(pt, getTableSize() - 1);
+	pt = readPhysicalNoFlags((uintptr_t)pageDir, tableSize - 1);
+	vidtPaddr = readPhysicalNoFlags(pt, tableSize - 1);
 
 	// Build initial execution context of multiplexer (architecture dependent)
 	ctx = (user_ctx_t *)(STACK_TOP_ADDR + PAGE_SIZE - sizeof(*ctx));

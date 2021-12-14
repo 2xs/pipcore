@@ -137,9 +137,8 @@ uint32_t tableSize = 1024;
  */
 uint32_t getTableSize()
 {
-	return (uint32_t)1024; // 1024 entries per table
+	return tableSize; // 1024 entries per table
 }
-
 
 /*!
  * \fn uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
