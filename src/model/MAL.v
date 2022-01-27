@@ -317,8 +317,8 @@ Definition  translate (pd : page) (va : vaddr) (l : level)  :=
   perform idx :=  getIndexOfAddr va fstLevel in
   readPhyEntry lastTable idx. *)
 
-(** The 'getPd' function returns the page directory of a given partition *)
-Definition getPd partition :=
+(** The 'internalGetPageDir' function returns the page directory of a given partition *)
+Definition internalGetPageDir partition :=
   perform idxPD := getPDidx in
   perform idx := MALInternal.Index.succ idxPD in
   readPhysical partition idx.
@@ -337,7 +337,7 @@ Definition readVirtualUser paddr idx : LLI vaddr :=
     virtual address  *)
 Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
   perform currentPartition := getCurPartition in 
-  perform currentPD := getPd currentPartition in 
+  perform currentPD := internalGetPageDir currentPartition in
   perform nbL := getNbLevel in 
   perform optionphyPage := translate currentPD va nbL in
   match optionphyPage with 
@@ -349,7 +349,7 @@ Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
     current partition and stores a value into the physical address. *)
 Definition storeVirtual (va : vaddr) (idx : index) (vaToStore : vaddr) : LLI unit:=
   perform currentPartition := getCurPartition in 
-  perform currentPD := getPd currentPartition in 
+  perform currentPD := internalGetPageDir currentPartition in
   perform nbL := getNbLevel in 
   perform optionphyPage := translate currentPD va nbL in
   match optionphyPage with 
