@@ -79,7 +79,7 @@ void serial_putc(char c) {
 }
 
 void serial_puts(const char *str) {
-    for (char *it = str; *it; ++it) {
+    for (const char *it = str; *it; ++it) {
 	while(!serial_transmit_ready());
         serial_putc(*it);
     }
