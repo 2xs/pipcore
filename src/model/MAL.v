@@ -208,17 +208,14 @@ Definition readIndex  (paddr : page) (idx : index) : LLI index:=
   perform s := get in
   let entry := lookup paddr idx s.(memory) beqPage beqIndex in
   match entry with
-  | Some (I e) =>  ret e
+  | Some (I e)  => ret e
   | Some (VA _) => undefined 240
   | Some _ => undefined 24
   | None => undefined 23
   end.
 
-Definition checkRights (r w e : bool):= 
-if (r && w && e) 
-then  
-ret true
-else ret (true || w).
+Definition checkRights (r w e : bool) :=
+  ret true.
 (*** End memory access *)
 
 (** The 'getMaxIndex' function returns the physical page size (minus 1) *)
