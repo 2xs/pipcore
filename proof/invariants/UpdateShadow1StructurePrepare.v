@@ -131,7 +131,7 @@ intuition;subst;trivial;simpl.
 + apply kernelDataIsolationUpdtateSh1Structure with (entry:= v0);trivial.
 + apply partitionsIsolationUpdtateSh1Structure with (entry:= v0);trivial.
 + apply verticalSharingUpdtateSh1Structure  with (entry:= v0);trivial.
-+ eapply consistencyUpdtateSh1Structure with (level0:= nbLgen) (entry:=v0)
++ eapply consistencyUpdtateSh1Structure with (level:= nbLgen) (entry:=v0)
   (currentPD:=currentPD) (ptVaInCurPartpd:=ptMMU) (phyVaChild:=pg);intuition;unfold consistency in *;
   intuition.
 + apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr trdVA fstLevel) v0 isPE;trivial;intros;split;

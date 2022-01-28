@@ -502,7 +502,7 @@ eapply WP.bindRev.
   eapply weaken.
   eapply initVAddrTablePropagateIsWellFormedFstShadow with (phyPage2:= phySh1addr)
   (va1:=trdVA) (va2 :=sndVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUSndVA) 
-  (partition:= currentPart) (level0 := nbLgen)(lpred:=lpred) (currentPD:= currentPD).
+  (partition:= currentPart) (level := nbLgen)(lpred:=lpred) (currentPD:= currentPD).
   unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
   initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
@@ -628,7 +628,7 @@ eapply WP.bindRev.
   eapply initPEntryTablePropagateIsWellFormedFstShadow with (phyPage1:= phySh2addr)
   (phyPage2:= phySh1addr)
   (va1:=trdVA) (va2 :=sndVA) (table1:=ptMMUTrdVA) (table2:=  ptMMUSndVA) 
-  (partition:= currentPart) (level0 := nbLgen) (lpred:= lpred) (currentPD:= currentPD).
+  (partition:= currentPart) (level := nbLgen) (lpred:= lpred) (currentPD:= currentPD).
   unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
   initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
@@ -707,4 +707,4 @@ eapply WP.bindRev.
   intros;subst;split;trivial.
   unfold consistency in *;intuition.
   intros;subst;split;trivial.      
-Qed. 
+Qed.

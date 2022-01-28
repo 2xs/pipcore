@@ -203,7 +203,9 @@ Lemma wpIsPrecondition {A : Type} (P : A -> state -> Prop) (m : LLI A) :
   {{ wp P m }} m {{ P }}.
 Proof.
 unfold wp.
-congruence.
+intro s.
+(* destruct (m s). *)
+trivial.
 Qed.
 
 Lemma wpIsWeakestPrecondition

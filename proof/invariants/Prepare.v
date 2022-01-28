@@ -197,7 +197,7 @@ induction n; simpl.
   eapply fstIndirectionContainsPENbLevelGT1  with (idxroot:= PDidx) (l:=l) 
    (currentPart:= descChildphy);intuition.
   unfold consistency in *;intuition.
-  eapply middleIndirectionsContainsPE  with (idxroot:= PDidx) (l0:=l) 
+  eapply middleIndirectionsContainsPE  with (idxroot:= PDidx) (l:=l) 
     (currentPart:= descChildphy) (rootind:=childpd) (va:=vaToPrepare);intuition.
   unfold consistency in *;intuition.    
   intros indMMUToPrepare.
@@ -242,7 +242,7 @@ induction n; simpl.
     eapply fstIndirectionContainsPENbLevelGT1  with (idxroot:= sh1idx) (l:=l) 
      (currentPart:= descChildphy);intuition.
     unfold consistency in *;intuition.
-    eapply middleIndirectionsContainsPE  with (idxroot:= sh1idx) (l0:=l) 
+    eapply middleIndirectionsContainsPE  with (idxroot:= sh1idx) (l:=l) 
       (currentPart:= descChildphy) (rootind:=childpd) (va:=vaToPrepare);intuition.
     unfold consistency in *;intuition.    
     intros indSh1ToPrepare.
@@ -262,7 +262,7 @@ induction n; simpl.
     eapply fstIndirectionContainsPENbLevelGT1  with (idxroot:= sh2idx) (l:=l) 
      (currentPart:= descChildphy);intuition.
     unfold consistency in *;intuition.
-    eapply middleIndirectionsContainsPE  with (idxroot:= sh2idx) (l0:=l) 
+    eapply middleIndirectionsContainsPE  with (idxroot:= sh2idx) (l:=l) 
       (currentPart:= descChildphy) (rootind:=childpd) (va:=vaToPrepare);intuition.
     unfold consistency in *;intuition.    
     intros indSh2ToPrepare.
