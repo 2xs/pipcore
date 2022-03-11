@@ -7,16 +7,23 @@ The source code is covered by CeCILL-A licence.
 
 The Pip Development Team:
 
-*   Quentin Bergougnoux <quentin.bergougnoux@univ-lille.fr>
-*   Julien Cartigny <julien.iguchi-cartigny@univ-lille.fr>
-*   Gilles Grimaud <gilles.grimaud@univ-lille.fr>
-*   Michaël Hauspie <michael.hauspie@univ-lille.fr>
-*   Étienne Helluy Lafont <e.helluy-lafont@etudiant.univ-lille.fr>
-*   Samuel Hym <samuel.hym@univ-lille.fr>
-*   Narjes Jomaa <narjes.jomaa@univ-lille.fr>
-*   David Nowak <david.nowak@univ-lille.fr>
-*   Paolo Torrini <paolo.torrini@univ-lille.fr>
-*   Mahieddine Yaker <mahieddine.yaker@univ-lille.fr>
+*   Damien Amara
+*   Nicolas Dejon
+*   Gilles Grimaud
+*   Michaël Hauspie
+*   Samuel Hym
+*   David Nowak
+*   Florian Vanhems
+
+Past members of the Pip Development Team:
+
+*   Quentin Bergougnoux
+*   Julien Cartigny
+*   Étienne Helluy Lafont
+*   Narjes Jomaa
+*   Paolo Torrini
+*   Mahieddine Yaker
+
 
 ## Getting started
 
