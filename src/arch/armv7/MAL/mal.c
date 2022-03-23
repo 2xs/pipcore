@@ -49,7 +49,7 @@ void ial_resume_ctx(user_ctx_t* context) __attribute__((noreturn));
 uint32_t current_partition = 0;
 uint32_t root_partition = 0;
 
-const uint32_t nbLevel = 2;
+uint32_t nbLevel = 2;
 
 /*!
  * \brief enables paging
@@ -119,6 +119,10 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 uint32_t getTableSize()
 {
 	return (uint32_t) MMU_L1_ENT_COUNT;
+}
+
+index maxFreeLL() {
+    return (MMU_L1_ENT_COUNT / 2) - 2;
 }
 
 /*!
@@ -385,7 +389,7 @@ void writeKernelPhysicalEntry(uint32_t child_mmu_root_page, uint32_t kernel_inde
  * \param b
  * \param vaddr
  */
-uint32_t prepareType(int b, uint32_t vaddr)
+uint32_t prepareType(bool b, uint32_t vaddr)
 {
 	return (vaddr & ~1) | (b ? 1 : 0);
 }
