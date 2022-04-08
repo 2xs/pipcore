@@ -377,6 +377,14 @@ qemu-elf: $(PARTITION).elf
 qemu-iso: $(PARTITION).iso
 	$(QEMU) $(QEMUARGS) -boot d -cdrom $<
 
+# The following test makes sense only when building the minimal
+# partition. It launches the minimal partition and terminates QEMU
+# after either a display of "Hello World" or 10 seconds, whichever
+# comes first. If it terminates due to the 10 seconds time-out, this
+# recipe fails.
+test-minimal: minimal.elf
+	bash -c '(echo $$BASHPID; exec $(QEMU) $(QEMUARGS) -kernel $<) | (read QEMUPID; (sleep 10s; kill $$QEMUPID 2> /dev/null) & tee /dev/stderr | if grep -m1 "Hello World" > /dev/null; then kill $$QEMUPID; exit 0; else kill $$QEMUPID; exit 2; fi)'
+
 ####################################################################
 
 $(GENERATED_FILES_DIR) $(C_DOC_DIR) $(COQ_DOC_DIR):
