@@ -1,0 +1,40 @@
+image: "coqorg/coq:latest"
+
+stages:
+  # set up artificial stages so that the cache from one job can be
+  # used by the other
+  - x86
+  - arm
+
+cache:
+  paths:
+    - .ci/*cached*
+  when: 'always'
+
+x86 minimal with digger:
+  stage: x86
+  script:
+    # get digger from latest CI artifacts
+    - cd tools/digger
+    - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
+    - unzip -o digger.zip
+    - cd ../..
+
+    - .ci/apt-get-and-cache.sh grub-pc-bin xorriso nasm gcc qemu-system-x86
+
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make test-minimal
+
+arm minimal with digger:
+  stage: arm
+  script:
+    # get digger from latest CI artifacts
+    - cd tools/digger
+    - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
+    - unzip -o digger.zip
+    - cd ../..
+
+    - .ci/apt-get-and-cache.sh grub-pc-bin xorriso nasm gcc-arm-none-eabi qemu-system-arm
+
+    - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make test-minimal
