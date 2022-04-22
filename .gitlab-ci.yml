@@ -53,3 +53,10 @@ test arm minimal:
     - .ci/apt-get.sh qemu-system-arm
     - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
     - make -o minimal.elf test-minimal
+
+check proofs:
+  when: manual
+  script:
+    - coqc --version
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make proofs
