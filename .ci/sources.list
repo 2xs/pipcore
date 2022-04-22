@@ -1,0 +1,2 @@
+deb http://debian.polytech-lille.fr/debian buster main
+deb http://debian.polytech-lille.fr/debian buster-updates main
