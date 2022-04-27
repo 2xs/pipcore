@@ -56,7 +56,7 @@ void set_int_state(gate_ctx_t *ctx, uint32_t interrupt_state) {
 	return;
 }
 
-void kernel_set_int_state(uint32_t interrupt_state) {
+void setInterruptMask(uint32_t interrupt_state) {
 	uint32_t currentPartDesc = getCurPartition();
 	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
 	return;

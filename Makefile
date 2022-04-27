@@ -80,6 +80,7 @@ COQ_INVARIANTS_DIR=$(COQ_PROOF_DIR)/invariants
 
 # Architecture agnostic C dirs
 C_MODEL_INTERFACE_INCLUDE_DIR=$(SRC_DIR)/interface
+C_ARCH_INDEP_DIR=$(SRC_DIR)/implementation
 
 # Architecture dependent C dirs
 ARCH_DEPENDENT_DIR=$(SRC_DIR)/arch
@@ -104,6 +105,7 @@ GENERATED_PARTITION_OBJ_DIR=$(TARGET_PARTITION_DIR)
 ############################ C files ################################
 
 C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Internal.c
+C_ARCH_INDEP_SRC=$(wildcard $(C_ARCH_INDEP_DIR)/*.c)
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
 AS_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.s)
@@ -116,6 +118,7 @@ C_TARGET_MAL_HEADERS=$(wildcard $(C_TARGET_MAL_INCLUDE_DIR)/*.h)
 C_TARGET_BOOT_HEADERS=$(wildcard $(C_TARGET_BOOT_INCLUDE_DIR)/*.h)
 
 C_GENERATED_OBJ=$(C_GENERATED_SRC:.c=.o)
+C_ARCH_INDEP_OBJ=$(C_ARCH_INDEP_SRC:.c=.o)
 C_TARGET_BOOT_OBJ=$(C_TARGET_BOOT_SRC:.c=.o)
 C_TARGET_MAL_OBJ=$(C_TARGET_MAL_SRC:.c=.o)
 AS_TARGET_BOOT_OBJ=$(AS_TARGET_BOOT_SRC:.s=.o)
@@ -186,7 +189,7 @@ PARTITION_BIN=$(TARGET_PARTITION_DIR)/$(PARTITION)/$(PARTITION).bin
 ######################## Miscellaneous files ########################
 
 TARGET_PARTITIONS_OBJ=$(wildcard $(TARGET_PARTITION_DIR)/*.o)
-OBJECT_FILES=$(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
+OBJECT_FILES=$(C_ARCH_INDEP_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
              $(C_GENERATED_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
              $(TARGET_PARTITIONS_OBJ)
 
@@ -295,6 +298,15 @@ $(C_TARGET_BOOT_OBJ):\
                         -I $(C_GENERATED_HEADERS_DIR)\
                         -c -o $@ $<
 
+# Static pattern rule for constructing object files from model implementations
+$(C_ARCH_INDEP_OBJ):\
+    %.o : %.c $(C_MODEL_INTERFACE_HEADERS) $(C_TARGET_MAL_HEADERS)\
+              $(C_TARGET_BOOT_HEADERS)
+	$(CC) $(CFLAGS) -I $(C_MODEL_INTERFACE_INCLUDE_DIR)\
+                        -I $(C_TARGET_MAL_INCLUDE_DIR)\
+                        -I $(C_TARGET_BOOT_INCLUDE_DIR)\
+                        -c -o $@ $<
+
 # Static pattern rule for constructing object files from target boot assembly files
 $(AS_TARGET_BOOT_OBJ):\
     %.o : %.s
@@ -324,11 +336,11 @@ $(AS_ROOTPART_BIN_WRAPPER_OBJ): $(AS_ROOTPART_BIN_WRAPPER_SRC) $(PARTITION_INTER
 # $(AS_TARGET_BOOT_OBJ) must be the first object file arg to the linker
 $(PARTITION).elf: $(C_SRC_TARGET_DIR)/link.ld\
                   $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
-		  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
+		  $(C_TARGET_MAL_OBJ) $(C_ARCH_INDEP_OBJ) $(C_GENERATED_OBJ)\
 		  $(AS_ROOTPART_BIN_WRAPPER_OBJ)
 	$(LD) \
                   $(C_TARGET_BOOT_OBJ) $(AS_TARGET_BOOT_OBJ) $(GAS_TARGET_BOOT_OBJ)\
-                  $(C_TARGET_MAL_OBJ) $(C_GENERATED_OBJ)\
+                  $(C_TARGET_MAL_OBJ) $(C_ARCH_INDEP_OBJ) $(C_GENERATED_OBJ)\
                   $(AS_ROOTPART_BIN_WRAPPER_OBJ)\
                   -T $< -o $@ $(LDFLAGS)
 

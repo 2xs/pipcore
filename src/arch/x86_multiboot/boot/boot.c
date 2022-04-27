@@ -93,13 +93,13 @@ void spawnFirstPartition(void)
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
 
-	pageDir = readPhysicalNoFlags(getRootPartition(), indexPD()+1);
+	pageDir = readPhyEntry(getRootPartition(), indexPD()+1);
 
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 
 	// Find virtual interrupt vector for partition
-	pt = readPhysicalNoFlags((uintptr_t)pageDir, tableSize - 1);
-	vidtPaddr = readPhysicalNoFlags(pt, tableSize - 1);
+	pt = readPhyEntry((uintptr_t)pageDir, tableSize - 1);
+	vidtPaddr = readPhyEntry(pt, tableSize - 1);
 
 	// Build initial execution context of multiplexer (architecture dependent)
 	ctx = (user_ctx_t *)(STACK_TOP_ADDR + PAGE_SIZE - sizeof(*ctx));

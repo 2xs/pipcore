@@ -72,8 +72,6 @@ typedef uint32_t index;
 #define getPRidx   zero
 #define getPDidx   indexPD
 #define getPPRidx  PPRidx
-#define getNbLevel getNbIndex
-#define getKidx    kernelIndex
 
 #define Index_succ inc
 #define Index_pred sub
@@ -108,15 +106,6 @@ typedef uint32_t count;
 #define Count_mul3 mul3
 
 /* Miscellaneous */
-#define writeVirEntry      writePhysical
-#define writePhyEntry      writePhysicalWithLotsOfFlags
-#define mapKernel          writeKernelPhysicalEntry
-#define readVirtual        readPhysical
-#define readVirtualUser    readPhysical
-#define readVirEntry       readPhysicalNoFlags
-#define readPhyEntry       readPhysicalNoFlags
-#define writeVirtual       writePhysical
-#define getMultiplexer     getRootPartition
 #define getStoreFetchIndex zero
 #define fetchVirtual       readTableVirtual
 
@@ -152,6 +141,5 @@ typedef enum yield_checks_e {
 #define contextSizeMinusOne (sizeof(user_ctx_t) - 1)
 
 #define userValue uint32_t
-#define setInterruptMask kernel_set_int_state
 
 #endif

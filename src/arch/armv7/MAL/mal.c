@@ -78,9 +78,9 @@ void disable_paging()
  *        given index, with physical addresses
  * \param table The table to store into
  * \param index The index in the table
- * \param addr The address to store
+ * \param val The address to store
  */
-void writePhysical(uint32_t table, uint32_t index, uint32_t val)
+void writePhysical(page table, index index, page val)
 {
 	uint32_t *paddr;
 
@@ -89,6 +89,24 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 	disable_paging();
 	*paddr = val;
 	enable_paging();
+}
+
+/*!
+ * \brief Alias of writePhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+void writeVirtual(page table, index index, vaddr val)
+{
+	writePhysical(table, index, val);
+}
+
+/*!
+ * \brief Alias of writePhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+void writeVirEntry(page table, index index, vaddr val)
+{
+	writePhysical(table, index, val);
 }
 
 /*!
@@ -101,7 +119,7 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
  * \return The address stored in the given slot, with its least significant bits
  *         cleared
  */
-uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
+page readPhyEntry(page table, index index)
 {
 	uint32_t *paddr, val;
 
@@ -112,6 +130,15 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 	enable_paging();
 
 	return val;
+}
+
+/*!
+ * \brief Alias of readPhyEntry at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirEntry(page table, index index)
+{
+	return readPhyEntry(table, index);
 }
 
 /*!
@@ -288,7 +315,7 @@ uint32_t readPDflag(uint32_t table, uint32_t index)
  * \param index The index into the shadow table
  * \return The value of the PD flag
  */
-uint32_t readPhysical(uint32_t table, uint32_t index)
+page readPhysical(page table, index index)
 {
 	uint32_t *paddr, val;
 
@@ -299,6 +326,24 @@ uint32_t readPhysical(uint32_t table, uint32_t index)
 	enable_paging();
 
 	return val;
+}
+
+/*!
+ * \brief Alias of readPhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirtual(page table, index index)
+{
+	return readPhysical(table, index);
+}
+
+/*!
+ * \brief Alias of readPhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirtualUser(page table, index index)
+{
+	return readPhysical(table, index);
 }
 
 /*!
@@ -324,7 +369,7 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  * \brief Gets the amount of indirection tables
  * \return Amount of maximal indirection tables
  */
-uint32_t getNbIndex(void)
+level getNbLevel(void)
 {
 	return nbLevel-1;
 }
@@ -360,7 +405,7 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 		return 0;
 
 	/* FIXME: We don't support xn, but return 1.
-	 * This is part of the writePhysicalWithLotsOfFlags hack */
+	 * This is part of the writePhyEntry hack */
 	if(execute==0)
 		return 1;
 
@@ -371,17 +416,16 @@ uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
 }
 
 /*!
- * This function is the real world version of the model's "mapKernel".
  * We use the same MMU table page for every partition that is configured at
  * boot time for the root partition. When creating a partition, that page is
  * looked up in the MMU configuration pages of the parent partition and written
  * at the same place.
  */
-void writeKernelPhysicalEntry(uint32_t child_mmu_root_page, uint32_t kernel_index)
+void mapKernel(uint32_t child_mmu_root_page, uint32_t kernel_index)
 {
 	uint32_t tt = readPhysical(current_partition, getPDidx() + 1);
-	uint32_t kpt = readPhysical(tt, kernelIndex());
-	writePhysicalWithLotsOfFlags(child_mmu_root_page, kernel_index, kpt, 0, 0, 0, 0, 0);
+	uint32_t kpt = readPhysical(tt, getIdxKernel());
+	writePhyEntry(child_mmu_root_page, kernel_index, kpt, 0, 0, 0, 0, 0);
 	return;
 }
 

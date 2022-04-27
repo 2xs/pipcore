@@ -76,13 +76,13 @@ void disable_paging()
 }
 
 /*!
- * \fn void writePhysical(uint32_t table, uint32_t index, uint32_t addr)
+ * \fn void writePhysical(page table, index index, page val)
  * \brief Stores the given address into the given indirection table, at the given index, with physical addresses
  * \param table The table to store into
  * \param index The index in the table
- * \param addr The address to store
+ * \param val The address to store
  */
-void writePhysical(uint32_t table, uint32_t index, uint32_t val)
+void writePhysical(page table, index index, page val)
 {
 	/* Disable paging */
 	disable_paging();
@@ -98,7 +98,25 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
 }
 
 /*!
- * \fn uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
+ * \brief Alias of writePhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+void writeVirtual(page table, index index, vaddr val)
+{
+	writePhysical(table, index, val);
+}
+
+/*!
+ * \brief Alias of writePhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+void writeVirEntry(page table, index index, vaddr val)
+{
+	writePhysical(table, index, val);
+}
+
+/*!
+ * \fn uint32_t readPhyEntry(uint32_t table, uint32_t index)
  * \brief Reads the address stored into table table, at index index, using physical addresses
  *        This function masks the least significant bits that are used by the kernel to store
  *        various flags (see `readVirEntry` and `readPhyEntry` in model)
@@ -106,7 +124,7 @@ void writePhysical(uint32_t table, uint32_t index, uint32_t val)
  * \param index The index in the table
  * \return The address stored in the given slot, with its least significant bits cleared
  */
-uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
+page readPhyEntry(page table, index index)
 {
 	/* we need physical address space, disable paging */
 	disable_paging();
@@ -122,6 +140,15 @@ uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index)
 	enable_paging();
 	
 	return val;
+}
+
+/*!
+ * \brief Alias of readPhyEntry at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirEntry(page table, index index)
+{
+	return readPhyEntry(table, index);
 }
 
 /*!
@@ -369,7 +396,7 @@ bool readPDflag(uint32_t table, uint32_t index)
 	return (curval & 0x00000001);
 }
 
-uint32_t readPhysical(uint32_t table, uint32_t index)
+page readPhysical(page table, index index)
 {
 	/* We're in kernel : we can disable paging */
 	disable_paging();
@@ -386,6 +413,23 @@ uint32_t readPhysical(uint32_t table, uint32_t index)
 	return val;
 }
 
+/*!
+ * \brief Alias of readPhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirtual(page table, index index)
+{
+	return readPhysical(table, index);
+}
+
+/*!
+ * \brief Alias of readPhysical at a slightly different type. But
+ * since those types use the same representation, they are aliases.
+ */
+vaddr readVirtualUser(page table, index index)
+{
+	return readPhysical(table, index);
+}
 
 void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
 {
@@ -407,15 +451,15 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
 }
 
 
-/*!	\fn uint32_t getNbIndex()
+level nbLevel = 2;
+level boundNbLevel = 3;
+level levelMin = 0;
+
+/*!	\fn uint32_t getNbLevel()
  * 	\brief Gets the amount of indirection tables
  * 	\return Amount of maximal indirection tables
  */
-uint32_t nbLevel = 2;
-
-uint32_t boundNbLevel = 3;
-
-uint32_t getNbIndex(void)
+level getNbLevel(void)
 {
 	return nbLevel-1;
 }
@@ -509,17 +553,16 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
 }
 
 /**
- * This function is the real world version of the model's "mapKernel".
  * We use the same MMU table page for every partition that is configured at
  * boot time for the root partition. When creating a partition, that page is
  * looked up in the MMU configuration pages of the parent partition and written
  * at the same place.
  */
-void writeKernelPhysicalEntry(uintptr_t child_mmu_root_page, uint32_t kernel_index)
+void mapKernel(uintptr_t child_mmu_root_page, uint32_t kernel_index)
 {
     uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
     uint32_t kpt = readPhysical(cr3, kernel_index);
-    writePhysicalWithLotsOfFlags(child_mmu_root_page, kernel_index, kpt, 1, 0, 1, 1, 1);
+    writePhyEntry(child_mmu_root_page, kernel_index, kpt, 1, 0, 1, 1, 1);
     return;
 }
 

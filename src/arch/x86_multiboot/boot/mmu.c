@@ -48,7 +48,7 @@
 
 page_directory_t *kernelDirectory=0; //!< The kernel's page directory
 
-uint32_t maxPages = 0; //!< The maximal amount of pages available
+uint32_t nbPage = 0; //!< The maximal amount of pages available
 uint32_t boundNbPages = 0; //!< Bound on the number of physical pages
 uint32_t allocatedPages = 0; //!< The current allocated amount of pages
 uint32_t ramEnd = 0; //!< End of memory
@@ -200,8 +200,8 @@ void initFreePageList(uintptr_t base, uintptr_t length)
         }
 
         DEBUG(TRACE, "added memory region to page allocator, %d pages, first page %x, last page at %x", pageCount, base, i);
-        maxPages = pageCount;
-        boundNbPages = maxPages + 1;
+        nbPage = pageCount;
+        boundNbPages = nbPage + 1;
         ramEnd = i;
     } else {
         DEBUG(TRACE, "Not adding low-memory area\n");
@@ -288,7 +288,7 @@ void dumpMmap(uint32_t *mmap_ptr, uint32_t len)
 void mark_kernel_global()
 {
 	#define GLOBAL_BIT (1 << 8)
-	uint32_t pd_idx = kernelIndex();
+	uint32_t pd_idx = getIdxKernel();
 	uint32_t kern_pt = readTableVirtual((uint32_t)kernelDirectory, pd_idx);
 	uint32_t i = 0;
 	/* Mark each entry of kernel PT as global */

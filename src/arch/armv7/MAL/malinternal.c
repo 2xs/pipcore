@@ -43,8 +43,6 @@
 #include "maldefines.h"
 #include "mal.h"
 
-const uint32_t defaultVAddr = 0;
-
 /*!
  * \brief Returns the default null address.
  * \return The null address.
@@ -57,8 +55,9 @@ uint32_t defaultAddr(void)
 /*!
  * \brief Returns the kernel address.
  * \return The kernel address.
+ * TODO: Check mismatch with x86_multiboot version
  */
-uint32_t kernelIndex(void)
+uint32_t getIdxKernel(void)
 {
 	return 0;
 }
@@ -77,6 +76,15 @@ uint32_t indexPR(void)
  * \return zero.
  */
 uint32_t zero(void)
+{
+	return 0;
+}
+
+/*!
+ * \fn uint32_t getIdx0()
+ * \return zero.
+ */
+index getIdx0(void)
 {
 	return 0;
 }

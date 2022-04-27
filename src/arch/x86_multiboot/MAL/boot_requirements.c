@@ -237,7 +237,7 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t wr
 }
 
 /**
- * \fn void writePhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, bool present, bool user, bool read, bool write, bool execute)
+ * \fn void writePhyEntry(uintptr_t table, uint32_t index, uintptr_t addr, bool present, bool user, bool read, bool write, bool execute)
  * \param table The indirection table in which we find the entry
  * \param index The index in this table, targeting the specified entry
  * \param addr The target address
@@ -248,7 +248,7 @@ uint32_t applyRights(uintptr_t table, uint32_t index, uint32_t read, uint32_t wr
  * \param execute The execute right
  * \brief Applies the given rights on the given entry
  */
-void writePhysicalWithLotsOfFlags(uintptr_t table, uint32_t index, uintptr_t addr, bool present, bool user, bool read, bool write, bool execute)
+void writePhyEntry(uintptr_t table, uint32_t index, uintptr_t addr, bool present, bool user, bool read, bool write, bool execute)
 {
 	writePhysicalNoFlags(table, index, addr);
 	applyRights(table, index, read, write, execute);

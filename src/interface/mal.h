@@ -42,6 +42,7 @@
 #include <stdint.h>
 
 #include "maldefines.h"
+#include "Constants.h"
 
 void enable_paging();
 void disable_paging();
@@ -66,9 +67,14 @@ bool readPresent(uint32_t table, uint32_t index); //!< Reads the present flag
 void writePresent(uint32_t table, uint32_t index, bool value); //!< Writes the present flag
 bool readAccessible(uint32_t table, uint32_t index); //!< Reads the accessible flag
 void writeAccessible(uint32_t table, uint32_t index, bool value); //!< Writes the accessible flag
-uint32_t readPhysical(uint32_t table, uint32_t index); //!< FETCH address stored in indirection table, physical version
-uint32_t readPhysicalNoFlags(uint32_t table, uint32_t index);
-void writePhysical(uint32_t table, uint32_t index, uint32_t addr); //!< STORE an address in an indirection table, physical version
+page readPhysical(page table, index index); //!< FETCH address stored in indirection table, physical version
+vaddr readVirtual(page table, index index);
+vaddr readVirtualUser(page table, index index);
+page readPhyEntry(page table, index index);
+vaddr readVirEntry(page table, index index);
+void writePhysical(page table, index index, page val); //!< STORE an address in an indirection table, physical version
+void writeVirtual(page table, index index, vaddr val);
+void writeVirEntry(page table, index index, vaddr val);
 void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr);
 uint32_t readIndex(uint32_t table, uint32_t index); //!< FETCH index stored in indirection table, physical version
 void writeIndex(uint32_t table, uint32_t index, uint32_t idx); //!< STORE an index in an indirection table, physical version
@@ -97,8 +103,7 @@ extern uint32_t nbLevel;
 extern uint32_t boundNbLevel;
 
 /* Amount of pages available, meh */
-extern uint32_t maxPages;
-#define nbPage maxPages
+extern uint32_t nbPage;
 extern uint32_t boundNbPages;
 
 /* Coq related stuff */
@@ -119,9 +124,9 @@ uint32_t indexSh1(void); //!< Shadow 1 index within partition descriptor
 uint32_t indexSh2(void); //!< Shadow 2 index within partition descriptor
 uint32_t indexSh3(void); //!< Configuration tables linked list index within partition descriptor
 uint32_t PPRidx(void); //!< Parent partition index within partition descriptor
-uint32_t kernelIndex(void); //!< Index of kernel's page directory entry
-void writePhysicalWithLotsOfFlags(uint32_t table, uint32_t index, uint32_t addr, bool present, bool user, bool read, bool write, bool execute); //!< Write a physical entry with all the possible flags we might need
-void writeKernelPhysicalEntry(uint32_t mmu_root_page, uint32_t kernel_index); //!< Writes the kernel MMU configuration page at index 'kernel_index' in the MMU root page
+uint32_t getIdxKernel(void); //!< Index of kernel's page directory entry
+void writePhyEntry(uint32_t table, uint32_t index, uint32_t addr, bool present, bool user, bool read, bool write, bool execute); //!< Write a physical entry with all the possible flags we might need
+void mapKernel(uint32_t mmu_root_page, uint32_t kernel_index); //!< Writes the kernel MMU configuration page at index 'kernel_index' in the MMU root page
 uint32_t extractPreIndex(uint32_t vaddr, uint32_t index);
 
 uint32_t prepareType(bool b, uint32_t vaddr);

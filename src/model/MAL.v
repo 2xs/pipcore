@@ -263,6 +263,8 @@ Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
   ret ( nth ((length va) - (l + 2)) va defaultIndex ).
 
 (** The 'getNbLevel' function returns the number of levels of the MMU *)
+(* TODO: Either change the name of nbLevel or of getNbLevel or the code of getNbLevel *)
+(* TODO: Propagate this fix to the C code *)
 Program Definition getNbLevel : LLI level:=
 if gt_dec nbLevel 0
 then

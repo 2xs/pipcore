@@ -44,7 +44,7 @@
 
 void fix_eflags_gate_ctx(gate_ctx_t *ctx);
 void fix_eflags_iret_ctx(iret_ctx_t *ctx);
-void kernel_set_int_state(uint32_t interrupt_mask);
+void setInterruptMask(uint32_t interrupt_mask);
 void set_int_state(gate_ctx_t *ctx, uint32_t interrupt_mask);
 uint32_t get_int_state(uint32_t child_vaddr);
 uint32_t get_self_int_state();

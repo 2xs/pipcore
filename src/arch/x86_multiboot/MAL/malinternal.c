@@ -51,14 +51,12 @@ uint32_t defaultAddr(void)
 	return 0;
 }
 
-uint32_t defaultVAddr = 0;
-
 /*!
- * \fn uint32_t kernelIndex()
+ * \fn uint32_t getIdxKernel()
  * \brief Returns the kernel address.
  * \return The kernel address.
  */
-uint32_t kernelIndex(void)
+uint32_t getIdxKernel(void)
 {
 	extern uint32_t __code;
 	return getIndexOfAddr((uint32_t)(&__code), 1);
@@ -80,6 +78,15 @@ uint32_t indexPR(void)
  * \return zero.
  */
 uint32_t zero(void)
+{
+	return 0;
+}
+
+/*!
+ * \fn uint32_t getIdx0()
+ * \return zero.
+ */
+index getIdx0(void)
 {
 	return 0;
 }

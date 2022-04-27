@@ -34,43 +34,33 @@
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
 
-/* include mal for kernelIndex, getVidtVAddr */
+/* include mal for getVidtVAddr */
 #include "mal.h"
 
-#define idxDefault 0
-#define idxStoreFetch 0
 /* idxKernel will be chosen by the linker */
 
-#define idxPartDesc   0
-#define idxPageDir    2
-#define idxShadow1    4
-#define idxShadow2    6
-#define idxShadow3    8
-#define idxParentDesc 10
+extern vaddr vaddrDefault;
 
-#define vaddrDefault 0
+extern level levelMin;
 
-#define pageDefault 0
+extern index getIdxKernel(void);
 
-#define levelMin 0
-#define count0 0
-
-#define getIdxDefault()      (idxDefault)
-#define getIdx0()            (0)
-#define getIdx3()            (3)
-#define getIdxStoreFetch()   (idxStoreFetch)
-#define getIdxKernel()       (kernelIndex())
-#define getIdxPartDesc()     (idxPartDesc)
-#define getIdxPageDir()      (idxPageDir)
-#define getIdxShadow1()      (idxShadow1)
-#define getIdxShadow2()      (idxShadow2)
-#define getIdxShadow3()      (idxShadow3)
-#define getIdxParentDesc()   (idxParentDesc)
-#define getVaddrDefault()    (vaddrDefault)
+extern index getIdx0(void);
+extern index getIdx3(void);
+extern index getIdxStoreFetch(void);
+extern index getIdxPartDesc(void);
+extern index getIdxPageDir(void);
+extern index getIdxShadow1(void);
+extern index getIdxShadow2(void);
+extern index getIdxShadow3(void);
+extern index getIdxParentDesc(void);
+extern vaddr getVaddrDefault(void);
 #define getVaddrVIDT()       (getVidtVAddr())
-#define getPageDefault()     (pageDefault)
+extern page getPageDefault(void);
 #define getPageMultiplexer() (getRootPartition())
 #define getLevelMin()        (levelMin)
-#define getCount0()          (count0)
+extern count getCount0(void);
+
+extern level getNbLevel(void);
 
 #endif

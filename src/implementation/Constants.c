@@ -1,5 +1,5 @@
 /*******************************************************************************/
-/*  © Université de Lille, The Pip Development Team (2015-2021)                */
+/*  © Université de Lille, The Pip Development Team (2015-2022)                */
 /*                                                                             */
 /*  This software is a computer program whose purpose is to run a minimal,     */
 /*  hypervisor relying on proven properties such as memory isolation.          */
@@ -31,49 +31,52 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#include "cache.h"
-#include "mmu.h"
-#include "memlayout.h"
-#include "string.h"
-#include "irq.h"
+/* This file contains arch-independent constants */
+
 #include "mal.h"
-#include "debug.h"
 
-/* Prototypes of control flow transfer services entrypoints */
-#include "Services.h"
+vaddr vaddrDefault = 0;
 
-extern bool_t mmu_io_remapped;
-extern uint32_t current_partition;
+index getIdxStoreFetch(void) {
+    return 0;
+}
 
-void mal_init(void);
+index getIdxPartDesc(void) {
+    return 0;
+}
 
-int kernel_start(void)
-{
-	/* Clear bss */
-	memset(kernel_bss_start, 0, (unsigned)(kernel_bss_end-kernel_bss_start));
+index getIdxPageDir(void) {
+    return 2;
+}
 
-	/* Enable D/I caches and branch predictor */
-	caches_enable();
-	branch_pred_enable();
+index getIdx3(void) {
+    return 3;
+}
 
-	/* Configure timer & interrupts */
-	irq_init();
+index getIdxShadow1(void) {
+    return 4;
+}
 
-	/* Configure the mmu */
-	mmu_init();
+index getIdxShadow2(void) {
+    return 6;
+}
 
-	/* Initialize the root partition */
-	mal_init();
+index getIdxShadow3(void) {
+    return 8;
+}
 
-	/* Activate and run the multiplexer */
-	updateMMURoot((uint32_t) ((void **) getRootPartition())[indexPD()+1]);
+index getIdxParentDesc(void) {
+    return 10;
+}
 
-	uint32_t pageDir = readPhyEntry(getRootPartition(), indexPD()+1);
-	user_ctx_t *user_ctx = ((user_ctx_t **) 0x3FFFF000)[0];
+vaddr getVaddrDefault(void) {
+    return vaddrDefault;
+}
 
-	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
-	switchContextCont(getRootPartition(), pageDir, 0, user_ctx);
+page getPageDefault(void) {
+    return 0;
+}
 
-	/* Should never be reached */
-	for (;;);
+count getCount0(void) {
+    return 0;
 }
