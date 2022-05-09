@@ -20,8 +20,9 @@ build x86 minimal with digger:
 
 test x86 minimal:
   stage: test
-  dependencies:
-    - build x86 minimal with digger
+  needs:
+    - job: build x86 minimal with digger
+      artifacts: true
   script:
     - .ci/apt-get.sh qemu-system-x86
     - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
@@ -47,8 +48,9 @@ build arm minimal with digger:
 
 test arm minimal:
   stage: test
-  dependencies:
-    - build arm minimal with digger
+  needs:
+    - job: build arm minimal with digger
+      artifacts: true
   script:
     - .ci/apt-get.sh qemu-system-arm
     - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
