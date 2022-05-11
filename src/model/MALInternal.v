@@ -38,7 +38,7 @@
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib.
 Require Import List Arith Lia.
 
-Require Import Pip.Model.Constants Pip.Model.Ops.
+Require Export Pip.Model.Constants Pip.Model.Ops.
 
 #[deprecated(note="Use idxDefault instead")]
 Notation defaultIndex := idxDefault (only parsing).

@@ -42,7 +42,7 @@ Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat List Bool
 
 Module WP := WeakestPreconditions.
 Lemma getPageRootPartition (P : state -> Prop) :
-{{ fun s => P s  }} MALInternal.getPageRootPartition
+{{ fun s => P s  }} Constants.getPageRootPartition
 {{ fun val s => P s /\ val = multiplexer }}.
 Proof.
    eapply WP.weaken.
@@ -1354,7 +1354,7 @@ trivial.
 Qed.
 
 Lemma getVaddrVIDT (P : state -> Prop) :
-{{ fun s => P s  }} MALInternal.getVaddrVIDT
+{{ fun s => P s  }} Constants.getVaddrVIDT
 {{ fun val s => P s /\ val = vidtVAddr }}.
 Proof.
    eapply WP.weaken.
