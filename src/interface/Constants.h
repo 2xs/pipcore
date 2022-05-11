@@ -56,7 +56,6 @@ extern index getIdxShadow3(void);
 extern index getIdxParentDesc(void);
 extern vaddr getVaddrDefault(void);
 extern page getPageDefault(void);
-#define getLevelMin()        (levelMin)
 extern count getCount0(void);
 
 extern level getNbLevel(void);

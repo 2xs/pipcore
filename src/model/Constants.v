@@ -85,5 +85,4 @@ Definition getVaddrMax          := ret vaddrMax.
 Definition getVaddrVIDT         := ret vaddrVIDT.
 Definition getPageDefault       := ret pageDefault.
 Definition getPageRootPartition := ret pageRootPartition.
-Definition getLevelMin          := ret levelMin.
 Definition getCount0            := ret count0.
