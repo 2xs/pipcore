@@ -933,8 +933,8 @@ Proof.
 apply ret.
 Qed.
 
-Lemma getVidtVAddr (P : vaddr -> state -> Prop) : 
-{{ wp P getVidtVAddr}} getVidtVAddr {{P}}.
+Lemma getVaddrVIDT (P : vaddr -> state -> Prop) :
+  {{ wp P getVaddrVIDT}} getVaddrVIDT {{P}}.
 Proof.
 apply wpIsPrecondition.
 Qed.

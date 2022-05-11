@@ -1374,9 +1374,9 @@ getSourceVidtCont targetPartDesc sourcePageDir targetInterrupt sourceContextSave
 Proof.
 unfold getSourceVidtCont.
 
-(* vidtVAddr := getVidtVAddr *)
+(* vidtVAddr := getVaddrVIDT *)
 eapply WP.bindRev.
-eapply Invariants.getVidtVAddr.
+eapply Invariants.getVaddrVIDT.
 intro vidtVAddr.
 cbn.
 

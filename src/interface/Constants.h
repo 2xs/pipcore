@@ -34,7 +34,7 @@
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
 
-/* include mal for getVidtVAddr */
+/* include mal for getVaddrVIDT */
 #include "mal.h"
 
 /* idxKernel will be chosen by the linker */
@@ -55,7 +55,6 @@ extern index getIdxShadow2(void);
 extern index getIdxShadow3(void);
 extern index getIdxParentDesc(void);
 extern vaddr getVaddrDefault(void);
-#define getVaddrVIDT()       (getVidtVAddr())
 extern page getPageDefault(void);
 #define getPageMultiplexer() (getRootPartition())
 #define getLevelMin()        (levelMin)

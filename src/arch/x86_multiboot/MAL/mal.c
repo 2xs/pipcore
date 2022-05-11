@@ -572,7 +572,7 @@ uint32_t prepareType(bool b, uint32_t vaddr)
     return (vaddr & ~1) | (b ? 1 : 0);
 }
 
-vaddr getVidtVAddr() {
+vaddr getVaddrVIDT() {
 	return 0xFFFFF000;
 }
 

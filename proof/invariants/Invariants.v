@@ -1353,12 +1353,12 @@ cbn.
 trivial.
 Qed.
 
-Lemma getVidtVAddr (P : state -> Prop) :
-{{ fun s => P s  }} MALInternal.getVidtVAddr
+Lemma getVaddrVIDT (P : state -> Prop) :
+{{ fun s => P s  }} MALInternal.getVaddrVIDT
 {{ fun val s => P s /\ val = vidtVAddr }}.
 Proof.
    eapply WP.weaken.
-   eapply WP.getVidtVAddr.
+   eapply WP.getVaddrVIDT.
    intros.
    cbn. intuition.
 Qed.

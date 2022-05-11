@@ -62,7 +62,7 @@ typedef uintptr_t vaddr;
 #define VAddr_eqbList   addressEquals
 #define beqVAddr        addressEquals
 
-extern vaddr getVidtVAddr(void);
+extern vaddr getVaddrVIDT(void);
 
 /* Index */
 typedef uint32_t index;

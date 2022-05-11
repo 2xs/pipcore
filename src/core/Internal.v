@@ -33,7 +33,7 @@
 
 (** * Summary 
     This file contains some internal functions used by services *)
-Require Import Pip.Model.Hardware Pip.Model.ADT Pip.Model.MAL Pip.Model.MALInternal Pip.Model.IAL.
+Require Import Pip.Model.Hardware Pip.Model.ADT Pip.Model.MAL Pip.Model.MALInternal Pip.Model.IAL Pip.Model.Constants.
 Require Import Bool Arith List Coq.Init.Peano.
 Definition N := 100.
 
@@ -853,6 +853,6 @@ else
   ret true.
 
 Definition checkVidtAccessibility (pageDirectory : page) : LLI bool :=
-perform vidtVaddr := getVidtVAddr in
+perform vidtVaddr := getVaddrVIDT in
 perform vidtIsAccessible := isVAddrAccessible vidtVaddr pageDirectory in
 ret vidtIsAccessible.

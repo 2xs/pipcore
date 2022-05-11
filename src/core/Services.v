@@ -44,8 +44,9 @@
       - part 3 : <<funtionName>> is the PIP service. It calls <<functionNameAux>> 
                 with the required parameters *)
 
-Require Import Pip.Model.IAL Pip.Model.Hardware Pip.Model.ADT Pip.Model.Lib Pip.Model.MAL Pip.Core.Internal
-               Bool Arith List.
+Require Import Pip.Model.IAL Pip.Model.Hardware Pip.Model.ADT Pip.Model.Lib Pip.Model.MAL Pip.Model.Constants.
+Require Import Pip.Core.Internal.
+Require Import Bool Arith List.
 Import List.ListNotations.
 
 (** ** The createPartition PIP service
@@ -1328,7 +1329,7 @@ Definition getSourceVidtCont (targetPartDesc : page)
 				                     (flagsOnWake  : interruptMask)
 				                     (sourceInterruptedContext : contextAddr)
                              : LLI yield_checks :=
-  perform vidtVAddr := getVidtVAddr in
+  perform vidtVAddr := getVaddrVIDT in
   perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
 
   (* retrieve caller vidt *)

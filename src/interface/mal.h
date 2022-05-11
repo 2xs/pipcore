@@ -139,7 +139,7 @@ bool firstVAddrGreaterThanSecond(vaddr vaddr1, vaddr vaddr2);
 contextAddr vaddrToContextAddr(vaddr contextVAddr);
 bool checkIndexPropertyLTB(userValue userIndex);
 index userValueToIndex(userValue userIndex);
-vaddr getVidtVAddr();
+vaddr getVaddrVIDT();
 vaddr getNthVAddrFrom(page base, uint32_t size);
 void writeContext(contextAddr ctx, vaddr ctxSaveVAddr, interruptMask flagsOnWake);
 void loadContext(contextAddr ctx, bool enforce_interrupts);
