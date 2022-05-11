@@ -115,6 +115,7 @@ Inductive yield_checks : Type :=
 | FAIL_MASKED_INTERRUPT_Cons
 | SUCCESS_Cons.
 
+#[universes(template)]
 Inductive result (A : Type) : Type :=
 | val : A -> result A
 (* | hlt : result A *)
