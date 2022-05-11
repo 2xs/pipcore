@@ -54,7 +54,7 @@ LDFLAGS=$(ARCH_LDFLAGS)
 CFLAGS+=$(if $(DEBUG), $(DEBUG_CFLAGS))
 
 COQFLAGS := $(shell $(CAT) _CoqProject)
-COQCFLAGS := $(COQFLAGS) -w all,-nonprimitive-projection-syntax
+COQCFLAGS := $(COQFLAGS) -w all,-nonprimitive-projection-syntax,-disj-pattern-notation
 COQCEXTRFLAGS := $(shell $(SED) 's/-[RQ]  */&..\//g' _CoqProject) -w all,-extraction
 
 #####################################################################
@@ -270,7 +270,7 @@ $(JSONS): src/extraction/Extraction.vo | $(GENERATED_FILES_DIR)
 	mv $(notdir $@) $(GENERATED_FILES_DIR)
 
 %.vo %.vok %.vos %.glob .%.aux : %.v %.v.d
-	$(COQC) $(COQCFLAGS) $<
+	$(COQC) $(COQCFLAGS) -w -extraction $<
 endif
 
 ########################### C object rules ##########################
