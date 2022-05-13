@@ -36,6 +36,17 @@ include toolchain.mk
 # Default tools
 CAT := cat
 SED := sed
+COQC := coqc
+COQDEP := coqdep
+OCAMLOPT := ocamlopt
+
+# GALLINA_C should be either digger or dx
+# if DXDIR is set, use dx
+ifeq ($(strip $(DXDIR)),)
+GALLINA_C := digger
+else
+GALLINA_C := dx
+endif
 
 CFLAGS=-Wall -Wextra
 # -Wno-unused-variable -Wno-unused-parameter -Wno-unused-but-set-variable
@@ -76,6 +87,8 @@ COQ_EXTRACTION_DIR=$(SRC_DIR)/extraction
 COQ_PROOF_DIR=proof
 COQ_INVARIANTS_DIR=$(COQ_PROOF_DIR)/invariants
 
+COQ_DX_DIR=$(SRC_DIR)/dx
+
 ########################### C related dirs ##########################
 
 # Architecture agnostic C dirs
@@ -105,6 +118,9 @@ GENERATED_PARTITION_OBJ_DIR=$(TARGET_PARTITION_DIR)
 ############################ C files ################################
 
 C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Internal.c
+ifeq ($(GALLINA_C),dx)
+C_GENERATED_SRC += $(C_GENERATED_SRC_DIR)/MonadicOps.c
+endif
 C_ARCH_INDEP_SRC=$(wildcard $(C_ARCH_INDEP_DIR)/*.c)
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)
@@ -174,12 +190,26 @@ COQ_EXTR_AUXFILE:=$(addprefix $(dir $(COQ_EXTR_AUXFILE))., $(notdir $(COQ_EXTR_A
 COQ_EXTR_COMPILED_FILES:=$(COQ_EXTR_VOFILE) $(COQ_EXTR_GLOBFILE)\
 	$(COQ_EXTR_VOSFILE) $(COQ_EXTR_VOKFILE) $(COQ_EXTR_AUXFILE)
 
+# Coq dx files
+COQ_DX_FILES = $(wildcard $(COQ_DX_DIR)/*.v)
+COQ_DX_DEPFILES = $(COQ_DX_FILES:.v=.v.d)
+COQ_DX_COMPILED_FILES := $(COQ_DX_FILES:.v=.vo)
+COQ_DX_COMPILED_FILES += $(COQ_DX_FILES:.v=.vok)
+COQ_DX_COMPILED_FILES += $(COQ_DX_FILES:.v=.vos)
+COQ_DX_COMPILED_FILES += $(COQ_DX_FILES:.v=.glob)
+COQ_DX_COMPILED_FILES += $(patsubst %.v,.%.aux,$(COQ_DX_FILES))
+
 # Group of Coq files produced by the compilation process
 COQ_COMPILED_FILES=$(COQ_VOFILES) $(COQ_VOKFILES) $(COQ_VOSFILES)\
 		   $(COQ_GLOBFILES) $(COQ_AUXFILES)\
 		   $(COQ_EXTR_COMPILED_FILES)
 
 COQ_DEPENDENCY_FILES=$(COQ_DEPFILES) $(COQ_EXTR_DEPFILE)
+
+ifeq ($(GALLINA_C),dx)
+COQ_DEPENDENCY_FILES += $(COQ_DX_DEPFILES)
+COQ_COMPILED_FILES += $(COQ_DX_COMPILED_FILES)
+endif
 
 ######################### Partition files ###########################
 
@@ -225,6 +255,8 @@ DIGGERFLAGS += -r Coq_true:true -r Coq_false:false -r Coq_tt:tt -r coq_N:N
 # output a #include "maldefines.h" at the beginning of the translated files
 DIGGERFLAGS += -q maldefines.h
 
+ifeq ($(GALLINA_C),digger)
+
 $(GENERATED_FILES_DIR)/Internal.h: $(GENERATED_FILES_DIR)/Internal.json $(JSONS)\
                                  | $(GENERATED_FILES_DIR) $(DIGGER)
 	$(DIGGER) $(DIGGERFLAGS) --header\
@@ -249,6 +281,8 @@ $(GENERATED_FILES_DIR)/Services.c: $(GENERATED_FILES_DIR)/Services.json $(JSONS)
 	                         -q Constants.h -q Ops.h -q Services.h -q Internal.h -q mal.h\
 	                         $< -o $@
 
+endif
+
 ############################## Coq rules ############################
 
 # Rule to generate dependency files
@@ -258,6 +292,18 @@ $(COQ_DEPENDENCY_FILES):\
 
 -include $(COQ_DEPENDENCY_FILES)
 
+%.cmi: %.mli
+	$(OCAMLOPT) -args $(DXDIR)/cprinter-inc-args -c $<
+
+%.cmx: %.ml %.cmi
+	$(OCAMLOPT) -args $(DXDIR)/cprinter-inc-args -I generated -c $<
+
+generated/cprinter: generated/Main.cmx
+	$(OCAMLOPT) -args $(DXDIR)/cprinter-inc-args -args $(DXDIR)/cprinter-link-args $< -o $@
+
+generated/compcert.ini: $(DXDIR)/compcertcprinter/compcert.ini
+	cp $< $@
+
 ifneq (,$(findstring grouped-target,$(.FEATURES)))
 $(JSONS) $(COQ_EXTR_COMPILED_FILES) &:\
 		$(COQ_EXTRACTION_FILES) $(COQ_EXTR_DEPFILE)\
@@ -266,7 +312,22 @@ $(JSONS) $(COQ_EXTR_COMPILED_FILES) &:\
 
 %.vo %.vok %.vos %.glob .%.aux &: %.v %.v.d
 	$(COQC) $(COQCFLAGS) $<
+
+$(GENERATED_FILES_DIR)/Main.ml $(GENERATED_FILES_DIR)/Main.mli src/dx/Extr.vo &: src/dx/Extr.v | $(GENERATED_FILES_DIR)
+	cd $(GENERATED_FILES_DIR) && $(COQC) $(COQCEXTRFLAGS) ../$<
+
+ifeq ($(GALLINA_C),dx)
+$(C_GENERATED_SRC) $(C_GENERATED_HEADERS) \
+		&: $(GENERATED_FILES_DIR)/cprinter $(GENERATED_FILES_DIR)/compcert.ini
+	cd $(GENERATED_FILES_DIR) && ./cprinter
+	# Fix duplicate definitions of structs in Services.h
+	$(SED) '/^struct .*{/,/^};/d' < $(GENERATED_FILES_DIR)/Services.h > $(GENERATED_FILES_DIR)/Services.h.tmp
+	mv $(GENERATED_FILES_DIR)/Services.h.tmp $(GENERATED_FILES_DIR)/Services.h
+endif
+
+# if make doesn't support grouped targets
 else
+
 # Unfortunately, without grouped-target we cannot inherit dependencies
 # computed by coqdep, so we must mv files after the fact
 $(JSONS): src/extraction/Extraction.vo | $(GENERATED_FILES_DIR)
@@ -274,6 +335,20 @@ $(JSONS): src/extraction/Extraction.vo | $(GENERATED_FILES_DIR)
 
 %.vo %.vok %.vos %.glob .%.aux : %.v %.v.d
 	$(COQC) $(COQCFLAGS) -w -extraction $<
+
+$(GENERATED_FILES_DIR)/Main.ml $(GENERATED_FILES_DIR)/Main.mli src/dx/Extr.vo: src/dx/Extr.v src/dx/Main.vo | $(GENERATED_FILES_DIR)
+	cd $(GENERATED_FILES_DIR) && $(COQC) $(COQCEXTRFLAGS) ../$<
+
+ifeq ($(GALLINA_C),dx)
+# The files will be generated multiple times...
+$(C_GENERATED_SRC) $(C_GENERATED_HEADERS) \
+		: $(GENERATED_FILES_DIR)/cprinter $(GENERATED_FILES_DIR)/compcert.ini
+	cd $(GENERATED_FILES_DIR) && ./cprinter
+	# Fix duplicate definitions of structs in Services.h
+	$(SED) '/^struct .*{/,/^};/d' < $(GENERATED_FILES_DIR)/Services.h > $(GENERATED_FILES_DIR)/Services.h.tmp
+	mv $(GENERATED_FILES_DIR)/Services.h.tmp $(GENERATED_FILES_DIR)/Services.h
+endif
+
 endif
 
 ########################### C object rules ##########################
