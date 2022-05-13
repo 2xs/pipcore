@@ -667,7 +667,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
 (** - The [prepareAux] fixes the timout value of [prepareRec] *)
 Definition prepareAux (descChild : vaddr) (phyDescChild pd : page) (phySh1Child : page) (phySh2Child : page) (phyConfigPagesList : page) (va : vaddr)
   (fstVA : vaddr) (nbL : level) :=
-  prepareRec (nbLevel+1) descChild phyDescChild pd phySh1Child phySh2Child phyConfigPagesList va fstVA  nbL.
+  prepareRec boundNbLevel descChild phyDescChild pd phySh1Child phySh2Child phyConfigPagesList va fstVA  nbL.
 
 (** The [prepare] function fixes the [prepareAux] required parameters values
 

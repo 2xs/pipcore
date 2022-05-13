@@ -230,7 +230,7 @@ writeAccessibleRecAux timout1 vaInAncestor ancestor flag
 end.
 
 Definition writeAccessibleRec (va : vaddr) (descParent : page) (flag : bool):=
-writeAccessibleRecAux (nbPage+1) va descParent flag.
+writeAccessibleRecAux boundNbPages va descParent flag.
 (** The [checkDerivation] tests if the given entry (table+idx) contains a 
     derivation *)
 Definition checkDerivation table idx : LLI bool :=

@@ -49,6 +49,7 @@
 page_directory_t *kernelDirectory=0; //!< The kernel's page directory
 
 uint32_t maxPages = 0; //!< The maximal amount of pages available
+uint32_t boundNbPages = 0; //!< Bound on the number of physical pages
 uint32_t allocatedPages = 0; //!< The current allocated amount of pages
 uint32_t ramEnd = 0; //!< End of memory
 uint32_t pageCount = 0;
@@ -200,6 +201,7 @@ void initFreePageList(uintptr_t base, uintptr_t length)
 
         DEBUG(TRACE, "added memory region to page allocator, %d pages, first page %x, last page at %x", pageCount, base, i);
         maxPages = pageCount;
+        boundNbPages = maxPages + 1;
         ramEnd = i;
     } else {
         DEBUG(TRACE, "Not adding low-memory area\n");

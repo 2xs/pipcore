@@ -12630,7 +12630,7 @@ entryUserFlag pt idxvaparent false s /\
     isEntryPage pt idxvaparent phypage s /\
     isAccessibleMappedPageInParent descParent va phypage s = true )
     }} 
-  Internal.writeAccessibleRecAux (nbPage+1) va descParent false {{
+  Internal.writeAccessibleRecAux boundNbPages va descParent false {{
     fun _ s  =>
      propagatedProperties  accessibleChild accessibleSh1 accessibleSh2 accessibleList 
  pdChild currentPart currentPD level ptRefChild descChild idxRefChild presentRefChild
@@ -12644,7 +12644,7 @@ phySh2Child phyConfigPagesList phyDescChild s
      }}.
 Proof.
 revert va descParent  pt phypage idxvaparent .
-induction  (nbPage+1) .
+induction boundNbPages.
 intros;simpl.
 eapply weaken.
 eapply WP.ret. simpl. intuition.

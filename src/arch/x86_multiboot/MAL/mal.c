@@ -413,6 +413,8 @@ void writePhysicalNoFlags(uint32_t table, uint32_t index, uint32_t addr)
  */
 uint32_t nbLevel = 2;
 
+uint32_t boundNbLevel = 3;
+
 uint32_t getNbIndex(void)
 {
 	return nbLevel-1;

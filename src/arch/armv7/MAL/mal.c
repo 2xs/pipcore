@@ -49,7 +49,9 @@ void ial_resume_ctx(user_ctx_t* context) __attribute__((noreturn));
 uint32_t current_partition = 0;
 uint32_t root_partition = 0;
 
-uint32_t nbLevel = 2;
+level nbLevel = 2;
+level boundNbLevel = 3;
+level levelMin = 0;
 
 /*!
  * \brief enables paging

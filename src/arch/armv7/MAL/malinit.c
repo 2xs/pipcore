@@ -49,6 +49,7 @@
  */
 
 uint32_t nbPage = 0;
+uint32_t boundNbPages = 0;
 
 static void *user_alloc_pos = user_mem_start;
 
@@ -178,6 +179,7 @@ static void mal_map_in_part(unsigned *part, void*pa, unsigned *va, uint8_t user)
 	mmu_sd_sp_t l2;
 
 	nbPage++;	/* FIXME: I have no idea what is a correct nbPage */
+	boundNbPages = nbPage + 1;
 
 	tt = (mmu_sd_pt_t*)part[indexPD()];
 

@@ -40,8 +40,10 @@ Import List.ListNotations.
 
 Definition maxVint := 5.
 Definition nbLevel := 2.
+Definition boundNbLevel := S nbLevel.
 Definition tableSize := 12.
 Definition nbPage := 100.
+Definition boundNbPages := S nbPage.
 Definition contextSize := 5.
 Lemma nbLevelNotZero: nbLevel > 0.
 Proof. unfold nbLevel; auto. Qed.
@@ -58,6 +60,8 @@ Axiom nbPageNotZero: nbPage > 0.
 Axiom maxVintNotZero: maxVint > 0.
 Axiom contextSizeNotZero: contextSize > 0.
 Axiom contextSizeLessThanTableSize: contextSize < tableSize.
+Definition boundNbPages := nbPage + 1.
+Definition boundNbLevel := nbLevel + 1.
 
 (* Axiom tableSizeNotZero : tableSize <> 0. *)
 

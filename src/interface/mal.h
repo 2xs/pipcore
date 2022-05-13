@@ -94,10 +94,12 @@ uint32_t applyRights(uint32_t table, uint32_t index, uint32_t read, uint32_t wri
 
 uint32_t toAddr(uint32_t input); //!< Converts a given uint32_t to an address (only for Haskell FFI purposes)
 extern uint32_t nbLevel;
+extern uint32_t boundNbLevel;
 
 /* Amount of pages available, meh */
 extern uint32_t maxPages;
 #define nbPage maxPages
+extern uint32_t boundNbPages;
 
 /* Coq related stuff */
 int geb(const uint32_t a, const uint32_t b); //!< Greater or equal
