@@ -377,7 +377,7 @@ case_eq isMultiplexer.
   simpl;trivial. (* admit.  *) (** PROVE YOUR POSTCONDITION : true **)
   intros;trivial.
    simpl in *.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
@@ -787,7 +787,7 @@ case_eq isMultiplexer.
   apply getAccessibleMappedPageInAncestor with descParent va sh2 ptsh2 ancestor;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
@@ -1179,7 +1179,7 @@ case_eq isMultiplexer.
  (* admit.  *) (** PROVE YOUR POSTCONDITION : true **)
   (** Prove the POSTCONDITION **)
   unfold  preconditionToProveWriteAccessibleRecNewProperty in *;simpl.   
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
@@ -1188,12 +1188,12 @@ case_eq isMultiplexer.
   unfold s'; rewrite getMappedPageUpdateUserFlag;trivial.
   unfold s';subst; apply noDupMappedPagesListUpdateUserFlag;trivial.
   rewrite Hpartitions;trivial.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   apply getAccessibleMappedPageNoneUpdateUserFlagFalse;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
@@ -1368,7 +1368,7 @@ case_eq isMultiplexer.
             nextEntryIsPP descParent idxPageDir entry s /\ entry <> pageDefault)).
     { apply Hpde;trivial. intuition. left;trivial. }
     destruct Hpdedesc as (pdparent & Hentry1 & Hentry2).
-    assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
+    assert(Hmult : multiplexer = pageRootPartition ) by intuition.
     subst.
     assert(Htrue : getIndirection sh2 va L (nbLevel -1) s = Some ptsh2 /\
               (Nat.eqb pageDefault ptsh2) = false).
@@ -1533,7 +1533,7 @@ case_eq isMultiplexer.
   destruct Hpdedesc as (pdparent & Hentry1 & Hentry2).
   assert( getMappedPage pdparent s va = SomePage phypage  ) as Hmap.
   apply getMappedPageGetTableRoot with pt descParent;intuition; subst;trivial.
-  assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
+  assert(Hmult : multiplexer = pageRootPartition ) by intuition.
   subst. 
   assert(exists vainparent : vaddr, getVirtualAddressSh2 sh2 s va = Some vainparent  
   /\  vaddrEq vaddrDefault vainparent = false ) as Hexits . 
@@ -1790,7 +1790,7 @@ case_eq isMultiplexer.
  trivial.  (** PROVE YOUR Precondition required to prove the postcondition : True **)
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
@@ -2278,7 +2278,7 @@ case_eq isMultiplexer.
   apply Hincl;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).

@@ -289,7 +289,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -591,7 +591,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -2390,7 +2390,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -2692,7 +2692,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -4482,7 +4482,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -4784,7 +4784,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -6570,7 +6570,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -6872,7 +6872,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -8658,7 +8658,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -8960,7 +8960,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -10734,7 +10734,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -11036,7 +11036,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -12851,7 +12851,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -13153,7 +13153,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -14914,7 +14914,7 @@ case_eq isMultiplexer.
       intuition.
       left;trivial. }
       destruct Hpdedesc as (pdparent & Hentry1 & Hentry2).
-  assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
+  assert(Hmult : multiplexer = pageRootPartition ) by intuition.
       subst.
   assert(Htrue : getIndirection sh2 va level (nbLevel -1) s = Some ptsh2 /\
               (Nat.eqb pageDefault ptsh2) = false).
@@ -15131,7 +15131,7 @@ case_eq isMultiplexer.
      f_equal.
      trivial. } *)
  
-      assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
+      assert(Hmult : multiplexer = pageRootPartition ) by intuition.
       subst. 
       assert(exists vainparent : vaddr, getVirtualAddressSh2 sh2 s va = Some vainparent  
       /\  vaddrEq vaddrDefault vainparent = false ) . 
@@ -15494,7 +15494,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
@@ -17695,7 +17695,7 @@ case_eq isMultiplexer.
               kernelDataIsolation s /\
               verticalSharing s /\
               consistency s /\ In descParent (getPartitions pageRootPartition s) /\
-           pageRootPartition = pageRootPartition /\ 
+           multiplexer = pageRootPartition /\ 
            false = pageEq descParent multiplexer /\
          nextEntryIsPP descParent idxShadow2 sh2 s /\ Some L = StateLib.getNbLevel /\
        StateLib.getIndexOfAddr va levelMin = lastIndex /\
@@ -17997,7 +17997,7 @@ case_eq isMultiplexer.
                    user := false;
                    pa := pa entry |}) (memory s) pageEq idxEq |}) in *.
                    simpl in *.                    
-      assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
+      assert(Hmult : multiplexer = pageRootPartition) by intuition. 
       subst.
       simpl.
       unfold propagatedProperties in *. 
