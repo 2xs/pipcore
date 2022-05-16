@@ -43,7 +43,7 @@ Require Import Arith Bool NPeano List Lia.
 
 Definition readVirtual (paddr : page) (idx : index) : LLI vaddr:=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (VA a) => ret a
   | Some _ => undefined 3
@@ -52,7 +52,7 @@ Definition readVirtual (paddr : page) (idx : index) : LLI vaddr:=
 
 Definition readPhysical (paddr : page) ( idx : index)  : LLI page:=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (PP a) => ret a
   | Some _ => undefined 5
@@ -61,7 +61,7 @@ Definition readPhysical (paddr : page) ( idx : index)  : LLI page:=
 
 Definition readVirEntry (paddr : page) (idx : index) : LLI vaddr :=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (VE a) => ret a.(va)
   | Some _ => undefined 7
@@ -70,7 +70,7 @@ Definition readVirEntry (paddr : page) (idx : index) : LLI vaddr :=
 
 Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (PE a) => ret a.(pa)
   | Some _ => undefined 9
@@ -79,21 +79,21 @@ Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
 
 Definition writeVirtual (paddr : page) (idx : index) (va : vaddr) : LLI unit:=
   modify (fun s => {| currentPartition := s.(currentPartition);
-  memory :=   add paddr idx (VA va)  s.(memory) beqPage beqIndex|} ).
+  memory :=   add paddr idx (VA va)  s.(memory) pageEq idxEq|} ).
 
 Definition writePhysical (paddr : page) (idx : index) (addr : page)  : LLI unit:=
   modify (fun s => {| currentPartition := s.(currentPartition);
-  memory :=   add paddr idx (PP addr)  s.(memory) beqPage beqIndex|} ).
+  memory :=   add paddr idx (PP addr)  s.(memory) pageEq idxEq|} ).
 
 Definition writeVirEntry (paddr : page) (idx : index)(addr : vaddr) :=
   let newEntry := {| pd := false ; va := addr |} in
   modify (fun s => {|
   currentPartition := s.(currentPartition);
-  memory :=   add paddr idx (VE newEntry) s.(memory) beqPage beqIndex|} ).
+  memory :=   add paddr idx (VE newEntry) s.(memory) pageEq idxEq|} ).
 
 Definition writePhyEntry (paddr : page) (idx : index)(addr : page) (p u r w e: bool) :=
   modify (fun s => {| currentPartition := s.(currentPartition);
-  memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  s.(memory) beqPage beqIndex|} ).
+  memory :=   add paddr idx (PE {| read := r; write := w ; exec := e; present := p ; user := u ; pa := addr|})  s.(memory) pageEq idxEq|} ).
 
 (** This function is a model of the real function that will map the kernel into a partition's virtual memory
     Note that the model inserts a dummy physical entry that is totally neutral to the model (its 'present' flag
@@ -126,15 +126,15 @@ Definition mapKernel (paddr : page) (idx : index) :=
         exec := false;
         present := false;
         user := false;
-        pa := defaultPage
+        pa := pageDefault
       |})
-      s.(memory) beqPage beqIndex
+      s.(memory) pageEq idxEq
   |}).
 
 
 Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
   perform s := get in
-  let entry :=  lookup paddr idx  s.(memory) beqPage beqIndex in
+  let entry :=  lookup paddr idx  s.(memory) pageEq idxEq in
   match entry with
   | Some (PE a) => ret a.(user)
   | Some _ => undefined 12
@@ -143,26 +143,26 @@ Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
 
 Definition writeAccessible  (paddr : page) (idx : index) (flag : bool) : LLI unit:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
 | Some (PE a) => let newEntry := {| read := a.(read) ; write := a.(write) ; exec := a.(exec); present := a.(present); user:= flag;
   pa := a.(pa) |} in
   modify (fun s => {|
   currentPartition := s.(currentPartition);
-  memory := add paddr idx (PE newEntry)  s.(memory) beqPage beqIndex |} )
+  memory := add paddr idx (PE newEntry)  s.(memory) pageEq idxEq |} )
 | Some _ => undefined 14
 | None => undefined 13
 end.
 
 Definition writePresent (paddr : page) (idx : index) (flag : bool) : LLI unit:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
 | Some (PE a) => let newEntry := {| read := a.(read) ; write := a.(write) ; exec := a.(exec); present := flag; user:= a.(user);
   pa := a.(pa) |} in
   modify (fun s => {|
   currentPartition := s.(currentPartition);
-  memory := add paddr idx (PE newEntry)  s.(memory) beqPage beqIndex|} )
+  memory := add paddr idx (PE newEntry)  s.(memory) pageEq idxEq|} )
 
 | Some _ => undefined 16
 | None => undefined 15
@@ -170,7 +170,7 @@ end.
 
 Definition readPresent  (paddr : page) (idx : index) : LLI bool:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
   | Some (PE a) => ret a.(present)
   | Some _ => undefined 18
@@ -179,19 +179,19 @@ end.
 
 Definition writePDflag (paddr : page) (idx : index) (flag : bool) : LLI unit:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
   | Some (VE a) =>  let newEntry := {| pd := flag; va := a.(va) |} in
     modify (fun s => {|
     currentPartition := s.(currentPartition);
-    memory := add paddr idx (VE newEntry) s.(memory) beqPage beqIndex|} )
+    memory := add paddr idx (VE newEntry) s.(memory) pageEq idxEq|} )
   | Some _ => undefined 20
   | None => undefined 19
 end.
 
 Definition readPDflag  (paddr : page) (idx : index) : LLI bool:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
   | Some (VE a) =>  ret a.(pd)
   | Some _ => undefined 21
@@ -202,11 +202,11 @@ Definition writeIndex  (paddr : page) (idx : index) (count : index) : LLI unit:=
 perform s := get in
 modify (fun s => {|
     currentPartition := s.(currentPartition);
-    memory :=   add paddr idx (I count)  s.(memory) beqPage beqIndex|} ).
+    memory :=   add paddr idx (I count)  s.(memory) pageEq idxEq|} ).
 
 Definition readIndex  (paddr : page) (idx : index) : LLI index:=
   perform s := get in
-  let entry := lookup paddr idx s.(memory) beqPage beqIndex in
+  let entry := lookup paddr idx s.(memory) pageEq idxEq in
   match entry with
   | Some (I e)  => ret e
   | Some (VA _) => undefined 240
@@ -260,7 +260,7 @@ Qed.
 
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
-  ret ( nth ((length va) - (l + 2)) va defaultIndex ).
+  ret ( nth ((length va) - (l + 2)) va idxDefault ).
 
 (** The 'getNbLevel' function returns the number of levels of the MMU *)
 (* TODO: Either change the name of nbLevel or of getNbLevel or the code of getNbLevel *)
@@ -321,18 +321,18 @@ Definition  translate (pd : page) (va : vaddr) (l : level)  :=
 
 (** The 'internalGetPageDir' function returns the page directory of a given partition *)
 Definition internalGetPageDir partition :=
-  perform idxPD := getPDidx in
-  perform idx := MALInternal.Index.succ idxPD in
+  perform idxPD := getIdxPageDir in
+  perform idx := idxSuccM idxPD in
   readPhysical partition idx.
 
 (* TODO use uservalues *)
 Definition readVirtualUser paddr idx : LLI vaddr :=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (VA a) => ret a
-  | Some _ => getDefaultVAddr
-  | None => getDefaultVAddr
+  | Some _ => getVaddrDefault
+  | None => getVaddrDefault
   end.
 (** The 'fetchVirtual' function translates the given virtual address to physical address in the 
     current partition and read the value stored into the physical address. This value is a 
@@ -343,7 +343,7 @@ Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
   perform nbL := getNbLevel in 
   perform optionphyPage := translate currentPD va nbL in
   match optionphyPage with 
-  | None => getDefaultVAddr
+  | None => getVaddrDefault
   | Some phyPage => readVirtualUser phyPage idx
   end.
   

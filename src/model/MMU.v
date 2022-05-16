@@ -40,15 +40,15 @@ Require Import Arith Bool NPeano List.
 (** The 'comparePageToNull' returns true if the given page is equal to the fixed
     default page (null) *) 
 Definition comparePageToNull (p :page) : LLI bool :=
-  perform nullPaddr := getDefaultPage in
-  MALInternal.Page.eqb nullPaddr p.
+  perform nullPaddr := getPageDefault in
+  pageEqM nullPaddr p.
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
-  ret ( nth ((length va) - (l + 2)) va defaultIndex ).
+  ret ( nth ((length va) - (l + 2)) va idxDefault ).
 
 Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
   perform s := get in
-  let entry :=  lookup paddr idx s.(memory) beqPage beqIndex  in
+  let entry :=  lookup paddr idx s.(memory) pageEq idxEq  in
   match entry with
   | Some (PE a) => ret a.(pa)
   | Some _ => undefined 9
@@ -57,7 +57,7 @@ Definition readPhyEntry (paddr : page) (idx : index) : LLI page :=
 
 Definition readPresent  (paddr : page) (idx : index) : LLI bool:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
   | Some (PE a) => ret a.(present)
   | Some _ => undefined 18
@@ -66,7 +66,7 @@ end.
 
 Definition readAccessible  (paddr : page) (idx : index) : LLI bool:=
 perform s := get in
-let entry :=  lookup paddr idx s.(memory) beqPage beqIndex in
+let entry :=  lookup paddr idx s.(memory) pageEq idxEq in
 match entry with
   | Some (PE a) => ret a.(user)
   | Some _ => undefined 12
@@ -76,17 +76,17 @@ end.
 (** The 'getTableAddrAux' returns the reference to the last page table  *)
 Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
   match timeout with
-  | 0 => getDefaultPage
+  | 0 => getPageDefault
   |S timeout1 =>
-  perform isFstLevel := MALInternal.Level.eqb l fstLevel in 
+  perform isFstLevel := levelEqM l levelMin in 
     if isFstLevel 
     then  ret pd 
     else
       perform idx :=  getIndexOfAddr va l in
       perform addr :=  readPhyEntry pd idx in 
       perform isNull := comparePageToNull addr in
-      if isNull then getDefaultPage else
-      perform p := MALInternal.Level.pred l in
+      if isNull then getPageDefault else
+      perform p := levelPredM l in
       translateAux timeout1 addr va p
   end .
 
@@ -95,7 +95,7 @@ Definition  translate (pd : page) (va : vaddr) (l : level) : LLI (option page)  
   perform lastTable := translateAux nbLevel pd va l in 
   perform isNull := comparePageToNull lastTable in
   if isNull then ret None else
-  perform idx :=  getIndexOfAddr va fstLevel in
+  perform idx :=  getIndexOfAddr va levelMin in
   perform ispresent := readPresent lastTable idx in 
   perform isaccessible := readAccessible lastTable idx in
   if (ispresent && isaccessible) then  

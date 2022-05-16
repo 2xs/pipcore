@@ -46,7 +46,7 @@ Definition verticalSharing s : Prop :=
 
 forall parent child : page , 
 
-  In parent (getPartitions multiplexer s) -> 
+  In parent (getPartitions pageRootPartition s) -> 
 
   In child (getChildren parent s) ->  
 
@@ -59,7 +59,7 @@ Definition partitionsIsolation  s : Prop :=
 
 forall parent child1 child2 : page , 
 
-  In parent (getPartitions multiplexer s)-> 
+  In parent (getPartitions pageRootPartition s)-> 
 
   In child1 (getChildren parent s) -> 
 
@@ -77,8 +77,8 @@ Definition kernelDataIsolation s : Prop :=
 
 forall partition1 partition2, 
 
-  In partition1 (getPartitions multiplexer s) ->
+  In partition1 (getPartitions pageRootPartition s) ->
 
-  In partition2 (getPartitions multiplexer s) -> 
+  In partition2 (getPartitions pageRootPartition s) -> 
 
   disjoint (getAccessibleMappedPages partition1 s) (getConfigPages partition2 s).

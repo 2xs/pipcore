@@ -87,7 +87,7 @@ unfold consistency in *.
 destruct H1 as (_ & _& _& _& H1 & _).
 unfold currentPartitionInPartitionsList in H1; assumption. 
 split.
-instantiate(1 :=  sh1idx).
+instantiate(1 :=  idxShadow1).
 right.
 left; trivial.  
 exists sh1.
@@ -103,15 +103,15 @@ subst.
 unfold partitionDescriptorEntry in Hdesc.
 unfold currentPartitionInPartitionsList in *.
 generalize (Hdesc (currentPartition s) HpartList); clear Hdesc; intros Hdesc.
-assert ( sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx\/ sh1idx = sh3idx
-        \/  sh1idx  = PPRidx \/  sh1idx  = PRidx) as Htmp by auto.
+assert ( idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2\/ idxShadow1 = idxShadow3
+        \/  idxShadow1  = idxParentDesc \/  idxShadow1  = idxPartDesc) as Htmp by auto.
 apply Hdesc in Htmp.
 destruct Htmp as (_ & _ & Hroot).
 destruct Hroot as (pg & Hroot & Hnotnull).
 clear Hdesc.
 unfold nextEntryIsPP in *. 
-destruct (StateLib.Index.succ sh1idx); try now contradict Hroot.
-destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hroot.
+destruct (StateLib.Index.succ idxShadow1); try now contradict Hroot.
+destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hroot.
 destruct v ; try now contradict Hroot.
 subst; assumption.
 left.
@@ -124,10 +124,10 @@ intros.
 2:{
 intros.
 destruct H as (H0 & H1).
-assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
-          ( getTableAddrRoot ptsh1 sh1idx parent va s /\ ptsh1 <> defaultPage /\
+assert(  (getTableAddrRoot' ptsh1 idxShadow1 parent va s /\ ptsh1 = pageDefault )\/
+          ( getTableAddrRoot ptsh1 idxShadow1 parent va s /\ ptsh1 <> pageDefault /\
           (forall idx : index,
-          StateLib.getIndexOfAddr va fstLevel = idx ->
+          StateLib.getIndexOfAddr va levelMin = idx ->
           isVE ptsh1 idx s))).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
@@ -141,8 +141,8 @@ assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
        destruct H1 as [(Hve & Hfalse) | [(_&Hfalse) |(_ &Hfalse)]].
       - assumption.
       - contradict Hfalse.
-          unfold sh1idx.
-          unfold sh2idx.
+          unfold idxShadow1.
+          unfold idxShadow2.
           apply indexEqFalse;
           assert (tableSize > tableSizeLowerBound).
           apply tableSizeBigEnough.
@@ -151,8 +151,8 @@ assert(  (getTableAddrRoot' ptsh1 sh1idx parent va s /\ ptsh1 = defaultPage )\/
           unfold tableSizeLowerBound in *.
           lia. apply tableSizeBigEnough. lia.
        - contradict Hfalse.
-          unfold sh1idx.
-          unfold sh2idx.
+          unfold idxShadow1.
+          unfold idxShadow2.
           apply indexEqFalse;
           assert (tableSize > tableSizeLowerBound).
           apply tableSizeBigEnough.
@@ -181,29 +181,29 @@ case_eq isNullptSh1; intros HisNullptSh1.
   split. 
   intuition.
   unfold checkChild.
-  assert (nextEntryIsPP parent sh1idx sh1 s) as Hsh1 by intuition.
+  assert (nextEntryIsPP parent idxShadow1 sh1 s) as Hsh1 by intuition.
   unfold nextEntryIsPP in Hsh1.
   unfold StateLib.getFstShadow.
   unfold StateLib.readPhysical.
-  case_eq (StateLib.Index.succ sh1idx); intros.
+  case_eq (StateLib.Index.succ idxShadow1); intros.
   rewrite H0 in Hsh1.
   assert (parent = currentPartition s) as Hparent by intuition.
   subst.
-  case_eq (lookup (currentPartition s) i (memory s) beqPage beqIndex); intros.  
+  case_eq (lookup (currentPartition s) i (memory s) pageEq idxEq); intros.  
   rewrite H1 in Hsh1.
   case_eq v ; intros; trivial.
   rewrite H2 in Hsh1.
   subst.
   destruct H.
   apply beq_nat_true in H2.
-  assert (    (getTableAddrRoot' ptsh1 sh1idx (currentPartition s) va s /\ ptsh1 = defaultPage \/
-  getTableAddrRoot ptsh1 sh1idx (currentPartition s) va s /\
-  ptsh1 <> defaultPage /\
-  (forall idx : index, StateLib.getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
+  assert (    (getTableAddrRoot' ptsh1 idxShadow1 (currentPartition s) va s /\ ptsh1 = pageDefault \/
+  getTableAddrRoot ptsh1 idxShadow1 (currentPartition s) va s /\
+  ptsh1 <> pageDefault /\
+  (forall idx : index, StateLib.getIndexOfAddr va levelMin = idx -> isVE ptsh1 idx s))).
   intuition.
   destruct H3 as [(Hrootstruc & Hdef) |  Hx].
   unfold getTableAddrRoot' in Hrootstruc.
-  assert (nextEntryIsPP (currentPartition s) sh1idx p s) as Hisroot by intuition.
+  assert (nextEntryIsPP (currentPartition s) idxShadow1 p s) as Hisroot by intuition.
   destruct Hrootstruc as (Htmp & Hrootstruc).
   apply Hrootstruc in Hisroot.
   destruct Hisroot as (nbl1 & Hnbl & stop2 & Hstop0 & Hstop2 & Hgetind).
@@ -218,7 +218,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
   rewrite H2 in Hlvl.
   inversion Hlvl.
   rewrite <- H4.
-  assert (getIndirection p va nbL (nbLevel - 1) s = Some defaultPage) as Hstopgt.
+  assert (getIndirection p va nbL (nbLevel - 1) s = Some pageDefault) as Hstopgt.
   apply getIndirectionStopLevelGT2 with (nbL + 1); try lia.
   rewrite H4.
   simpl in *. trivial.
@@ -229,7 +229,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
   apply getIndirectionStopLevelGT with stop2;trivial. lia.
   rewrite Hstopgt.
   destruct H.
-  assert ((Nat.eqb defaultPage defaultPage) = true).
+  assert ((Nat.eqb pageDefault pageDefault) = true).
   symmetry. apply beq_nat_refl.
   rewrite H5. trivial.
   assert (0 < nbLevel) by apply nbLevelNotZero. lia.
@@ -238,7 +238,7 @@ case_eq isNullptSh1; intros HisNullptSh1.
   destruct Hx as (_ & Hfalse & _).
   contradict Hfalse.
   clear H.
-  unfold defaultPage in * .
+  unfold pageDefault in * .
   unfold CPage in *.
   case_eq (lt_dec 0 nbPage); intros.
   rewrite H in H2.
@@ -263,10 +263,10 @@ case_eq isNullptSh1; intros HisNullptSh1.
       apply beq_nat_false in H1.
       now contradict H1.
       subst.
-      assert(isVE ptsh1 (StateLib.getIndexOfAddr va fstLevel) s ).
+      assert(isVE ptsh1 (StateLib.getIndexOfAddr va levelMin) s ).
       apply H9; trivial.
       unfold isVE in H3.
-      case_eq(lookup ptsh1 (StateLib.getIndexOfAddr va fstLevel) (memory s) beqPage beqIndex);
+      case_eq(lookup ptsh1 (StateLib.getIndexOfAddr va levelMin) (memory s) pageEq idxEq);
       intros; rewrite H5 in *;
         
       try now contradict H3.
@@ -276,30 +276,30 @@ case_eq isNullptSh1; intros HisNullptSh1.
       intuition.
 
         unfold checkChild.
-        assert (nextEntryIsPP (currentPartition s) sh1idx sh1 s) as Hsh1 by intuition.
+        assert (nextEntryIsPP (currentPartition s) idxShadow1 sh1 s) as Hsh1 by intuition.
         unfold nextEntryIsPP in Hsh1.
         unfold StateLib.getFstShadow.
         unfold StateLib.readPhysical.
-        case_eq (StateLib.Index.succ sh1idx); intros.
+        case_eq (StateLib.Index.succ idxShadow1); intros.
         rewrite H8 in Hsh1.
         subst.
-        case_eq (lookup (currentPartition s) i (memory s) beqPage beqIndex); intros.  
+        case_eq (lookup (currentPartition s) i (memory s) pageEq idxEq); intros.  
         rewrite H10 in Hsh1.
         case_eq v ; intros; trivial; try rewrite H2 in Hsh1;
         subst; try
         now contradict Hsh1.
-        assert (    (getTableAddrRoot' ptsh1 sh1idx (currentPartition s) va s /\ ptsh1 = defaultPage \/
-        getTableAddrRoot ptsh1 sh1idx (currentPartition s) va s /\
-        ptsh1 <> defaultPage /\
-        (forall idx : index, StateLib.getIndexOfAddr va fstLevel = idx -> isVE ptsh1 idx s))).
+        assert (    (getTableAddrRoot' ptsh1 idxShadow1 (currentPartition s) va s /\ ptsh1 = pageDefault \/
+        getTableAddrRoot ptsh1 idxShadow1 (currentPartition s) va s /\
+        ptsh1 <> pageDefault /\
+        (forall idx : index, StateLib.getIndexOfAddr va levelMin = idx -> isVE ptsh1 idx s))).
         intuition.
         destruct H11 as [(Hrootstruc & Hdef) |  Hx].
         subst.
         now contradict H6.
-        assert ( getTableAddrRoot ptsh1 sh1idx (currentPartition s) va s) as Hrootstruc by intuition.
+        assert ( getTableAddrRoot ptsh1 idxShadow1 (currentPartition s) va s) as Hrootstruc by intuition.
         unfold getTableAddrRoot in Hrootstruc.
         subst.
-        assert (nextEntryIsPP (currentPartition s) sh1idx p s) as Hisroot by intuition.
+        assert (nextEntryIsPP (currentPartition s) idxShadow1 p s) as Hisroot by intuition.
         destruct Hrootstruc as (Htmp & Hrootstruc).
         apply Hrootstruc in Hisroot.
         destruct Hisroot as (nbl1 & Hnbl & stop2 & Hstop2 & Hgetind).
@@ -322,12 +322,12 @@ case_eq isNullptSh1; intros HisNullptSh1.
         destruct H.
         unfold  entryPDFlag in *.
         unfold StateLib.readPDflag .
-        assert(Hfalse : (Nat.eqb ptsh1 defaultPage) = false).
+        assert(Hfalse : (Nat.eqb ptsh1 pageDefault) = false).
         apply NPeano.Nat.eqb_neq.
         unfold not; intros;subst.
         apply H6.
         destruct ptsh1.
-        destruct defaultPage.
+        destruct pageDefault.
         simpl in *.
         subst.
         f_equal.
@@ -348,11 +348,11 @@ Lemma checkChildInv vaInCurrentPartition vaChild currentPart descChild level:
     kernelDataIsolation s /\
     verticalSharing s /\
     consistency s) /\
-    (Nat.eqb Kidx
-       (List.nth (length vaInCurrentPartition - (nbLevel - 1 + 2)) vaInCurrentPartition defaultIndex))
+    (Nat.eqb idxKernel
+       (List.nth (length vaInCurrentPartition - (nbLevel - 1 + 2)) vaInCurrentPartition idxDefault))
        = false) /\
-    (Nat.eqb Kidx
-       (List.nth (length vaChild - (nbLevel - 1 + 2)) vaChild defaultIndex))
+    (Nat.eqb idxKernel
+       (List.nth (length vaChild - (nbLevel - 1 + 2)) vaChild idxDefault))
        = false) /\
     currentPart = currentPartition s) /\
     Some level = StateLib.getNbLevel
@@ -374,28 +374,28 @@ Lemma checkChildInv vaInCurrentPartition vaChild currentPart descChild level:
           consistency s /\
 
           (Nat.eqb
-             Kidx
-             (List.nth (length vaInCurrentPartition - (nbLevel - 1 + 2)) vaInCurrentPartition defaultIndex)
+             idxKernel
+             (List.nth (length vaInCurrentPartition - (nbLevel - 1 + 2)) vaInCurrentPartition idxDefault)
           ) = false /\
           (Nat.eqb
-             Kidx
-             (List.nth (length vaChild - (nbLevel - 1 + 2)) vaChild defaultIndex)
+             idxKernel
+             (List.nth (length vaChild - (nbLevel - 1 + 2)) vaChild idxDefault)
           ) = false /\
 
           currentPart = currentPartition s /\
           Some level = StateLib.getNbLevel /\
 
-          nextEntryIsPP currentPart sh1idx currentShadow1 s /\
-          StateLib.getIndexOfAddr descChild fstLevel = idxRefChild /\
-          (getTableAddrRoot' ptRefChild sh1idx currentPart descChild s /\
-             ptRefChild = defaultPage \/
+          nextEntryIsPP currentPart idxShadow1 currentShadow1 s /\
+          StateLib.getIndexOfAddr descChild levelMin = idxRefChild /\
+          (getTableAddrRoot' ptRefChild idxShadow1 currentPart descChild s /\
+             ptRefChild = pageDefault \/
              (forall idx : index,
-                StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isVE ptRefChild idx s /\
-                  getTableAddrRoot ptRefChild sh1idx currentPart descChild s
+                  getTableAddrRoot ptRefChild idxShadow1 currentPart descChild s
              )
           ) /\
-          (Nat.eqb defaultPage ptRefChild) = false
+          (Nat.eqb pageDefault ptRefChild) = false
      )
 }}.
 Proof.
@@ -438,28 +438,28 @@ Proof.
   unfold consistency in *. 
   unfold  currentPartitionInPartitionsList in *. 
   intuition.
-  instantiate (1:= sh1idx).
+  instantiate (1:= idxShadow1).
   split. intuition.
   assert(Hcons : consistency s) by intuition.
   assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
   assert(Hcp : currentPart = currentPartition s) by intuition.
-  assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+  assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
   exists currentShadow1.
   split. intuition.
   unfold consistency in *.
   destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
   unfold partitionDescriptorEntry in Hpd.
-  assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/  sh1idx  = sh3idx
-  \/  sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+  assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/  idxShadow1  = idxShadow3
+  \/  idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
   by auto.
       generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-  generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+  generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
   destruct Hpd as (Hidxpd & _& Hentry). 
   destruct Hentry as (page1 & Hpd & Hnotnull).
   subst.
   split. 
-  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ sh1idx); try now contradict H0.
-  destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); try now contradict H0.
+  unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxShadow1); try now contradict H0.
+  destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); try now contradict H0.
   destruct v ; try now contradict H0.
   subst; assumption.
   subst. left. split;intuition.
@@ -470,10 +470,10 @@ Proof.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert ( (getTableAddrRoot' ptRefChild sh1idx currentPart descChild s /\ ptRefChild = defaultPage) \/
+  assert ( (getTableAddrRoot' ptRefChild idxShadow1 currentPart descChild s /\ ptRefChild = pageDefault) \/
  (forall idx : index,
-  StateLib.getIndexOfAddr descChild fstLevel = idx ->
-  isVE ptRefChild idx s /\ getTableAddrRoot ptRefChild sh1idx currentPart descChild s  )).
+  StateLib.getIndexOfAddr descChild levelMin = idx ->
+  isVE ptRefChild idx s /\ getTableAddrRoot ptRefChild idxShadow1 currentPart descChild s  )).
   { destruct H1 as [H1 |(Hi & Hi1 & H1)].
     + left. trivial. 
     + right. intros idx Hidx.
@@ -518,7 +518,7 @@ apply beq_nat_false in Htrue.
 now contradict Htrue.
 destruct H as (H & Hidx).
 subst.
-destruct Hor with (StateLib.getIndexOfAddr descChild fstLevel);
+destruct Hor with (StateLib.getIndexOfAddr descChild levelMin);
 trivial.
 
 intros s ispd;simpl in *.
@@ -541,17 +541,17 @@ Lemma childInPartTree (childPartDesc parentPartDesc parentPageDir childLastMMUPa
                       (childPartDescVAddr : vaddr)
                       (idxChildPartDesc : index) :
  Some nbL = StateLib.getNbLevel
- -> nextEntryIsPP parentPartDesc PDidx parentPageDir s
+ -> nextEntryIsPP parentPartDesc idxPageDir parentPageDir s
  -> currentPartition s = parentPartDesc
- -> isPE childLastMMUPage (StateLib.getIndexOfAddr childPartDescVAddr fstLevel) s
- -> getTableAddrRoot childLastMMUPage PDidx parentPartDesc childPartDescVAddr s
- -> defaultPage <> childLastMMUPage
- -> StateLib.getIndexOfAddr childPartDescVAddr fstLevel = idxChildPartDesc
+ -> isPE childLastMMUPage (StateLib.getIndexOfAddr childPartDescVAddr levelMin) s
+ -> getTableAddrRoot childLastMMUPage idxPageDir parentPartDesc childPartDescVAddr s
+ -> pageDefault <> childLastMMUPage
+ -> StateLib.getIndexOfAddr childPartDescVAddr levelMin = idxChildPartDesc
  -> isEntryPage childLastMMUPage idxChildPartDesc childPartDesc s
  -> entryPresentFlag childLastMMUPage idxChildPartDesc true s
  -> true = StateLib.checkChild parentPartDesc nbL s childPartDescVAddr
  -> consistency s
- -> In childPartDesc (getPartitions multiplexer s).
+ -> In childPartDesc (getPartitions pageRootPartition s).
 Proof.
 intros Hlevel HnextEntryIsPP HparentPartDescIsCurrent HisPE HgetTableAddrRoot.
 intros HchildLastMMUPageNotDef HidxChildPartDesc HisEntryPage HentryPresentFlag.

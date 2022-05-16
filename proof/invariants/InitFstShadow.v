@@ -81,7 +81,7 @@ eapply WP.bindRev.
     contradiction.
     destruct H0.
     apply H2;trivial.
-    instantiate(1:= fun _ s => true = StateLib.Level.eqb nbL fstLevel).
+    instantiate(1:= fun _ s => true = levelEq nbL levelMin).
     eapply weaken.
     eapply initVEntryTablePreservesProp. 
     simpl.
@@ -113,7 +113,7 @@ eapply WP.bindRev.
     apply levelEqBEqNatFalse in Hi.
     subst.
     lia.
-    instantiate(1:= fun _ s => false = StateLib.Level.eqb nbL fstLevel).
+    instantiate(1:= fun _ s => false = levelEq nbL levelMin).
     eapply weaken.
     eapply initPEntryTablePreservesProp. 
     simpl.
@@ -160,9 +160,9 @@ table phyPDChild
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\
    zero = CIndex 0 ) /\
   (forall partition : page,
-  In partition (getPartitions multiplexer s) ->
+  In partition (getPartitions pageRootPartition s) ->
   partition = table \/ In table (getConfigPagesAux partition s) -> False) /\ 
-  (Nat.eqb defaultPage table) = false 
+  (Nat.eqb pageDefault table) = false 
 }} 
 
 initFstShadow table  nbL curidx 
@@ -240,37 +240,37 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))
 /\ zero = CIndex 0) /\
       
-      (Nat.eqb defaultPage table1) = false /\
-      (Nat.eqb defaultPage table2) = false /\
-       nextEntryIsPP partition PDidx currentPD s /\
-      In partition (getPartitions multiplexer s) /\
+      (Nat.eqb pageDefault table1) = false /\
+      (Nat.eqb pageDefault table2) = false /\
+       nextEntryIsPP partition idxPageDir currentPD s /\
+      In partition (getPartitions pageRootPartition s) /\
               
-  ( forall idx, StateLib.readPhyEntry phyPage2  idx s.(memory) = Some defaultPage /\ 
+  ( forall idx, StateLib.readPhyEntry phyPage2  idx s.(memory) = Some pageDefault /\ 
               StateLib.readPresent phyPage2 idx (memory s) = Some false )
               /\ 
    
    
    (forall partition : page,
-    In partition (getPartitions multiplexer s) -> 
+    In partition (getPartitions pageRootPartition s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
+   ( (Nat.eqb pageDefault phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
-       StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
-       StateLib.getIndexOfAddr va2 fstLevel = idxVa2 /\
+       StateLib.getIndexOfAddr va1 levelMin = idxVa1 /\
+       StateLib.getIndexOfAddr va2 levelMin = idxVa2 /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va1 fstLevel = idx -> isPE table1 idx s /\
-         getTableAddrRoot table1 PDidx partition va1 s) /\
+        StateLib.getIndexOfAddr va1 levelMin = idx -> isPE table1 idx s /\
+         getTableAddrRoot table1 idxPageDir partition va1 s) /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va2 fstLevel = idx -> 
-        isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s) /\
+        StateLib.getIndexOfAddr va2 levelMin = idx -> 
+        isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s) /\
         Some level = StateLib.getNbLevel /\
        false = StateLib.checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
        entryPresentFlag table1 idxVa1 true s /\ entryPresentFlag table2 idxVa2 true s
 
 }} 
  initFstShadow  phyPage1 nbL curidx {{ fun _  (s : state) =>
- ( forall idx, StateLib.readPhyEntry phyPage2  idx s.(memory) = Some defaultPage /\ 
+ ( forall idx, StateLib.readPhyEntry phyPage2  idx s.(memory) = Some pageDefault /\ 
               StateLib.readPresent phyPage2 idx (memory s) = Some false )
               }}.
 Proof.
@@ -362,7 +362,7 @@ eapply WP.bindRev.
   unfold PreCtoPropagateIsWellFormedMMUTables, propagatedPropertiesPrepare,
 initPEntryTablePreconditionToPropagatePreparePropertiesAll      in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
-  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
+  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) s;trivial.
   unfold consistency in *;intuition.
   (** propagate new property *)
   eapply weaken.
@@ -384,15 +384,15 @@ initPEntryTablePreconditionToPropagatePreparePropertiesAll      in *;intuition;s
   intuition.
   unfold isWellFormedFstShadow.
   unfold initVEntryTableNewProperty in *.
-  assert(Hpred:true = StateLib.Level.eqb lpred fstLevel) by trivial.
-  unfold StateLib.Level.eqb in *.
+  assert(Hpred:true = levelEq lpred levelMin) by trivial.
+  unfold levelEq in *.
   symmetry in Hpred.
   apply beq_nat_true in Hpred.
   right.
   split;trivial.
   subst.
   destruct lpred;simpl in *.
-  destruct fstLevel;simpl in *.
+  destruct levelMin;simpl in *.
   subst;f_equal;apply proof_irrelevance.
   - intros. subst.
   eapply strengthen.
@@ -418,7 +418,7 @@ initPEntryTablePreconditionToPropagatePreparePropertiesAll      in *;intuition;s
   initPEntryTablePreconditionToPropagatePreparePropertiesAll
       in *;intuition;subst;trivial.
   unfold consistency in *;intuition.
-  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s;trivial.
+  apply phyPageNotDefault with ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) s;trivial.
   unfold consistency in *;intuition.
   (** propagate new property *)
   eapply weaken.
@@ -441,15 +441,15 @@ initPEntryTablePreconditionToPropagatePreparePropertiesAll      in *;intuition;s
   unfold isWellFormedFstShadow.
   assert(Hwell:isWellFormedMMUTables phySh1addr s) by trivial.
   unfold isWellFormedMMUTables in Hwell.
-  assert(Hpred:false = StateLib.Level.eqb lpred fstLevel) by trivial.
-  unfold StateLib.Level.eqb in *.
+  assert(Hpred:false = levelEq lpred levelMin) by trivial.
+  unfold levelEq in *.
   symmetry in Hpred.
   apply beq_nat_false in Hpred.
   left.
   split;trivial.
   subst.
   destruct lpred;simpl in *.
-  destruct fstLevel;simpl in *.
+  destruct levelMin;simpl in *.
   contradict Hpred.
   inversion Hpred.
   trivial.

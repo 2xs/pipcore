@@ -78,7 +78,7 @@ Import List.ListNotations.
                         partition) *)
 Definition createPartition (descChild pdChild shadow1Child shadow2Child 
                             ConfigPagesList :vaddr) : LLI bool :=
-if (beqVAddr defaultVAddr descChild) 
+if (vaddrEq vaddrDefault descChild) 
 then ret false
 else 
   (** Get the number of MMU levels *) 
@@ -118,7 +118,7 @@ else
     perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
     perform isNull := comparePageToNull ptDescChildFromPD in
     if isNull then ret false else
-    perform idxDescChild := getIndexOfAddr descChild fstLevel in
+    perform idxDescChild := getIndexOfAddr descChild levelMin in
     (** True if present *)
     perform presentDescChild := readPresent ptDescChildFromPD idxDescChild in
     (** True if accessible *)
@@ -129,7 +129,7 @@ else
     perform ptPDChildFromPD := getTableAddr currentPD pdChild nbL in
     perform isNull := comparePageToNull ptPDChildFromPD in
     if isNull then ret false else
-    perform idxPDChild := getIndexOfAddr pdChild fstLevel in
+    perform idxPDChild := getIndexOfAddr pdChild levelMin in
     (** True if present *)
     perform presentPDChild := readPresent ptPDChildFromPD idxPDChild in
     (** True if accessible *)
@@ -140,7 +140,7 @@ else
     perform ptSh1ChildFromPD := getTableAddr currentPD shadow1Child nbL in
     perform isNull := comparePageToNull ptSh1ChildFromPD in
     if isNull then ret false else
-    perform idxSh1Child := getIndexOfAddr shadow1Child fstLevel in
+    perform idxSh1Child := getIndexOfAddr shadow1Child levelMin in
     (** True if present *)
     perform presentSh1Child := readPresent ptSh1ChildFromPD idxSh1Child in
      (** True if accessible *)
@@ -151,7 +151,7 @@ else
     perform ptSh2ChildFromPD := getTableAddr currentPD shadow2Child nbL  in
     perform isNull := comparePageToNull ptSh2ChildFromPD in
     if isNull then ret false else
-    perform idxSh2Child := getIndexOfAddr shadow2Child fstLevel  in
+    perform idxSh2Child := getIndexOfAddr shadow2Child levelMin  in
     (** True if present *)
     perform presentSh2Child := readPresent ptSh2ChildFromPD idxSh2Child  in
      (** True if accessible *)
@@ -162,7 +162,7 @@ else
     perform ptConfigPagesList := getTableAddr currentPD ConfigPagesList nbL in
     perform isNull := comparePageToNull ptConfigPagesList in
     if isNull then ret false else
-    perform idxConfigPagesList := getIndexOfAddr ConfigPagesList fstLevel in
+    perform idxConfigPagesList := getIndexOfAddr ConfigPagesList levelMin in
     (** True if present *)
     perform presentConfigPagesList := readPresent ptConfigPagesList idxConfigPagesList in
      (** True if accessible *)
@@ -260,11 +260,11 @@ else
         writeAccessibleRec descChild currentPart false;;
         (** Set all given pages as not accessible in all ancestors **)
 
-        perform zero := MALInternal.Index.zero in
+        perform zero := getIdx0 in
         (** Initialize phyPDChild table *)
         initPEntryTable phyPDChild zero;;
         (** Add the kernel mapping *)
-        perform kidx := getKidx in
+        perform kidx := getIdxKernel in
         mapKernel phyPDChild kidx;;
         (** Initialize phySh1Child table *)
         initFstShadow phySh1Child nbL zero;;
@@ -277,13 +277,13 @@ else
         initConfigPagesList phyConfigPagesList zero ;;
 
         (** Add descChild and its physical address into itself (the partion descriptor) *)
-        perform nullVA :=  getDefaultVAddr in
-        perform idxPR := getPRidx in
-        perform idxPD := getPDidx in
-        perform idxSh1 := getSh1idx in
-        perform idxSh2 := getSh2idx in
-        perform idxListConf := getSh3idx in
-        perform idxPRP := getPPRidx in 
+        perform nullVA :=  getVaddrDefault in
+        perform idxPR := getIdxPartDesc in
+        perform idxPD := getIdxPageDir in
+        perform idxSh1 := getIdxShadow1 in
+        perform idxSh2 := getIdxShadow2 in
+        perform idxListConf := getIdxShadow3 in
+        perform idxPRP := getIdxParentDesc in 
         updatePartitionDescriptor phyDescChild idxPR phyDescChild descChild ;;
 
         (** Add pdChild and its physical address into the partition descriptor page *)
@@ -343,9 +343,9 @@ else
      <<nbL>>                    a level number of the MMU *)
 Fixpoint countToMapRec timeout (pdChild configPagesListChild: page) (va : vaddr) (nbL : level)  :=
   match timeout with
-  | 0 => MALInternal.Count.zero 
+  | 0 => getCount0 
   | S timeout1 =>
-  perform isNotfstLevel := MALInternal.Level.gtb nbL fstLevel in 
+  perform isNotfstLevel := levelGtM nbL levelMin in 
     if isNotfstLevel
     then
       (** Get the index in va that corresponds to the current level *)
@@ -353,27 +353,27 @@ Fixpoint countToMapRec timeout (pdChild configPagesListChild: page) (va : vaddr)
       (** Get the page stored at this index into pdChild *)
       perform addr := readPhyEntry pdChild idx in
       (** Compare the page to the default page *)
-      perform null := getDefaultPage in
-      perform cmp := MALInternal.Page.eqb  addr null in
+      perform null := getPageDefault in
+      perform cmp := pageEqM  addr null in
 
       (**  If we have no table here, we're done : (level - 1) is the amount of
         pages we need, and we need the same amount for both shadow pages *)
       if cmp
         then
         (**  Now we have to check if we have enough space in shadow 3 to map all this *)
-        perform zeroI := MALInternal.Index.zero in
-        perform zeroC := MALInternal.Count.zero in
+        perform zeroI := getIdx0 in
+        perform zeroC := getCount0 in
         perform lastLLTable := checkEnoughEntriesLinkedList configPagesListChild in 
         perform isNull := comparePageToNull lastLLTable in
         (* Check if we need to insert a new page at the end of the linked list *)  
         if (isNull) then (* We don't need to link a new LL table *)  
-            perform prod3 := MALInternal.Count.mul3 nbL in
-            MALInternal.Count.succ prod3  (**  Not enough space, we need another shadow 3 page *)
-          else MALInternal.Count.mul3 nbL (**  Enough space, never mind *)
+            perform prod3 := countFromLevelM nbL in
+            countSuccM prod3  (**  Not enough space, we need another shadow 3 page *)
+          else countFromLevelM nbL (**  Enough space, never mind *)
         else
-        perform levelPred := MALInternal.Level.pred nbL in
+        perform levelPred := levelPredM nbL in
         countToMapRec timeout1 addr configPagesListChild va levelPred
-    else MALInternal.Count.zero (**  Everything is mapped : we need no additional pages *)
+    else getCount0 (**  Everything is mapped : we need no additional pages *)
   end.
 
 (** - The [countToMapAux] fixes the timout value of [countToMapRec] *)
@@ -396,8 +396,8 @@ Definition countToMap (descChild vaChild : vaddr) :=
   (** Get the physical address of the reference page of the child *)
   perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
   perform isNull := comparePageToNull ptDescChildFromPD in 
-  if isNull then MALInternal.Count.zero else
-  perform idxDescChild := getIndexOfAddr descChild fstLevel in
+  if isNull then getCount0 else
+  perform idxDescChild := getIndexOfAddr descChild levelMin in
   perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
   (** Get the physical address of the page directory of the child *)
   perform phyPDChild := getPd phyDescChild in
@@ -448,7 +448,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
   match timeout with
   | 0 => prepareType false fstVA
   | S timeout1 =>
-  perform islevel0 := Level.eqb nbL fstLevel in
+  perform islevel0 := levelEqM nbL levelMin in
   if islevel0 then prepareType true fstVA
   else 
   perform isNull := compareVAddrToNull fstVA in 
@@ -466,16 +466,16 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
     perform isNull := comparePageToNull indMMUToPrepare in
     if (negb isNull) then 
     (* This MMU level is already configued *)
-    perform levelPred := MALInternal.Level.pred nbL in
+    perform levelPred := levelPredM nbL in
     perform indSh1ToPrepare := readPhyEntry phySh1Child idxToPrepare in 
     perform indSh2ToPrepare := readPhyEntry phySh2Child idxToPrepare in
     (* Move to the next MMU level *)
     prepareRec timeout1 descChild phyDescChild indMMUToPrepare indSh1ToPrepare indSh2ToPrepare lastLLtable vaToPrepare fstVA levelPred
     else (* The current level should be configued *)
       perform nbLgen := getNbLevel in
-      perform idxstorefetch := getStoreFetchIndex in 
+      perform idxstorefetch := getIdxStoreFetch in 
    (* Get the FIRST virtual addresses and check if null, present and accessible *)
-      perform idxFstVA :=  getIndexOfAddr fstVA fstLevel in
+      perform idxFstVA :=  getIndexOfAddr fstVA levelMin in
       perform ptMMUFstVA := getTableAddr currentPD  fstVA nbLgen in
       (* fstVA : check if there is a mapping *) 
       perform isNull := comparePageToNull ptMMUFstVA in 
@@ -494,7 +494,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
       perform isNull := compareVAddrToNull sndVA in 
       if isNull then prepareType false fstVA else
    (* Get the SECOND virtual addresses and check if null, present and accessible *)
-      perform idxSndVA :=  getIndexOfAddr sndVA fstLevel in
+      perform idxSndVA :=  getIndexOfAddr sndVA levelMin in
       perform ptMMUSndVA := getTableAddr currentPD  sndVA nbLgen in
       (* fstVA : check if there is a mapping *) 
       perform isNull := comparePageToNull ptMMUSndVA in 
@@ -512,7 +512,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
       (* check if sndVA is null *)
       perform isNull := compareVAddrToNull trdVA in 
       if isNull then prepareType false fstVA else
-      perform zeroI := MALInternal.Index.zero in
+      perform zeroI := getIdx0 in
       (** Check if virtual addresses are equal *)
       perform v1v2 := checkVAddrsEqualityWOOffset fstVA sndVA nbLgen in
       perform v1v3 := checkVAddrsEqualityWOOffset fstVA trdVA nbLgen in
@@ -534,7 +534,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
 
       (** TRD Addr *)
       (* Get the THIRD virtual addresses and check if null, present and accessible *)
-      perform idxTrdVA :=  getIndexOfAddr trdVA fstLevel in
+      perform idxTrdVA :=  getIndexOfAddr trdVA levelMin in
       perform ptMMUTrdVA := getTableAddr currentPD  trdVA nbLgen in
       (* fstVA : check if there is a mapping *) 
       perform isNull := comparePageToNull ptMMUTrdVA in 
@@ -570,7 +570,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         writeAccessibleRec trdVA currentPart false ;;
 
         (* Initialize tables *)
-        perform nbLPred := MALInternal.Level.pred nbL in
+        perform nbLPred := levelPredM nbL in
         initPEntryTable phyMMUaddr zeroI;;
         initFstShadow physh1addr nbLPred zeroI;;
         initSndShadow physh2addr nbLPred zeroI;;
@@ -606,7 +606,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         perform v4v3 := checkVAddrsEqualityWOOffset fthVA trdVA nbLgen in
         if (v4v1 || v4v2 || v4v3) then prepareType false fstVA else
         (* Get the page table and the index in which sndVA is mapped *)
-        perform idxFthVA :=  getIndexOfAddr fthVA fstLevel in
+        perform idxFthVA :=  getIndexOfAddr fthVA levelMin in
         perform ptMMUFthVA := getTableAddr currentPD  fthVA nbLgen in
         perform ptSh1FthVA := getTableAddr currentSh1 fthVA nbLgen in
         perform fthVAisOK := verifyProperties ptMMUFthVA ptSh1FthVA idxFthVA in 
@@ -640,7 +640,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         writeAccessibleRec trdVA currentPart false ;;
 
         (* Initialize tables *)
-        perform nbLPred := MALInternal.Level.pred nbL in
+        perform nbLPred := levelPredM nbL in
         initPEntryTable phyMMUaddr zeroI;;
         initFstShadow physh1addr nbLPred zeroI;;
         initSndShadow physh2addr nbLPred zeroI;;
@@ -694,7 +694,7 @@ Definition prepare (descChild : vaddr)  (va : vaddr) (fstVA : vaddr): LLI boolva
   then
     perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
     perform isNull := comparePageToNull ptDescChildFromPD in if isNull then prepareType false fstVA else
-    perform idxDescChild := getIndexOfAddr descChild fstLevel in
+    perform idxDescChild := getIndexOfAddr descChild levelMin in
     perform presentPhyDesc := readPresent ptDescChildFromPD idxDescChild in
     if negb presentPhyDesc 
      then prepareType false fstVA
@@ -743,7 +743,7 @@ Definition addVAddr (vaInCurrentPartition : vaddr) (descChild : vaddr) (vaChild 
         perform currentShadow1 := getFstShadow currentPart in
         perform ptVACurPartFromSh1 := getTableAddr currentShadow1 vaInCurrentPartition nbL in
         perform isNull := comparePageToNull ptVACurPartFromSh1 in if isNull then ret false else
-        perform idxVaInCurrentPartition := getIndexOfAddr vaInCurrentPartition fstLevel in
+        perform idxVaInCurrentPartition := getIndexOfAddr vaInCurrentPartition levelMin in
         (** 1 if the page is derived (use boolean) *)
         perform deriv := checkDerivation ptVACurPartFromSh1 idxVaInCurrentPartition in
         (** Get the pd of the current partition *)
@@ -759,7 +759,7 @@ Definition addVAddr (vaInCurrentPartition : vaddr) (descChild : vaddr) (vaChild 
         (** Get the physical address of the reference page of the child *)
         perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
         perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
-        perform idxDescChild := getIndexOfAddr descChild fstLevel in
+        perform idxDescChild := getIndexOfAddr descChild levelMin in
 
         (*FIXED*) perform presentPhyDesc := readPresent ptDescChildFromPD idxDescChild in
 
@@ -770,7 +770,7 @@ Definition addVAddr (vaInCurrentPartition : vaddr) (descChild : vaddr) (vaChild 
         (** Get the page table and the index in which the new address will be mapped *)
         perform ptVaChildFromPD := getTableAddr phyPDChild vaChild nbL in
         perform isNull := comparePageToNull ptVaChildFromPD in if isNull then ret false else
-        perform idxDescChild := getIndexOfAddr vaChild fstLevel in
+        perform idxDescChild := getIndexOfAddr vaChild levelMin in
         (** 1 if there is a mapping into the target entry *)
         perform present := readPresent ptVaChildFromPD idxDescChild in
         (** if the page is accessible in the current virtual space,
@@ -806,8 +806,8 @@ Definition mappedInChild (vaChild : vaddr) : LLI vaddr :=
         the page directory structure of the parent) *)
     perform ptDescChildFromPD := getTableAddr currentPD vaChild nbL in
     perform isNull := comparePageToNull ptDescChildFromPD in
-    if isNull then ret defaultVAddr else
-    perform idxDescChild := getIndexOfAddr vaChild fstLevel in
+    if isNull then ret vaddrDefault else
+    perform idxDescChild := getIndexOfAddr vaChild levelMin in
     (** True if present *)
     perform presentDescChild := readPresent ptDescChildFromPD idxDescChild in
     (** True if accessible *)
@@ -816,11 +816,11 @@ Definition mappedInChild (vaChild : vaddr) : LLI vaddr :=
   (** access to the first shadow page of the current page directory *)
   perform currentShadow1 := getFstShadow currentPart in
   perform ptVaChildFromSh1 := getTableAddr currentShadow1 vaChild nbL in
-  perform isNull := comparePageToNull ptVaChildFromSh1 in if isNull then ret defaultVAddr else
-  perform idxVaChild := getIndexOfAddr vaChild fstLevel in
+  perform isNull := comparePageToNull ptVaChildFromSh1 in if isNull then ret vaddrDefault else
+  perform idxVaChild := getIndexOfAddr vaChild levelMin in
   (** 1 if the page is derived (use boolean) *)
   readVirEntry ptVaChildFromSh1 idxVaChild
-else ret defaultVAddr.
+else ret vaddrDefault.
 
 
 
@@ -846,14 +846,14 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
       (** Get the physical address of the reference page of the child *)
       perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
       perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
-      perform idxDescChild := getIndexOfAddr descChild fstLevel in
+      perform idxDescChild := getIndexOfAddr descChild levelMin in
       perform present := readPresent ptDescChildFromPD idxDescChild in
       if (negb present) then ret false else 
       perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
       (** Get the physical address of the page directory of the child *)
       perform phyPDChild := getPd phyDescChild in
       (** Get the page table and the index in which the address is mapped *)
-      perform idxvaChild := getIndexOfAddr vaChild fstLevel in
+      perform idxvaChild := getIndexOfAddr vaChild levelMin in
       perform ptvaChildFromPD := getTableAddr phyPDChild vaChild nbL in
       perform isNull := comparePageToNull ptvaChildFromPD in if isNull then ret false else
       (**  true if accessible *)
@@ -881,11 +881,11 @@ Definition removeVAddr (descChild : vaddr) (vaChild : vaddr) :=
         perform currentSh1 := getFstShadow currentPart in
         perform ptVaInParentFromSh1 := getTableAddr currentSh1 vaInParent nbL in
         perform isNull := comparePageToNull ptVaInParentFromSh1 in if isNull then ret false else
-        perform idxVaInParent := getIndexOfAddr vaInParent fstLevel in
+        perform idxVaInParent := getIndexOfAddr vaInParent levelMin in
         (**  mark page as not derived *)
-        perform null := getDefaultVAddr in
+        perform null := getVaddrDefault in
          (**  Set the page as not present for the child *)
-        perform nullAddr := getDefaultPage in
+        perform nullAddr := getPageDefault in
         writePhyEntry ptvaChildFromPD idxvaChild nullAddr false false false false false ;; 
         writeVirtual ptVaChildFromSh2 idxvaChild null ;; 
         writeVirEntry ptVaInParentFromSh1 idxVaInParent null ;;
@@ -914,14 +914,14 @@ Definition deletePartition (descChild : vaddr) :=
     perform currentPD := getPd currentPart in
     perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
     perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
-    perform idxDescChild := getIndexOfAddr descChild fstLevel in
+    perform idxDescChild := getIndexOfAddr descChild levelMin in
     perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in 
 
     (**  Get the physical address of the second shadow page of the child *)
     perform phyChildSh2 := getSndShadow phyDescChild in
 
     (**  Get the list of virtual addresses of mapped pages *)
-    perform nullAddrV := getDefaultVAddr in
+    perform nullAddrV := getVaddrDefault in
 
     (**  Set mapped pages as underived *)
     perform currentSh1 := getFstShadow currentPart in
@@ -931,9 +931,9 @@ Definition deletePartition (descChild : vaddr) :=
     (**  Get the configuration pages list of the child  *)
     perform phyConfigPagesListChild := getConfigTablesLinkedList phyDescChild in
     perform vaConfigPagesListChild := getConfigTablesLinkedListVaddr phyDescChild in
-    perform zero := MALInternal.Index.zero in
-    perform indexone := MALInternal.Index.succ zero in
-    perform indextwo := MALInternal.Index.succ indexone in
+    perform zero := getIdx0 in
+    perform indexone := idxSuccM zero in
+    perform indextwo := idxSuccM indexone in
     perform currentPD := getPd currentPart in
 
     (**  Set indirection pages as accessible and underived *)
@@ -945,7 +945,7 @@ Definition deletePartition (descChild : vaddr) :=
     writePDflag ptDescChildFromCurrentSh1 idxDescChild false ;;
 
     (**  Set accesible and underived: the virtual addresses used as descChild , pdChild, phySh1Child, phySh2Child, phyConfigPagesList *)
-    perform zero := MALInternal.Index.zero in
+    perform zero := getIdx0 in
     putShadowsBack phyDescChild zero currentPD  currentSh1 nbL configPagesList  ;;
 
     (**  Add PD to the list of indirection tables *)
@@ -985,7 +985,7 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
   | 0 => ret false (* getDefaultVAddr*)
   | S timeout1 =>
 
-    perform isFstLevel := Level.eqb currentLevel fstLevel in 
+    perform isFstLevel := levelEqM currentLevel levelMin in 
     if isFstLevel then ret true else
     perform ptVaToCollectFromPDChild := getTableAddr phyPDChild vaToCollect currentLevel in (** Get indirection table address, last nbL *)
 
@@ -995,9 +995,9 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
     if(ept)
     then
       (** Yep : collect this ! *)
-      perform zero := MALInternal.Index.zero in
-      perform fstindex := MALInternal.Index.succ zero in
-      perform twoI := MALInternal.Index.succ fstindex in
+      perform zero := getIdx0 in
+      perform fstindex := idxSuccM zero in
+      perform twoI := idxSuccM fstindex in
       perform ptVaToCollectFromSh1Child := getTableAddr phySh1Child vaToCollect currentLevel in  (** Get shadow 1 table *)
       perform isNull := comparePageToNull ptVaToCollectFromSh1Child in if isNull then ret false else
       perform ptVaToCollectFromSh2Child := getTableAddr phySh2Child vaToCollect currentLevel in (** Get shadow 2 table *)
@@ -1007,7 +1007,7 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       perform vaPtVaToCollectFromSh1Child := parseConfigPagesList phyConfigPagesList twoI ptVaToCollectFromSh1Child in
       perform vaPtVaToCollectFromSh2Child := parseConfigPagesList phyConfigPagesList twoI ptVaToCollectFromSh2Child in
       (** Now unmap this page table, get nbL - 1 *)
-      perform levelPred := MALInternal.Level.pred currentLevel in
+      perform levelPred := levelPredM currentLevel in
       perform nextIndFromPDChild := getTableAddr phyPDChild vaToCollect levelPred in (** Get parent table *)
       perform isNull := comparePageToNull nextIndFromPDChild in if isNull then ret false else
       perform nextIndFromSh1Child := getTableAddr phySh1Child vaToCollect levelPred in (** shadow 1 parent *)
@@ -1015,7 +1015,7 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       perform nextIndFromSh2Child := getTableAddr phySh2Child vaToCollect levelPred in (** shadow 2 parent *)
       perform isNull := comparePageToNull nextIndFromSh2Child in if isNull then ret false else
       perform idxCurrentLevel :=  getIndexOfAddr vaToCollect currentLevel in (** Get address index in parent table *)
-      perform nullAddr :=  getDefaultPage (** null address *) in
+      perform nullAddr :=  getPageDefault (** null address *) in
       (** Clear table entries *)
       writePhyEntry nextIndFromPDChild idxCurrentLevel nullAddr false false false false false ;; 
       writePhyEntry nextIndFromSh1Child idxCurrentLevel nullAddr false false false false false ;; 
@@ -1028,9 +1028,9 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       perform currentPD :=  getPd currentPart  in
       (** Get virtual addresses indexes in last indirection table *)
       perform nbIdx :=  getNbLevel in
-      perform vaPtVaToCollectFromPDChildIndex := getIndexOfAddr vaPtVaToCollectFromPDChild fstLevel in
-      perform vaPtVaToCollectFromSh1ChildIndex := getIndexOfAddr vaPtVaToCollectFromSh1Child fstLevel in
-      perform vaPtVaToCollectFromSh2ChildIndex := getIndexOfAddr vaPtVaToCollectFromSh2Child fstLevel in
+      perform vaPtVaToCollectFromPDChildIndex := getIndexOfAddr vaPtVaToCollectFromPDChild levelMin in
+      perform vaPtVaToCollectFromSh1ChildIndex := getIndexOfAddr vaPtVaToCollectFromSh1Child levelMin in
+      perform vaPtVaToCollectFromSh2ChildIndex := getIndexOfAddr vaPtVaToCollectFromSh2Child levelMin in
 
       (** Get page table and shadow tables *)
       perform parentPT := getTableAddr currentPD vaPtVaToCollectFromPDChild nbIdx in
@@ -1056,7 +1056,7 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       perform isNull := comparePageToNull sh1ChildFromSh1Parent in if isNull then ret false else
       perform sh2ChildFromSh1Parent := getTableAddr currentShadow1 vaPtVaToCollectFromSh2Child nbIdx in
       perform isNull := comparePageToNull sh2ChildFromSh1Parent in if isNull then ret false else
-      perform nullVA :=  getDefaultVAddr in
+      perform nullVA :=  getVaddrDefault in
       (** Update properties now : derivation *)
       writeVirEntry pdChildFromSh1Parent vaPtVaToCollectFromPDChildIndex nullVA ;;
       writeVirEntry sh1ChildFromSh1Parent vaPtVaToCollectFromSh1ChildIndex nullVA ;;
@@ -1104,7 +1104,7 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
       (** Get the physical address of the child partition descriptor *) 
       perform ptDescChildFromPD := getTableAddr currentPD descChild nbL in
       perform isNull := comparePageToNull ptDescChildFromPD in if isNull then ret false else
-      perform idxDescChild := getIndexOfAddr descChild fstLevel in
+      perform idxDescChild := getIndexOfAddr descChild levelMin in
       perform phyDescChild := readPhyEntry ptDescChildFromPD idxDescChild in
       (** Get the page directory of the child *)
       perform phyPDChild := getPd phyDescChild in
@@ -1114,7 +1114,7 @@ Definition collect (descChild : vaddr) (vaToCollect : vaddr) :=
       perform phySh2Child := getSndShadow phyDescChild in
       (** Get the config tables list shadow of the child *)
       perform phyConfigPagesList  := getConfigTablesLinkedList phyDescChild in
-      perform defAddr := getDefaultVAddr in
+      perform defAddr := getVaddrDefault in
       (** Call collectAux with required parameters *)
       collectAux phyPDChild phySh1Child phySh2Child phyConfigPagesList vaToCollect nbL defAddr
     else ret false
@@ -1133,7 +1133,7 @@ Definition switchContextCont (targetPartDesc : page)
   setInterruptMask flagsOnWake ;;
   (* allow root partition to prevent Pip from enforcing interrupts *)
   perform rootPartition := getPageRootPartition in
-  perform targetIsRoot := Page.eqb rootPartition targetPartDesc in
+  perform targetIsRoot := pageEqM rootPartition targetPartDesc in
   perform targetReqNoInterrupt := noInterruptRequest flagsOnWake in
   (
   if (targetIsRoot && targetReqNoInterrupt)
@@ -1162,7 +1162,7 @@ Definition saveSourceContextCont (targetPartDesc           : page)
     ret FAIL_CALLER_CONTEXT_SAVE
   else
 
-  perform idxSourceCtxInLastMMUPage := getIndexOfAddr sourceContextSaveVAddr fstLevel in
+  perform idxSourceCtxInLastMMUPage := getIndexOfAddr sourceContextSaveVAddr levelMin in
   perform sourceCtxPageIsPresent := readPresent sourceCtxLastMMUPage idxSourceCtxInLastMMUPage in
   if negb sourceCtxPageIsPresent then
     ret FAIL_CALLER_CONTEXT_SAVE
@@ -1189,7 +1189,7 @@ Definition saveSourceContextCont (targetPartDesc           : page)
     ret FAIL_CALLER_CONTEXT_SAVE
   else
 
-  perform idxSourceCtxEndInLastMMUPage := getIndexOfAddr sourceContextEndSaveVAddr fstLevel in
+  perform idxSourceCtxEndInLastMMUPage := getIndexOfAddr sourceContextEndSaveVAddr levelMin in
   perform sourceCtxEndPageIsPresent := readPresent sourceCtxEndLastMMUPage idxSourceCtxEndInLastMMUPage in
   if negb sourceCtxEndPageIsPresent then
     ret FAIL_CALLER_CONTEXT_SAVE
@@ -1222,7 +1222,7 @@ Definition getTargetContextCont (targetPartDesc : page)
     ret FAIL_UNAVAILABLE_TARGET_CTX
   else
 
-  perform idxTargetContextPageInLastMMUPage := getIndexOfAddr targetContextVAddr fstLevel in
+  perform idxTargetContextPageInLastMMUPage := getIndexOfAddr targetContextVAddr levelMin in
 
   perform targetContextPageIsPresent := readPresent targetContextLastMMUPage idxTargetContextPageInLastMMUPage in
   if negb targetContextPageIsPresent then
@@ -1247,7 +1247,7 @@ Definition getTargetContextCont (targetPartDesc : page)
     ret FAIL_UNAVAILABLE_TARGET_CTX
   else
 
-  perform idxTargetContextEndPageInLastMMUPage := getIndexOfAddr targetContextEndVAddr fstLevel in
+  perform idxTargetContextEndPageInLastMMUPage := getIndexOfAddr targetContextEndVAddr levelMin in
   perform targetContextEndPageIsPresent := readPresent targetContextEndLastMMUPage idxTargetContextEndPageInLastMMUPage in
   if negb targetContextEndPageIsPresent then
     ret FAIL_UNAVAILABLE_TARGET_CTX
@@ -1330,7 +1330,7 @@ Definition getSourceVidtCont (targetPartDesc : page)
 				                     (sourceInterruptedContext : contextAddr)
                              : LLI yield_checks :=
   perform vidtVAddr := getVaddrVIDT in
-  perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr fstLevel in
+  perform idxVidtInLastMMUPage := getIndexOfAddr vidtVAddr levelMin in
 
   (* retrieve caller vidt *)
   perform sourceVidtLastMMUPage := getTableAddr sourcePageDir vidtVAddr nbL in
@@ -1416,7 +1416,7 @@ Definition getParentPartDescCont (sourcePartDesc : page)
 
   (* check if partition is root *)
   perform rootPartition := getPageRootPartition in
-  perform sourcePartitionIsRoot := Page.eqb rootPartition sourcePartDesc in
+  perform sourcePartitionIsRoot := pageEqM rootPartition sourcePartDesc in
   if sourcePartitionIsRoot then
     ret FAIL_ROOT_CALLER
   else
@@ -1450,7 +1450,7 @@ Definition getChildPartDescCont (sourcePartDesc : page)
   if childLastMMUTableIsNull then
     ret FAIL_INVALID_CHILD
   else
-  perform idxChildPartDesc := getIndexOfAddr targetPartDescVAddr fstLevel in
+  perform idxChildPartDesc := getIndexOfAddr targetPartDescVAddr levelMin in
   perform childPartDescIsPresent := readPresent childLastMMUTable idxChildPartDesc in
   if negb childPartDescIsPresent then
     ret FAIL_INVALID_CHILD

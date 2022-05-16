@@ -112,92 +112,92 @@ apply wpIsPrecondition.
 Qed.
 
 Lemma getPDidx   (P: index -> state -> Prop) :
-{{ wp P getPDidx }} getPDidx {{ P }}.
+{{ wp P getIdxPageDir }} getIdxPageDir {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Lemma getSh1idx   (P: index -> state -> Prop) :
-{{ wp P getSh1idx }} getSh1idx {{ P }}.
+{{ wp P getIdxShadow1 }} getIdxShadow1 {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 Lemma getSh2idx   (P: index -> state -> Prop) :
-{{ wp P getSh2idx }} getSh2idx {{ P }}.
+{{ wp P getIdxShadow2 }} getIdxShadow2 {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Lemma getSh3idx   (P: index -> state -> Prop) :
-{{ wp P getSh3idx }} getSh3idx {{ P }}.
+{{ wp P getIdxShadow3 }} getIdxShadow3 {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Lemma getPPRidx   (P: index -> state -> Prop) :
-{{ wp P getPPRidx }} getPPRidx {{ P }}.
+{{ wp P getIdxParentDesc }} getIdxParentDesc {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Lemma getPRidx   (P: index -> state -> Prop) :
-{{ wp P getPRidx }} getPRidx {{ P }}.
+{{ wp P getIdxPartDesc }} getIdxPartDesc {{ P }}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Lemma getKidx  (P : index -> state -> Prop) : 
-{{ wp P getKidx}} getKidx {{P}}.
+{{ wp P getIdxKernel}} getIdxKernel {{P}}.
 Proof.
 apply wpIsPrecondition.
 Qed.
 
 Module Index.
 Lemma eqb  index1 index2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Index.eqb index1 index2)  s }} 
-  MALInternal.Index.eqb index1 index2 {{ fun s => P s}}.
+{{ fun s : state => P (idxEq index1 index2)  s }} 
+  idxEqM index1 index2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Index.eqb, StateLib.Index.eqb.
+unfold idxEqM, idxEq.
 eapply weaken.
 eapply ret .
 trivial.
 Qed.
 
 Lemma gtb  index1 index2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Index.gtb index1 index2)  s }} 
-  MALInternal.Index.gtb index1 index2 {{ fun s => P s}}.
+{{ fun s : state => P (idxGt index1 index2)  s }} 
+  idxGtM index1 index2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Index.gtb, StateLib.Index.gtb.
+unfold idxGtM, idxGt.
 eapply weaken.
 eapply ret .
 trivial.
 Qed.
 
 Lemma ltb  index1 index2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Index.ltb index1 index2)  s }} 
-  MALInternal.Index.ltb index1 index2 {{ fun s => P s}}.
+{{ fun s : state => P (idxLt index1 index2)  s }} 
+  idxLtM index1 index2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Index.ltb, StateLib.Index.ltb.
+unfold idxLtM, idxLt.
 eapply weaken.
 eapply ret .
 trivial.
 Qed.
 
 Lemma leb  index1 index2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Index.leb index1 index2)  s }} 
-  MALInternal.Index.leb index1 index2 {{ fun s => P s}}.
+{{ fun s : state => P (idxLe index1 index2)  s }} 
+  idxLeM index1 index2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Index.leb, StateLib.Index.leb.
+unfold idxLeM, idxLe.
 eapply weaken.
 eapply ret .
 trivial.
 Qed.
 
 Lemma geb  index1 index2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Index.geb index1 index2)  s }} 
-  MALInternal.Index.geb index1 index2 {{ fun s => P s}}.
+{{ fun s : state => P (idxGe index1 index2)  s }} 
+  idxGeM index1 index2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Index.geb, StateLib.Index.geb.
+unfold idxGeM, idxGe.
 eapply weaken.
 eapply ret .
 trivial.
@@ -207,7 +207,7 @@ Lemma succ  (idx : index) (P: index -> state -> Prop) :
 {{fun s => idx < (tableSize -1) /\ forall  l : idx + 1 < tableSize , 
     P {| i := idx + 1; Hi := Ops.idxSuccM_obligation_1 idx l |} s}} Ops.idxSuccM idx {{ P }}.
 Proof.
-unfold MALInternal.Index.succ.
+unfold idxSuccM.
 case_eq (lt_dec (idx + 1) tableSize) .
 intros. simpl.
 eapply weaken.
@@ -226,9 +226,9 @@ lia.
 Qed.
 Lemma pred  (idx : index) (P: index -> state -> Prop) :
 {{ fun s : state => idx > 0 /\ forall Hi : idx - 1 < tableSize,  
-                   P {| i := idx -1; Hi := Hi |} s }} MALInternal.Index.pred idx {{ P }}.
+                   P {| i := idx -1; Hi := Hi |} s }} idxPredM idx {{ P }}.
 Proof.
-unfold MALInternal.Index.pred.
+unfold idxPredM.
 destruct idx.
 simpl.
 case_eq ( gt_dec i 0) .
@@ -246,9 +246,9 @@ End Index.
 Module Level.
 Lemma pred  (level1 : level) (P: level -> state -> Prop) :
 {{ fun s : state => level1 > 0 /\ forall Hl : level1 - 1 < nbLevel,  
-                   P {| l := level1 -1; Hl := Hl |} s }} MALInternal.Level.pred level1 {{ P }}.
+                   P {| l := level1 -1; Hl := Hl |} s }} levelPredM level1 {{ P }}.
 Proof.
-unfold MALInternal.Level.pred.
+unfold levelPredM.
 destruct level1.
 simpl.
 case_eq ( gt_dec l 0) .
@@ -263,20 +263,20 @@ lia.
 Qed.
 
 Lemma gtb  level1 level2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Level.gtb level1 level2)  s }} 
-  MALInternal.Level.gtb level1 level2 {{ fun s => P s}}.
+{{ fun s : state => P (levelGt level1 level2)  s }} 
+  levelGtM level1 level2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Level.gtb, StateLib.Level.gtb.
+unfold levelGtM, levelGt.
 eapply weaken.
 eapply ret .
 trivial.
 Qed.
 
 Lemma eqb level1 level2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Level.eqb level1 level2)  s }} 
-  MALInternal.Level.eqb level1 level2 {{ fun s => P s}}.
+{{ fun s : state => P (levelEq level1 level2)  s }} 
+  levelEqM level1 level2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Level.eqb, StateLib.Level.eqb.
+unfold levelEqM, levelEq.
 eapply weaken.
 eapply ret .
 trivial.
@@ -285,10 +285,10 @@ End Level.
 
 Module Page.
 Lemma eqb  page1 page2 (P : bool -> state -> Prop):
-{{ fun s : state => P (StateLib.Page.eqb page1 page2)  s }} 
-  MALInternal.Page.eqb page1 page2 {{ fun s => P s}}.
+{{ fun s : state => P (pageEq page1 page2)  s }} 
+  pageEqM page1 page2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.Page.eqb, StateLib.Page.eqb.
+unfold pageEqM, pageEq.
 eapply weaken.
 eapply ret .
 trivial.
@@ -297,10 +297,10 @@ End Page.
 
 Module VAddr.
 Lemma eqbList(vaddr1 : vaddr) (vaddr2 : vaddr) (P : bool -> state -> Prop) :
-{{ fun s : state => P (StateLib.VAddr.eqbList vaddr1 vaddr2)  s }} 
-  MALInternal.VAddr.eqbList vaddr1 vaddr2 {{ fun s => P s}}.
+{{ fun s : state => P (vaddrEq vaddr1 vaddr2)  s }} 
+  vaddrEqM vaddr1 vaddr2 {{ fun s => P s}}.
 Proof.
-unfold MALInternal.VAddr.eqbList, StateLib.VAddr.eqbList.
+unfold vaddrEq, vaddrEq.
 eapply weaken.
 eapply ret .
 trivial.
@@ -308,16 +308,16 @@ Qed.
 End VAddr.
 
 Lemma readPhyEntry  table idx  (P : page -> state -> Prop) :
-{{fun  s => exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
+{{fun  s => exists entry, lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ 
              P entry.(pa) s }} MAL.readPhyEntry table idx {{P}}.
 Proof.
 unfold readPhyEntry.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
         instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
-                   lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ P (entry.(pa)) s).
+                   lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ P (entry.(pa)) s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1& Hpage' & Hret);
@@ -333,16 +333,16 @@ eapply bind .
   - eapply weaken. eapply get . intuition.  
 Qed.
 Lemma readVirEntry  table idx  (P : vaddr -> state -> Prop) :
-{{fun  s => exists entry, lookup table idx s.(memory) beqPage beqIndex = Some ( VE entry) /\ 
+{{fun  s => exists entry, lookup table idx s.(memory) pageEq idxEq = Some ( VE entry) /\ 
              P entry.(va) s }} MAL.readVirEntry table idx {{P}}.
 Proof.
 unfold MAL.readVirEntry.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
         instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
-                   lookup table idx s.(memory) beqPage beqIndex = Some (VE entry) /\ P (entry.(va)) s).
+                   lookup table idx s.(memory) pageEq idxEq = Some (VE entry) /\ P (entry.(va)) s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
@@ -359,16 +359,16 @@ eapply bind .
 Qed.
 
 Lemma readVirtual  table idx  (P : vaddr -> state -> Prop) :
-{{fun  s => exists entry : vaddr, lookup table idx s.(memory) beqPage beqIndex = Some ( VA entry) /\ 
+{{fun  s => exists entry : vaddr, lookup table idx s.(memory) pageEq idxEq = Some ( VA entry) /\ 
              P entry s }} MAL.readVirtual table idx {{P}}.
 Proof.
 unfold readVirtual.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
-         lookup table idx s.(memory) beqPage beqIndex = Some (VA entry) /\ P entry s).
+         lookup table idx s.(memory) pageEq idxEq = Some (VA entry) /\ P entry s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
@@ -385,19 +385,19 @@ eapply bind .
 Qed.
 
 Lemma readVirtualUser  table idx  (P : vaddr -> state -> Prop) :
-{{fun  s => match lookup table idx s.(memory) beqPage beqIndex with 
+{{fun  s => match lookup table idx s.(memory) pageEq idxEq with 
 | Some ( VA a) => P a s
-| _ => P defaultVAddr s 
+| _ => P vaddrDefault s 
 end  }} MAL.readVirtualUser table idx {{P}}.
 Proof.
 unfold readVirtualUser.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
-       instantiate (1:= fun s s0 => s=s0 /\match lookup table idx s.(memory) beqPage beqIndex with 
+       instantiate (1:= fun s s0 => s=s0 /\match lookup table idx s.(memory) pageEq idxEq with 
                     | Some ( VA entry) => P entry s
-                    | _ => P defaultVAddr s 
+                    | _ => P vaddrDefault s 
                     end ).
       case_eq v; intros;subst;
       subst;eapply weaken.
@@ -428,7 +428,7 @@ Lemma writePhyEntry  table idx (addr : page) (p u r w e : bool)  (P : unit -> st
   currentPartition := currentPartition s;
   memory := add table idx
               (PE {| read := r; write := w; exec := e; present := p; user := u; pa := addr |})
-              (memory s) beqPage beqIndex |} }} writePhyEntry table idx addr p u r w e  {{P}}.
+              (memory s) pageEq idxEq |} }} writePhyEntry table idx addr p u r w e  {{P}}.
 Proof.
 unfold writePhyEntry.
 eapply weaken.
@@ -440,7 +440,7 @@ Qed.
 Lemma writeVirtual  table idx (addr : vaddr)  (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
   currentPartition := currentPartition s;
-  memory := add table idx (VA addr) (memory s) beqPage beqIndex |} }} writeVirtual table idx addr  {{P}}.
+  memory := add table idx (VA addr) (memory s) pageEq idxEq |} }} writeVirtual table idx addr  {{P}}.
 Proof.
 unfold writeVirtual.
 eapply weaken.
@@ -452,7 +452,7 @@ Qed.
 Lemma writeVirEntry  table idx (addr : vaddr)  (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
   currentPartition := currentPartition s;
-  memory := add table idx (VE {| pd := false; va := addr |} ) (memory s) beqPage beqIndex |} }} writeVirEntry table idx addr  {{P}}.
+  memory := add table idx (VE {| pd := false; va := addr |} ) (memory s) pageEq idxEq |} }} writeVirEntry table idx addr  {{P}}.
 Proof.
 unfold writeVirEntry.
 eapply weaken.
@@ -466,7 +466,7 @@ Lemma writePhysical table idx (addr : page) (P : unit -> state -> Prop) :
   currentPartition := currentPartition s;
   memory := add table idx
               (PP addr )
-              (memory s) beqPage beqIndex |} }} writePhysical table idx addr  {{P}}.
+              (memory s) pageEq idxEq |} }} writePhysical table idx addr  {{P}}.
 Proof.
 unfold writePhysical.
 eapply weaken.
@@ -480,7 +480,7 @@ Lemma writeIndex table idx (indexValue : index) (P : unit -> state -> Prop) :
   currentPartition := currentPartition s;
   memory := add table idx
               (I indexValue )
-              (memory s) beqPage beqIndex |} }} writeIndex table idx indexValue  {{P}}.
+              (memory s) pageEq idxEq |} }} writeIndex table idx indexValue  {{P}}.
 Proof.
 unfold writeIndex.
 eapply weaken.
@@ -490,25 +490,25 @@ assumption.
 Qed.
 
 Lemma writeAccessible  (table : page) (idx : index) (flag : bool)  (P : unit -> state -> Prop) :
-{{fun  s => exists entry , lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
+{{fun  s => exists entry , lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ 
 P tt {|
   currentPartition := currentPartition s;
   memory := add table idx
               (PE {| read := entry.(read); write :=entry.(write); exec := entry.(exec); 
                      present := entry.(present); user := flag; pa := entry.(pa) |})
-              (memory s) beqPage beqIndex |} }} writeAccessible table idx flag  {{P}}.
+              (memory s) pageEq idxEq |} }} writeAccessible table idx flag  {{P}}.
 Proof.
 unfold writeAccessible.
 eapply bind .
   - intro s. simpl.
-   case_eq (lookup table idx s.(memory) beqPage beqIndex).
+   case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
-       instantiate (1:= fun s s0 => s = s0 /\ exists entry , lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
+       instantiate (1:= fun s s0 => s = s0 /\ exists entry , lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ 
                                               P tt {| currentPartition := currentPartition s;
                                                       memory := add table idx
                                                                   (PE {| read := entry.(read); write :=entry.(write); exec := entry.(exec); 
                                                                          present := entry.(present); user := flag; pa := entry.(pa) |})
-                                                                  (memory s) beqPage beqIndex |}).
+                                                                  (memory s) pageEq idxEq |}).
        simpl in *.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        subst;
@@ -527,16 +527,16 @@ eapply bind .
 Qed.
 
 Lemma readPhysical  table idx  (P : page -> state -> Prop) :
-{{fun  s => exists p1, lookup table idx s.(memory) beqPage beqIndex = Some (PP p1) /\ 
+{{fun  s => exists p1, lookup table idx s.(memory) pageEq idxEq = Some (PP p1) /\ 
              P p1 s }} MAL.readPhysical table idx {{P}}.
 Proof.
 unfold readPhysical.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists p1 ,
-                   lookup table idx s.(memory) beqPage beqIndex = Some (PP p1) /\ P p1 s).
+                   lookup table idx s.(memory) pageEq idxEq = Some (PP p1) /\ P p1 s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
@@ -554,16 +554,16 @@ eapply bind .
 Qed.
 
 Lemma readPresent  table idx (P : bool -> state -> Prop) : 
-{{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
+{{fun s =>  exists entry, lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ 
              P entry.(present) s }} MAL.readPresent table idx {{P}}.
 Proof.
 unfold readPresent.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists p1 ,
-                   lookup table idx s.(memory) beqPage beqIndex = Some (PE p1) /\ P (present p1) s).
+                   lookup table idx s.(memory) pageEq idxEq = Some (PE p1) /\ P (present p1) s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);
@@ -580,11 +580,11 @@ eapply bind .
    eapply get . intuition.
 Qed.
    Lemma writePDflag  table idx  (flag: bool)  (P : unit -> state -> Prop) :
-{{fun  s => exists v , lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+{{fun  s => exists v , lookup table idx (memory s) pageEq idxEq = Some (VE v) /\
 P tt {|
          currentPartition := currentPartition s;
          memory := add table idx (VE {| pd := flag; va := va v |}) 
-                     (memory s) beqPage beqIndex |} }} writePDflag table idx flag {{P}}.
+                     (memory s) pageEq idxEq |} }} writePDflag table idx flag {{P}}.
 Proof.
 unfold writePDflag.
 eapply bindRev.
@@ -595,18 +595,18 @@ simpl.
 intros.
 instantiate(1:= fun s s0 =>
               s=s0 /\ exists v : Ventry,
-              lookup table idx (memory s) beqPage beqIndex = Some (VE v) /\
+              lookup table idx (memory s) pageEq idxEq = Some (VE v) /\
               P tt
                 {|
                 currentPartition := currentPartition s;
                 memory := add table idx (VE {| pd := flag; va := va v |}) 
-                            (memory s) beqPage beqIndex |}).
+                            (memory s) pageEq idxEq |}).
 simpl.
 intuition.
 +
 intros s.
 simpl.
-case_eq (lookup table idx s.(memory) beqPage beqIndex).
+case_eq (lookup table idx s.(memory) pageEq idxEq).
 - intros v Hentry.
   simpl in *.
   case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
@@ -628,16 +628,16 @@ case_eq (lookup table idx s.(memory) beqPage beqIndex).
 Qed.
     
 Lemma readAccessible  table idx (P : bool -> state -> Prop) : 
-{{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (PE entry) /\ 
+{{fun s =>  exists entry, lookup table idx s.(memory) pageEq idxEq = Some (PE entry) /\ 
              P entry.(user) s }} MAL.readAccessible table idx {{P}}.
 Proof.
 unfold readAccessible.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists p1 ,
-                   lookup table idx s.(memory) beqPage beqIndex = 
+                   lookup table idx s.(memory) pageEq idxEq = 
                    Some (PE p1) /\ P (user p1) s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
@@ -680,7 +680,7 @@ eapply weaken.
  Qed.  
 
 Lemma getIndexOfAddr  (va : vaddr) (level1 : level) (P: index -> state -> Prop) :
-{{ fun s =>  P (nth (length va - (level1+ 2)) va defaultIndex) s }} 
+{{ fun s =>  P (nth (length va - (level1+ 2)) va idxDefault) s }} 
    MAL.getIndexOfAddr va level1 
 {{P}}.
 Proof.
@@ -697,16 +697,16 @@ apply wpIsPrecondition.
 Qed.
 
 Lemma readPDflag  table idx (P : bool -> state -> Prop) : 
-{{fun s =>  exists entry, lookup table idx s.(memory) beqPage beqIndex = Some (VE entry) /\ 
+{{fun s =>  exists entry, lookup table idx s.(memory) pageEq idxEq = Some (VE entry) /\ 
              P entry.(pd) s }} MAL.readPDflag table idx {{P}}.
 Proof.
 unfold readPDflag.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists p1 ,
-                   lookup table idx s.(memory) beqPage beqIndex = 
+                   lookup table idx s.(memory) pageEq idxEq = 
                    Some (VE p1) /\ P (pd p1) s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
@@ -724,16 +724,16 @@ eapply bind .
    eapply get . intuition.
 Qed.
 Lemma readIndex  table idx  (P : index -> state -> Prop) :
-{{fun  s => exists ivalue : index, lookup table idx s.(memory) beqPage beqIndex = Some ( I ivalue) /\ 
+{{fun  s => exists ivalue : index, lookup table idx s.(memory) pageEq idxEq = Some ( I ivalue) /\ 
              P ivalue s }} MAL.readIndex table idx {{P}}.
 Proof.
 unfold   MAL.readIndex.
 eapply bind .
   - intro s. simpl. 
-    case_eq (lookup table idx s.(memory) beqPage beqIndex).
+    case_eq (lookup table idx s.(memory) pageEq idxEq).
      + intros v Hpage.
        instantiate (1:= fun s s0 => s=s0 /\ exists entry ,
-         lookup table idx s.(memory) beqPage beqIndex = Some (I entry) /\ P entry s).
+         lookup table idx s.(memory) pageEq idxEq = Some (I entry) /\ P entry s).
        simpl.
        case_eq v; intros; eapply weaken; try eapply undefined ;simpl;
        intros s0 H0; try destruct H0 as (Hs & p1 & Hpage' & Hret);

@@ -120,7 +120,7 @@ case_eq isMultiplexer.
   (** getTableAddr **)
   eapply bindRev.
   eapply weaken.
-  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= sh2idx).
+  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= idxShadow2).
   simpl. 
   intros.
   split.
@@ -145,13 +145,13 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
-  (  isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel ) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault) \/
+  (  isVA ptsh2 (StateLib.getIndexOfAddr va levelMin ) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
-      generalize (H1 (StateLib.getIndexOfAddr va fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr va levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(Hpe &Htrue) | (_&Hfalse)]];trivial.
        - contradict Hfalse.
          apply idxSh2idxSh1notEq.
@@ -179,9 +179,9 @@ case_eq isMultiplexer.
   2: {  
   intros.
   destruct H as ((H & Hstrong) & Htrue).
-  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb pageDefault pageDefault) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -261,13 +261,13 @@ case_eq isMultiplexer.
   eapply bindRev.
   (** getTableAddr **)
   eapply WP.weaken. 
-  apply getTableAddr with (currentPart:= ancestor) (idxroot:= PDidx).
+  apply getTableAddr with (currentPart:= ancestor) (idxroot:= idxPageDir).
   simpl.
   intros s H.
   split.
   pattern s in H. 
   eapply H.
-  assert(Hancestor: In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(Hancestor: In ancestor (getPartitions pageRootPartition s)).
   { assert(Hparent : parentInPartitionList s) by (unfold consistency in *;intuition).
     apply Hparent with descParent; intuition. }
   split;[intuition|].
@@ -288,14 +288,14 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
-   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)).
+  assert( (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault) \/
+   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\ getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
       split. 
-      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]];trivial.
        - contradict Hfalse.
          apply idxPDidxSh1notEq.
@@ -340,7 +340,7 @@ case_eq isMultiplexer.
   eapply WP.writeAccessible.
   intros. simpl.
   assert (exists entry0 : Pentry,
-    lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry0)) as Hlookup.
+    lookup ptvaInAncestor idxva (memory s) pageEq idxEq = Some (PE entry0)) as Hlookup.
   { apply isPELookupEq.
     intuition;subst;trivial. }
   destruct Hlookup as (entry & Hlookup).
@@ -366,9 +366,9 @@ case_eq isMultiplexer.
   (** add the propeties about writeAccessible post conditions **)
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s /\
-              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s /\
-              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s  ) 
+              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) false s /\
+              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) phypage s /\
+              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) true s  ) 
   end.
   simpl.
   set (s' := {| currentPartition := _ |}).  
@@ -377,9 +377,9 @@ case_eq isMultiplexer.
   simpl;trivial. (* admit.  *) (** PROVE YOUR POSTCONDITION : true **)
   intros;trivial.
    simpl in *.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   (** Prove the POSTCONDITION **)
   (* admit *)
@@ -400,7 +400,7 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition.
-  assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s); intuition.
+  assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s); intuition.
   rewrite nextEntryIsPPgetParent in Hpp.
   unfold consistency in *.
   apply ancestorInPartitionTree with descParent;trivial.
@@ -496,7 +496,7 @@ case_eq isMultiplexer.
   (** getTableAddr **)
   eapply bindRev.
   eapply weaken.
-  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= sh2idx).
+  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= idxShadow2).
   simpl. 
   intros.
   split.
@@ -521,13 +521,13 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
-  (  isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel ) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault) \/
+  (  isVA ptsh2 (StateLib.getIndexOfAddr va levelMin ) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
-      generalize (H1 (StateLib.getIndexOfAddr va fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr va levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(Hpe &Htrue) | (_&Hfalse)]];trivial.
        - contradict Hfalse.
          apply idxSh2idxSh1notEq.
@@ -555,9 +555,9 @@ case_eq isMultiplexer.
   2: {  
   intros.
   destruct H as ((H & Hstrong) & Htrue).
-  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb pageDefault pageDefault) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -637,13 +637,13 @@ case_eq isMultiplexer.
   eapply bindRev.
   (** getTableAddr **)
   eapply WP.weaken. 
-  apply getTableAddr with (currentPart:= ancestor) (idxroot:= PDidx).
+  apply getTableAddr with (currentPart:= ancestor) (idxroot:= idxPageDir).
   simpl.
   intros s H.
   split.
   pattern s in H. 
   eapply H.
-  assert(Hancestor: In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(Hancestor: In ancestor (getPartitions pageRootPartition s)).
   { assert(Hparent : parentInPartitionList s) by (unfold consistency in *;intuition).
     apply Hparent with descParent; intuition. }
   split;[intuition|].
@@ -664,14 +664,14 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
-   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)).
+  assert( (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault) \/
+   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\ getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
       split. 
-      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]];trivial.
        - contradict Hfalse.
          apply idxPDidxSh1notEq.
@@ -717,7 +717,7 @@ case_eq isMultiplexer.
   eapply WP.writeAccessible.
   intros. simpl.
   assert (exists entry0 : Pentry,
-    lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry0)) as Hlookup.
+    lookup ptvaInAncestor idxva (memory s) pageEq idxEq = Some (PE entry0)) as Hlookup.
   { apply isPELookupEq.
     intuition;subst;trivial. }
   destruct Hlookup as (entry & Hlookup).
@@ -744,9 +744,9 @@ case_eq isMultiplexer.
   (** add the propeties about writeAccessible post conditions **)
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s /\
-              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s /\
-              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s  ) 
+              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) false s /\
+              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) phypage s /\
+              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) true s  ) 
   end.
   simpl.
   set (s' := {| currentPartition := _ |}).  
@@ -755,7 +755,7 @@ case_eq isMultiplexer.
   trivial.  
   subst.
   (** PROVE YOUR Precondition required to prove the postcondition : propagatedPropertiesPrepare **)
-  assert(In ancestor (getPartitions MALInternal.multiplexer s)). {
+  assert(In ancestor (getPartitions pageRootPartition s)). {
     assert(isAncestor currentPart ancestor s). {
   unfold isAncestor.
   assert(Hor : currentPart = ancestor \/ currentPart <>  ancestor) by apply pageDecOrNot.
@@ -765,7 +765,7 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition. }
-  assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s); intuition.
+  assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s); intuition.
   rewrite nextEntryIsPPgetParent in Hpp.
   unfold consistency in *.
   apply ancestorInPartitionTree with descParent;trivial.
@@ -776,7 +776,7 @@ case_eq isMultiplexer.
   intuition.
   subst idxva.
   apply propagatedPropertiesPrepareUpdateUserFlag  with descParent pt sh2 lastIndex ancestor pdAncestor ptsh2
-  defaultV va (StateLib.getIndexOfAddr vaInAncestor fstLevel);intuition;
+  defaultV va (StateLib.getIndexOfAddr vaInAncestor levelMin);intuition;
   subst;trivial.
   unfold propagatedPropertiesPrepare in *;intuition.
   (** accessibleVAIsNotPartitionDescriptor **)
@@ -787,9 +787,9 @@ case_eq isMultiplexer.
   apply getAccessibleMappedPageInAncestor with descParent va sh2 ptsh2 ancestor;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   rewrite  and_assoc.
   split.
@@ -813,7 +813,7 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition.
-  assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s); intuition.
+  assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s); intuition.
   rewrite nextEntryIsPPgetParent in Hpp.
   unfold consistency in *.
   apply ancestorInPartitionTree with descParent;trivial.
@@ -839,7 +839,7 @@ StateLib.getParent part1 (memory s) =Some  parentpart1
 /\ StateLib.getPd part2 (memory s) = Some pdpart2
 /\ getMappedPage pdpart2 s vapart2 =  pg 
 /\ noDupMappedPagesList s
-/\ In part2 (getPartitions MALInternal.multiplexer s)
+/\ In part2 (getPartitions pageRootPartition s)
 /\ getAccessibleMappedPage pdpart2 s vapart2 = NonePage.
 Lemma WriteAccessibleRecGetParent (va:vaddr) (descParent phypage pt:page) currentPart n part1  parentpart1 part2 pdpart2 vapart2 pg:  
 {{ fun s : state => preconditionToProveWriteAccessibleRecNewProperty s part1  parentpart1 part2 pdpart2 vapart2 pg
@@ -919,7 +919,7 @@ case_eq isMultiplexer.
   (** getTableAddr **)
   eapply bindRev.
   eapply weaken.
-  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= sh2idx).
+  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= idxShadow2).
   simpl. 
   intros.
   split.
@@ -944,13 +944,13 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
-  (  isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel ) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault) \/
+  (  isVA ptsh2 (StateLib.getIndexOfAddr va levelMin ) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
-      generalize (H1 (StateLib.getIndexOfAddr va fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr va levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(Hpe &Htrue) | (_&Hfalse)]];trivial.
        - contradict Hfalse.
          apply idxSh2idxSh1notEq.
@@ -979,9 +979,9 @@ case_eq isMultiplexer.
   2: {  
   intros.
   destruct H as ((H & Hstrong) & Htrue).
-  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb pageDefault pageDefault) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -1062,13 +1062,13 @@ case_eq isMultiplexer.
   eapply bindRev.
   (** getTableAddr **)
   eapply WP.weaken. 
-  apply getTableAddr with (currentPart:= ancestor) (idxroot:= PDidx).
+  apply getTableAddr with (currentPart:= ancestor) (idxroot:= idxPageDir).
   simpl.
   intros s H.
   split.
   pattern s in H. 
   eapply H.
-  assert(Hancestor: In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(Hancestor: In ancestor (getPartitions pageRootPartition s)).
   { assert(Hparent : parentInPartitionList s) by (unfold consistency in *;intuition).
     apply Hparent with descParent; intuition. }
   split;[intuition|].
@@ -1089,14 +1089,14 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
-   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)).
+  assert( (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault) \/
+   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\ getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
       split. 
-      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]];trivial.
        - contradict Hfalse.
          apply idxPDidxSh1notEq.
@@ -1142,7 +1142,7 @@ case_eq isMultiplexer.
   eapply WP.writeAccessible.
   intros. simpl.
   assert (exists entry0 : Pentry,
-    lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry0)) as Hlookup.
+    lookup ptvaInAncestor idxva (memory s) pageEq idxEq = Some (PE entry0)) as Hlookup.
   { apply isPELookupEq.
     intuition;subst;trivial. }
   destruct Hlookup as (entry & Hlookup).
@@ -1168,9 +1168,9 @@ case_eq isMultiplexer.
   (** add the propeties about writeAccessible post conditions **)
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s /\
-              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s /\
-              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s  ) 
+              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) false s /\
+              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) phypage s /\
+              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) true s  ) 
   end.
   simpl.
   set (s' := {| currentPartition := _ |}).  
@@ -1179,23 +1179,23 @@ case_eq isMultiplexer.
  (* admit.  *) (** PROVE YOUR POSTCONDITION : true **)
   (** Prove the POSTCONDITION **)
   unfold  preconditionToProveWriteAccessibleRecNewProperty in *;simpl.   
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   rewrite getParentUpdateUserFlag;intuition.
   rewrite getPdUpdateUserFlag;intuition.
   unfold s'; rewrite getMappedPageUpdateUserFlag;trivial.
   unfold s';subst; apply noDupMappedPagesListUpdateUserFlag;trivial.
   rewrite Hpartitions;trivial.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
   apply getAccessibleMappedPageNoneUpdateUserFlagFalse;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   apply WriteAccessibleRecRecursionInvariant.
   intuition;subst;trivial.
@@ -1213,7 +1213,7 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition.
-  assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s); intuition.
+  assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s); intuition.
   rewrite nextEntryIsPPgetParent in Hpp.
   unfold consistency in *.
   apply ancestorInPartitionTree with descParent;trivial.
@@ -1307,7 +1307,7 @@ case_eq isMultiplexer.
   (** getTableAddr **)
   eapply bindRev.
   eapply weaken.
-  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= sh2idx).
+  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= idxShadow2).
   simpl. 
   intros.
   split.
@@ -1332,13 +1332,13 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
-  (  isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel ) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault) \/
+  (  isVA ptsh2 (StateLib.getIndexOfAddr va levelMin ) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
-      generalize (H1 (StateLib.getIndexOfAddr va fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr va levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(Hpe &Htrue) | (_&Hfalse)]];trivial.
        - contradict Hfalse.
          apply idxSh2idxSh1notEq.
@@ -1360,26 +1360,26 @@ case_eq isMultiplexer.
   intros;trivial.
   simpl.
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
-  assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ).
-  { assert(Hwellformed :wellFormedShadows sh2idx s) by (unfold consistency in *;intuition).
+  assert(Hptsh2NotNulltrue : (Nat.eqb pageDefault ptsh2) = false ).
+  { assert(Hwellformed :wellFormedShadows idxShadow2 s) by (unfold consistency in *;intuition).
     unfold wellFormedShadows in Hwellformed.
     assert(Hpde : partitionDescriptorEntry s) by (unfold consistency in *;intuition).
     assert(Hpdedesc : (exists entry : page,
-            nextEntryIsPP descParent PDidx entry s /\ entry <> defaultPage)).
+            nextEntryIsPP descParent idxPageDir entry s /\ entry <> pageDefault)).
     { apply Hpde;trivial. intuition. left;trivial. }
     destruct Hpdedesc as (pdparent & Hentry1 & Hentry2).
-    assert(Hmult : multiplexer = MALInternal.multiplexer ) by intuition.
+    assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
     subst.
     assert(Htrue : getIndirection sh2 va L (nbLevel -1) s = Some ptsh2 /\
-              (Nat.eqb defaultPage ptsh2) = false).
+              (Nat.eqb pageDefault ptsh2) = false).
     { assert(Hexist : exists indirection2 : page,
                 getIndirection sh2 va L (nbLevel - 1) s = Some indirection2 /\
-                (Nat.eqb defaultPage indirection2) = false). 
+                (Nat.eqb pageDefault indirection2) = false). 
       { apply Hwellformed with descParent pdparent pt;trivial. 
         + intuition.      
-        + assert( false = StateLib.Page.eqb descParent multiplexer) as Hnotmul by 
+        + assert( false = pageEq descParent pageRootPartition) as Hnotmul by 
                      intuition.
-          unfold StateLib.Page.eqb in *.
+          unfold pageEq in *.
           unfold not;intros ; subst.
           symmetry in Hnotmul.
           apply beq_nat_false in Hnotmul.
@@ -1395,10 +1395,10 @@ case_eq isMultiplexer.
         + intuition. }
        destruct Hexist as (indirection2 & Hin1 & Hin2).
        assert(getIndirection sh2 va L (nbLevel - 1) s = Some ptsh2).
-        { assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage \/
-                isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s) /\
-               (Nat.eqb defaultPage ptsh2) = true
-              /\ nextEntryIsPP descParent sh2idx sh2 s) as (Hor & Hx & Hxx) by intuition.
+        { assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault \/
+                isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s) /\
+               (Nat.eqb pageDefault ptsh2) = true
+              /\ nextEntryIsPP descParent idxShadow2 sh2 s) as (Hor & Hx & Hxx) by intuition.
           assert(Hlevel  : Some L = StateLib.getNbLevel )by intuition.
           clear H0.
         destruct Hor as [Hor|Hor].
@@ -1432,9 +1432,9 @@ case_eq isMultiplexer.
   2: {  
   intros.
   destruct H as ((H & Hstrong) & Htrue).
-  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb pageDefault pageDefault) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -1512,9 +1512,9 @@ case_eq isMultiplexer.
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
   subst.
   simpl;intros.
-  assert(Hptsh2NotNulltrue : (Nat.eqb defaultPage ptsh2) = false ) by intuition.
-  assert(Hfalse : true = StateLib.VAddr.eqbList defaultV vaInAncestor) by intuition.
-  assert(Htrue :  false = StateLib.VAddr.eqbList defaultV vaInAncestor).
+  assert(Hptsh2NotNulltrue : (Nat.eqb pageDefault ptsh2) = false ) by intuition.
+  assert(Hfalse : true = vaddrEq defaultV vaInAncestor) by intuition.
+  assert(Htrue :  false = vaddrEq defaultV vaInAncestor).
   { assert(Hwellformed1 : wellFormedSndShadow s ).
   unfold propagatedProperties in *.
   unfold consistency in *.
@@ -1525,7 +1525,7 @@ case_eq isMultiplexer.
     unfold consistency in *.
     intuition. }
   assert(Hpdedesc : (exists entry : page,
-  nextEntryIsPP descParent PDidx entry s /\ entry <> defaultPage)).
+  nextEntryIsPP descParent idxPageDir entry s /\ entry <> pageDefault)).
   { 
   apply Hpde;trivial.
   intuition.
@@ -1533,15 +1533,15 @@ case_eq isMultiplexer.
   destruct Hpdedesc as (pdparent & Hentry1 & Hentry2).
   assert( getMappedPage pdparent s va = SomePage phypage  ) as Hmap.
   apply getMappedPageGetTableRoot with pt descParent;intuition; subst;trivial.
-  assert(Hmult : multiplexer = MALInternal.multiplexer ) by intuition.
+  assert(Hmult : pageRootPartition = pageRootPartition ) by intuition.
   subst. 
   assert(exists vainparent : vaddr, getVirtualAddressSh2 sh2 s va = Some vainparent  
-  /\  beqVAddr defaultVAddr vainparent = false ) as Hexits . 
+  /\  vaddrEq vaddrDefault vainparent = false ) as Hexits . 
   apply Hwellformed1 with  descParent phypage pdparent .
   intuition.      
-  assert( false = StateLib.Page.eqb descParent multiplexer) as Hnotmul by 
+  assert( false = pageEq descParent pageRootPartition) as Hnotmul by 
      intuition.
-  unfold StateLib.Page.eqb in *.
+  unfold pageEq in *.
   unfold not;intros ; subst.
   symmetry in Hnotmul.
   apply beq_nat_false in Hnotmul.
@@ -1561,8 +1561,8 @@ case_eq isMultiplexer.
   rewrite Heqva in Hgetva.
   inversion Hgetva.
   subst.      
-  unfold StateLib.VAddr.eqbList .
-  assert(defaultV = defaultVAddr) by intuition.
+  unfold vaddrEq .
+  assert(defaultV = vaddrDefault) by intuition.
   subst.  
   rewrite <- Hvanotdef;trivial. }
   rewrite <- Htrue in Hfalse.
@@ -1572,13 +1572,13 @@ case_eq isMultiplexer.
   eapply bindRev.
   (** getTableAddr **)
   eapply WP.weaken. 
-  apply getTableAddr with (currentPart:= ancestor) (idxroot:= PDidx).
+  apply getTableAddr with (currentPart:= ancestor) (idxroot:= idxPageDir).
   simpl.
   intros s H.
   split.
   pattern s in H. 
   eapply H.
-  assert(Hancestor: In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(Hancestor: In ancestor (getPartitions pageRootPartition s)).
   { assert(Hparent : parentInPartitionList s) by (unfold consistency in *;intuition).
     apply Hparent with descParent; intuition. }
   split;[intuition|].
@@ -1599,14 +1599,14 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
-   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)).
+  assert( (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault) \/
+   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\ getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
       split. 
-      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]];trivial.
        - contradict Hfalse.
          apply idxPDidxSh1notEq.
@@ -1630,10 +1630,10 @@ case_eq isMultiplexer.
 (*   split. intuition. *)
   (** PROVE YOUR POSTCONDITION : ~In phypage (getAccessibleMappedPages partition s)  **)
   assert(Ha3:Some L = StateLib.getNbLevel ) by intuition.
-  assert(Htrue : (Nat.eqb defaultPage ptvaInAncestor) = false).
+  assert(Htrue : (Nat.eqb pageDefault ptvaInAncestor) = false).
   { assert(Ha17:isAccessibleMappedPageInParent descParent va phypage s = true) by intuition.
     unfold isAccessibleMappedPageInParent in Ha17.
-    assert (  Hsh2 : nextEntryIsPP descParent sh2idx sh2 s) by intuition.
+    assert (  Hsh2 : nextEntryIsPP descParent idxShadow2 sh2 s) by intuition.
     rewrite nextEntryIsPPgetSndShadow in *.
     rewrite Hsh2 in *.
     assert(Hgetvainparent : getVirtualAddressSh2 sh2 s va = Some  vaInAncestor).
@@ -1641,10 +1641,10 @@ case_eq isMultiplexer.
       apply  getVirtualAddressSh2GetTableRoot with ptsh2 descParent L; intuition;
       subst;trivial. }
     rewrite Hgetvainparent in *.
-    assert(Hparent : nextEntryIsPP descParent PPRidx ancestor s) by intuition.
+    assert(Hparent : nextEntryIsPP descParent idxParentDesc ancestor s) by intuition.
     rewrite nextEntryIsPPgetParent in *.
     rewrite Hparent in *.
-    assert(Hpd :  nextEntryIsPP ancestor PDidx pdAncestor s) by intuition.
+    assert(Hpd :  nextEntryIsPP ancestor idxPageDir pdAncestor s) by intuition.
     rewrite nextEntryIsPPgetPd in Hpd.
     rewrite Hpd in *.          
     case_eq (getAccessibleMappedPage pdAncestor s vaInAncestor) ;
@@ -1652,9 +1652,9 @@ case_eq isMultiplexer.
     try now contradict Ha17.
     apply beq_nat_true in Ha17.
     subst.
-    assert(Ha6: (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage \/
-      isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\
-      getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)) by intuition.
+    assert(Ha6: (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault \/
+      isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\
+      getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)) by intuition.
     unfold getTableAddrRoot' in Ha6. 
     unfold getTableAddrRoot in Ha6.
     destruct Ha6 as [Ha6 | Ha6].
@@ -1672,7 +1672,7 @@ case_eq isMultiplexer.
       case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
       [intros pt1 Hpt1 | intros Hpt1]; 
       rewrite Hpt1 in *; try now contradict Hp.
-      case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
+      case_eq(Nat.eqb pageDefault pt1);intros Hisnull;
       rewrite Hisnull in *;try now contradict Hp.
       clear Hp.
       apply getNbLevelEq in HnbL.
@@ -1685,7 +1685,7 @@ case_eq isMultiplexer.
         intuition. }
       unfold partitionDescriptorEntry in *.
       assert(Hpdedesc : (exists entry : page,
-            nextEntryIsPP descParent PPRidx entry s /\ entry <> defaultPage)).
+            nextEntryIsPP descParent idxParentDesc entry s /\ entry <> pageDefault)).
       { apply Hpde;trivial.
       intuition. intuition. }
       destruct Hpdedesc as (entry & Hentry1 & Hentry2).
@@ -1710,7 +1710,7 @@ case_eq isMultiplexer.
       case_eq(getIndirection pdAncestor vaInAncestor nbL (nbLevel - 1) s);
       [intros pt1 Hpt1 | intros Hpt1]; 
       rewrite Hpt1 in *; try now contradict Hp.
-      case_eq(Nat.eqb defaultPage pt1);intros Hisnull;
+      case_eq(Nat.eqb pageDefault pt1);intros Hisnull;
       rewrite Hisnull in *;try now contradict Hp.
       clear Hp.
       apply getNbLevelEq in HnbL.
@@ -1753,7 +1753,7 @@ case_eq isMultiplexer.
   eapply WP.writeAccessible.
   intros. simpl.
   assert (exists entry0 : Pentry,
-    lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry0)) as Hlookup.
+    lookup ptvaInAncestor idxva (memory s) pageEq idxEq = Some (PE entry0)) as Hlookup.
   { apply isPELookupEq.
     intuition;subst;trivial. }
   destruct Hlookup as (entry & Hlookup).
@@ -1779,9 +1779,9 @@ case_eq isMultiplexer.
   (** add the propeties about writeAccessible post conditions **)
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s /\
-              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s /\
-              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s  ) 
+              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) false s /\
+              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) phypage s /\
+              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) true s  ) 
   end.
   simpl.
   set (s' := {| currentPartition := _ |}).  
@@ -1790,9 +1790,9 @@ case_eq isMultiplexer.
  trivial.  (** PROVE YOUR Precondition required to prove the postcondition : True **)
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   apply WriteAccessibleRecRecursionInvariant.
   intuition;subst;trivial.
@@ -1810,9 +1810,9 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition. }
-  assert(In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(In ancestor (getPartitions pageRootPartition s)).
   { unfold consistency in *.
-      assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s) by  intuition.
+      assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s) by  intuition.
     rewrite nextEntryIsPPgetParent in Hpp.
     apply ancestorInPartitionTree with descParent;trivial.
     intuition. intuition.
@@ -1841,7 +1841,7 @@ case_eq isMultiplexer.
          /\ StateLib.getPd ancestor (memory s0) =  StateLib.getPd ancestor (memory s)
          /\ getMappedPage pdAncestor s0 vaInAncestor = getMappedPage pdAncestor s vaInAncestor
          /\ noDupMappedPagesList s0
-         /\ In ancestor (getPartitions MALInternal.multiplexer s0)
+         /\ In ancestor (getPartitions pageRootPartition s0)
          /\ getAccessibleMappedPage pdAncestor s0 vaInAncestor = NonePage) as (HparentEq & Hpdeq & HaccessEq & HnodupS0 & HnodupS & Htrue).
    { generalize (Hgetparent vaInAncestor ancestor phypage ptvaInAncestor  currentPart n descParent ancestor
        ancestor pdAncestor vaInAncestor (getMappedPage pdAncestor s vaInAncestor) s);
@@ -1901,7 +1901,7 @@ case_eq isMultiplexer.
     assert(Hparentpart : parentInPartitionList s).
     { unfold propagatedProperties in *.
       unfold consistency in *. intuition. }
-   assert(In ancestor (getPartitions MALInternal.multiplexer s)).
+   assert(In ancestor (getPartitions pageRootPartition s)).
    { unfold parentInPartitionList in *.
      apply  Hparentpart with descParent; trivial.
      intuition.
@@ -2002,7 +2002,7 @@ case_eq isMultiplexer.
   (** getTableAddr **)
   eapply bindRev.
   eapply weaken.
-  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= sh2idx).
+  eapply GetTableAddr.getTableAddr with (currentPart:= descParent) (idxroot:= idxShadow2).
   simpl. 
   intros.
   split.
@@ -2027,13 +2027,13 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptsh2 sh2idx descParent va s /\ ptsh2 = defaultPage) \/
-  (  isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel ) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert( (getTableAddrRoot' ptsh2 idxShadow2 descParent va s /\ ptsh2 = pageDefault) \/
+  (  isVA ptsh2 (StateLib.getIndexOfAddr va levelMin ) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
-      generalize (H1 (StateLib.getIndexOfAddr va fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr va levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(Hpe &Htrue) | (_&Hfalse)]];trivial.
        - contradict Hfalse.
          apply idxSh2idxSh1notEq.
@@ -2062,9 +2062,9 @@ case_eq isMultiplexer.
   2: {  
   intros.
   destruct H as ((H & Hstrong) & Htrue).
-  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\ getTableAddrRoot ptsh2 sh2idx descParent va s)).
+  assert(Heqv:  (isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\ getTableAddrRoot ptsh2 idxShadow2 descParent va s)).
   { destruct Hstrong as [Hor|Hor].   
-    assert(Hfalse: (Nat.eqb defaultPage defaultPage) = false) by (intuition;subst;trivial).
+    assert(Hfalse: (Nat.eqb pageDefault pageDefault) = false) by (intuition;subst;trivial).
     apply beq_nat_false in Hfalse.
     now contradict Hfalse.
     intuition; subst;trivial. }
@@ -2145,13 +2145,13 @@ case_eq isMultiplexer.
   eapply bindRev.
   (** getTableAddr **)
   eapply WP.weaken. 
-  apply getTableAddr with (currentPart:= ancestor) (idxroot:= PDidx).
+  apply getTableAddr with (currentPart:= ancestor) (idxroot:= idxPageDir).
   simpl.
   intros s H.
   split.
   pattern s in H. 
   eapply H.
-  assert(Hancestor: In ancestor (getPartitions MALInternal.multiplexer s)).
+  assert(Hancestor: In ancestor (getPartitions pageRootPartition s)).
   { assert(Hparent : parentInPartitionList s) by (unfold consistency in *;intuition).
     apply Hparent with descParent; intuition. }
   split;[intuition|].
@@ -2172,14 +2172,14 @@ case_eq isMultiplexer.
   2:{
   intros.
   destruct H as (H0 & H1).
-  assert( (getTableAddrRoot' ptvaInAncestor PDidx ancestor vaInAncestor s /\ ptvaInAncestor = defaultPage) \/
-   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\ getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s)).
+  assert( (getTableAddrRoot' ptvaInAncestor idxPageDir ancestor vaInAncestor s /\ ptvaInAncestor = pageDefault) \/
+   (isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\ getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s)).
   { destruct H1 as [H1 |H1].
     + left. trivial. 
     + right.
       destruct H1 as (Hget  & Hnew & H1).
       split. 
-      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor fstLevel ) );clear H1;intros H1.
+      generalize (H1 (StateLib.getIndexOfAddr vaInAncestor levelMin ) );clear H1;intros H1.
       destruct H1 as [(_& Hfalse) | [(_&Hfalse) |(Hpe &Htrue)]];trivial.
        - contradict Hfalse.
          apply idxPDidxSh1notEq.
@@ -2225,7 +2225,7 @@ case_eq isMultiplexer.
   eapply WP.writeAccessible.
   intros. simpl.
   assert (exists entry0 : Pentry,
-    lookup ptvaInAncestor idxva (memory s) beqPage beqIndex = Some (PE entry0)) as Hlookup.
+    lookup ptvaInAncestor idxva (memory s) pageEq idxEq = Some (PE entry0)) as Hlookup.
   { apply isPELookupEq.
     intuition;subst;trivial. }
   destruct Hlookup as (entry & Hlookup).
@@ -2251,9 +2251,9 @@ case_eq isMultiplexer.
   (** add the propeties about writeAccessible post conditions **)
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) false s /\
-              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) phypage s /\
-              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) true s  ) 
+              entryUserFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) false s /\
+              isEntryPage ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) phypage s /\
+              entryPresentFlag ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) true s  ) 
   end.
     clear H.
   simpl.
@@ -2278,9 +2278,9 @@ case_eq isMultiplexer.
   apply Hincl;trivial.
   (** Prove the recursion invariant **)
    simpl in *.
-  assert(Hmult : multiplexer = MALInternal.multiplexer) by intuition. 
+  assert(Hmult : pageRootPartition = pageRootPartition) by intuition. 
   subst.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartitions 
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartitions 
         by (apply getPartitionsUpdateUserFlag; trivial).
   apply WriteAccessibleRecRecursionInvariant.
   intuition;subst;trivial.
@@ -2298,7 +2298,7 @@ case_eq isMultiplexer.
     apply isAncestorTrans with descParent;intuition. 
     apply nextEntryIsPPgetParent;trivial. }
     unfold isAncestor in *;intuition.
-  assert(Hpp :nextEntryIsPP descParent PPRidx ancestor s); intuition.
+  assert(Hpp :nextEntryIsPP descParent idxParentDesc ancestor s); intuition.
   rewrite nextEntryIsPPgetParent in Hpp.
   unfold consistency in *.
   apply ancestorInPartitionTree with descParent;trivial.

@@ -39,75 +39,75 @@ Definition N := 100.
 
 (** The [getPd] function returns the page directory of a given partition *)
 Definition getPd partition :=
-  perform idxPD := getPDidx in
-  perform idx := MALInternal.Index.succ idxPD in
+  perform idxPD := getIdxPageDir in
+  perform idx := idxSuccM idxPD in
   readPhysical partition idx.
 
 (** The [getFstShadow] returns the first shadow page of a given partition *)
 Definition getFstShadow (partition : page):=
-  perform idx11 := getSh1idx in
-  perform idx := MALInternal.Index.succ idx11 in
+  perform idx11 := getIdxShadow1 in
+  perform idx := idxSuccM idx11 in
   readPhysical partition idx.
 
 (** The [getSndShadow] returns the second shadow page of a given partition *)
 Definition getSndShadow partition :=
-  perform idxSh2 := getSh2idx in
-  perform idx := MALInternal.Index.succ idxSh2 in
+  perform idxSh2 := getIdxShadow2 in
+  perform idx := idxSuccM idxSh2 in
   readPhysical partition idx.
 
 (** The [getConfigTablesLinkedList] returns the first physical page of the configuration 
     tables linked list of a given partition *)
 Definition getConfigTablesLinkedList partition :=
-  perform idxSh3 := getSh3idx in
-  perform idx := MALInternal.Index.succ idxSh3 in
+  perform idxSh3 := getIdxShadow3 in
+  perform idx := idxSuccM idxSh3 in
   readPhysical partition idx.
 
 (** The [getConfigTablesLinkedList] returns the virtual address of the first physical page of the configuration 
     tables linked list of a given partition *)
 Definition getConfigTablesLinkedListVaddr partition :=
-  perform idxSh3 := getSh3idx in
+  perform idxSh3 := getIdxShadow3 in
   readVirtual partition idxSh3.
 
 (** The [getParent] function returns the parent of a given partition *)
 Definition getParent partition :=
-  perform idxPPR := getPPRidx in
-  perform idx := MALInternal.Index.succ idxPPR in
+  perform idxPPR := getIdxParentDesc in
+  perform idx := idxSuccM idxPPR in
   readPhysical partition idx.
 
 (** The [updatePartitionDescriptor] function update an entry into a given partition 
     descriptor table *)
 Definition updatePartitionDescriptor partition idxV phypd virtpd :=
   writeVirtual partition idxV virtpd ;;
-  perform idxP := MALInternal.Index.succ idxV in
+  perform idxP := idxSuccM idxV in
   writePhysical partition idxP phypd .
 
 (** The [comparePageToNull] returns true if the given page is equal to the fixed
     default page (null) *) 
 Definition comparePageToNull (p :page) : LLI bool :=
-  perform nullPaddr := getDefaultPage in
-  MALInternal.Page.eqb nullPaddr p.
+  perform nullPaddr := getPageDefault in
+  pageEqM nullPaddr p.
 
 (** The [compareVAddrToNull] returns true if the given virtual address is equal 
     to the fixed default virtual address (null) *) 
 Definition compareVAddrToNull va :=
-  perform defaultVAddr := getDefaultVAddr in
-  perform res := MALInternal.VAddr.eqbList defaultVAddr va in
+  perform defaultVAddr := getVaddrDefault in
+  perform res := vaddrEqM defaultVAddr va in
   ret res.
 
 (** The [getTableAddrAux] returns the reference to the last page table  *)
 Fixpoint getTableAddrAux timeout (pd : page) (va : vaddr) (l : level) :=
   match timeout with
-  | 0 => getDefaultPage
+  | 0 => getPageDefault
   |S timeout1 =>
-  perform isFstLevel := MALInternal.Level.eqb l fstLevel in 
+  perform isFstLevel := levelEqM l levelMin in 
     if isFstLevel 
     then  ret pd
     else
       perform idx :=  getIndexOfAddr va l in
       perform addr :=  readPhyEntry pd idx in 
       perform isNull := comparePageToNull addr in
-      if isNull then getDefaultPage else
-      perform p := MALInternal.Level.pred l in
+      if isNull then getPageDefault else
+      perform p := levelPredM l in
       getTableAddrAux timeout1 addr va p
   end .
 
@@ -118,43 +118,43 @@ Definition  getTableAddr (pd : page) (va : vaddr) (l : level)  :=
 (** The [setUnderived] function marks the given virtual addresse as underived 
     into the given partition  *)
 Definition setUnderived va currentShadow1 l1 :=
-  perform nullAddrV :=  getDefaultVAddr in
-  perform res := MALInternal.VAddr.eqbList nullAddrV va in
+  perform nullAddrV :=  getVaddrDefault in
+  perform res := vaddrEqM nullAddrV va in
   if negb (res)
   then
     perform pt := getTableAddr currentShadow1 va l1 in
     perform isNull := comparePageToNull pt in
     if isNull then ret tt else
-    perform idx :=  getIndexOfAddr va fstLevel in
-    perform null :=  getDefaultVAddr in
+    perform idx :=  getIndexOfAddr va levelMin in
+    perform null :=  getVaddrDefault in
     writeVirEntry pt idx null
   else ret tt.
 
 (** The [setDerived] function marks the given virtual addresse as derived into 
     the given partition  *)
 Definition setDerived va currentShadow1 descChild l1 :=
-  perform nullAddrV :=  getDefaultVAddr in
-  perform res := MALInternal.VAddr.eqbList nullAddrV va in
+  perform nullAddrV :=  getVaddrDefault in
+  perform res := vaddrEqM nullAddrV va in
   if negb (res)
   then
     perform pt := getTableAddr currentShadow1 va l1 in
     perform isNull := comparePageToNull pt in
     if isNull then ret tt else
-    perform idx :=  getIndexOfAddr va fstLevel in
+    perform idx :=  getIndexOfAddr va levelMin in
     writeVirEntry pt idx descChild
   else ret tt.
 
 (** The [setAccessible] function marks the given virtual addresse as Accessible 
     into the given partition  *)
 Definition setAccessible va currentPD L u :=
-  perform nullAddrV :=  getDefaultVAddr in
-  perform res := MALInternal.VAddr.eqbList nullAddrV va in
+  perform nullAddrV :=  getVaddrDefault in
+  perform res := vaddrEqM nullAddrV va in
   if negb (res )
   then
     perform pt := getTableAddr currentPD va L in
     perform isNull := comparePageToNull pt in
     if isNull then ret false else
-    perform idx := getIndexOfAddr va fstLevel in
+    perform idx := getIndexOfAddr va levelMin in
     writeAccessible pt idx u;; ret true
   else ret false.
 
@@ -197,14 +197,14 @@ match timout with
 | 0 => ret false
 | S timout1 =>   
 perform multiplexer := getPageRootPartition in 
-perform isMultiplexer := MALInternal.Page.eqb descParent multiplexer in
+perform isMultiplexer := pageEqM descParent multiplexer in
 if isMultiplexer (** stop if parent is the multiplexer *)
 then ret true
 else 
 (** get the snd shadow of the parent to get back the virtual address into the first ancestor *)
 perform sh2Parent := getSndShadow descParent in 
 perform L:= getNbLevel in
-perform idx := getIndexOfAddr va fstLevel in  
+perform idx := getIndexOfAddr va levelMin in  
 perform ptsh2 := getTableAddr sh2Parent va  L in 
 perform isNull := comparePageToNull ptsh2 in
 if isNull then ret false else
@@ -215,15 +215,15 @@ perform ancestor := getParent descParent in
 (** get the page directory of the ancestor partition descriptor *)
 perform pdAncestor := getPd ancestor in 
 (** set access rights of the virtual address *)
-  perform nullAddrV :=  getDefaultVAddr in
-  perform res := MALInternal.VAddr.eqbList nullAddrV vaInAncestor in
+  perform nullAddrV :=  getVaddrDefault in
+  perform res := vaddrEqM nullAddrV vaInAncestor in
   if (res )
   then ret false
   else
     perform pt := getTableAddr pdAncestor vaInAncestor L in
     perform isNull := comparePageToNull pt in
     if isNull then ret false else
-    perform idx := getIndexOfAddr vaInAncestor fstLevel in
+    perform idx := getIndexOfAddr vaInAncestor levelMin in
     writeAccessible pt idx flag ;;
 (** recursion **)
 writeAccessibleRecAux timout1 vaInAncestor ancestor flag 
@@ -264,17 +264,17 @@ ret isNull.
 Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : page) (curIndex : index)
                             (curLevel : level) (unmappedPagesHead : vaddr) : LLI vaddr :=
   match timeout with
-  | 0 => getDefaultVAddr
+  | 0 => getVaddrDefault
   | S timeout1 =>
     (** Check whether we're on a leaf table *)
-    perform isfstlevel := MALInternal.Level.eqb curLevel fstLevel in
+    perform isfstlevel := levelEqM curLevel levelMin in
     if isfstlevel
     (** if we are in a leaf table *)
     then
       (** get the virtual address of the page in the child shadow 2 at index curIndex *)
       perform vaddrOfChildPageInParent := readVirtual childSh2Page curIndex in
       (** compare the virtual address to null *)
-      perform entryIsNull := MALInternal.VAddr.eqbList vaddrOfChildPageInParent defaultVAddr in
+      perform entryIsNull := vaddrEqM vaddrOfChildPageInParent vaddrDefault in
       if (negb entryIsNull)
       (** if there is a page mapped *)
       then
@@ -282,16 +282,16 @@ Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : p
         perform maxLevel := getNbLevel in
         setUnderived vaddrOfChildPageInParent parentSh1 maxLevel ;;
         (** Link the page to the list *)
-        perform indexZero := MALInternal.Index.zero in
+        perform indexZero := getIdx0 in
 (*         TODO *)
 (*         storeVirtual vaddrOfChildPageInParent indexZero unmappedPagesHead ;; *)
         (** Test if we are looking at the first index *)
-        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        perform curIndexisZero := idxEqM curIndex indexZero in
         if (negb curIndexisZero)
         (** There are still indexes we need to check in this table *)
         then
           (** recursive call on previous index *)
-          perform curIndexPred := MALInternal.Index.pred curIndex in
+          perform curIndexPred := idxPredM curIndex in
           unmapChildPagesAux timeout1 parentSh1 childSh2Page curIndexPred curLevel vaddrOfChildPageInParent
         (** No more index to check in this table, no recursive call *)
         else
@@ -299,13 +299,13 @@ Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : p
       (** no page mapped at this index *)
       else
         (** Test if we are looking at the first index *)
-        perform indexZero := MALInternal.Index.zero in
-        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        perform indexZero := getIdx0 in
+        perform curIndexisZero := idxEqM curIndex indexZero in
         if (negb curIndexisZero)
         (** There are still indexes we need to check in this table *)
         then
           (** recursive call on previous index *)
-          perform curIndexPred := MALInternal.Index.pred curIndex in
+          perform curIndexPred := idxPredM curIndex in
           unmapChildPagesAux timeout1 parentSh1 childSh2Page curIndexPred curLevel unmappedPagesHead
         (** No more index to check in this table, no recursive call *)
         else
@@ -314,24 +314,24 @@ Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : p
     (** we are in a node table (as opposed to a leaf table) *)
     else
       (** check whether there is a kernel page at this index *)
-      perform nullAddr := getDefaultPage in
+      perform nullAddr := getPageDefault in
       perform lowerLevelChildSh2Page := readPhyEntry childSh2Page curIndex in
-      perform noEntryAtThisIndex := MALInternal.Page.eqb lowerLevelChildSh2Page nullAddr in
+      perform noEntryAtThisIndex := pageEqM lowerLevelChildSh2Page nullAddr in
       (** Is there a kernel page at this index ? *)
       if (negb noEntryAtThisIndex)
       then
         (** Recursive call a level lower into the tables *)
         perform maxIndex := getMaxIndex in
-        perform lowerLevel := MALInternal.Level.pred curLevel in
+        perform lowerLevel := levelPredM curLevel in
         perform newUnmappedPagesHead := unmapChildPagesAux timeout1 parentSh1
                                         lowerLevelChildSh2Page maxIndex lowerLevel unmappedPagesHead in
         (** Test if we are looking at the first index *)
-        perform indexZero := MALInternal.Index.zero in
-        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        perform indexZero := getIdx0 in
+        perform curIndexisZero := idxEqM curIndex indexZero in
         if (negb curIndexisZero)
         then
           (** There are still indexes we need to check in this table *)
-          perform curIndexPred := MALInternal.Index.pred curIndex in
+          perform curIndexPred := idxPredM curIndex in
           unmapChildPagesAux timeout1 parentSh1 childSh2Page
                              curIndexPred curLevel newUnmappedPagesHead
         else
@@ -339,12 +339,12 @@ Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : p
           ret newUnmappedPagesHead
       else
         (** Test if we are looking at the first index *)
-        perform indexZero := MALInternal.Index.zero in
-        perform curIndexisZero := MALInternal.Index.eqb curIndex indexZero in
+        perform indexZero := getIdx0 in
+        perform curIndexisZero := idxEqM curIndex indexZero in
         if (negb curIndexisZero)
         then
           (** There are still indexes we need to check in this table *)
-          perform curIndexPred := MALInternal.Index.pred curIndex in
+          perform curIndexPred := idxPredM curIndex in
           unmapChildPagesAux timeout1 parentSh1 childSh2Page
                              curIndexPred curLevel unmappedPagesHead
         else
@@ -356,17 +356,17 @@ Fixpoint unmapChildPagesAux (timeout : nat) (parentSh1 : page) (childSh2Page : p
 Definition unmapChildPages (parentSh1 : page) (childSh2 : page) : LLI vaddr :=
   perform maxindex := getMaxIndex in
   perform nbL := getNbLevel in
-  perform nullVAddr := getDefaultVAddr in
+  perform nullVAddr := getVaddrDefault in
   unmapChildPagesAux N parentSh1 childSh2 maxindex nbL nullVAddr.
 
 (** The [insertEntryIntoConfigPagesListAux] function inserts an entry into the 
     list of partition configuration pages *)
 Definition insertEntryIntoConfigPagesList (va : vaddr) (pa LL : page) :=
-perform zero := MALInternal.Index.zero in
+perform zero := getIdx0 in
 perform curIdx :=  readIndex LL zero in (** Get index stored at first entry*) (*1*)
 (** We have a free entry : go on*)
 writeVirtual LL curIdx va ;; (** Write virtual address*)
-perform curIdxSucc := MALInternal.Index.succ curIdx in
+perform curIdxSucc := idxSuccM curIdx in
 perform  nextFreeIndex :=  readIndex LL curIdxSucc in (** Get next index*)
 writePhysical LL curIdxSucc pa ;; (** Write physical address *)
 writeIndex LL zero nextFreeIndex.
@@ -376,14 +376,14 @@ writeIndex LL zero nextFreeIndex.
     partition descriptor *)
 Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  currentSh1 l1 listVAddrInParent :=
   match timeout with
-  | 0 => getDefaultVAddr
+  | 0 => getVaddrDefault
   | S timeout1 =>
-    perform zero := MALInternal.Index.zero in
-    perform one := MALInternal.Index.succ zero in
-    perform two := MALInternal.Index.succ one in
+    perform zero := getIdx0 in
+    perform one := idxSuccM zero in
+    perform two := idxSuccM one in
     perform maxindex := getMaxIndex in
-    perform maxindexPred := MALInternal.Index.pred maxindex in
-    perform res := MALInternal.Index.eqb curIdx maxindexPred  in
+    perform maxindexPred := idxPredM maxindex in
+    perform res := idxEqM curIdx maxindexPred  in
     if (res) (**  if last entry *)
     then
       (** set the list page underived and accessible now that we're done handling it *)
@@ -395,8 +395,8 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
       (**  get the address of the next page *)
       perform next :=  readPhysical list maxindex in
       perform nextVAddrInParent := readVirtual list maxindexPred in
-      perform null :=  getDefaultPage in
-      perform cmp :=  MALInternal.Page.eqb next null in
+      perform null :=  getPageDefault in
+      perform cmp :=  pageEqM next null in
       if cmp (**  no more pages ? *)
       (**  stop  *)
       then ret buf
@@ -405,10 +405,10 @@ Fixpoint putIndirectionsBackAux timeout list (curIdx : index) buf currentPD  cur
         putIndirectionsBackAux timeout1 next two  buf currentPD  currentSh1 l1 nextVAddrInParent
     else
       perform va :=  readVirtual list curIdx in 
-      perform succ := MALInternal.Index.succ curIdx in
-      perform succ11:= MALInternal.Index.succ succ in
-      perform null :=  getDefaultVAddr in
-      perform cmp2 :=  MALInternal.VAddr.eqbList va null in
+      perform succ := idxSuccM curIdx in
+      perform succ11:= idxSuccM succ in
+      perform null :=  getVaddrDefault in
+      perform cmp2 :=  vaddrEqM va null in
       if cmp2 (**  not a virtual address ? *)
       (**  recursion on the next index  *)
       then putIndirectionsBackAux timeout1 list succ11 buf currentPD  currentSh1 l1 listVAddrInParent
@@ -437,8 +437,8 @@ Fixpoint putShadowsBackAux timeout (phyRefPart : page) (pos : index) (currentPD 
   | 0 => ret tt
   | S timeout1 =>
     (** check if we reached the LinkedList index *)
-    perform idxSh3 := getSh3idx in
-    perform isEqIdx := MALInternal.Index.eqb pos idxSh3 in 
+    perform idxSh3 := getIdxShadow3 in
+    perform isEqIdx := idxEqM pos idxSh3 in 
     if isEqIdx
     (** no need to "free" it, the whole list was freed during putIndirectionsBack *)
     then ret tt
@@ -451,8 +451,8 @@ Fixpoint putShadowsBackAux timeout (phyRefPart : page) (pos : index) (currentPD 
       (* perform zero := MALInternal.Index.zero in *)
       (* storeVirtual va zero buf ;; *)
 
-      perform succ := MALInternal.Index.succ pos in
-      perform succ11 := MALInternal.Index.succ succ in
+      perform succ := idxSuccM pos in
+      perform succ11 := idxSuccM succ in
       putShadowsBackAux timeout1 phyRefPart succ11 currentPD currentSh1 l1 buf
   end.
 
@@ -467,35 +467,35 @@ Fixpoint  checkEmptyTableAux timeout tbl idx lvl  :=
   match timeout with
   | 0 => ret false
   | S timeout1 =>
-    perform leveltwo := MALInternal.Level.succ fstLevel in
-    perform isSndLevel := MALInternal.Level.eqb lvl leveltwo in
+    perform leveltwo := levelSuccM levelMin in
+    perform isSndLevel := levelEqM lvl leveltwo in
     if isSndLevel
     then
       perform addr :=  readPhyEntry tbl idx in (** Read entry, idx - 1 -> 0 (** 1023 *) *) 
-      perform defa :=  getDefaultPage in (** Get null address *)
-      perform cmp :=  MALInternal.Page.eqb addr defa in
+      perform defa :=  getPageDefault in (** Get null address *)
+      perform cmp :=  pageEqM addr defa in
       if cmp (** Is entry null ? *)
       then (** Yea *)
-        perform zero := MALInternal.Index.zero in
-        perform lebzero := MALInternal.Index.leb idx zero in 
+        perform zero := getIdx0 in
+        perform lebzero := idxLeM idx zero in 
         if lebzero 
         then  (** Last entry ? *)
           ret true (** Return true : we're done ! *)
-        else perform idxpred := MALInternal.Index.pred idx in
+        else perform idxpred := idxPredM idx in
           checkEmptyTableAux timeout1 tbl idxpred lvl (** Nop : continue until we parsed every entry *)
       else ret false
     else
       perform addr :=  readPhyEntry tbl idx in (** Read entry, idx - 1 -> 0 (** 1023 *) *) 
-      perform defa :=  getDefaultPage in (** Get null address *)
-      perform cmp :=  MALInternal.Page.eqb addr defa in
+      perform defa :=  getPageDefault in (** Get null address *)
+      perform cmp :=  pageEqM addr defa in
       if cmp (** Is entry null ? *)
       then (** Yea *)
-        perform zero := MALInternal.Index.zero in
-        perform res := MALInternal.Index.leb idx zero in
+        perform zero := getIdx0 in
+        perform res := idxLeM idx zero in
         if res
         then  (** Last entry ? *)
           ret true (** Return true : we're done ! *)
-        else perform idxpred := MALInternal.Index.pred idx in
+        else perform idxpred := idxPredM idx in
           checkEmptyTableAux timeout1 tbl idxpred lvl  (** Nop : continue until we parsed every entry *)
 
       else ret false
@@ -511,54 +511,54 @@ Definition checkEmptyTable tbl idx lvl :=
     to a given physical page *)
 Fixpoint parseConfigPagesListAux timeout (sh : page) (curIdx : index) (tbl :page)  :=
   match timeout with
-  | 0 => getDefaultVAddr
+  | 0 => getVaddrDefault
   | S timeout1 =>
     perform maxindex :=  getMaxIndex in (** Our last index is table size - 1, as we're indexed on zero*)
-    perform maxindexPred := MALInternal.Index.pred maxindex in
-    perform res := MALInternal.Index.eqb curIdx maxindexPred in
+    perform maxindexPred := idxPredM maxindex in
+    perform res := idxEqM curIdx maxindexPred in
     if (res)
     then
       perform nextIndirection :=  readPhysical sh maxindex  in (** get next table *) 
-      perform nullAddr :=  getDefaultPage in
-      perform cmp2 :=  MALInternal.Page.eqb nextIndirection nullAddr in
+      perform nullAddr :=  getPageDefault in
+      perform cmp2 :=  pageEqM nextIndirection nullAddr in
       if cmp2 (** ensure we're not on an empty table *)
-      then getDefaultVAddr (** Failed ? This should not happen... *)
+      then getVaddrDefault (** Failed ? This should not happen... *)
       else
-        perform zero := MALInternal.Index.zero in
-        perform un := MALInternal.Index.succ zero in
+        perform zero := getIdx0 in
+        perform un := idxSuccM zero in
         parseConfigPagesListAux timeout1 nextIndirection un tbl (** Recursive call on the next table *)
     else
-      perform idxsucc := MALInternal.Index.succ curIdx in
+      perform idxsucc := idxSuccM curIdx in
       perform va := readVirtual sh curIdx in
-      perform defaultVAddr := getDefaultVAddr in
-      perform cmpva :=  MALInternal.VAddr.eqbList va defaultVAddr in
+      perform defaultVAddr := getVaddrDefault in
+      perform cmpva :=  vaddrEqM va defaultVAddr in
       if (cmpva)
       then
-        perform idxsucc11 := MALInternal.Index.succ idxsucc in
+        perform idxsucc11 := idxSuccM idxsucc in
         parseConfigPagesListAux timeout1 sh idxsucc11 tbl
       else  (** Recursive call on this table *)
         perform pad :=  readPhysical sh idxsucc in (** Get entry in table *)
-        perform cmp :=  MALInternal.Page.eqb pad tbl in
+        perform cmp :=  pageEqM pad tbl in
         if cmp
         then
           perform vaRet :=  readVirtual sh curIdx  in  (** Read associated vaddr*)
           (** Now we have to delete this entry*)
-          perform zero := MALInternal.Index.zero in
+          perform zero := getIdx0 in
           perform curNextIdx :=  readIndex sh zero in (** Get next entry index *)
           writeIndex sh idxsucc curNextIdx ;; (** Link this *)
           writeIndex sh zero curIdx ;;
           (* update the number of available entries into this current page **)
-          perform one := MALInternal.Index.succ zero in 
+          perform one := idxSuccM zero in 
           perform nbfi := readIndex sh one in 
-          perform nbfisucc := MALInternal.Index.succ nbfi in 
+          perform nbfisucc := idxSuccM nbfi in 
           writeIndex sh one nbfisucc ;;
           (* initialize the virtual entry *)
-          perform nullAddrV :=  getDefaultVAddr in
+          perform nullAddrV :=  getVaddrDefault in
           writeVirtual sh curIdx nullAddrV ;; 
           ret vaRet
         else
-          perform idxsucc := MALInternal.Index.succ curIdx in
-          perform idxsucc11 := MALInternal.Index.succ idxsucc in
+          perform idxsucc := idxSuccM curIdx in
+          perform idxsucc11 := idxSuccM idxsucc in
           parseConfigPagesListAux timeout1 sh idxsucc11 tbl
   end.  (** Recursive call on this table *)
 
@@ -568,8 +568,8 @@ Definition parseConfigPagesList (sh : page) (idx : index) (tbl :page) :=
 
 (** The 'getnbFreeEntriesLL' function returns the number of the available entries into a given LL table *)
 Definition getnbFreeEntriesLL sh3 :=
-perform zeroI :=  MALInternal.Index.zero in
-perform oneI :=  MALInternal.Index.succ zeroI in 
+perform zeroI :=  getIdx0 in
+perform oneI :=  idxSuccM zeroI in 
 readIndex sh3 oneI.
 
 (** The [checkEnoughEntriesLinkedListAux] function checks if there are [cnt]
@@ -577,12 +577,12 @@ readIndex sh3 oneI.
 Fixpoint checkEnoughEntriesLLAux timeout (LL : page) (* the table *)
  : LLI page:= 
 match timeout with
- | 0 => getDefaultPage
+ | 0 => getPageDefault
  | S timeout1 =>
-  perform threeI := MALInternal.Index.const3 in
+  perform threeI := getIdx3 in
   (* this entry contains the number of available entries *)
   perform nbfree := getnbFreeEntriesLL LL in 
-  perform res := MALInternal.Index.geb nbfree threeI in
+  perform res := idxGeM nbfree threeI in
   if(res) 
   then ret LL (** this page contains at least three available entries *)
   else
@@ -591,7 +591,7 @@ match timeout with
    perform nextLL :=  readPhysical LL maxidx in
    perform isNull := comparePageToNull nextLL in 
    if isNull 
-   then getDefaultPage (* No available pages *)
+   then getPageDefault (* No available pages *)
    else
     checkEnoughEntriesLLAux timeout1 nextLL
 end.
@@ -601,17 +601,17 @@ checkEnoughEntriesLLAux nbPage lasttable.
 
 Fixpoint checkEnoughEntriesLLToPrepareAllAux timeout fstLLtable nbL :=
 match timeout with
- | 0 => getDefaultPage
+ | 0 => getPageDefault
  | S timeout1 =>
-    perform islevel0 := Level.eqb nbL fstLevel in
+    perform islevel0 := levelEqM nbL levelMin in
     if islevel0 
     then ret fstLLtable
     else 
       perform nextLLtable := checkEnoughEntriesLinkedList fstLLtable  in 
       perform isNull := comparePageToNull nextLLtable in 
-      if (isNull) then   getDefaultPage
+      if (isNull) then   getPageDefault
       else 
-        perform nbLpred := MALInternal.Level.pred nbL in 
+        perform nbLpred := levelPredM nbL in 
         checkEnoughEntriesLLToPrepareAllAux timeout1 nextLLtable nbLpred
 end.
 
@@ -619,19 +619,19 @@ Definition checkEnoughEntriesLLToPrepareAll fstLLtable nbL:=
  checkEnoughEntriesLLToPrepareAllAux nbLevel fstLLtable nbL.
 
 Definition insertEntryIntoLL LLtable va (pa: page): LLI unit :=
-perform zeroI := MALInternal.Index.zero in
+perform zeroI := getIdx0 in
 perform idx :=  readIndex LLtable zeroI in
 writeVirtual LLtable idx va ;; (** Write virtual address*)
-perform curIdxSucc := MALInternal.Index.succ idx in
+perform curIdxSucc := idxSuccM idx in
 perform  nextFreeIndex :=  readIndex LLtable curIdxSucc in (** Get next index*)
 
 writePhysical LLtable curIdxSucc pa ;; (** Write physical address *)
 (* update the first free entry value *)
 writeIndex LLtable zeroI nextFreeIndex ;;
 (* update the number of available entry in current LL table *)
-perform oneI := MALInternal.Index.succ zeroI in
+perform oneI := idxSuccM zeroI in
 perform nbfi := readIndex LLtable oneI in
-perform nbfipred := MALInternal.Index.pred nbfi in 
+perform nbfipred := idxPredM nbfi in 
 writeIndex LLtable oneI nbfipred.
 
  
@@ -641,39 +641,39 @@ Fixpoint initConfigPagesListAux timeout shadow3 idx :=
   match timeout with
   | 0 => ret tt
   | S timeout1 =>
-    perform zeroI :=  MALInternal.Index.zero in
+    perform zeroI :=  getIdx0 in
     perform mi :=  getMaxIndex in (* 7 *)
-    perform mipred := MALInternal.Index.pred mi in 
-    perform res := MALInternal.Index.geb idx mipred in
-    perform res11 := MALInternal.Index.eqb idx zeroI in
+    perform mipred := idxPredM mi in 
+    perform res := idxGeM idx mipred in
+    perform res11 := idxEqM idx zeroI in
     if (res) (** Check if the current index is he last index into the table **)
     then
      (** The last entry must contain the next physical page of the configuration tables linked list, 
      in this case we put the defaultPage *)
-      perform nullP :=  getDefaultPage in
-      perform nullV :=  getDefaultVAddr in
+      perform nullP :=  getPageDefault in
+      perform nullV :=  getVaddrDefault in
       writeVirtual shadow3 mipred nullV ;;
       writePhysical shadow3 mi nullP ;;
       perform maxentries := maxFreeLL in 
-      perform oneI :=  MALInternal.Index.succ zeroI in 
-      perform twoI :=  MALInternal.Index.succ oneI in 
+      perform oneI :=  idxSuccM zeroI in 
+      perform twoI :=  idxSuccM oneI in 
       writeIndex shadow3 zeroI twoI ;;
       writeIndex shadow3 oneI maxentries 
     else if (res11) (** Check if the current index is the first index **)
       then
        (** The first entry must contain the first available entry, in this case the index 1 
        is the position of the next available entry  **)  
-        perform oneI :=  MALInternal.Index.succ zeroI in 
-        perform twoI :=  MALInternal.Index.succ oneI in 
+        perform oneI :=  idxSuccM zeroI in 
+        perform twoI :=  idxSuccM oneI in 
         initConfigPagesListAux timeout1 shadow3 twoI
       else 
        (** For the other indices : every odd position must contain the default virtual address 
           and evrey even position must contain the next available entry. 
           An available entry contain the default virtual address value **)
-        perform nullV :=  getDefaultVAddr in
+        perform nullV :=  getVaddrDefault in
         writeVirtual shadow3 idx nullV ;;
-        perform nextIdx :=  MALInternal.Index.succ idx in
-        perform nextIdx11 :=  MALInternal.Index.succ nextIdx in
+        perform nextIdx :=  idxSuccM idx in
+        perform nextIdx11 :=  idxSuccM nextIdx in
         writeIndex shadow3 nextIdx nextIdx11 ;;
         initConfigPagesListAux timeout1 shadow3 nextIdx11
   end.
@@ -694,15 +694,15 @@ Fixpoint initVEntryTableAux timeout shadow1 idx :=
   | S timeout1 =>
 
     perform maxindex := getMaxIndex in
-    perform res := MALInternal.Index.ltb idx maxindex in
+    perform res := idxLtM idx maxindex in
     if (res)
     then
-      perform defaultVAddr := getDefaultVAddr in
+      perform defaultVAddr := getVaddrDefault in
       writeVirEntry shadow1 idx defaultVAddr;;
-      perform nextIdx :=  MALInternal.Index.succ idx in
+      perform nextIdx :=  idxSuccM idx in
       initVEntryTableAux timeout1 shadow1 nextIdx
     else
-      perform defaultVAddr := getDefaultVAddr in
+      perform defaultVAddr := getVaddrDefault in
       writeVirEntry shadow1 idx defaultVAddr
   end.
 
@@ -717,14 +717,14 @@ Fixpoint initVAddrTableAux timeout shadow2 idx :=
   | 0 => ret tt
   | S timeout1 =>
     perform maxindex := getMaxIndex in
-    perform res := MALInternal.Index.ltb idx maxindex in
+    perform res := idxLtM idx maxindex in
     if (res)
     then
-      perform defaultVAddr := getDefaultVAddr in
+      perform defaultVAddr := getVaddrDefault in
       writeVirtual shadow2 idx defaultVAddr;;
-      perform nextIdx :=  MALInternal.Index.succ idx in
+      perform nextIdx :=  idxSuccM idx in
       initVAddrTableAux timeout1 shadow2 nextIdx
-    else  perform defaultVAddr := getDefaultVAddr in
+    else  perform defaultVAddr := getVaddrDefault in
       writeVirtual shadow2 idx defaultVAddr
   end.
 
@@ -739,13 +739,13 @@ Fixpoint initPEntryTableAux timeout table idx :=
   match timeout with
   |0 =>  ret tt
   | S timeout1 => perform maxindex := getMaxIndex in
-    perform res := MALInternal.Index.ltb idx maxindex in
+    perform res := idxLtM idx maxindex in
     if (res)
-    then perform defaultPage := getDefaultPage in
+    then perform defaultPage := getPageDefault in
       writePhyEntry table idx defaultPage false false false false false;;
-      perform nextIdx :=  MALInternal.Index.succ idx in
+      perform nextIdx :=  idxSuccM idx in
       initPEntryTableAux timeout1 table nextIdx
-    else  perform defaultPage := getDefaultPage in
+    else  perform defaultPage := getPageDefault in
       writePhyEntry table idx defaultPage false false false false false 
   end.
 
@@ -757,25 +757,25 @@ Definition initPEntryTable (table : page) (idx : index) :=
     partition configuration tables linked list as a first element *)
 Definition PushNewPageOntoLL partition newLL v : LLI unit:=
 (* initialize the new table *)
-perform zeroI :=  MALInternal.Index.zero in
+perform zeroI :=  getIdx0 in
 initConfigPagesList newLL zeroI ;;
 (* get the head of LL Vaddr/phy *)
 perform fstLLva := getConfigTablesLinkedListVaddr partition in 
 perform fstLL := getConfigTablesLinkedList partition in 
 (* Update the new table : Point the previous first table of LL *)
 perform maxindex := getMaxIndex in
-perform maxindexPred := MALInternal.Index.pred maxindex in 
+perform maxindexPred := idxPredM maxindex in 
 writeVirtual newLL maxindexPred fstLLva ;;
 writePhysical newLL maxindex fstLL;;
 (* push a new top onto LL : modify the partition descriptor *)
-perform idxLL := getSh3idx in
+perform idxLL := getIdxShadow3 in
 updatePartitionDescriptor partition idxLL newLL v.
 
 (** The [checkChild] function checks whether the given virtual address [va] is 
     marked as a child of a given partition *)
 Definition checkChild partition (l1 : level) (va : vaddr): LLI bool :=
   perform sh1 :=  getFstShadow partition in
-  perform idxVA :=  getIndexOfAddr va fstLevel in
+  perform idxVA :=  getIndexOfAddr va levelMin in
   perform tbl :=  getTableAddr sh1 va l1 in
   perform isNull := comparePageToNull tbl in
   if isNull 
@@ -786,10 +786,10 @@ Definition checkChild partition (l1 : level) (va : vaddr): LLI bool :=
 (** The [checkKernalMap] function checks if the given virtual address corresponds
     to a kernel mapping *)
 Definition checkKernelMap (va : vaddr) : LLI bool:=
-  perform kidx := getKidx in
+  perform kidx := getIdxKernel in
   perform l1 := getNbLevel in
   perform idxVA :=  getIndexOfAddr va l1 in
-  MALInternal.Index.eqb kidx idxVA.
+  idxEqM kidx idxVA.
 
 (** The [checkVAddrsEqualityWOOffsetAux] checks if given virtual addresses are equal
     without taking into account offset values *)
@@ -799,13 +799,13 @@ Fixpoint checkVAddrsEqualityWOOffsetAux timeout (va1 va2 : vaddr) (l1 : level) :
   |S timeout1 =>
     perform idx1 := getIndexOfAddr va1 l1 in
     perform idx2 := getIndexOfAddr va2 l1 in
-    perform isFstLevel := MALInternal.Level.eqb l1 fstLevel in
+    perform isFstLevel := levelEqM l1 levelMin in
     if isFstLevel 
     then
-      MALInternal.Index.eqb idx1 idx2
+      idxEqM idx1 idx2
     else
-      perform levelpred := MALInternal.Level.pred l1 in
-      perform idxsEq := MALInternal.Index.eqb idx1 idx2 in 
+      perform levelpred := levelPredM l1 in
+      perform idxsEq := idxEqM idx1 idx2 in 
       if idxsEq
       then checkVAddrsEqualityWOOffsetAux timeout1 va1 va2 levelpred
       else ret false
@@ -816,7 +816,7 @@ Definition checkVAddrsEqualityWOOffset (va1 va2 : vaddr) (l1 : level) :=
   checkVAddrsEqualityWOOffsetAux nbLevel va1 va2 l1.
 
 Definition initFstShadow table nbL zero := 
-perform res := MALInternal.Level.eqb nbL fstLevel in 
+perform res := levelEqM nbL levelMin in 
 if res
 then 
 initVEntryTable table zero
@@ -824,7 +824,7 @@ else
 initPEntryTable table zero. 
 
 Definition initSndShadow table nbL zero := 
-perform res := MALInternal.Level.eqb nbL fstLevel in 
+perform res := levelEqM nbL levelMin in 
 if res
 then 
 initVAddrTable table zero

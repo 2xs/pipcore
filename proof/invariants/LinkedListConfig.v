@@ -86,7 +86,7 @@ assert(oneI=(CIndex 1)).
 apply Succ0is1;trivial.
 subst;trivial.
 unfold isIndexValue in *;unfold StateLib.readIndex.
-destruct (lookup LLtable (CIndex 1) (memory s) beqPage beqIndex); try now contradict H1.
+destruct (lookup LLtable (CIndex 1) (memory s) pageEq idxEq); try now contradict H1.
 destruct v ;try now contradict H1.
 subst;trivial.
 Qed.
@@ -105,7 +105,7 @@ intros;trivial.
 intuition.
 eapply bindRev.
 (** Index.const3 **)
-unfold Index.const3.
+unfold getIdx3.
 eapply weaken.
 eapply Invariants.ret.
 simpl;intros.
@@ -188,7 +188,7 @@ subst;trivial.
 Qed.
 
 Definition checkEnoughEntriesLinkedListPC s (lasttable LLtable: page):=
-((Nat.eqb defaultPage lasttable) = false -> (In lasttable (getLLPages LLtable s (nbPage + 1)) /\ (exists NbFI, isIndexValue lasttable (CIndex 1) NbFI s /\ NbFI >= (CIndex 3)))).
+((Nat.eqb pageDefault lasttable) = false -> (In lasttable (getLLPages LLtable s (nbPage + 1)) /\ (exists NbFI, isIndexValue lasttable (CIndex 1) NbFI s /\ NbFI >= (CIndex 3)))).
 Lemma checkEnoughEntriesLinkedList LLtable (P: state -> Prop) :
 {{ fun s => P s }} checkEnoughEntriesLinkedList LLtable {{ fun lasttable s => P s /\ checkEnoughEntriesLinkedListPC s lasttable LLtable  }}.
 Proof.
@@ -208,7 +208,7 @@ rewrite PeanoNat.Nat.eqb_refl in Hfalse.
 intuition.
 eapply bindRev.
 (** Index.const3 **)
-unfold Index.const3.
+unfold getIdx3.
 eapply weaken.
 eapply Invariants.ret.
 simpl;intros.
@@ -251,11 +251,11 @@ destruct Hmaxidx as (maxidx & Hmaxidx).
 destruct nbPage;simpl;
 rewrite Hmaxidx;
 destruct ( StateLib.readPhysical LLtable maxidx (memory s));simpl;trivial;try left;trivial;
-destruct (Nat.eqb p defaultPage);simpl;left;trivial.
+destruct (Nat.eqb p pageDefault);simpl;left;trivial.
 subst.
 assert(Hcons: isI LLtable (CIndex 1) s) by admit. (** Consistency not found : LLconfiguration1 *) 
 unfold isI, isIndexValue in *.
-case_eq(lookup LLtable (CIndex 1) (memory s) beqPage beqIndex );[intros v Hv| intros Hv];rewrite Hv in *;try now contradict Hcons.
+case_eq(lookup LLtable (CIndex 1) (memory s) pageEq idxEq );[intros v Hv| intros Hv];rewrite Hv in *;try now contradict Hcons.
 destruct v;try now contradict Hcons.
 exists i.
 split;trivial.
@@ -264,7 +264,7 @@ unfold StateLib.readIndex in Hidx.
 rewrite Hv in *.
 inversion Hidx.
 subst.
-unfold StateLib.Index.geb in *.
+unfold idxGe in *.
 apply  Coq.Logic.Classical_Prop.NNPP.
 unfold not at 1.
 intros.
@@ -339,7 +339,7 @@ apply checkEnoughEntriesLLAuxStateEq with n nextLLtable p;trivial.
 subst;trivial.
 rewrite Hread.
 rewrite PeanoNat.Nat.eqb_sym.
-assert(Hnotdef:(Nat.eqb defaultPage nextLLtable) = false) by trivial.
+assert(Hnotdef:(Nat.eqb pageDefault nextLLtable) = false) by trivial.
 rewrite Hnotdef.
 simpl.
 right;trivial.

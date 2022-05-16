@@ -44,26 +44,26 @@ Require Import Invariants.
 Require Import List Coq.Logic.ProofIrrelevance Lia Compare_dec Lt EqNat.
 
 Lemma getTableAddr  (indirection : page) (va : vaddr) (l : level) P currentPart idxroot: 
-{{fun s => P s /\ consistency s /\ In currentPart (getPartitions multiplexer s) /\
-            (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx) /\
+{{fun s => P s /\ consistency s /\ In currentPart (getPartitions pageRootPartition s) /\
+            (idxroot = idxPageDir \/ idxroot = idxShadow1 \/ idxroot = idxShadow2) /\
             ( exists (tableroot : page),
                 nextEntryIsPP currentPart idxroot tableroot s /\
-                tableroot <> defaultPage /\
+                tableroot <> pageDefault /\
                 ( (tableroot = indirection /\ Some l = StateLib.getNbLevel ) \/
                 (exists nbL stop, Some nbL = StateLib.getNbLevel /\ stop <= nbL /\
                 StateLib.getIndirection tableroot va nbL stop s = Some indirection /\
-                indirection <> defaultPage  /\
+                indirection <> pageDefault  /\
                 l = CLevel (nbL - stop)))) }}
 
 getTableAddr indirection va l
 
 {{fun (table : page) (s : state) => P s  /\  
-                 (getTableAddrRoot' table idxroot currentPart va s /\ table = defaultPage \/ 
-                 (getTableAddrRoot table idxroot currentPart va s /\  table<> defaultPage  /\ 
-                    ( forall idx,  StateLib.getIndexOfAddr va fstLevel = idx -> 
-                    ( (isVE table idx s /\ idxroot = sh1idx) \/ 
-                      (isVA table idx s /\ idxroot = sh2idx) \/
-                      (isPE table idx s /\ idxroot = PDidx) )  ) ) )
+                 (getTableAddrRoot' table idxroot currentPart va s /\ table = pageDefault \/ 
+                 (getTableAddrRoot table idxroot currentPart va s /\  table<> pageDefault  /\ 
+                    ( forall idx,  StateLib.getIndexOfAddr va levelMin = idx -> 
+                    ( (isVE table idx s /\ idxroot = idxShadow1) \/ 
+                      (isVA table idx s /\ idxroot = idxShadow2) \/
+                      (isPE table idx s /\ idxroot = idxPageDir) )  ) ) )
  }}.
 Proof.
 unfold Internal.getTableAddr.
@@ -111,23 +111,23 @@ induction n; simpl.
         split. reflexivity.
        apply levelEqBEqNatTrue in Hfstlevel.
        rewrite Hfstlevel.
-       unfold fstLevel.
+       unfold levelMin.
        unfold CLevel. simpl. 
        case_eq (lt_dec 0 nbLevel).
        intros. simpl. subst.
         unfold nextEntryIsPP in H, Hcurpd.
         destruct (StateLib.Index.succ idxroot); [| now contradict H1].
-        unfold StateLib.Level.eqb. 
-       assert (Nat.eqb ({| l := 0; Hl := ADT.CLevel_obligation_1 0 l0 |}) fstLevel = true).
+        unfold levelEq. 
+       assert (Nat.eqb ({| l := 0; Hl := ADT.CLevel_obligation_1 0 l0 |}) levelMin = true).
        apply NPeano.Nat.eqb_eq. simpl. 
-       unfold fstLevel. unfold CLevel. rewrite H2. simpl. trivial.
+       unfold levelMin. unfold CLevel. rewrite H2. simpl. trivial.
        rewrite H0.
-       destruct(lookup currentPart i (memory s) beqPage beqIndex);
+       destruct(lookup currentPart i (memory s) pageEq idxEq);
        [| now contradict H1]. 
        destruct v; try now contradict Hcurpd.
        subst ; trivial. 
        intros.
-       unfold StateLib.Level.eqb.
+       unfold levelEq.
        assert (0 < nbLevel). apply nbLevelNotZero.
        intros. subst.  now contradict H2.
        split.
@@ -152,14 +152,14 @@ induction n; simpl.
        rename H into Hfstlevel.
        symmetry in Hfstlevel.
        apply levelEqBEqNatTrue in Hfstlevel.
-       unfold fstLevel in Hfstlevel.
+       unfold levelMin in Hfstlevel.
        apply CLevelMinusEq0 in Hfstlevel.
        apply le_lt_or_eq in Hind.
        destruct nbL.
        simpl in *.
        unfold nextEntryIsPP in H0, Hcurpd.
         destruct (StateLib.Index.succ idxroot); [| now contradict H0]. 
-       destruct (lookup currentPart i (memory s) beqPage beqIndex);
+       destruct (lookup currentPart i (memory s) pageEq idxEq);
        [| now contradict H0]. 
        destruct v; try now contradict Hcurpd.
        subst ; trivial.
@@ -238,13 +238,13 @@ induction n; simpl.
         left. 
         assert ((exists tableroot : page,
         nextEntryIsPP currentPart idxroot tableroot s /\
-        tableroot <> defaultPage /\
+        tableroot <> pageDefault /\
         (tableroot = indirection /\ Some l = StateLib.getNbLevel \/
         (exists (nbL : level) (stop : nat),
         Some nbL = StateLib.getNbLevel /\
         stop <= nbL /\
         getIndirection tableroot va nbL stop s = Some indirection /\
-        indirection <> defaultPage /\ l = CLevel (nbL - stop))))) by intuition.
+        indirection <> pageDefault /\ l = CLevel (nbL - stop))))) by intuition.
         destruct H0.
         destruct H0.
         destruct H1.
@@ -258,7 +258,7 @@ induction n; simpl.
         exists l.
         split; trivial.
         exists (nbLevel -1).
-        assert (false = (Nat.eqb l fstLevel)) as Hfstlevel by intuition.
+        assert (false = (Nat.eqb l levelMin)) as Hfstlevel by intuition.
         symmetry in Hfstlevel.
         apply levelEqBEqNatFalse0 in Hfstlevel.
         apply and_assoc.
@@ -281,7 +281,7 @@ induction n; simpl.
         clear H.
         unfold nextEntryIsPP in *.
         destruct (StateLib.Index.succ idxroot); [| now contradict H0].
-        destruct (lookup currentPart i (memory s) beqPage beqIndex); [| now contradict H0].
+        destruct (lookup currentPart i (memory s) pageEq idxEq); [| now contradict H0].
         destruct v ; try now contradict H0.
         subst.
         unfold isEntryPage in *.
@@ -292,7 +292,7 @@ induction n; simpl.
         simpl.
         rewrite <- H7.
         unfold readPhyEntry.   *)
-        case_eq(lookup p (StateLib.getIndexOfAddr va l) (memory s) beqPage beqIndex); intros;
+        case_eq(lookup p (StateLib.getIndexOfAddr va l) (memory s) pageEq idxEq); intros;
         rewrite H0 in H5.
         case_eq v; intros  ; rewrite H3 in H5; try now contradict H5.
 
@@ -343,16 +343,16 @@ induction n; simpl.
 
         unfold nextEntryIsPP in *.   
         destruct (StateLib.Index.succ idxroot); [| now contradict H0].
-        destruct (lookup currentPart i (memory s) beqPage beqIndex); [| now contradict H0].
+        destruct (lookup currentPart i (memory s) pageEq idxEq); [| now contradict H0].
         destruct v ; try now contradict H0.
         subst.
         unfold isEntryPage in H5.
         case_eq(lookup indirection (StateLib.getIndexOfAddr va (CLevel (x0 - x1))) 
-        (memory s) beqPage beqIndex); intros; rewrite H0 in H5; try now contradict H5.
+        (memory s) pageEq idxEq); intros; rewrite H0 in H5; try now contradict H5.
 
         case_eq v; intros; rewrite H3 in H5; try now contradict H5. 
         subst.
-        assert ( StateLib.Level.eqb (CLevel (x0 - x1)) fstLevel = false). trivial.
+        assert ( levelEq (CLevel (x0 - x1)) levelMin = false). trivial.
         apply levelEqBEqNatFalse0 in H7.
         exists (CLevel (nbLevel -1)).
 
@@ -449,7 +449,7 @@ induction n; simpl.
         f_equal.
         destruct p0.
         simpl in *. 
-        unfold defaultPage in * .
+        unfold pageDefault in * .
         unfold CPage in *.
         case_eq (lt_dec 0 nbPage); intros.
         rewrite H6 in *.
@@ -477,13 +477,13 @@ induction n; simpl.
         pattern s in H.
         eapply H.
         clear Hnotfstlevel. 
-        assert ( false = StateLib.Level.eqb l fstLevel) as Hnotfstlevel by intuition.
+        assert ( false = levelEq l levelMin) as Hnotfstlevel by intuition.
         
-        unfold StateLib.Level.eqb in Hnotfstlevel.
+        unfold levelEq in Hnotfstlevel.
         subst.
         symmetry in Hnotfstlevel. 
         apply beq_nat_false in Hnotfstlevel. 
-        unfold fstLevel in Hnotfstlevel.
+        unfold levelMin in Hnotfstlevel.
         unfold CLevel in Hnotfstlevel.
         case_eq ( lt_dec 0 nbLevel).
         intros. subst.
@@ -503,17 +503,17 @@ induction n; simpl.
         subst.
         +  assert ( P s /\
       consistency s /\
-      In currentPart (getPartitions multiplexer s) /\
-      (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx) /\
+      In currentPart (getPartitions pageRootPartition s) /\
+      (idxroot = idxPageDir \/ idxroot = idxShadow1 \/ idxroot = idxShadow2) /\
       (exists tableroot : page,
          nextEntryIsPP currentPart idxroot tableroot s /\
-         tableroot <> defaultPage /\
+         tableroot <> pageDefault /\
          (tableroot = nextindirection /\ Some levelpred = StateLib.getNbLevel \/
           (exists (nbL : level) (stop : nat),
              Some nbL = StateLib.getNbLevel /\
              stop <= nbL /\
              getIndirection tableroot va nbL stop s = Some nextindirection /\
-             nextindirection <> defaultPage /\ levelpred = CLevel (nbL - stop)))) ).
+             nextindirection <> pageDefault /\ levelpred = CLevel (nbL - stop)))) ).
         { clear IHn.
           destruct H as ( ((((( Hp & Hcons & Hcurpart & Hroot &  H8) & H1 ) & H2 ) & H3 ) & H4)& Hbidon).
           split;trivial. split;trivial.
@@ -534,7 +534,7 @@ induction n; simpl.
             split.
             rename H3 into H2.  
             unfold isEntryPage in H2.
-            case_eq (lookup indirection (StateLib.getIndexOfAddr va l)  (memory s) beqPage beqIndex);
+            case_eq (lookup indirection (StateLib.getIndexOfAddr va l)  (memory s) pageEq idxEq);
             [intros v H0 | intros H0];rewrite H0 in H2; try now contradict H2.
             destruct v ; try now contradict H2. subst.
              
@@ -570,7 +570,7 @@ induction n; simpl.
             unfold isEntryPage in H3.
             
             case_eq (lookup indirection (StateLib.getIndexOfAddr va (CLevel (nbL - stop)))  
-            (memory s) beqPage beqIndex); [intros v H0 | intros H0]; rewrite H0 in H3; try now contradict H3. 
+            (memory s) pageEq idxEq); [intros v H0 | intros H0]; rewrite H0 in H3; try now contradict H3. 
             destruct v ; try now contradict H3.
             subst.
             apply getIndirectionProp with (StateLib.getIndexOfAddr va (CLevel (nbL - stop))) indirection;trivial.
@@ -618,7 +618,7 @@ induction n; simpl.
            }
   - apply IHn in H0.
     * assumption.
-    * assert ( false = StateLib.Level.eqb l fstLevel) by intuition.
+    * assert ( false = levelEq l levelMin) by intuition.
       destruct H.
       clear IHn.
       clear H H0.               
@@ -641,7 +641,7 @@ induction n; simpl.
       destruct l.
       simpl in *.
       lia.
-    * assert ( false = StateLib.Level.eqb l fstLevel) by intuition.
+    * assert ( false = levelEq l levelMin) by intuition.
       destruct H.
       clear IHn.
       clear H H0.               

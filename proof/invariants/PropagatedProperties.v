@@ -59,109 +59,109 @@ false = checkVAddrsEqualityWOOffset nbLevel pdChild list level /\
 false = checkVAddrsEqualityWOOffset nbLevel shadow1 shadow2 level /\
 false = checkVAddrsEqualityWOOffset nbLevel shadow1 list level /\
 false = checkVAddrsEqualityWOOffset nbLevel shadow2 list level /\
-(Kidx =? nth (length descChild - (nbLevel - 1 + 2)) descChild defaultIndex) = false /\
-(Kidx =? nth (length pdChild - (nbLevel - 1 + 2)) pdChild defaultIndex) = false /\
-(Kidx =? nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 defaultIndex) = false /\
-(Kidx =? nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 defaultIndex) = false /\
-(Kidx =? nth (length list - (nbLevel - 1 + 2)) list defaultIndex) = false /\
-beqVAddr defaultVAddr pdChild = false /\ 
-beqVAddr defaultVAddr shadow1 = false /\
-beqVAddr defaultVAddr shadow2 = false /\ 
-beqVAddr defaultVAddr list = false /\
+(idxKernel =? nth (length descChild - (nbLevel - 1 + 2)) descChild idxDefault) = false /\
+(idxKernel =? nth (length pdChild - (nbLevel - 1 + 2)) pdChild idxDefault) = false /\
+(idxKernel =? nth (length shadow1 - (nbLevel - 1 + 2)) shadow1 idxDefault) = false /\
+(idxKernel =? nth (length shadow2 - (nbLevel - 1 + 2)) shadow2 idxDefault) = false /\
+(idxKernel =? nth (length list - (nbLevel - 1 + 2)) list idxDefault) = false /\
+vaddrEq vaddrDefault pdChild = false /\ 
+vaddrEq vaddrDefault shadow1 = false /\
+vaddrEq vaddrDefault shadow2 = false /\ 
+vaddrEq vaddrDefault list = false /\
 currentPart = currentPartition s /\
-nextEntryIsPP currentPart PDidx currentPD s /\
+nextEntryIsPP currentPart idxPageDir currentPD s /\
 (forall idx : index,
-StateLib.getIndexOfAddr descChild fstLevel = idx ->
-isPE ptRefChild idx s /\ getTableAddrRoot ptRefChild PDidx currentPart descChild s) /\
-(defaultPage =? ptRefChild) = false /\
-StateLib.getIndexOfAddr descChild fstLevel = idxRefChild /\
+StateLib.getIndexOfAddr descChild levelMin = idx ->
+isPE ptRefChild idx s /\ getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) /\
+(pageDefault =? ptRefChild) = false /\
+StateLib.getIndexOfAddr descChild levelMin = idxRefChild /\
 entryPresentFlag ptRefChild idxRefChild presentRefChild s /\
 entryUserFlag ptRefChild idxRefChild accessibleChild s /\
 (forall idx : index,
-StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s) /\
-(defaultPage =? ptPDChild) = false /\
-StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild /\
+StateLib.getIndexOfAddr pdChild levelMin = idx ->
+isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild idxPageDir currentPart pdChild s) /\
+(pageDefault =? ptPDChild) = false /\
+StateLib.getIndexOfAddr pdChild levelMin = idxPDChild /\
 entryPresentFlag ptPDChild idxPDChild presentPDChild s /\
 entryUserFlag ptPDChild idxPDChild false s /\
 (forall idx : index,
-StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) /\
-(defaultPage =? ptSh1Child) = false /\
-StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1 /\
+StateLib.getIndexOfAddr shadow1 levelMin = idx ->
+isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child idxPageDir currentPart shadow1 s) /\
+(pageDefault =? ptSh1Child) = false /\
+StateLib.getIndexOfAddr shadow1 levelMin = idxSh1 /\
 entryPresentFlag ptSh1Child idxSh1 presentSh1 s /\
 entryUserFlag ptSh1Child idxSh1 accessibleSh1 s /\
 (forall idx : index,
-StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) /\
-(defaultPage =? ptSh2Child) = false /\
-StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2 /\
+StateLib.getIndexOfAddr shadow2 levelMin = idx ->
+isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child idxPageDir currentPart shadow2 s) /\
+(pageDefault =? ptSh2Child) = false /\
+StateLib.getIndexOfAddr shadow2 levelMin = idxSh2 /\
 entryPresentFlag ptSh2Child idxSh2 presentSh2 s /\
 entryUserFlag ptSh2Child idxSh2 accessibleSh2 s /\
 (forall idx : index,
-StateLib.getIndexOfAddr list fstLevel = idx ->
-isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s) /\
-(defaultPage =? ptConfigPagesList) = false /\
-StateLib.getIndexOfAddr list fstLevel = idxConfigPagesList /\
+StateLib.getIndexOfAddr list levelMin = idx ->
+isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList idxPageDir currentPart list s) /\
+(pageDefault =? ptConfigPagesList) = false /\
+StateLib.getIndexOfAddr list levelMin = idxConfigPagesList /\
 entryPresentFlag ptConfigPagesList idxConfigPagesList presentConfigPagesList s /\
 entryUserFlag ptConfigPagesList idxConfigPagesList accessibleList s /\
-nextEntryIsPP currentPart sh1idx currentShadow1 s /\
+nextEntryIsPP currentPart idxShadow1 currentShadow1 s /\
 (forall idx : index,
-StateLib.getIndexOfAddr descChild fstLevel = idx ->
+StateLib.getIndexOfAddr descChild levelMin = idx ->
 isVE ptRefChildFromSh1 idx s /\
-getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s) /\
-(defaultPage =? ptRefChildFromSh1) = false /\
+getTableAddrRoot ptRefChildFromSh1 idxShadow1 currentPart descChild s) /\
+(pageDefault =? ptRefChildFromSh1) = false /\
 (exists va : vaddr,
-isEntryVA ptRefChildFromSh1 idxRefChild va s /\ beqVAddr defaultVAddr va = derivedRefChild) /\
+isEntryVA ptRefChildFromSh1 idxRefChild va s /\ vaddrEq vaddrDefault va = derivedRefChild) /\
 (forall idx : index,
-StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-isVE ptPDChildSh1 idx s /\ getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s) /\
-(defaultPage =? ptPDChildSh1) = false /\
+StateLib.getIndexOfAddr pdChild levelMin = idx ->
+isVE ptPDChildSh1 idx s /\ getTableAddrRoot ptPDChildSh1 idxShadow1 currentPart pdChild s) /\
+(pageDefault =? ptPDChildSh1) = false /\
 (exists va : vaddr,
-isEntryVA ptPDChildSh1 idxPDChild va s /\ beqVAddr defaultVAddr va = derivedPDChild) /\
+isEntryVA ptPDChildSh1 idxPDChild va s /\ vaddrEq vaddrDefault va = derivedPDChild) /\
 (forall idx : index,
-StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+StateLib.getIndexOfAddr shadow1 levelMin = idx ->
 isVE ptSh1ChildFromSh1 idx s /\
-getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s) /\
-(defaultPage =? ptSh1ChildFromSh1) = false /\
+getTableAddrRoot ptSh1ChildFromSh1 idxShadow1 currentPart shadow1 s) /\
+(pageDefault =? ptSh1ChildFromSh1) = false /\
 (exists va : vaddr,
-isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ beqVAddr defaultVAddr va = derivedSh1Child) /\
+isEntryVA ptSh1ChildFromSh1 idxSh1 va s /\ vaddrEq vaddrDefault va = derivedSh1Child) /\
 (forall idx : index,
-StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s) /\
-(defaultPage =? childSh2) = false /\
+StateLib.getIndexOfAddr shadow2 levelMin = idx ->
+isVE childSh2 idx s /\ getTableAddrRoot childSh2 idxShadow1 currentPart shadow2 s) /\
+(pageDefault =? childSh2) = false /\
 (exists va : vaddr,
-isEntryVA childSh2 idxSh2 va s /\ beqVAddr defaultVAddr va = derivedSh2Child) /\
+isEntryVA childSh2 idxSh2 va s /\ vaddrEq vaddrDefault va = derivedSh2Child) /\
 (forall idx : index,
-StateLib.getIndexOfAddr list fstLevel = idx ->
-isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 sh1idx currentPart list s) /\
-(defaultPage =? childListSh1) = false /\
+StateLib.getIndexOfAddr list levelMin = idx ->
+isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 idxShadow1 currentPart list s) /\
+(pageDefault =? childListSh1) = false /\
 (exists va : vaddr,
 isEntryVA childListSh1 idxConfigPagesList va s /\
-beqVAddr defaultVAddr va = derivedRefChildListSh1) /\
+vaddrEq vaddrDefault va = derivedRefChildListSh1) /\
 isEntryPage ptPDChild idxPDChild phyPDChild s /\
-(defaultPage =? phyPDChild) = false /\
+(pageDefault =? phyPDChild) = false /\
 (forall partition : page,
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 ~ (partition = phyPDChild \/ In phyPDChild (getConfigPagesAux partition s))) /\
 isEntryPage ptSh1Child idxSh1 phySh1Child s /\
-(defaultPage =? phySh1Child) = false /\
+(pageDefault =? phySh1Child) = false /\
 (forall partition : page,
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 ~ (partition = phySh1Child \/ In phySh1Child (getConfigPagesAux partition s))) /\
 isEntryPage ptSh2Child idxSh2 phySh2Child s /\
-(defaultPage =? phySh2Child) = false /\
+(pageDefault =? phySh2Child) = false /\
 (forall partition : page,
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 ~ (partition = phySh2Child \/ In phySh2Child (getConfigPagesAux partition s))) /\
 isEntryPage ptConfigPagesList idxConfigPagesList phyConfigPagesList s /\
-(defaultPage =? phyConfigPagesList) = false /\
+(pageDefault =? phyConfigPagesList) = false /\
 (forall partition : page,
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 ~ (partition = phyConfigPagesList \/ In phyConfigPagesList (getConfigPagesAux partition s))) /\
-isEntryPage ptRefChild idxRefChild phyDescChild s /\ (defaultPage =? phyDescChild) = false /\
+isEntryPage ptRefChild idxRefChild phyDescChild s /\ (pageDefault =? phyDescChild) = false /\
 (forall partition : page,
-In partition (getPartitions multiplexer s) -> ~ In phyDescChild (getConfigPages partition s)) /\
+In partition (getPartitions pageRootPartition s) -> ~ In phyDescChild (getConfigPages partition s)) /\
 isPartitionFalse ptSh1ChildFromSh1 idxSh1 s /\
 isPartitionFalse childSh2 idxSh2 s /\
 isPartitionFalse childListSh1 idxConfigPagesList s /\
@@ -170,13 +170,13 @@ isPartitionFalse ptPDChildSh1 idxPDChild s .
 
 Definition initConfigPagesListPostCondition phyConfigPagesList s :=
 StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) s.(memory)
-= Some defaultPage /\
+= Some pageDefault /\
 StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) s.(memory)
-= Some defaultVAddr /\
+= Some vaddrDefault /\
 (forall idx : index,  Nat.Odd idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) ->
 exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
 (forall idx : index,  Nat.Even idx -> idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> 
-StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr).
+StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some vaddrDefault).
 
 Definition newPropagatedProperties s zero nullv idxPR idxPD idxSH1 idxSH2
 idxSH3 idxPPR  currentPart  level phyPDChild phySh1Child phySh2Child 
@@ -200,7 +200,7 @@ zero = CIndex 0 /\
 isWellFormedSndShadow level phySh2Child s /\
 isWellFormedFstShadow level phySh1Child s /\
 (forall idx : index,
-StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
 StateLib.readPresent phyPDChild idx (memory s) = Some false) /\
 initConfigPagesListPostCondition phyConfigPagesList s /\
 (* StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) = Some defaultPage /\
@@ -210,13 +210,13 @@ Nat.Odd idx -> StateLib.readVirtual phyConfigPagesList idx (memory s) = Some def
 (forall idx : index,
 Nat.Even idx ->
 exists idxValue : index, StateLib.readIndex phyConfigPagesList idx (memory s) = Some idxValue) /\ *)
-nullv = defaultVAddr /\
-idxPR = PRidx /\
-idxPD = PDidx /\
-idxSH1 = sh1idx /\
-idxSH2 = sh2idx /\
-idxSH3 = sh3idx /\
-idxPPR = PPRidx /\
+nullv = vaddrDefault /\
+idxPR = idxPartDesc /\
+idxPD = idxPageDir /\
+idxSH1 = idxShadow1 /\
+idxSH2 = idxShadow2 /\
+idxSH3 = idxShadow3 /\
+idxPPR = idxParentDesc /\
 isVA phyDescChild idxPPR s /\
 nextEntryIsPP phyDescChild idxPPR currentPart s /\
 isVA phyDescChild idxSH3 s /\
@@ -239,64 +239,64 @@ sh2Childphy ptVaChildsh2 level
 (partitionsIsolation s /\
 kernelDataIsolation s /\
 verticalSharing s /\ consistency s /\
-beqVAddr defaultVAddr vaInCurrentPartition = false /\
-beqVAddr defaultVAddr descChild = false /\
-(Kidx =?
+vaddrEq vaddrDefault vaInCurrentPartition = false /\
+vaddrEq vaddrDefault descChild = false /\
+(idxKernel =?
 nth
 (length vaInCurrentPartition -
 (nbLevel - 1 + 2)) vaInCurrentPartition
-defaultIndex) = false /\
-(Kidx =?
+idxDefault) = false /\
+(idxKernel =?
 nth (length vaChild - (nbLevel - 1 + 2))
-vaChild defaultIndex) = false /\
+vaChild idxDefault) = false /\
 currentPart = currentPartition s /\
 Some level = StateLib.getNbLevel /\
-nextEntryIsPP currentPart sh1idx currentShadow s /\
-StateLib.getIndexOfAddr descChild fstLevel =
+nextEntryIsPP currentPart idxShadow1 currentShadow s /\
+StateLib.getIndexOfAddr descChild levelMin =
 idxDescChild /\
 isVE ptDescChild
-(StateLib.getIndexOfAddr descChild fstLevel) s /\
-getTableAddrRoot ptDescChild sh1idx currentPart
-descChild s /\ (defaultPage =? ptDescChild) = false /\
+(StateLib.getIndexOfAddr descChild levelMin) s /\
+getTableAddrRoot ptDescChild idxShadow1 currentPart
+descChild s /\ (pageDefault =? ptDescChild) = false /\
 entryPDFlag ptDescChild idxDescChild true s /\
 isVE ptVaInCurPart
 (StateLib.getIndexOfAddr vaInCurrentPartition
-fstLevel) s /\
-getTableAddrRoot ptVaInCurPart sh1idx currentPart
+levelMin) s /\
+getTableAddrRoot ptVaInCurPart idxShadow1 currentPart
 vaInCurrentPartition s /\
-(defaultPage =? ptVaInCurPart) = false /\
-StateLib.getIndexOfAddr vaInCurrentPartition fstLevel =
+(pageDefault =? ptVaInCurPart) = false /\
+StateLib.getIndexOfAddr vaInCurrentPartition levelMin =
 idxvaInCurPart /\
 isEntryVA ptVaInCurPart idxvaInCurPart vainve s /\
-beqVAddr defaultVAddr vainve = isnotderiv /\
-nextEntryIsPP currentPart PDidx currentPD s /\
+vaddrEq vaddrDefault vainve = isnotderiv /\
+nextEntryIsPP currentPart idxPageDir currentPD s /\
 isPE ptVaInCurPartpd
-(StateLib.getIndexOfAddr vaInCurrentPartition fstLevel) s /\
-getTableAddrRoot ptVaInCurPartpd PDidx currentPart
+(StateLib.getIndexOfAddr vaInCurrentPartition levelMin) s /\
+getTableAddrRoot ptVaInCurPartpd idxPageDir currentPart
 vaInCurrentPartition s /\
-(defaultPage =? ptVaInCurPartpd) = false /\
+(pageDefault =? ptVaInCurPartpd) = false /\
 entryUserFlag ptVaInCurPartpd idxvaInCurPart accessiblesrc s /\
 entryPresentFlag ptVaInCurPartpd idxvaInCurPart presentmap s /\
 isPE ptDescChildpd
-(StateLib.getIndexOfAddr descChild fstLevel) s /\
-getTableAddrRoot ptDescChildpd PDidx currentPart descChild s /\
-(defaultPage =? ptDescChildpd) = false /\
-StateLib.getIndexOfAddr descChild fstLevel = idxDescChild1 /\
+(StateLib.getIndexOfAddr descChild levelMin) s /\
+getTableAddrRoot ptDescChildpd idxPageDir currentPart descChild s /\
+(pageDefault =? ptDescChildpd) = false /\
+StateLib.getIndexOfAddr descChild levelMin = idxDescChild1 /\
 entryPresentFlag ptDescChildpd idxDescChild1 presentDescPhy s /\
 isEntryPage ptDescChildpd idxDescChild1 phyDescChild s /\
 In phyDescChild (getChildren (currentPartition s) s) /\
-nextEntryIsPP phyDescChild PDidx pdChildphy s /\
-isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild fstLevel) s /\
-getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s /\
-(defaultPage =? ptVaChildpd) = false /\
-StateLib.getIndexOfAddr vaChild fstLevel = idxvaChild /\
+nextEntryIsPP phyDescChild idxPageDir pdChildphy s /\
+isPE ptVaChildpd (StateLib.getIndexOfAddr vaChild levelMin) s /\
+getTableAddrRoot ptVaChildpd idxPageDir phyDescChild vaChild s /\
+(pageDefault =? ptVaChildpd) = false /\
+StateLib.getIndexOfAddr vaChild levelMin = idxvaChild /\
 entryPresentFlag ptVaChildpd idxvaChild presentvaChild s /\
 isEntryPage ptVaInCurPartpd idxvaInCurPart phyVaChild s /\
-nextEntryIsPP phyDescChild sh2idx sh2Childphy s) /\
+nextEntryIsPP phyDescChild idxShadow2 sh2Childphy s) /\
 
-isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild fstLevel) s /\
-getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
-(defaultPage =? ptVaChildsh2) = false.
+isVA ptVaChildsh2 (StateLib.getIndexOfAddr vaChild levelMin) s /\
+getTableAddrRoot ptVaChildsh2 idxShadow2 phyDescChild vaChild s /\
+(pageDefault =? ptVaChildsh2) = false.
 
 
 Definition propagatedPropertiesRemoveVaddr s descChild (vaChild:vaddr) 
@@ -325,60 +325,60 @@ partitionsIsolation s /\
     kernelDataIsolation s /\
     verticalSharing s /\
     consistency s /\
-    (Kidx =? nth (length vaChild - (nbLevel - 1 + 2)) vaChild defaultIndex) =
+    (idxKernel =? nth (length vaChild - (nbLevel - 1 + 2)) vaChild idxDefault) =
     false /\
     currentPart = currentPartition s /\
     Some level = getNbLevel /\
-    nextEntryIsPP currentPart sh1idx currentShadow s /\
-    getIndexOfAddr descChild fstLevel = idxDescChild /\
-    isVE ptDescChild (getIndexOfAddr descChild fstLevel) s /\
-    getTableAddrRoot ptDescChild sh1idx currentPart descChild s /\
-    (defaultPage =? ptDescChild) = false /\
+    nextEntryIsPP currentPart idxShadow1 currentShadow s /\
+    getIndexOfAddr descChild levelMin = idxDescChild /\
+    isVE ptDescChild (getIndexOfAddr descChild levelMin) s /\
+    getTableAddrRoot ptDescChild idxShadow1 currentPart descChild s /\
+    (pageDefault =? ptDescChild) = false /\
     entryPDFlag ptDescChild idxDescChild true s /\
-    nextEntryIsPP currentPart PDidx currentPD s /\
-    isPE ptDescChildFromPD (getIndexOfAddr descChild fstLevel) s /\
-    getTableAddrRoot ptDescChildFromPD PDidx currentPart descChild s /\
-    (defaultPage =? ptDescChildFromPD) = false /\
-    getIndexOfAddr descChild fstLevel = idxDescChild1 /\
+    nextEntryIsPP currentPart idxPageDir currentPD s /\
+    isPE ptDescChildFromPD (getIndexOfAddr descChild levelMin) s /\
+    getTableAddrRoot ptDescChildFromPD idxPageDir currentPart descChild s /\
+    (pageDefault =? ptDescChildFromPD) = false /\
+    getIndexOfAddr descChild levelMin = idxDescChild1 /\
     entryPresentFlag ptDescChildFromPD idxDescChild1 true s /\
     isEntryPage ptDescChildFromPD idxDescChild1 phyDescChild s /\
     In phyDescChild (getChildren (currentPartition s) s) /\
-    nextEntryIsPP phyDescChild PDidx pdChildphy s /\
-    getIndexOfAddr vaChild fstLevel = idxvaChild /\
-    isPE ptVaChildpd (getIndexOfAddr vaChild fstLevel) s /\
-    getTableAddrRoot ptVaChildpd PDidx phyDescChild vaChild s /\
-    (defaultPage =? ptVaChildpd) = false /\
+    nextEntryIsPP phyDescChild idxPageDir pdChildphy s /\
+    getIndexOfAddr vaChild levelMin = idxvaChild /\
+    isPE ptVaChildpd (getIndexOfAddr vaChild levelMin) s /\
+    getTableAddrRoot ptVaChildpd idxPageDir phyDescChild vaChild s /\
+    (pageDefault =? ptVaChildpd) = false /\
     entryUserFlag ptVaChildpd idxvaChild isaccessible s /\
     entryPresentFlag ptVaChildpd idxvaChild ismapped s /\
-    nextEntryIsPP phyDescChild sh1idx shadow1Child s /\
-    isVE ptVaChildFromSh1 (getIndexOfAddr vaChild fstLevel) s /\
-    getTableAddrRoot ptVaChildFromSh1 sh1idx phyDescChild vaChild s /\
-    (defaultPage =? ptVaChildFromSh1) = false /\
+    nextEntryIsPP phyDescChild idxShadow1 shadow1Child s /\
+    isVE ptVaChildFromSh1 (getIndexOfAddr vaChild levelMin) s /\
+    getTableAddrRoot ptVaChildFromSh1 idxShadow1 phyDescChild vaChild s /\
+    (pageDefault =? ptVaChildFromSh1) = false /\
     isEntryVA ptVaChildFromSh1 idxvaChild vainve s /\
-    beqVAddr defaultVAddr vainve = true /\
-    nextEntryIsPP phyDescChild sh2idx sh2Childphy s /\
-    isVA ptVaChildsh2 (getIndexOfAddr vaChild fstLevel) s /\
-    getTableAddrRoot ptVaChildsh2 sh2idx phyDescChild vaChild s /\
-    (defaultPage =? ptVaChildsh2) = false /\
+    vaddrEq vaddrDefault vainve = true /\
+    nextEntryIsPP phyDescChild idxShadow2 sh2Childphy s /\
+    isVA ptVaChildsh2 (getIndexOfAddr vaChild levelMin) s /\
+    getTableAddrRoot ptVaChildsh2 idxShadow2 phyDescChild vaChild s /\
+    (pageDefault =? ptVaChildsh2) = false /\
     isVA' ptVaChildsh2 idxvaChild vainparentdef s /\
-    isVE ptVaInCurPart (getIndexOfAddr vainparent fstLevel) s /\
-    getTableAddrRoot ptVaInCurPart sh1idx currentPart vainparent s /\
-    (defaultPage =? ptVaInCurPart) = false /\  getIndexOfAddr vainparent fstLevel = idxvainparent.
+    isVE ptVaInCurPart (getIndexOfAddr vainparent levelMin) s /\
+    getTableAddrRoot ptVaInCurPart idxShadow1 currentPart vainparent s /\
+    (pageDefault =? ptVaInCurPart) = false /\  getIndexOfAddr vainparent levelMin = idxvainparent.
 
 Definition indirectionDescription s descChildphy indirection idxroot vaToPrepare l:=
 exists (tableroot : page), 
     nextEntryIsPP descChildphy idxroot tableroot s/\
-    tableroot <> defaultPage /\  
+    tableroot <> pageDefault /\  
     ( (tableroot = indirection /\ Some l = StateLib.getNbLevel ) \/
     (exists nbL stop, Some nbL = StateLib.getNbLevel /\ stop <= nbL /\
     StateLib.getIndirection tableroot vaToPrepare nbL stop s = Some indirection /\
-    indirection <> defaultPage  /\ 
+    indirection <> pageDefault  /\ 
     l = CLevel (nbL - stop))).
 
 Definition initPEntryTablePreconditionToPropagatePrepareProperties s table:=
-(forall partition : page,  In partition (getPartitions multiplexer s) ->
+(forall partition : page,  In partition (getPartitions pageRootPartition s) ->
   ~In table (getConfigPages partition s) )
-  /\ (defaultPage =? table) = false.
+  /\ (pageDefault =? table) = false.
 
 Definition initPEntryTablePreconditionToPropagatePreparePropertiesAll s phyMMUaddr phySh1addr phySh2addr:=
 initPEntryTablePreconditionToPropagatePrepareProperties s phyMMUaddr /\
@@ -386,9 +386,9 @@ initPEntryTablePreconditionToPropagatePrepareProperties s phySh1addr /\
 initPEntryTablePreconditionToPropagatePrepareProperties s phySh2addr.
 
 Definition indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l:=
-indirectionDescription s descChildphy phyPDChild PDidx vaToPrepare l/\ 
-indirectionDescription s descChildphy phySh1Child sh1idx vaToPrepare l /\ 
-indirectionDescription s descChildphy phySh2Child sh2idx vaToPrepare l.
+indirectionDescription s descChildphy phyPDChild idxPageDir vaToPrepare l/\ 
+indirectionDescription s descChildphy phySh1Child idxShadow1 vaToPrepare l /\ 
+indirectionDescription s descChildphy phySh2Child idxShadow2 vaToPrepare l.
 
 Definition isPartitionFalseAll s  ptSh1FstVA  ptSh1TrdVA ptSh1SndVA idxFstVA   idxSndVA   idxTrdVA:=
 isPartitionFalse  ptSh1FstVA  idxFstVA s /\
@@ -406,60 +406,60 @@ kernelDataIsolation s /\
 partitionsIsolation s /\ 
 verticalSharing s /\ 
 consistency s /\ 
-(StateLib.getIndexOfAddr fstVA fstLevel) = idxFstVA /\
-(StateLib.getIndexOfAddr sndVA fstLevel)= idxSndVA /\
-(StateLib.getIndexOfAddr trdVA fstLevel) = idxTrdVA  /\
-getTableAddrRoot ptMMUTrdVA PDidx (currentPartition s) trdVA s /\ 
-isPE ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s /\ 
+(StateLib.getIndexOfAddr fstVA levelMin) = idxFstVA /\
+(StateLib.getIndexOfAddr sndVA levelMin)= idxSndVA /\
+(StateLib.getIndexOfAddr trdVA levelMin) = idxTrdVA  /\
+getTableAddrRoot ptMMUTrdVA idxPageDir (currentPartition s) trdVA s /\ 
+isPE ptMMUTrdVA (StateLib.getIndexOfAddr trdVA levelMin) s /\ 
 (* isVAUser phySh2addr storeFetchIndex nextVA s /\  *)
-(defaultPage =? lastLLTable) = false /\ 
-(exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) va s /\ beqVAddr defaultVAddr va = trdVAIsShared) /\ 
-(defaultPage =? ptSh1TrdVA) = false /\ 
-getTableAddrRoot ptSh1TrdVA sh1idx (currentPartition s) trdVA s/\ 
-isVE ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) s/\ 
-isEntryPage ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) phySh2addr s/\ 
-entryPresentFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) true s/\ 
-entryUserFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA fstLevel) userMMUTrdVA s/\ 
+(pageDefault =? lastLLTable) = false /\ 
+(exists va : vaddr, isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA levelMin) va s /\ vaddrEq vaddrDefault va = trdVAIsShared) /\ 
+(pageDefault =? ptSh1TrdVA) = false /\ 
+getTableAddrRoot ptSh1TrdVA idxShadow1 (currentPartition s) trdVA s/\ 
+isVE ptSh1TrdVA (StateLib.getIndexOfAddr trdVA levelMin) s/\ 
+isEntryPage ptMMUTrdVA (StateLib.getIndexOfAddr trdVA levelMin) phySh2addr s/\ 
+entryPresentFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA levelMin) true s/\ 
+entryUserFlag ptMMUTrdVA (StateLib.getIndexOfAddr trdVA levelMin) userMMUTrdVA s/\ 
 
-getTableAddrRoot ptMMUSndVA PDidx (currentPartition s) sndVA s/\ 
-isPE ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) s/\ 
-(exists va : vaddr, isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) va s /\ beqVAddr defaultVAddr va = sndVAIsShared)/\ 
-(defaultPage =? ptMMUTrdVA) = false /\ 
-(defaultPage =? ptSh1SndVA) = false/\ 
-getTableAddrRoot ptSh1SndVA sh1idx (currentPartition s) sndVA s/\ 
-isVE ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) s/\ 
-(exists va : vaddr, isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) va s /\ beqVAddr defaultVAddr va = fstVAIsShared) /\ 
-(defaultPage =? ptSh1FstVA) = false /\  
-getTableAddrRoot ptSh1FstVA sh1idx (currentPartition s) fstVA s/\ 
-isVE ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) s/\ 
+getTableAddrRoot ptMMUSndVA idxPageDir (currentPartition s) sndVA s/\ 
+isPE ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) s/\ 
+(exists va : vaddr, isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA levelMin) va s /\ vaddrEq vaddrDefault va = sndVAIsShared)/\ 
+(pageDefault =? ptMMUTrdVA) = false /\ 
+(pageDefault =? ptSh1SndVA) = false/\ 
+getTableAddrRoot ptSh1SndVA idxShadow1 (currentPartition s) sndVA s/\ 
+isVE ptSh1SndVA (StateLib.getIndexOfAddr sndVA levelMin) s/\ 
+(exists va : vaddr, isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA levelMin) va s /\ vaddrEq vaddrDefault va = fstVAIsShared) /\ 
+(pageDefault =? ptSh1FstVA) = false /\  
+getTableAddrRoot ptSh1FstVA idxShadow1 (currentPartition s) fstVA s/\ 
+isVE ptSh1FstVA (StateLib.getIndexOfAddr fstVA levelMin) s/\ 
 false = checkVAddrsEqualityWOOffset nbLevel sndVA trdVA nbLgen /\ 
 false = checkVAddrsEqualityWOOffset nbLevel fstVA trdVA nbLgen /\ 
 false = checkVAddrsEqualityWOOffset nbLevel fstVA sndVA nbLgen /\ 
-beqVAddr defaultVAddr trdVA = false /\ 
+vaddrEq vaddrDefault trdVA = false /\ 
 (* isVAUser phySh1addr storeFetchIndex trdVA s /\  *)
-isEntryPage ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) phySh1addr s /\ 
-entryPresentFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) true s /\ 
-entryUserFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA fstLevel) userMMUSndVA s /\ 
-getTableAddrRoot ptMMUFstVA PDidx (currentPartition s) fstVA s /\ 
-isPE ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) s /\ 
-beqVAddr defaultVAddr sndVA = false /\ 
-(defaultPage =? ptMMUSndVA) = false /\ 
+isEntryPage ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) phySh1addr s /\ 
+entryPresentFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) true s /\ 
+entryUserFlag ptMMUSndVA (StateLib.getIndexOfAddr sndVA levelMin) userMMUSndVA s /\ 
+getTableAddrRoot ptMMUFstVA idxPageDir (currentPartition s) fstVA s /\ 
+isPE ptMMUFstVA (StateLib.getIndexOfAddr fstVA levelMin) s /\ 
+vaddrEq vaddrDefault sndVA = false /\ 
+(pageDefault =? ptMMUSndVA) = false /\ 
 (* isVAUser phyMMUaddr storeFetchIndex sndVA s /\  *)
-entryUserFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) userMMUFstVA s /\ 
-entryPresentFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) true s /\ 
-isEntryPage ptMMUFstVA (StateLib.getIndexOfAddr fstVA fstLevel) phyMMUaddr s /\ 
-(defaultPage =? ptMMUFstVA) = false /\ 
+entryUserFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA levelMin) userMMUFstVA s /\ 
+entryPresentFlag ptMMUFstVA (StateLib.getIndexOfAddr fstVA levelMin) true s /\ 
+isEntryPage ptMMUFstVA (StateLib.getIndexOfAddr fstVA levelMin) phyMMUaddr s /\ 
+(pageDefault =? ptMMUFstVA) = false /\ 
 Some nbLgen = StateLib.getNbLevel /\ 
-(defaultPage =? indMMUToPrepare) = indMMUToPreparebool /\ 
+(pageDefault =? indMMUToPrepare) = indMMUToPreparebool /\ 
 isEntryPage phyPDChild (StateLib.getIndexOfAddr vaToPrepare l) indMMUToPrepare s /\ 
 
-nextEntryIsPP (currentPartition s) sh2idx currentShadow2 s /\ 
-nextEntryIsPP (currentPartition s) PDidx currentPD s /\ 
-nextEntryIsPP (currentPartition s) sh1idx currentShadow1 s /\ 
+nextEntryIsPP (currentPartition s) idxShadow2 currentShadow2 s /\ 
+nextEntryIsPP (currentPartition s) idxPageDir currentPD s /\ 
+nextEntryIsPP (currentPartition s) idxShadow1 currentShadow1 s /\ 
 
-beqVAddr defaultVAddr fstVA = false /\ 
- false = StateLib.Level.eqb l fstLevel /\ 
-In descChildphy (getPartitions multiplexer s) /\ 
+vaddrEq vaddrDefault fstVA = false /\ 
+ false = levelEq l levelMin /\ 
+In descChildphy (getPartitions pageRootPartition s) /\ 
 In descChildphy (getChildren (currentPartition s) s) /\
 indirectionDescriptionAll s descChildphy phyPDChild phySh1Child phySh2Child vaToPrepare l /\
 (currentPartition s) = currentPart /\  zeroI = CIndex 0 /\
@@ -477,51 +477,51 @@ isPartitionFalse  ptSh1TrdVA  idxTrdVA s  *)
 
 Definition writeAccessibleRecInternalPropertiesPrepare currentPart descParent ancestor pdAncestor pt va 
 sh2 lastIndex ptsh2 vaInAncestor entry L defaultV ptvaInAncestor idxva s:=
-In currentPart (getPartitions multiplexer s) /\
+In currentPart (getPartitions pageRootPartition s) /\
 isAncestor currentPart descParent s /\
-In descParent (getPartitions multiplexer s) /\
-(defaultPage =? pa entry) = false /\
-isPE pt (StateLib.getIndexOfAddr va fstLevel) s /\
-getTableAddrRoot pt PDidx descParent va s /\
-(defaultPage =? pt) = false /\
-entryPresentFlag pt (StateLib.getIndexOfAddr va fstLevel) true s /\
-entryUserFlag pt (StateLib.getIndexOfAddr va fstLevel) false s /\
-isEntryPage pt (StateLib.getIndexOfAddr va fstLevel) (pa entry) s /\
-multiplexer = multiplexer /\
-false = StateLib.Page.eqb descParent multiplexer /\
-nextEntryIsPP descParent sh2idx sh2 s /\
+In descParent (getPartitions pageRootPartition s) /\
+(pageDefault =? pa entry) = false /\
+isPE pt (StateLib.getIndexOfAddr va levelMin) s /\
+getTableAddrRoot pt idxPageDir descParent va s /\
+(pageDefault =? pt) = false /\
+entryPresentFlag pt (StateLib.getIndexOfAddr va levelMin) true s /\
+entryUserFlag pt (StateLib.getIndexOfAddr va levelMin) false s /\
+isEntryPage pt (StateLib.getIndexOfAddr va levelMin) (pa entry) s /\
+pageRootPartition = pageRootPartition /\
+false = pageEq descParent pageRootPartition /\
+nextEntryIsPP descParent idxShadow2 sh2 s /\
 Some L = StateLib.getNbLevel /\
-StateLib.getIndexOfAddr va fstLevel = lastIndex /\
-isVA ptsh2 (StateLib.getIndexOfAddr va fstLevel) s /\
-getTableAddrRoot ptsh2 sh2idx descParent va s /\
-(defaultPage =? ptsh2) = false /\
+StateLib.getIndexOfAddr va levelMin = lastIndex /\
+isVA ptsh2 (StateLib.getIndexOfAddr va levelMin) s /\
+getTableAddrRoot ptsh2 idxShadow2 descParent va s /\
+(pageDefault =? ptsh2) = false /\
 isVA' ptsh2 lastIndex vaInAncestor s /\
-nextEntryIsPP descParent PPRidx ancestor s /\
-nextEntryIsPP ancestor PDidx pdAncestor s /\
-defaultV = defaultVAddr /\
-false = StateLib.VAddr.eqbList defaultV vaInAncestor /\
-isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor fstLevel) s /\
-getTableAddrRoot ptvaInAncestor PDidx ancestor vaInAncestor s /\
-(defaultPage =? ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor fstLevel = idxva. 
+nextEntryIsPP descParent idxParentDesc ancestor s /\
+nextEntryIsPP ancestor idxPageDir pdAncestor s /\
+defaultV = vaddrDefault /\
+false = vaddrEq defaultV vaInAncestor /\
+isPE ptvaInAncestor (StateLib.getIndexOfAddr vaInAncestor levelMin) s /\
+getTableAddrRoot ptvaInAncestor idxPageDir ancestor vaInAncestor s /\
+(pageDefault =? ptvaInAncestor) = false /\ StateLib.getIndexOfAddr vaInAncestor levelMin = idxva. 
 
 Definition writeAccessibleRecRecurtionInvariantConj (va:vaddr) (descParent phypage pt:page) currentPart s:=
 isAccessibleMappedPageInParent descParent va phypage s = true
 /\ partitionsIsolation s
 /\ consistency s 
-/\ In currentPart (getPartitions MALInternal.multiplexer s) 
+/\ In currentPart (getPartitions pageRootPartition s) 
 /\ isAncestor currentPart descParent s
-/\ In descParent (getPartitions MALInternal.multiplexer s)
-/\ (defaultPage =? phypage) = false
-/\ isPE pt (StateLib.getIndexOfAddr va fstLevel) s 
-/\ getTableAddrRoot pt PDidx descParent va s
-/\ (defaultPage =? pt) = false
-/\ entryPresentFlag pt (StateLib.getIndexOfAddr va fstLevel) true s
-/\ entryUserFlag pt (StateLib.getIndexOfAddr va fstLevel) false s
-/\ isEntryPage pt (StateLib.getIndexOfAddr va fstLevel) phypage s.
+/\ In descParent (getPartitions pageRootPartition s)
+/\ (pageDefault =? phypage) = false
+/\ isPE pt (StateLib.getIndexOfAddr va levelMin) s 
+/\ getTableAddrRoot pt idxPageDir descParent va s
+/\ (pageDefault =? pt) = false
+/\ entryPresentFlag pt (StateLib.getIndexOfAddr va levelMin) true s
+/\ entryUserFlag pt (StateLib.getIndexOfAddr va levelMin) false s
+/\ isEntryPage pt (StateLib.getIndexOfAddr va levelMin) phypage s.
 
 Definition preconditionToPropagateWriteAccessibleRecProperty s ptToUpdate vaToUpdate idxToUpdate:=
- (StateLib.getIndexOfAddr vaToUpdate fstLevel) = idxToUpdate
-/\ isPE ptToUpdate (StateLib.getIndexOfAddr vaToUpdate fstLevel) s.
+ (StateLib.getIndexOfAddr vaToUpdate levelMin) = idxToUpdate
+/\ isPE ptToUpdate (StateLib.getIndexOfAddr vaToUpdate levelMin) s.
 
 Definition writeAccessibleRecPreparePostcondition descParent phypage s:=
 (forall partition : page,
@@ -529,44 +529,44 @@ Definition writeAccessibleRecPreparePostcondition descParent phypage s:=
 
 Definition initPEntryTablePreconditionToProveNewProperty s table curidx:= 
 forall idx : index, idx < curidx -> 
-(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+(StateLib.readPhyEntry table idx (memory s) = Some pageDefault) /\ 
                         StateLib.readPresent table idx (memory s) = Some false.
 Definition isWellFormedMMUTables table  s:=
-forall idx, StateLib.readPhyEntry table  idx s.(memory) = Some defaultPage /\ 
+forall idx, StateLib.readPhyEntry table  idx s.(memory) = Some pageDefault /\ 
                         StateLib.readPresent table idx (memory s) = Some false .  
 Definition initVEntryTablePreconditionToProveNewProperty s table curidx:= 
 forall idx : index, idx < curidx -> 
-(StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+(StateLib.readVirEntry table idx (memory s) = Some vaddrDefault) /\ 
                         StateLib.readPDflag table idx (memory s) = Some false.
 Definition initVEntryTableNewProperty table  s:=
-forall idx, StateLib.readVirEntry table  idx s.(memory) = Some defaultVAddr /\ 
+forall idx, StateLib.readVirEntry table  idx s.(memory) = Some vaddrDefault /\ 
                         StateLib.readPDflag table idx (memory s) = Some false .
 Definition initVAddrTablePreconditionToProveNewProperty s table curidx:= 
 forall idx : index, idx < curidx -> 
-(StateLib.readVirtual table idx (memory s) = Some defaultVAddr).
+(StateLib.readVirtual table idx (memory s) = Some vaddrDefault).
 
 Definition initVAddrTableNewProperty table  s:=
-forall idx, StateLib.readVirtual table  idx s.(memory) = Some defaultVAddr. 
+forall idx, StateLib.readVirtual table  idx s.(memory) = Some vaddrDefault. 
 
 Definition PreCtoPropagateIsWellFormedMMUTables phyPage1 phyPage2 
 va1 va2  (table1 table2 partition:page) level currentPD s:=
 consistency s /\
-(defaultPage =? table1) = false /\
-(defaultPage =? table2) = false /\
-nextEntryIsPP partition PDidx currentPD s /\
-In partition (getPartitions multiplexer s)  /\
+(pageDefault =? table1) = false /\
+(pageDefault =? table2) = false /\
+nextEntryIsPP partition idxPageDir currentPD s /\
+In partition (getPartitions pageRootPartition s)  /\
 initPEntryTablePreconditionToPropagatePrepareProperties s phyPage1 /\
-( (defaultPage =? phyPage1) = false) /\ 
-isEntryPage table1 (StateLib.getIndexOfAddr va1 fstLevel ) phyPage1 s /\
-isEntryPage table2 (StateLib.getIndexOfAddr va2 fstLevel) phyPage2 s /\
- isPE table1 (StateLib.getIndexOfAddr va1 fstLevel ) s /\
- getTableAddrRoot table1 PDidx partition va1 s /\
-isPE table2 (StateLib.getIndexOfAddr va2 fstLevel) s /\ 
-getTableAddrRoot table2 PDidx partition va2 s /\
+( (pageDefault =? phyPage1) = false) /\ 
+isEntryPage table1 (StateLib.getIndexOfAddr va1 levelMin ) phyPage1 s /\
+isEntryPage table2 (StateLib.getIndexOfAddr va2 levelMin) phyPage2 s /\
+ isPE table1 (StateLib.getIndexOfAddr va1 levelMin ) s /\
+ getTableAddrRoot table1 idxPageDir partition va1 s /\
+isPE table2 (StateLib.getIndexOfAddr va2 levelMin) s /\ 
+getTableAddrRoot table2 idxPageDir partition va2 s /\
 Some level = StateLib.getNbLevel /\
 false = checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
-entryPresentFlag table1 (StateLib.getIndexOfAddr va1 fstLevel ) true s /\ 
-entryPresentFlag table2 (StateLib.getIndexOfAddr va2 fstLevel) true s.
+entryPresentFlag table1 (StateLib.getIndexOfAddr va1 levelMin ) true s /\ 
+entryPresentFlag table2 (StateLib.getIndexOfAddr va2 levelMin) true s.
 
 Definition PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure  b1 b2 b3 b4 b5 b6  
 (vaValue fstVA sndVA trdVA:vaddr) (ptMMU ptSh1 pg ptSh1FstVA ptSh1SndVA ptSh1TrdVA phyMMUaddr 
@@ -588,7 +588,7 @@ isWellFormedMMUTables phyMMUaddr s
 
  
 Definition newIndirectionsAreNotAccessible s  phyMMUaddr phySh1addr phySh2addr :=
- forall parts nextIndirection, In parts (getPartitions multiplexer s) -> 
+ forall parts nextIndirection, In parts (getPartitions pageRootPartition s) -> 
     (nextIndirection = phyMMUaddr \/ nextIndirection = phySh1addr \/ nextIndirection = phySh2addr) -> 
     ~ In nextIndirection (getAccessibleMappedPages parts s). 
 
@@ -616,19 +616,19 @@ newIndirectionsAreNotMappedInChildrenAll s currentPart phyMMUaddr phySh1addr phy
 isEntryVA ptSh1FstVA idxFstVA fstVA s /\ isEntryVA ptSh1SndVA idxSndVA sndVA s /\ isEntryVA ptSh1TrdVA idxTrdVA trdVA s.
 
 Definition initSndShadowPreconditionToProveNewProperty nbL s table  curidx:=
-(nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
-(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+(nbL <> levelMin /\  ( forall idx : index, idx < curidx -> 
+(StateLib.readPhyEntry table idx (memory s) = Some pageDefault) /\ 
  StateLib.readPresent table idx (memory s) = Some false )) \/ 
  
- (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
-(StateLib.readVirtual table idx (memory s) = Some defaultVAddr))) .
+ (nbL = levelMin /\ (forall idx : index, idx < curidx -> 
+(StateLib.readVirtual table idx (memory s) = Some vaddrDefault))) .
 
 Definition initFstShadowPreconditionToProveNewProperty nbL s table  curidx:=
- (nbL <> fstLevel /\  ( forall idx : index, idx < curidx -> 
-(StateLib.readPhyEntry table idx (memory s) = Some defaultPage) /\ 
+ (nbL <> levelMin /\  ( forall idx : index, idx < curidx -> 
+(StateLib.readPhyEntry table idx (memory s) = Some pageDefault) /\ 
  StateLib.readPresent table idx (memory s) = Some false )) \/ 
- (nbL = fstLevel /\ (forall idx : index, idx < curidx -> 
-(StateLib.readVirEntry table idx (memory s) = Some defaultVAddr) /\ 
+ (nbL = levelMin /\ (forall idx : index, idx < curidx -> 
+(StateLib.readVirEntry table idx (memory s) = Some vaddrDefault) /\ 
  StateLib.readPDflag table idx (memory s) = Some false)). 
 
  
@@ -643,15 +643,15 @@ Definition postConditionYieldBlock1   (s : state)
   userTargetInterrupt < tableSize /\
   targetInterrupt = CIndex userTargetInterrupt /\
   callerPartDesc = currentPartition s /\
-  nextEntryIsPP callerPartDesc PDidx callerPageDir s /\
+  nextEntryIsPP callerPartDesc idxPageDir callerPageDir s /\
   Some nbL = StateLib.getNbLevel /\
   userCallerContextSaveIndex < tableSize /\
   callerContextSaveIndex = CIndex userCallerContextSaveIndex /\
   isPE callerVidtLastMMUPage
-  (StateLib.getIndexOfAddr MALInternal.vidtVAddr fstLevel) s /\
-  getTableAddrRoot callerVidtLastMMUPage PDidx callerPartDesc
-  MALInternal.vidtVAddr s /\ defaultPage <> callerVidtLastMMUPage /\
-  StateLib.getIndexOfAddr MALInternal.vidtVAddr fstLevel =
+  (StateLib.getIndexOfAddr vaddrVIDT levelMin) s /\
+  getTableAddrRoot callerVidtLastMMUPage idxPageDir callerPartDesc
+  vaddrVIDT s /\ pageDefault <> callerVidtLastMMUPage /\
+  StateLib.getIndexOfAddr vaddrVIDT levelMin =
   idxVidtInLastMMUPage /\
   entryPresentFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
   entryUserFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
@@ -676,49 +676,49 @@ Definition yieldPreWritingProperties
   userTargetInterrupt < tableSize /\
   targetInterrupt = CIndex userTargetInterrupt /\
   callerPartDesc = currentPartition s /\
-  nextEntryIsPP callerPartDesc PDidx callerPageDir s /\
+  nextEntryIsPP callerPartDesc idxPageDir callerPageDir s /\
   Some nbL = StateLib.getNbLevel /\
   userCallerContextSaveIndex < tableSize /\
   callerContextSaveIndex = CIndex userCallerContextSaveIndex /\
-  isPE callerVidtLastMMUPage (StateLib.getIndexOfAddr vidtVAddr fstLevel) s /\
-  getTableAddrRoot callerVidtLastMMUPage PDidx callerPartDesc vidtVAddr s /\
-  defaultPage <> callerVidtLastMMUPage /\
-  StateLib.getIndexOfAddr vidtVAddr fstLevel = idxVidtInLastMMUPage /\
+  isPE callerVidtLastMMUPage (StateLib.getIndexOfAddr vaddrVIDT levelMin) s /\
+  getTableAddrRoot callerVidtLastMMUPage idxPageDir callerPartDesc vaddrVIDT s /\
+  pageDefault <> callerVidtLastMMUPage /\
+  StateLib.getIndexOfAddr vaddrVIDT levelMin = idxVidtInLastMMUPage /\
   entryPresentFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
   entryUserFlag callerVidtLastMMUPage idxVidtInLastMMUPage true s /\
   isEntryPage callerVidtLastMMUPage idxVidtInLastMMUPage callerVidt s /\
-  In calleePartDesc (getPartitions multiplexer s) /\
-  calleePartDesc <> defaultPage /\
-  nextEntryIsPP calleePartDesc PDidx calleePageDir s /\
-  defaultPage <> calleeVidtLastMMUPage /\
-  getTableAddrRoot calleeVidtLastMMUPage PDidx calleePartDesc vidtVAddr s /\
+  In calleePartDesc (getPartitions pageRootPartition s) /\
+  calleePartDesc <> pageDefault /\
+  nextEntryIsPP calleePartDesc idxPageDir calleePageDir s /\
+  pageDefault <> calleeVidtLastMMUPage /\
+  getTableAddrRoot calleeVidtLastMMUPage idxPageDir calleePartDesc vaddrVIDT s /\
   (forall idx : index,
-    StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+    StateLib.getIndexOfAddr vaddrVIDT levelMin = idx ->
     isPE calleeVidtLastMMUPage idx s) /\
   entryPresentFlag calleeVidtLastMMUPage idxVidtInLastMMUPage true s /\
   entryUserFlag calleeVidtLastMMUPage idxVidtInLastMMUPage true s /\
   isEntryPage calleeVidtLastMMUPage idxVidtInLastMMUPage calleeVidt s /\
-  getTableAddrRoot calleeContextLastMMUPage PDidx calleePartDesc calleeContextVAddr s /\
-  calleeContextLastMMUPage <> defaultPage /\
+  getTableAddrRoot calleeContextLastMMUPage idxPageDir calleePartDesc calleeContextVAddr s /\
+  calleeContextLastMMUPage <> pageDefault /\
   (forall idx : index,
-    StateLib.getIndexOfAddr calleeContextVAddr fstLevel = idx ->
+    StateLib.getIndexOfAddr calleeContextVAddr levelMin = idx ->
     isPE calleeContextLastMMUPage idx s) /\
-  StateLib.getIndexOfAddr calleeContextVAddr fstLevel = idxCalleeContextPageInLastMMUPage /\
+  StateLib.getIndexOfAddr calleeContextVAddr levelMin = idxCalleeContextPageInLastMMUPage /\
   entryPresentFlag calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage true s /\
   entryUserFlag calleeContextLastMMUPage idxCalleeContextPageInLastMMUPage true s /\
-  getTableAddrRoot calleeContextEndLastMMUPage PDidx calleePartDesc calleeContextEndVAddr s /\
-  calleeContextEndLastMMUPage <> defaultPage /\
+  getTableAddrRoot calleeContextEndLastMMUPage idxPageDir calleePartDesc calleeContextEndVAddr s /\
+  calleeContextEndLastMMUPage <> pageDefault /\
   (forall idx : index,
-    StateLib.getIndexOfAddr calleeContextEndVAddr fstLevel = idx ->
+    StateLib.getIndexOfAddr calleeContextEndVAddr levelMin = idx ->
     isPE calleeContextEndLastMMUPage idx s) /\
-  StateLib.getIndexOfAddr calleeContextEndVAddr fstLevel = idxCalleeContextEndPageInLastMMUPage /\
+  StateLib.getIndexOfAddr calleeContextEndVAddr levelMin = idxCalleeContextEndPageInLastMMUPage /\
   entryPresentFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s /\
   entryUserFlag calleeContextEndLastMMUPage idxCalleeContextEndPageInLastMMUPage true s.
 
 Definition PCWellFormedRootDataStruct n l table idx s idxroot:= 
-table = defaultPage \/
+table = pageDefault \/
 (n < l /\ isPE table idx s \/
  n >= l /\
- (isVE table idx s /\ idxroot = sh1idx \/
-  isVA table idx s /\ idxroot = sh2idx \/ isPE table idx s /\ idxroot = PDidx)) /\
-table <> defaultPage.
+ (isVE table idx s /\ idxroot = idxShadow1 \/
+  isVA table idx s /\ idxroot = idxShadow2 \/ isPE table idx s /\ idxroot = idxPageDir)) /\
+table <> pageDefault.

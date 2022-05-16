@@ -60,14 +60,14 @@ Definition writeIndexInitLLPC phyConfigPagesList (curidx : index) zero maxidx ma
         idx < CIndex (tableSize - 2) ->
         PeanoNat.Nat.Even idx ->
         idx < curidx ->
-        StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) /\
+        StateLib.readVirtual phyConfigPagesList idx (memory s) = Some vaddrDefault) /\
        zero = CIndex 0 /\
        maxidx = CIndex (tableSize - 1) /\
        StateLib.Index.pred maxidx = Some maxidxminus1 /\
-       true = StateLib.Index.geb curidx maxidxminus1 /\
-       eqbZero = StateLib.Index.eqb curidx zero /\
-       nullP = defaultPage /\
-       nullV = defaultVAddr /\
+       true = idxGe curidx maxidxminus1 /\
+       eqbZero = idxEq curidx zero /\
+       nullP = pageDefault /\
+       nullV = vaddrDefault /\
        StateLib.readVirtual phyConfigPagesList maxidxminus1 (memory s) = Some nullV) /\
       StateLib.readPhysical phyConfigPagesList maxidx (memory s) = Some nullP) /\
      maxentries = {| i := Init.Nat.div2 tableSize - 2; Hi := MAL.maxFreeLL_obligation_1 |}) /\
@@ -80,18 +80,18 @@ StateLib.readIndex ptVaInCurPart idxvaInCurPart
 (memory  {|
 currentPartition := currentPartition s;
 memory := add table idx (I x)
-            (memory s) beqPage beqIndex |}).
+            (memory s) pageEq idxEq |}).
 Proof.
 intros Hentry.
 unfold StateLib.readIndex.
 cbn.
-case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) beqPage beqIndex);trivial;intros Hpairs.
+case_eq (beqPairs (table, idx) (ptVaInCurPart, idxvaInCurPart) pageEq idxEq);trivial;intros Hpairs.
  + apply beqPairsTrue in Hpairs.
    destruct Hpairs as (Htable & Hidx).  subst.
    intuition.
  + apply beqPairsFalse in Hpairs.
-   assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) beqPage beqIndex)
-           beqPage beqIndex = lookup  ptVaInCurPart idxvaInCurPart  (memory s) beqPage beqIndex) as Hmemory.
+   assert (lookup  ptVaInCurPart idxvaInCurPart (removeDup table idx (memory s) pageEq idxEq)
+           pageEq idxEq = lookup  ptVaInCurPart idxvaInCurPart  (memory s) pageEq idxEq) as Hmemory.
    { apply removeDupIdentity. intuition. }
      rewrite Hmemory. trivial.
 Qed.
@@ -111,12 +111,12 @@ unfold initConfigPagesListPostCondition.
 simpl.
 assert(Hcons : isI phyConfigPagesList (CIndex 1) s) by admit. (**Consistency not found LLconfiguration1*)
 assert(exists entry, 
- lookup phyConfigPagesList (CIndex 1) (memory s) beqPage beqIndex = Some (I entry)) as (entry & Hlookup).
+ lookup phyConfigPagesList (CIndex 1) (memory s) pageEq idxEq = Some (I entry)) as (entry & Hlookup).
 { intuition.
 subst.
  assert(Hi :  isI phyConfigPagesList (CIndex 1) s) ;trivial.
  unfold isI in Hi.
- case_eq(lookup phyConfigPagesList  (CIndex 1) (memory s) beqPage beqIndex);
+ case_eq(lookup phyConfigPagesList  (CIndex 1) (memory s) pageEq idxEq);
   [intros v Hv |intros Hv];rewrite Hv in *;try now contradict Hi.
   destruct v;try now contradict Hv.
   subst.
@@ -131,14 +131,14 @@ unfold writeIndexInitLLPC in *.
   subst.
 intuition;subst.
 +  assert(StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) =
-     Some defaultPage) as Hi by trivial.
+     Some pageDefault) as Hi by trivial.
   rewrite <- Hi.
   apply readPhysicalUpdateLLIndex with entry;trivial.
 + assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hi by trivial.
 apply predMaxIndex in Hi.
 subst.
 assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (memory s) =
-      Some defaultVAddr) by trivial.
+      Some vaddrDefault) by trivial.
       rewrite <- Hi.
       apply readVirtualUpdateLLIndex with entry; trivial.
 + assert(Hi: forall idx : index,
@@ -154,8 +154,8 @@ assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (me
  assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hx by trivial.
 apply predMaxIndex in Hx.
 subst.
-assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
-unfold StateLib.Index.geb in Hii.
+assert(Hii:  idxGe curidx (CIndex (tableSize - 2)) = true) by intuition.
+unfold idxGe in Hii.
 apply leb_complete in Hii.
 lia.
 destruct Hix as (idxvalue & Hidxv).
@@ -171,15 +171,15 @@ lia.
      idx < CIndex (tableSize - 2) ->
      PeanoNat.Nat.Even idx ->
      idx < curidx ->
-     StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) as Hi by trivial.
+     StateLib.readVirtual phyConfigPagesList idx (memory s) = Some vaddrDefault) as Hi by trivial.
    rewrite <- Hi with idx;trivial.
    apply readVirtualUpdateLLIndex with entry;trivial.
  assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hx by trivial.
 apply predMaxIndex in Hx.
 subst.
    
-assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
-unfold StateLib.Index.geb in Hii.
+assert(Hii:  idxGe curidx (CIndex (tableSize - 2)) = true) by intuition.
+unfold idxGe in Hii.
 apply leb_complete in Hii.
 lia.
 Admitted.
@@ -197,12 +197,12 @@ unfold initConfigPagesListPostCondition.
 simpl.
 assert(Hcons : isI phyConfigPagesList (CIndex 0) s) by admit. (** consistency not found : LLconfiguration3*)
 assert(exists entry, 
- lookup phyConfigPagesList (CIndex 0) (memory s) beqPage beqIndex = Some (I entry)) as (entry & Hlookup).
+ lookup phyConfigPagesList (CIndex 0) (memory s) pageEq idxEq = Some (I entry)) as (entry & Hlookup).
 { intuition.
 subst.
  assert(Hi :  isI phyConfigPagesList (CIndex 0) s) ;trivial.
  unfold isI in Hi.
- case_eq(lookup phyConfigPagesList  (CIndex 0) (memory s) beqPage beqIndex);
+ case_eq(lookup phyConfigPagesList  (CIndex 0) (memory s) pageEq idxEq);
   [intros v Hv |intros Hv];rewrite Hv in *;try now contradict Hi.
   destruct v;try now contradict Hv.
   subst.
@@ -224,8 +224,8 @@ intuition;subst;simpl in *.
  assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hx by trivial.
 apply predMaxIndex in Hx.
 subst.
-assert(Hii:  StateLib.Index.geb curidx (CIndex (tableSize - 2)) = true) by intuition.
-unfold StateLib.Index.geb in Hii.
+assert(Hii:  idxGe curidx (CIndex (tableSize - 2)) = true) by intuition.
+unfold idxGe in Hii.
 apply leb_complete in Hii.
 destruct Hix as (idxvalue & Hidxv).
 exists idxvalue.
@@ -241,18 +241,18 @@ lia.
      idx < CIndex (tableSize - 2) ->
      PeanoNat.Nat.Even idx ->
      idx < curidx ->
-     StateLib.readVirtual phyConfigPagesList idx (memory s) = Some defaultVAddr) as Hi by trivial.
+     StateLib.readVirtual phyConfigPagesList idx (memory s) = Some vaddrDefault) as Hi by trivial.
    rewrite <- Hi with idx;trivial.
    apply readVirtualUpdateLLIndex with entry;trivial.
 + assert( StateLib.Index.pred (CIndex (tableSize - 1)) = Some maxidxminus1) as Hi by trivial.
 apply predMaxIndex in Hi.
 subst.
 assert(Hi : StateLib.readVirtual phyConfigPagesList (CIndex (tableSize - 2)) (memory s) =
-      Some defaultVAddr) by trivial.
+      Some vaddrDefault) by trivial.
       rewrite <- Hi.
       apply readVirtualUpdateLLIndex with entry; trivial.
 +  assert(StateLib.readPhysical phyConfigPagesList (CIndex (tableSize - 1)) (memory s) =
-     Some defaultPage) as Hi by trivial.
+     Some pageDefault) as Hi by trivial.
   rewrite <- Hi.
   apply readPhysicalUpdateLLIndex with entry;trivial.
  
@@ -263,7 +263,7 @@ Lemma initConfigPagesListNewProperty phyConfigPagesList (curidx : index):
                   (forall idx : index, idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> PeanoNat.Nat.Odd idx -> idx < curidx ->
                   exists idxValue, StateLib.readIndex phyConfigPagesList idx s.(memory) = Some idxValue)  /\ 
                  (forall idx : index,  idx > (CIndex 1) -> idx < CIndex (tableSize -2) -> PeanoNat.Nat.Even idx -> idx < curidx -> 
-                 StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some defaultVAddr)}}
+                 StateLib.readVirtual phyConfigPagesList idx s.(memory) = Some vaddrDefault)}}
   Internal.initConfigPagesList phyConfigPagesList curidx 
 {{ fun _ s  => initConfigPagesListPostCondition phyConfigPagesList s }}.
 Proof.
@@ -374,14 +374,14 @@ induction n.  simpl.
   subst.
   assert (idx <> CIndex (tableSize - 2)).
   apply indexDiffLtb; left; assumption.
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, CIndex (tableSize - 2)) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, CIndex (tableSize - 2)) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
     right; unfold not; intros.
     subst. now contradict H1. }
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 2)) (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 2)) (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. }
   rewrite Hmemory.
   apply Hodd; trivial.
@@ -395,15 +395,15 @@ induction n.  simpl.
   subst.
   assert(CIndex (tableSize - 2) <> idx). 
   apply indexDiffLtb; right. assumption. 
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 2))) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 2))) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
   right;trivial. }
   unfold StateLib.readVirtual in *.
   cbn in *.
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 2)) (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 2)) (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. intuition. }
   rewrite Hmemory.
   apply Heven; trivial. 
@@ -411,7 +411,7 @@ induction n.  simpl.
   unfold StateLib.readVirtual .
   cbn.
   assert(Htrue : Lib.beqPairs (phyConfigPagesList, maxidxminus1) (phyConfigPagesList, maxidxminus1) 
-       beqPage beqIndex = true).
+       pageEq idxEq = true).
   apply beqPairsTrue;split;trivial.
   rewrite Htrue;trivial.
   intros [].
@@ -441,14 +441,14 @@ induction n.  simpl.
   cbn.
   assert (idx <> CIndex (tableSize - 1)).
   apply indexDiffLtb; left; assumption.
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, CIndex (tableSize - 1)) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, CIndex (tableSize - 1)) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
   right; unfold not; intros.
   subst. now contradict H1. }
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. }
   rewrite Hmemory.
   apply Hodd; trivial.
@@ -464,15 +464,15 @@ induction n.  simpl.
   cbn.
   assert (idx <> CIndex (tableSize - 1)).
   apply indexDiffLtb; left; assumption. 
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 1))) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 1))) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
   right;trivial. intuition. }
   unfold StateLib.readVirtual in *.
   cbn in *.
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. }
   rewrite Hmemory.
   apply Heven; trivial.
@@ -485,7 +485,7 @@ induction n.  simpl.
   unfold tableSizeLowerBound in *.
   assert(CIndex (tableSize - 1) <> (CIndex (tableSize - 2)) ). 
   apply indexEqFalse;try lia. 
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 1))) (phyConfigPagesList, (CIndex (tableSize - 2))) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList,  (CIndex (tableSize - 1))) (phyConfigPagesList, (CIndex (tableSize - 2))) pageEq idxEq=
   false).
   { apply beqPairsFalse.
   right;trivial. }
@@ -493,8 +493,8 @@ induction n.  simpl.
   cbn in *.
   rewrite Hfalse.
   assert (Hmemory :   Lib.lookup phyConfigPagesList (CIndex (tableSize - 2))
-    (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) beqPage beqIndex) beqPage
-    beqIndex =  Lib.lookup phyConfigPagesList  (CIndex (tableSize - 2))(memory s) beqPage beqIndex).
+    (Lib.removeDup phyConfigPagesList (CIndex (tableSize - 1)) (memory s) pageEq idxEq) pageEq
+    idxEq =  Lib.lookup phyConfigPagesList  (CIndex (tableSize - 2))(memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. intuition. }
   rewrite Hmemory;trivial.
   (** propagate readPhysical **)
@@ -502,7 +502,7 @@ induction n.  simpl.
   cbn; simpl in *.
   subst.
   assert(Htrue : Lib.beqPairs (phyConfigPagesList, maxidx)
-   (phyConfigPagesList,  maxidx) beqPage beqIndex= true).
+   (phyConfigPagesList,  maxidx) pageEq idxEq= true).
   { apply beqPairsTrue.
     split; trivial. }
   rewrite Htrue; trivial.
@@ -577,7 +577,7 @@ induction n.  simpl.
   apply IHn.
   simpl.
   clear IHn.
-  assert(Hcur0: true = StateLib.Index.eqb curidx zero) by intuition.
+  assert(Hcur0: true = idxEq curidx zero) by intuition.
   assert(Hone: StateLib.Index.succ zero = Some oneI) by  intuition.
   assert(Htwo:StateLib.Index.succ oneI = Some twoI) by intuition.
   assert( zero = CIndex 0) by intuition.
@@ -604,7 +604,7 @@ induction n.  simpl.
   assert(Hodd: PeanoNat.Nat.Odd oneI).
   { intuition;subst.
    apply indexSEqbZeroOdd with (CIndex 0); trivial.
-   unfold StateLib.Index.eqb.
+   unfold idxEq.
    apply beq_nat_refl. }
    apply SuccOddEven with oneI;trivial.
    apply CIndex1lt;intuition.
@@ -650,14 +650,14 @@ induction n.  simpl.
   cbn.
   assert (idx <> curidx).
   apply indexDiffLtb; left; assumption.
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
     right; unfold not; intros.
       subst. now contradict H1. }
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList curidx (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList curidx (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. }
   rewrite Hmemory.
   apply Hodd; trivial.
@@ -668,14 +668,14 @@ induction n.  simpl.
   cbn.
   assert (idx <> curidx).
   apply indexDiffLtb; left; assumption.
-  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, idx) beqPage beqIndex=
+  assert(Hfalse : Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, idx) pageEq idxEq=
   false).
   { apply beqPairsFalse.
     right; unfold not; intros.
       subst. now contradict H2. }
   rewrite Hfalse.
-  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList curidx (memory s) beqPage beqIndex) beqPage
-  beqIndex =  Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+  assert (Hmemory :   Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList curidx (memory s) pageEq idxEq) pageEq
+  idxEq =  Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
   { apply removeDupIdentity; right; trivial. }
   rewrite Hmemory.
   apply Heven; trivial.
@@ -684,7 +684,7 @@ induction n.  simpl.
   intuition.
   unfold StateLib.readVirtual.
   cbn.
-  assert (Htrue :Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, curidx) beqPage beqIndex
+  assert (Htrue :Lib.beqPairs (phyConfigPagesList, curidx) (phyConfigPagesList, curidx) pageEq idxEq
   = true).
   apply beqPairsTrue;split;trivial.
   rewrite Htrue; trivial.   
@@ -704,7 +704,7 @@ induction n.  simpl.
   { repeat rewrite and_assoc in H.
     destruct H as (Hor & Hodd & Heven & Hzero & Hmax & Hmaxpred 
                   & Hgeb & Heqbzero & Hidxsucc & HreadV).
-    unfold StateLib.Index.geb in Hgeb.
+    unfold idxGe in Hgeb.
     symmetry in Hgeb.
     apply leb_complete_conv in Hgeb.
     subst.
@@ -733,7 +733,7 @@ induction n.  simpl.
   destruct H as (Hor & Hodd & Heven & Hzero & Hmax & Hmaxpred 
           & Hgeb & Heqbzero & Hidxsucc & HreadV & Hscuridx).
   { 
-  unfold StateLib.Index.geb in Hgeb.
+  unfold idxGe in Hgeb.
   symmetry in Hgeb.
   apply leb_complete_conv in Hgeb.
   subst.
@@ -797,7 +797,7 @@ subst.
    unfold StateLib.readIndex in *.
    cbn.
    
-   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, idx) beqPage beqIndex
+   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, idx) pageEq idxEq
    = false).
    { 
    apply beqPairsFalse; right.
@@ -805,8 +805,8 @@ subst.
    
    
    rewrite Hfalse in *; trivial.
-   assert( Hmemory : Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList Scuridx (memory s) beqPage beqIndex)
-    beqPage beqIndex = Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+   assert( Hmemory : Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList Scuridx (memory s) pageEq idxEq)
+    pageEq idxEq = Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
         { apply removeDupIdentity.
       right. assumption. }
       rewrite Hmemory.
@@ -822,7 +822,7 @@ subst.
    cbn.
    intuition.
    
-   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, idx) beqPage beqIndex
+   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, idx) pageEq idxEq
    = false).
    { 
    apply beqPairsFalse; right.
@@ -830,8 +830,8 @@ subst.
    
    
    rewrite Hfalse in *; trivial.
-   assert( Hmemory : Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList Scuridx (memory s) beqPage beqIndex)
-    beqPage beqIndex = Lib.lookup phyConfigPagesList idx (memory s) beqPage beqIndex).
+   assert( Hmemory : Lib.lookup phyConfigPagesList idx (Lib.removeDup phyConfigPagesList Scuridx (memory s) pageEq idxEq)
+    pageEq idxEq = Lib.lookup phyConfigPagesList idx (memory s) pageEq idxEq).
         { apply removeDupIdentity.
       right. assumption. }
       rewrite Hmemory.
@@ -844,7 +844,7 @@ subst.
    unfold StateLib.readVirtual in *.
    cbn.
    
-   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, curidx) beqPage beqIndex
+   assert (Hfalse :Lib.beqPairs(phyConfigPagesList, Scuridx) (phyConfigPagesList, curidx) pageEq idxEq
    = false).
    { 
    apply beqPairsFalse; right.
@@ -855,8 +855,8 @@ subst.
     apply indexSuccEqFalse; trivial.  }
    
    rewrite Hfalse in *; trivial.
-   assert( Hmemory : Lib.lookup phyConfigPagesList curidx (Lib.removeDup phyConfigPagesList Scuridx (memory s) beqPage beqIndex)
-    beqPage beqIndex = Lib.lookup phyConfigPagesList curidx (memory s) beqPage beqIndex).
+   assert( Hmemory : Lib.lookup phyConfigPagesList curidx (Lib.removeDup phyConfigPagesList Scuridx (memory s) pageEq idxEq)
+    pageEq idxEq = Lib.lookup phyConfigPagesList curidx (memory s) pageEq idxEq).
         { apply removeDupIdentity.
       right.
       apply indexSuccEqFalse; trivial. }
@@ -865,7 +865,7 @@ subst.
   trivial.
   unfold StateLib.readIndex.
    cbn.
-   assert (Htrue :Lib.beqPairs (phyConfigPagesList, Scuridx) (phyConfigPagesList, Scuridx) beqPage beqIndex
+   assert (Htrue :Lib.beqPairs (phyConfigPagesList, Scuridx) (phyConfigPagesList, Scuridx) pageEq idxEq
    = true).
    apply beqPairsTrue;split;trivial.
    rewrite Htrue; trivial.
@@ -902,7 +902,7 @@ subst.
    split.
    subst.
   { apply SuccOddEven with Scuridx;trivial.
-    * unfold StateLib.Index.geb in Hgeb.
+    * unfold idxGe in Hgeb.
       symmetry in Hgeb.
       apply leb_complete_conv in Hgeb.
       subst.
@@ -978,7 +978,7 @@ presentRefChild = true  /\ presentPDChild = true  /\
         ~ In phyDescChild (getAccessibleMappedPages partition s))) /\ pzero = CIndex 0) /\ isWellFormedSndShadow level phySh2Child s) /\
     isWellFormedFstShadow level phySh1Child s) /\
    (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false)  /\ 
    (PeanoNat.Nat.Even curidx)
     }} 
@@ -1009,7 +1009,7 @@ presentRefChild = true  /\ presentPDChild = true  /\
         ~ In phyDescChild (getAccessibleMappedPages partition s))) /\pzero = CIndex 0) /\ isWellFormedSndShadow level phySh2Child s) /\
     isWellFormedFstShadow level phySh1Child s) /\
    (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false)  
    }}.
 Proof.
@@ -1113,7 +1113,7 @@ induction n.  simpl.
     unfold propagatedProperties in *.
     intuition.
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition; 
    subst;
@@ -1199,7 +1199,7 @@ induction n.  simpl.
     apply isWellFormedFstShadowUpdateMappedPageData;trivial.
     intuition.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     split.
@@ -1235,7 +1235,7 @@ induction n.  simpl.
     unfold propagatedProperties in *.
     intuition.
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition; 
    subst;
@@ -1299,7 +1299,7 @@ induction n.  simpl.
     apply isWellFormedFstShadowUpdateMappedPageData;trivial.
     intuition.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     split.
@@ -1367,7 +1367,7 @@ induction n.  simpl.
   unfold propagatedProperties in *.
   intuition.
   unfold propagatedProperties in *.  
-  assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+  assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
   {unfold consistency in *. 
   intuition; 
   subst;
@@ -1426,7 +1426,7 @@ induction n.  simpl.
     apply isWellFormedFstShadowUpdateMappedPageData;trivial.
     intuition.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     split.
@@ -1459,7 +1459,7 @@ induction n.  simpl.
   unfold propagatedProperties in *.
   intuition.
   unfold propagatedProperties in *.  
-  assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+  assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
   {unfold consistency in *. 
   intuition; 
   subst;
@@ -1518,7 +1518,7 @@ induction n.  simpl.
     apply isWellFormedFstShadowUpdateMappedPageData;trivial.
     intuition.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     intros.
@@ -1572,7 +1572,7 @@ case_eq eqbZero;intros HfstEntry.
   apply IHn.
   simpl.
   clear IHn.
-  assert(Hcur0: true = StateLib.Index.eqb curidx zero) by intuition.
+  assert(Hcur0: true = idxEq curidx zero) by intuition.
   assert(Hone: StateLib.Index.succ zero = Some oneI) by  intuition.
   assert(Htwo:StateLib.Index.succ oneI = Some twoI) by intuition.
   assert( zero = CIndex 0) by intuition.
@@ -1598,7 +1598,7 @@ case_eq eqbZero;intros HfstEntry.
 assert(Hodd: PeanoNat.Nat.Odd oneI).
   { intuition;subst.
    apply indexSEqbZeroOdd with (CIndex 0); trivial.
-   unfold StateLib.Index.eqb.
+   unfold idxEq.
    apply beq_nat_refl. }
    apply SuccOddEven with oneI;trivial.
    apply CIndex1lt;intuition.
@@ -1634,7 +1634,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
     unfold propagatedProperties in *.
     intuition.
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition; 
    subst;
@@ -1720,7 +1720,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
     apply isWellFormedFstShadowUpdateMappedPageData;trivial.
     intuition.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     split.
@@ -1752,7 +1752,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
   { repeat rewrite and_assoc in H.
     destruct H as (_ & _ & _ & _ & _ &_ & _ & _  & _ &Hodd & Heven & Hzero & Hmax & Hmaxpred 
                   & Hgeb & Heqbzero & Hidxsucc ).
-    unfold StateLib.Index.geb in Hgeb.
+    unfold idxGe in Hgeb.
     symmetry in Hgeb.
     apply leb_complete_conv in Hgeb.
     subst.
@@ -1781,7 +1781,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
   destruct H as (_ & _ & _ & _ & _ &_ & _ & _  & _ &Hodd & Heven & Hzero & Hmax & Hmaxpred 
                   & Hgeb & Heqbzero & Hidxsucc & Hxx).
    { 
-  unfold StateLib.Index.geb in Hgeb.
+  unfold idxGe in Hgeb.
   symmetry in Hgeb.
   apply leb_complete_conv in Hgeb.
   subst.
@@ -1822,7 +1822,7 @@ eapply bindRev.
   unfold propagatedProperties in *.
   intuition.
   unfold propagatedProperties in *.  
-  assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+  assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
   {unfold consistency in *. 
   intuition; 
   subst;
@@ -1882,7 +1882,7 @@ eapply bindRev.
     intuition.
     split.
     assert (Htable : (forall idx : index,
-    StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\
+    StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\
     StateLib.readPresent phyPDChild idx (memory s) = Some false))
     by intuition.
     intros.
@@ -1933,7 +1933,7 @@ eapply bindRev.
    clear IHn.
    subst.
    apply SuccOddEven with Scuridx;trivial.
-    * unfold StateLib.Index.geb in Hgeb.
+    * unfold idxGe in Hgeb.
       symmetry in Hgeb.
       apply leb_complete_conv in Hgeb.
       subst.

@@ -43,7 +43,7 @@ Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat List Bool
 Module WP := WeakestPreconditions.
 Lemma getPageRootPartition (P : state -> Prop) :
 {{ fun s => P s  }} Constants.getPageRootPartition
-{{ fun val s => P s /\ val = multiplexer }}.
+{{ fun val s => P s /\ val = pageRootPartition }}.
 Proof.
    eapply WP.weaken.
    eapply WP.getPageRootPartition .
@@ -53,8 +53,8 @@ Qed.
 
 
 Lemma getKidx (P : state -> Prop) :
-{{ fun s => P s  }} MALInternal.getKidx 
-{{ fun idx s => P s /\ Kidx = idx }}.
+{{ fun s => P s  }} getIdxKernel 
+{{ fun idx s => P s /\ idxKernel = idx }}.
 Proof.
    eapply WP.weaken.
    eapply WP.getKidx . intros.
@@ -71,8 +71,8 @@ cbn. intros . intuition.
 Qed.
 
 Lemma getPDidx P :
-{{fun s => P s }} MALInternal.getPDidx 
-{{fun (idxPD : index) (s : state) => P s  /\ idxPD = PDidx }}.
+{{fun s => P s }} getIdxPageDir
+{{fun (idxPD : index) (s : state) => P s  /\ idxPD = idxPageDir }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getPDidx . cbn.
@@ -80,8 +80,8 @@ intros.
 intuition.
 Qed.
 Lemma getSh1idx P :
-{{fun s => P s }} MALInternal.getSh1idx 
-{{fun (idxSh1 : index) (s : state) => P s  /\ idxSh1 = sh1idx }}.
+{{fun s => P s }} getIdxShadow1
+{{fun (idxSh1 : index) (s : state) => P s  /\ idxSh1 = idxShadow1 }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getSh1idx . cbn.
@@ -90,8 +90,8 @@ intuition.
 Qed.
 
 Lemma getSh2idx P :
-{{fun s => P s }} MALInternal.getSh2idx 
-{{fun (idxSh2 : index) (s : state) => P s  /\ idxSh2 = sh2idx }}.
+{{fun s => P s }} getIdxShadow2
+{{fun (idxSh2 : index) (s : state) => P s  /\ idxSh2 = idxShadow2 }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getSh2idx . cbn.
@@ -100,8 +100,8 @@ intuition.
 Qed.
 
 Lemma getSh3idx P :
-{{fun s => P s }} MALInternal.getSh3idx 
-{{fun (idxsh3 : index) (s : state) => P s  /\ idxsh3 = sh3idx }}.
+{{fun s => P s }} getIdxShadow3
+{{fun (idxsh3 : index) (s : state) => P s  /\ idxsh3 = idxShadow3 }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getSh3idx . cbn.
@@ -110,8 +110,8 @@ intuition.
 Qed.
 
 Lemma getPPRidx P :
-{{fun s => P s }} MALInternal.getPPRidx 
-{{fun (idxPPR : index) (s : state) => P s  /\ idxPPR = PPRidx }}.
+{{fun s => P s }} getIdxParentDesc
+{{fun (idxPPR : index) (s : state) => P s  /\ idxPPR = idxParentDesc }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getPPRidx . cbn.
@@ -120,8 +120,8 @@ intuition.
 Qed.
 
 Lemma getPRidx P :
-{{fun s => P s }} MALInternal.getPRidx 
-{{fun (idxPR : index) (s : state) => P s  /\ idxPR = PRidx }}.
+{{fun s => P s }} getIdxPartDesc
+{{fun (idxPR : index) (s : state) => P s  /\ idxPR = idxPartDesc }}.
 Proof.
 eapply WP.weaken. 
 eapply WP.getPRidx . cbn.
@@ -131,8 +131,8 @@ Qed.
 
 Module Index. 
 Lemma eqb index1 index2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Index.eqb index1 index2 
-{{ fun b s => P s /\ b = StateLib.Index.eqb index1 index2}}.
+{{ fun s : state => P s }} idxEqM index1 index2 
+{{ fun b s => P s /\ b = idxEq index1 index2}}.
 Proof.
 eapply WP.weaken.
 eapply WeakestPreconditions.Index.eqb .
@@ -140,8 +140,8 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma gtb index1 index2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Index.gtb index1 index2
-{{ fun b s => P s /\ b = StateLib.Index.gtb index1 index2 }}.
+{{ fun s : state => P s }} idxGtM index1 index2
+{{ fun b s => P s /\ b = idxGt index1 index2 }}.
 Proof.
 eapply WP.weaken.
 eapply WeakestPreconditions.Index.gtb .
@@ -149,8 +149,8 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma ltb index1 index2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Index.ltb index1 index2 
-{{ fun b s => P s /\ b = StateLib.Index.ltb index1 index2}}.
+{{ fun s : state => P s }} idxLtM index1 index2 
+{{ fun b s => P s /\ b = idxLt index1 index2}}.
 Proof.
 eapply WP.weaken.
 eapply  WeakestPreconditions.Index.ltb.
@@ -158,8 +158,8 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma leb index1 index2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Index.leb index1 index2 
-{{ fun b s => P s /\ b = StateLib.Index.leb index1 index2}}.
+{{ fun s : state => P s }} idxLeM index1 index2 
+{{ fun b s => P s /\ b = idxLe index1 index2}}.
 Proof.
 eapply WP.weaken.
 eapply  WeakestPreconditions.Index.leb.
@@ -167,8 +167,8 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma geb index1 index2 (P : state -> Prop):
-{{ fun s : state => P  s }} MALInternal.Index.geb index1 index2 
-{{ fun b s => P s /\ b = StateLib.Index.geb index1 index2}}.
+{{ fun s : state => P  s }} idxGeM index1 index2 
+{{ fun b s => P s /\ b = idxGe index1 index2}}.
 Proof.
 eapply WP.weaken.
 eapply  WeakestPreconditions.Index.geb.
@@ -176,10 +176,10 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma zero P :
-{{fun s => P s }} MALInternal.Index.zero 
+{{fun s => P s }} getIdx0 
 {{fun (idx0 : index) (s : state) => P s  /\ idx0 = CIndex 0 }}.
 Proof.
-unfold MALInternal.Index.zero.
+unfold getIdx0.
 eapply WP.weaken.
 eapply WP.ret .
 intros. simpl.
@@ -187,7 +187,7 @@ intuition.
 Qed.
 
 Lemma succ (idx : index ) P :
-{{fun s => P s  /\ idx < tableSize - 1}} MALInternal.Index.succ idx 
+{{fun s => P s  /\ idx < tableSize - 1}} idxSuccM idx 
 {{fun (idxsuc : index) (s : state) => P s  /\ StateLib.Index.succ idx = Some idxsuc }}.
 Proof.
 eapply WP.weaken. 
@@ -206,7 +206,7 @@ subst. reflexivity.
 intuition. 
 Qed.
 Lemma pred (idx : index ) P :
-{{fun s => P s  /\ idx > 0}} MALInternal.Index.pred idx 
+{{fun s => P s  /\ idx > 0}} idxPredM idx 
 {{fun (idxpred : index) (s : state) => P s  /\ StateLib.Index.pred idx = Some idxpred }}.
 Proof.
 eapply WP.weaken. 
@@ -230,8 +230,8 @@ End Index.
 
 Module Level.
 Lemma gtb level1 level2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Level.gtb level1 level2 
-{{ fun b s => P s /\ b = StateLib.Level.gtb level1 level2}}.
+{{ fun s : state => P s }} levelGtM level1 level2 
+{{ fun b s => P s /\ b = levelGt level1 level2}}.
 Proof.
 eapply WP.weaken.
 eapply  WeakestPreconditions.Level.gtb.
@@ -239,7 +239,7 @@ intros. simpl. split;trivial.
 Qed.
 
 Lemma pred (level1 : level ) P :
-{{fun s => P s  /\ level1 > 0 }} MALInternal.Level.pred level1
+{{fun s => P s  /\ level1 > 0 }} levelPredM level1
 {{fun (levelpred : level) (s : state) => P s  /\ StateLib.Level.pred level1 = Some levelpred }}.
 Proof.
 eapply WP.weaken. 
@@ -259,8 +259,8 @@ intuition.
 Qed.
 
 Lemma eqb level1 level2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Level.eqb level1 level2 
-{{ fun b s => P s /\  b = StateLib.Level.eqb level1 level2 }}.
+{{ fun s : state => P s }} levelEqM level1 level2 
+{{ fun b s => P s /\  b = levelEq level1 level2 }}.
 Proof.
 eapply WP.weaken.
 eapply WeakestPreconditions.Level.eqb .
@@ -270,8 +270,8 @@ End Level.
 
 Module Page. 
 Lemma eqb page1 page2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.Page.eqb page1 page2 
-{{ fun b s => P s /\ b = StateLib.Page.eqb page1 page2}}.
+{{ fun s : state => P s }} pageEqM page1 page2 
+{{ fun b s => P s /\ b = pageEq page1 page2}}.
 Proof.
 eapply WP.weaken.
 eapply WP.Page.eqb .
@@ -281,8 +281,8 @@ End Page.
 
 Module VAddr. 
 Lemma eqbList vaddr1 vaddr2 (P : state -> Prop):
-{{ fun s : state => P s }} MALInternal.VAddr.eqbList vaddr1 vaddr2 
-{{ fun b s => P s /\ b = StateLib.VAddr.eqbList vaddr1 vaddr2}}.
+{{ fun s : state => P s }} vaddrEqM vaddr1 vaddr2 
+{{ fun b s => P s /\ b = vaddrEq vaddr1 vaddr2}}.
 Proof.
 eapply WP.weaken.
 eapply WP.VAddr.eqbList .
@@ -332,7 +332,7 @@ eapply WeakestPreconditions.readPhyEntry .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isPE, isEntryPage in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict Hpage.
 destruct v; try now contradict Hpage.
 eexists;repeat split;trivial.
 Qed.
@@ -346,17 +346,17 @@ eapply WP.readIndex .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isI, isIndexValue in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict Hpage.
 destruct v; try now contradict Hpage.
 eexists;repeat split;trivial.
 Qed.
 
 
 Lemma getDefaultPage P : 
-{{fun s => P s}} MALInternal.getDefaultPage 
-{{fun nullp s => P s /\ nullp = defaultPage}}.
+{{fun s => P s}} getPageDefault
+{{fun nullp s => P s /\ nullp = pageDefault}}.
 Proof.
-unfold MALInternal.getDefaultPage.
+unfold getPageDefault.
 eapply WP.weaken.
 eapply WP.ret .
 intros.
@@ -364,10 +364,10 @@ simpl. intuition.
 Qed.  
 
 Lemma getDefaultVAddr P : 
-{{fun s => P s}} MALInternal.getDefaultVAddr 
-{{fun nullv s => P s /\ nullv = defaultVAddr }}.
+{{fun s => P s}} getVaddrDefault 
+{{fun nullv s => P s /\ nullv = vaddrDefault }}.
 Proof.
-unfold MALInternal.getDefaultVAddr.
+unfold getVaddrDefault.
 eapply WP.weaken.
 eapply WP.ret .
 intros.
@@ -376,8 +376,8 @@ Qed.
 
 Lemma removeDupIdentity  (l :  list (paddr * value)) : 
 forall table1 idx1 table2 idx2 , table1 <> table2 \/ idx1 <> idx2 -> 
-lookup table1 idx1 (removeDup table2 idx2 l  beqPage beqIndex) beqPage beqIndex = 
-lookup table1 idx1 l beqPage beqIndex.
+lookup table1 idx1 (removeDup table2 idx2 l  pageEq idxEq) pageEq idxEq = 
+lookup table1 idx1 l pageEq idxEq.
 Proof.
 intros.
 induction l.
@@ -386,18 +386,18 @@ simpl.
 destruct a.
 destruct p.
 apply beqPairsFalse in H.
-+ case_eq (beqPairs (p, i) (table2, idx2) beqPage beqIndex).
++ case_eq (beqPairs (p, i) (table2, idx2) pageEq idxEq).
   - intros.
     unfold beqPairs in H0. cbn in H0.
-    case_eq (beqPage p table2 && beqIndex i idx2 ).
+    case_eq (pageEq p table2 && idxEq i idx2 ).
     * intros.
       rewrite H1 in H0.
-      unfold beqPage , beqIndex in H1.
+      unfold pageEq , idxEq in H1.
       apply andb_true_iff in H1.
       destruct H1.
       apply beq_nat_true in H1.
       apply beq_nat_true in H2.
-      assert (beqPairs (p, i) (table1, idx1) beqPage beqIndex = false).
+      assert (beqPairs (p, i) (table1, idx1) pageEq idxEq = false).
       { destruct p, i, table2, table1, idx2, idx1. simpl in *.
       subst.
       assert (Hp = Hp0). apply proof_irrelevance. subst. 
@@ -411,17 +411,17 @@ apply beqPairsFalse in H.
     * intros. rewrite H1 in H0.
       contradict H0. auto.
   - intros. simpl. 
-    case_eq (beqPairs (p, i) (table1, idx1) beqPage beqIndex).
+    case_eq (beqPairs (p, i) (table1, idx1) pageEq idxEq).
     intros. trivial.
     intros. assumption.   
 Qed.
 
 Lemma isPPLookupEq table idx res s:
-isPP' table idx res s -> lookup table idx (memory s) beqPage beqIndex = Some (PP res).
+isPP' table idx res s -> lookup table idx (memory s) pageEq idxEq = Some (PP res).
 Proof.
 intros.
 unfold isPP' in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict H.
 destruct v; try now contradict H.
 subst ;trivial.
 Qed.
@@ -446,17 +446,17 @@ Qed.
 
 Lemma comparePageToNull (page1 : page) (P : state -> Prop): 
 {{fun s => P s }} Internal.comparePageToNull page1 
-{{fun (isnull : bool) (s : state) => P s /\ (Nat.eqb defaultPage page1) = isnull }}. 
+{{fun (isnull : bool) (s : state) => P s /\ (Nat.eqb pageDefault page1) = isnull }}. 
 Proof.
 unfold Internal.comparePageToNull.
 eapply WP.bindRev.
-+ unfold MALInternal.getDefaultPage.
++ unfold getPageDefault.
   eapply WP.weaken.  
   eapply WP.ret . intros.  
-  instantiate (1:= fun nullP s => P s /\ defaultPage = nullP ).
+  instantiate (1:= fun nullP s => P s /\ pageDefault = nullP ).
   simpl.
   intuition.
-+ intro nullP. unfold MALInternal.Page.eqb. simpl.
++ intro nullP. unfold pageEqM. simpl.
   eapply WP.weaken. eapply WP.ret . intros. 
   simpl. intuition. subst. intuition.
 Qed.
@@ -478,18 +478,18 @@ Qed.
 
 Lemma isPELookupEq table idx s : 
 isPE table idx s -> exists entry : Pentry,
-  lookup table idx (memory s) beqPage beqIndex = Some (PE entry).
+  lookup table idx (memory s) pageEq idxEq = Some (PE entry).
 Proof.
 intros.  
 unfold isPE in H.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict H.
 destruct v; try now contradict H.
 eexists;repeat split;trivial.
 Qed.
 
 
 Lemma lookupEntryPresentFlag table idx s : 
-forall entry , lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
+forall entry , lookup table idx (memory s) pageEq idxEq = Some (PE entry) -> 
 entryPresentFlag table idx (present entry) s. 
 Proof.
 intros.
@@ -498,7 +498,7 @@ rewrite H;trivial.
 Qed.
 
 Lemma lookupEntryPDFlag table idx s : 
-forall entry , lookup table idx (memory s) beqPage beqIndex = Some (VE entry) -> 
+forall entry , lookup table idx (memory s) pageEq idxEq = Some (VE entry) -> 
 entryPDFlag table idx (pd entry) s. 
 Proof.
 intros.
@@ -521,7 +521,7 @@ apply lookupEntryPresentFlag;trivial.
 Qed.
 
 Lemma lookupEntryUserFlag table idx s : 
-forall entry , lookup table idx (memory s) beqPage beqIndex = Some (PE entry) -> 
+forall entry , lookup table idx (memory s) pageEq idxEq = Some (PE entry) -> 
 entryUserFlag table idx (user entry) s. 
 Proof.
 intros.
@@ -545,11 +545,11 @@ apply lookupEntryUserFlag;trivial.
 Qed.
 
 Lemma isVELookupEq table idx s : 
- isVE table idx s  -> exists entry ,lookup table idx (memory s) beqPage beqIndex = Some (VE entry) . 
+ isVE table idx s  -> exists entry ,lookup table idx (memory s) pageEq idxEq = Some (VE entry) . 
 Proof.
 intros.
 unfold isVE in H.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict H.
 destruct v; try now contradict H.
 eexists;repeat split;trivial.
 Qed.
@@ -563,7 +563,7 @@ eapply WP.readVirEntry .
 simpl. intros.
 destruct H as (H & Hva).
 unfold isVE, isEntryVA in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hva.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict Hva.
 destruct v; try now contradict Hva.
 eexists;repeat split;trivial.
 Qed.
@@ -571,34 +571,34 @@ Qed.
 Lemma compareVAddrToNull (va : vaddr) (P : state -> Prop): 
 {{fun s => P s }} compareVAddrToNull va 
 {{fun (isnull : bool) (s : state) => P s /\ 
-                                       (beqVAddr defaultVAddr va) = isnull }}. 
+                                       (vaddrEq vaddrDefault va) = isnull }}. 
 Proof.
 unfold compareVAddrToNull.
 eapply WP.bindRev.
-+ unfold MALInternal.getDefaultVAddr.
++ unfold getVaddrDefault.
   eapply WP.weaken.  
   eapply WP.ret . intros.  
-  instantiate (1:= fun nullVa s => P s /\ beqVAddr defaultVAddr nullVa = true ).
+  instantiate (1:= fun nullVa s => P s /\ vaddrEq vaddrDefault nullVa = true ).
   simpl.
   intuition.
-  unfold beqVAddr.
-  destruct defaultVAddr.
+  unfold vaddrEq.
+  destruct vaddrDefault.
   simpl.
   clear Hva. 
   induction va0. simpl. trivial.
   simpl. 
-  unfold beqIndex.
+  unfold idxEq.
   case_eq(Nat.eqb a a); intros.
   apply IHva0.
   apply beq_nat_false in H0. lia.
 + intro nullva. simpl.
-  unfold MALInternal.VAddr.eqbList. simpl.
+  unfold vaddrEqM. simpl.
   eapply WP.weaken. eapply WP.ret . intros. 
   simpl. intuition.
   f_equal.
-  unfold beqVAddr in *.
+  unfold vaddrEq in *.
    
-  destruct defaultVAddr , nullva.
+  destruct vaddrDefault , nullva.
   simpl in *.
   assert (va0 = va1).
   clear Hva Hva0.
@@ -614,9 +614,9 @@ eapply WP.bindRev.
   rewrite H in H1.
   now contradict H1.
   intros. subst.
-  case_eq( beqIndex a i ); intros;
+  case_eq( idxEq a i ); intros;
   rewrite H in H1.
-  unfold beqIndex in H.
+  unfold idxEq in H.
   apply beq_nat_true in H.
   f_equal; trivial. destruct i , a. simpl in *.
   subst.
@@ -630,7 +630,7 @@ Qed.
 
 Lemma checkDerivation (table : page) (idx : index) (P : state -> Prop) : 
 {{ fun s => P s /\ isVE table idx s }} checkDerivation table idx 
-{{ fun (isderived : bool) (s : state) => P s /\ exists va, isEntryVA table idx va s /\  beqVAddr defaultVAddr va = isderived }}.
+{{ fun (isderived : bool) (s : state) => P s /\ exists va, isEntryVA table idx va s /\  vaddrEq vaddrDefault va = isderived }}.
 Proof.
 unfold checkDerivation.
 eapply WP.bindRev.
@@ -660,15 +660,15 @@ forall flag, entryPresentFlag table idx flag s -> isPE table idx s .
 Proof.
 intros.
 unfold entryPresentFlag, isPE in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict H.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict H.
 destruct v; try now contradict H.
 eexists;repeat split;trivial.
 Qed.
 
 Lemma getPd (PR : page) (P : state -> Prop) :
-{{fun s => P s  /\ partitionDescriptorEntry s /\ In PR (getPartitions multiplexer s) }} 
+{{fun s => P s  /\ partitionDescriptorEntry s /\ In PR (getPartitions pageRootPartition s) }} 
                       Internal.getPd PR 
-{{fun (pd : page) (s : state) => P s /\ nextEntryIsPP PR PDidx pd s 
+{{fun (pd : page) (s : state) => P s /\ nextEntryIsPP PR idxPageDir pd s 
                                              }}.
 Proof.
 unfold Internal.getPd.
@@ -690,9 +690,9 @@ subst.
 unfold partitionDescriptorEntry in *.
 unfold currentPartitionInPartitionsList in *.
 generalize (Hdescr PR Hcurpart); clear Hdescr; intros Hdescr.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx 
-\/ PDidx = sh3idx \/ PDidx = PPRidx \/ PDidx = PRidx ) as Htmp by auto.
-generalize (Hdescr PDidx Htmp); clear Hdescr; intros H0.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 
+\/ idxPageDir = idxShadow3 \/ idxPageDir = idxParentDesc \/ idxPageDir = idxPartDesc ) as Htmp by auto.
+generalize (Hdescr idxPageDir Htmp); clear Hdescr; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -705,8 +705,8 @@ unfold partitionDescriptorEntry in Hcons.
 unfold currentPartitionInPartitionsList in *.
 generalize (Hcons PR Hcur); clear Hcons; intros Hcons.
 
-generalize (Hcons  PDidx); clear Hcons; intro Hpdtmp.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/ PDidx = sh3idx  \/ PDidx = PPRidx \/ PDidx = PRidx ) 
+generalize (Hcons  idxPageDir); clear Hcons; intro Hpdtmp.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/ idxPageDir = idxShadow3  \/ idxPageDir = idxParentDesc \/ idxPageDir = idxPartDesc ) 
 as Hpd by auto.
 apply Hpdtmp in Hpd.
 clear Hpdtmp. 
@@ -716,7 +716,7 @@ destruct Hpage as (page1 & Hpp & Hnotnul).
 exists page1.
 repeat split; try assumption.
 unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct (lookup PR idxsucc (memory s) pageEq idxEq); try now contradict Hpp.
 destruct v; try now contradict Hpp.
 rewrite Hpp; trivial.
 Qed.
@@ -730,7 +730,7 @@ eapply WeakestPreconditions.readPhysical .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isPP', isPP in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict Hpage.
 destruct v; try now contradict Hpage.
 eexists;repeat split;trivial.
 Qed.
@@ -744,7 +744,7 @@ eapply WeakestPreconditions.readVirtual .
 simpl. intros.
 destruct H as (H & Hpage).
 unfold isVA, isVA' in *.
-destruct (lookup table idx (memory s) beqPage beqIndex); try now contradict Hpage.
+destruct (lookup table idx (memory s) pageEq idxEq); try now contradict Hpage.
 destruct v; try now contradict Hpage.
 eexists;repeat split;trivial.
 Qed.
@@ -757,13 +757,13 @@ eapply WP.weaken.
 eapply WeakestPreconditions.readVirtualUser .
 simpl. intros.
 unfold isVAUser.
-destruct (lookup table idx (memory s) beqPage beqIndex);
+destruct (lookup table idx (memory s) pageEq idxEq);
 [destruct v|]; split;trivial.
 Qed.
 
 Lemma getSndShadow (PR : page) (P : state -> Prop) :
-{{fun s => P s  /\ partitionDescriptorEntry s /\ In PR (getPartitions multiplexer s) }} Internal.getSndShadow PR 
-{{fun (sh2 : page) (s : state) => P s /\ nextEntryIsPP PR sh2idx sh2 s }}.
+{{fun s => P s  /\ partitionDescriptorEntry s /\ In PR (getPartitions pageRootPartition s) }} Internal.getSndShadow PR 
+{{fun (sh2 : page) (s : state) => P s /\ nextEntryIsPP PR idxShadow2 sh2 s }}.
 Proof.
 unfold Internal.getSndShadow.
 eapply WP.bindRev.
@@ -783,9 +783,9 @@ subst.
 intuition. subst.
 unfold partitionDescriptorEntry in *.
 generalize (H0 PR H3); clear H0; intros H0.
-assert (sh2idx = PDidx \/ sh2idx = sh1idx \/ sh2idx = sh2idx \/ sh2idx = sh3idx 
-\/  sh2idx  = PPRidx \/  sh2idx  = PRidx ) as Htmp by auto.
-generalize (H0 sh2idx Htmp); clear H0; intros H0.
+assert (idxShadow2 = idxPageDir \/ idxShadow2 = idxShadow1 \/ idxShadow2 = idxShadow2 \/ idxShadow2 = idxShadow3 
+\/  idxShadow2  = idxParentDesc \/  idxShadow2  = idxPartDesc ) as Htmp by auto.
+generalize (H0 idxShadow2 Htmp); clear H0; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -796,9 +796,9 @@ destruct H as ( ((HP & Hcons & Hcur ) &Hidx) & Hidxsucc).
 subst.
 unfold partitionDescriptorEntry in Hcons.
 generalize (Hcons PR Hcur ); clear Hcons; intros Hcons.
-generalize (Hcons  sh2idx); clear Hcons; intro Hpdtmp.
-assert (sh2idx = PDidx \/ sh2idx = sh1idx \/ sh2idx = sh2idx \/ sh2idx = sh3idx \/  sh2idx  = PPRidx
- \/  sh2idx  = PRidx)  
+generalize (Hcons  idxShadow2); clear Hcons; intro Hpdtmp.
+assert (idxShadow2 = idxPageDir \/ idxShadow2 = idxShadow1 \/ idxShadow2 = idxShadow2 \/ idxShadow2 = idxShadow3 \/  idxShadow2  = idxParentDesc
+ \/  idxShadow2  = idxPartDesc)  
 as Hpd by auto.
 apply Hpdtmp in Hpd.
 clear Hpdtmp. 
@@ -809,14 +809,14 @@ subst. exists page1.
 unfold nextEntryIsPP in Hpp.
 repeat split; try assumption.
 unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct (lookup PR idxsucc (memory s) pageEq idxEq); try now contradict Hpp.
 destruct v; try now contradict Hpp.
 rewrite Hpp; trivial.
 Qed.
 
 Lemma getFstShadow (PR : page) (P : state -> Prop) :
 {{fun s => P s  /\ partitionDescriptorEntry s /\ currentPartitionInPartitionsList s /\  PR = currentPartition s}} Internal.getFstShadow PR 
-{{fun (sh1 : page) (s : state) => P s /\ nextEntryIsPP PR sh1idx sh1 s }}.
+{{fun (sh1 : page) (s : state) => P s /\ nextEntryIsPP PR idxShadow1 sh1 s }}.
 Proof.
 unfold Internal.getFstShadow.
 eapply WP.bindRev.
@@ -837,9 +837,9 @@ intuition. subst.
 unfold partitionDescriptorEntry in *.
 unfold currentPartitionInPartitionsList in *.
 generalize (H0 (currentPartition s) H2); clear H0; intros H0.
-assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/ sh1idx = sh3idx 
-\/  sh1idx  = PPRidx \/  sh1idx  = PRidx ) as Htmp by auto.
-generalize (H0 sh1idx Htmp); clear H0; intros H0.
+assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/ idxShadow1 = idxShadow3 
+\/  idxShadow1  = idxParentDesc \/  idxShadow1  = idxPartDesc ) as Htmp by auto.
+generalize (H0 idxShadow1 Htmp); clear H0; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -851,9 +851,9 @@ subst.
 unfold partitionDescriptorEntry in Hcons.
 unfold currentPartitionInPartitionsList in *.
 generalize (Hcons (currentPartition s) Hcur ); clear Hcons; intros Hcons.
-generalize (Hcons  sh1idx); clear Hcons; intro Hpdtmp.
-assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/ sh1idx = sh3idx
- \/  sh1idx  = PPRidx \/  sh1idx  = PRidx)  
+generalize (Hcons  idxShadow1); clear Hcons; intro Hpdtmp.
+assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/ idxShadow1 = idxShadow3
+ \/  idxShadow1  = idxParentDesc \/  idxShadow1  = idxPartDesc)  
 as Hpd by auto.
 apply Hpdtmp in Hpd.
 clear Hpdtmp. 
@@ -863,16 +863,16 @@ destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
 repeat split; try assumption.
 unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
-destruct (lookup (currentPartition s) idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct (lookup (currentPartition s) idxsucc (memory s) pageEq idxEq); try now contradict Hpp.
 destruct v; try now contradict Hpp.
 rewrite Hpp; trivial.
 Qed.
 
 Lemma getFstShadow1 (partition : page) (P : state -> Prop) :
 {{fun s => P s  /\ partitionDescriptorEntry s /\ 
-In partition (getPartitions multiplexer s)  }} 
+In partition (getPartitions pageRootPartition s)  }} 
 Internal.getFstShadow partition
-{{fun (sh1 : page) (s : state) => P s /\ nextEntryIsPP partition sh1idx sh1 s }}.
+{{fun (sh1 : page) (s : state) => P s /\ nextEntryIsPP partition idxShadow1 sh1 s }}.
 Proof.
 unfold Internal.getFstShadow.
 eapply WP.bindRev.
@@ -893,9 +893,9 @@ intuition. subst.
 unfold partitionDescriptorEntry in *.
 unfold currentPartitionInPartitionsList in *.
 generalize (H0 partition H3); clear H0; intros H0.
-assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/ sh1idx = sh3idx 
-\/  sh1idx  = PPRidx \/  sh1idx  = PRidx ) as Htmp by auto.
-generalize (H0 sh1idx Htmp); clear H0; intros H0.
+assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/ idxShadow1 = idxShadow3 
+\/  idxShadow1  = idxParentDesc \/  idxShadow1  = idxPartDesc ) as Htmp by auto.
+generalize (H0 idxShadow1 Htmp); clear H0; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -905,14 +905,14 @@ simpl. intros.
 destruct H as (((HP & Hpde & Hpr) &Hidx) & Hidxsucc).
 subst.
 unfold partitionDescriptorEntry in *.
-apply Hpde with partition sh1idx in Hpr.
+apply Hpde with partition idxShadow1 in Hpr.
 destruct Hpr as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
 split.
 unfold nextEntryIsPP in Hpp.
-destruct (StateLib.Index.succ sh1idx);inversion Hidxsucc;subst. 
-destruct (lookup partition idxsucc (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxShadow1);inversion Hidxsucc;subst. 
+destruct (lookup partition idxsucc (memory s) pageEq idxEq);
 try now contradict Hpp.
 destruct v ; try now contradict Hpp.
 destruct page1;destruct p;simpl in *. 
@@ -927,9 +927,9 @@ Qed.
 
 Lemma getConfigTablesLinkedList  (partition : page) (P : state -> Prop) :
 {{fun s => P s  /\ partitionDescriptorEntry s /\ 
-In partition (getPartitions multiplexer s)  }} 
+In partition (getPartitions pageRootPartition s)  }} 
 Internal.getConfigTablesLinkedList  partition
-{{fun (LL : page) (s : state) => P s /\ nextEntryIsPP partition sh3idx LL s }}.
+{{fun (LL : page) (s : state) => P s /\ nextEntryIsPP partition idxShadow3 LL s }}.
 Proof.
 unfold Internal.getConfigTablesLinkedList .
 eapply WP.bindRev.
@@ -950,9 +950,9 @@ intuition. subst.
 unfold partitionDescriptorEntry in *.
 unfold currentPartitionInPartitionsList in *.
 generalize (H0 partition H3); clear H0; intros H0.
-assert (sh3idx = PDidx \/ sh3idx = sh1idx \/ sh3idx = sh2idx \/ sh3idx = sh3idx 
-\/  sh3idx  = PPRidx \/  sh3idx  = PRidx ) as Htmp by auto.
-generalize (H0 sh3idx Htmp); clear H0; intros H0.
+assert (idxShadow3 = idxPageDir \/ idxShadow3 = idxShadow1 \/ idxShadow3 = idxShadow2 \/ idxShadow3 = idxShadow3 
+\/  idxShadow3  = idxParentDesc \/  idxShadow3  = idxPartDesc ) as Htmp by auto.
+generalize (H0 idxShadow3 Htmp); clear H0; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -962,14 +962,14 @@ simpl. intros.
 destruct H as (((HP & Hpde & Hpr) &Hidx) & Hidxsucc).
 subst.
 unfold partitionDescriptorEntry in *.
-apply Hpde with partition sh3idx in Hpr.
+apply Hpde with partition idxShadow3 in Hpr.
 destruct Hpr as (_ & Hva & Hpage).
 destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
 split.
 unfold nextEntryIsPP in Hpp.
-destruct (StateLib.Index.succ sh3idx);inversion Hidxsucc;subst. 
-destruct (lookup partition idxsucc (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxShadow3);inversion Hidxsucc;subst. 
+destruct (lookup partition idxsucc (memory s) pageEq idxEq);
 try now contradict Hpp.
 destruct v ; try now contradict Hpp.
 destruct page1;destruct p;simpl in *. 
@@ -985,7 +985,7 @@ Qed.
 
 Lemma checkKernelMap  (va: vaddr) (P : state -> Prop): 
 {{fun s => P s }} checkKernelMap va 
-{{fun isk s => P s /\ (Nat.eqb Kidx (nth (length va - (nbLevel - 1 + 2)) va defaultIndex) ) = isk}}.
+{{fun isk s => P s /\ (Nat.eqb idxKernel (nth (length va - (nbLevel - 1 + 2)) va idxDefault) ) = isk}}.
 Proof.
 unfold checkKernelMap.
 eapply WP.bindRev.
@@ -1070,7 +1070,7 @@ induction nbLevel;intros.
     split; intuition.
     rewrite <- H3, H4.
     subst.     
-    unfold StateLib.Index.eqb.
+    unfold idxEq.
     trivial.
   - (** MALInternal.Level.pred **) 
     eapply WP.bindRev.
@@ -1097,14 +1097,14 @@ induction nbLevel;intros.
     eapply WP.strengthen.
     generalize (IHn va1 va2 levelpred (fun s : state => ((((P s /\ StateLib.getIndexOfAddr va1 level1 = idx1) /\ 
     StateLib.getIndexOfAddr va2 level1 = idx2) /\
-     false = StateLib.Level.eqb level1 fstLevel) /\ StateLib.Level.pred level1 = Some levelpred) /\ 
-   true = StateLib.Index.eqb idx1 idx2 ) ); clear IHn; intros IHn.
+     false = levelEq level1 levelMin) /\ StateLib.Level.pred level1 = Some levelpred) /\ 
+   true = idxEq idx1 idx2 ) ); clear IHn; intros IHn.
     eapply IHn.
     simpl.
     intros; intuition. subst.
     rewrite <- H6.
     rewrite H5.
-    unfold StateLib.Index.eqb in H4.   
+    unfold idxEq in H4.   
     rewrite <- H4. trivial.
     eapply WP.weaken.
     eapply WP.ret .
@@ -1113,7 +1113,7 @@ induction nbLevel;intros.
     intuition.
     rewrite <- H5.
     rewrite H4. 
-    unfold StateLib.Index.eqb in H3.
+    unfold idxEq in H3.
     subst.
     rewrite <- H3; trivial.
 Qed.
@@ -1134,8 +1134,8 @@ apply lookupEntryPDFlag;trivial.
 Qed.
 
 Lemma getParent (PR : page) (P : state -> Prop) :
-{{fun s => P s /\ consistency s /\ In PR (getPartitions multiplexer s) }} Internal.getParent PR 
-{{fun (parent : page) (s : state) => P s /\ nextEntryIsPP PR PPRidx parent s }}.
+{{fun s => P s /\ consistency s /\ In PR (getPartitions pageRootPartition s) }} Internal.getParent PR 
+{{fun (parent : page) (s : state) => P s /\ nextEntryIsPP PR idxParentDesc parent s }}.
 Proof.
 unfold Internal.getParent.
 eapply WP.bindRev.
@@ -1158,10 +1158,10 @@ unfold partitionDescriptorEntry in *.
 unfold currentPartitionInPartitionsList in *.
 destruct H2. 
 generalize (H PR H3); clear H0; intros H0.
-assert (PPRidx = PDidx \/ PPRidx= sh1idx \/ PPRidx = sh2idx 
-\/ PPRidx = sh3idx \/ PPRidx = PPRidx \/ PPRidx = PRidx) as Htmp.
+assert (idxParentDesc = idxPageDir \/ idxParentDesc= idxShadow1 \/ idxParentDesc = idxShadow2 
+\/ idxParentDesc = idxShadow3 \/ idxParentDesc = idxParentDesc \/ idxParentDesc = idxPartDesc) as Htmp.
 right. right. right. right. left. auto.
-generalize (H0 PPRidx Htmp); clear H0; intros H0.
+generalize (H0 idxParentDesc Htmp); clear H0; intros H0.
 destruct H0; trivial.
 (** readPhysical **)
 intro idxsucc. simpl.
@@ -1176,9 +1176,9 @@ unfold currentPartitionInPartitionsList in *.
 destruct Hcons as (Hcons & _).
 
 generalize (Hcons PR Hpr ); clear Hcons; intros Hcons.
-generalize (Hcons  PPRidx); clear Hcons; intro Hpdtmp.
-assert (PPRidx = PDidx \/ PPRidx= sh1idx \/ PPRidx = sh2idx \/ 
-PPRidx = sh3idx \/ PPRidx = PPRidx \/ PPRidx = PRidx) as Hpd. 
+generalize (Hcons  idxParentDesc); clear Hcons; intro Hpdtmp.
+assert (idxParentDesc = idxPageDir \/ idxParentDesc= idxShadow1 \/ idxParentDesc = idxShadow2 \/ 
+idxParentDesc = idxShadow3 \/ idxParentDesc = idxParentDesc \/ idxParentDesc = idxPartDesc) as Hpd. 
 right. right. right. right. left. auto. 
 apply Hpdtmp in Hpd.
 clear Hpdtmp. 
@@ -1188,7 +1188,7 @@ destruct Hpage as (page1 & Hpp & Hnotnul).
 subst. exists page1.
 repeat split; try assumption.
 unfold nextEntryIsPP in Hpp; rewrite Hidxsucc in Hpp.
-destruct (lookup PR idxsucc (memory s) beqPage beqIndex); try now contradict Hpp.
+destruct (lookup PR idxsucc (memory s) pageEq idxEq); try now contradict Hpp.
 destruct v; try now contradict Hpp.
 rewrite Hpp; trivial.
 Qed.
@@ -1355,7 +1355,7 @@ Qed.
 
 Lemma getVaddrVIDT (P : state -> Prop) :
 {{ fun s => P s  }} Constants.getVaddrVIDT
-{{ fun val s => P s /\ val = vidtVAddr }}.
+{{ fun val s => P s /\ val = vaddrVIDT }}.
 Proof.
    eapply WP.weaken.
    eapply WP.getVaddrVIDT.

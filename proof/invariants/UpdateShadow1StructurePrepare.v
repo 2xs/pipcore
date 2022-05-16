@@ -49,8 +49,8 @@ Import Bool Coq.Logic.ProofIrrelevance List.
 Lemma newIndirectionsAreNotMappedAddDerivation s pt idx vaValue v0 part newIndirection: 
 let s':= {|
   currentPartition := currentPartition s;
-  memory := add pt idx (VE {| pd := false; va := vaValue |}) (memory s) beqPage beqIndex |} in 
-  lookup pt idx (memory s) beqPage beqIndex = Some (VE v0) -> 
+  memory := add pt idx (VE {| pd := false; va := vaValue |}) (memory s) pageEq idxEq |} in 
+  lookup pt idx (memory s) pageEq idxEq = Some (VE v0) -> 
 isPartitionFalse pt idx s -> 
  newIndirectionsAreNotMappedInChildren s part newIndirection -> 
  newIndirectionsAreNotMappedInChildren s' part newIndirection.
@@ -83,7 +83,7 @@ propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable 
        currentPart trdVA nextVA vaToPrepare sndVA fstVA nbLgen l false false false b1 b2 b3
         idxFstVA idxSndVA idxTrdVA zeroI minFI -> 
 propagatedPropertiesPrepare indMMUToPreparebool LLroot LLChildphy newLastLLable {|  currentPartition := currentPartition s;
-                                 memory := add ptSh1 idx (VE {| pd := false; va := vaValue |}) (memory s) beqPage beqIndex |}
+                                 memory := add ptSh1 idx (VE {| pd := false; va := vaValue |}) (memory s) pageEq idxEq |}
        ptMMUTrdVA phySh2addr phySh1addr indMMUToPrepare
        ptMMUFstVA phyMMUaddr lastLLTable phyPDChild currentShadow2 phySh2Child currentPD
        ptSh1TrdVA ptMMUSndVA ptSh1SndVA ptSh1FstVA currentShadow1 descChildphy phySh1Child
@@ -94,36 +94,36 @@ set (s':= {|currentPartition:= _ |}) in *.
 intros Hor Hispart Hprops.
 unfold propagatedPropertiesPrepare, indirectionDescriptionAll, 
 initPEntryTablePreconditionToPropagatePreparePropertiesAll, isPartitionFalseAll in *.  
-assert((Nat.eqb defaultPage ptMMU) = false 
-        /\ entryPresentFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s
+assert((Nat.eqb pageDefault ptMMU) = false 
+        /\ entryPresentFlag ptMMU (StateLib.getIndexOfAddr vaValue levelMin) true s
         (* /\ entryUserFlag ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) true s *)
-        /\ isEntryPage ptMMU (StateLib.getIndexOfAddr vaValue fstLevel) pg s
+        /\ isEntryPage ptMMU (StateLib.getIndexOfAddr vaValue levelMin) pg s
         /\ isPE ptMMU idx s
-        /\ getTableAddrRoot ptMMU PDidx (currentPartition s) vaValue s
-        /\ (Nat.eqb defaultPage ptSh1) = false
+        /\ getTableAddrRoot ptMMU idxPageDir (currentPartition s) vaValue s
+        /\ (Nat.eqb pageDefault ptSh1) = false
         /\ isVE ptSh1 idx s
-        /\ StateLib.getIndexOfAddr vaValue fstLevel = idx
-        /\ beqVAddr defaultVAddr vaValue = false
-        /\ (Nat.eqb defaultPage ptSh1) = false
-        /\ getTableAddrRoot ptSh1 sh1idx (currentPartition s) vaValue s 
+        /\ StateLib.getIndexOfAddr vaValue levelMin = idx
+        /\ vaddrEq vaddrDefault vaValue = false
+        /\ (Nat.eqb pageDefault ptSh1) = false
+        /\ getTableAddrRoot ptSh1 idxShadow1 (currentPartition s) vaValue s 
         /\ isPartitionFalse ptSh1 idx s 
         
 ) as (Hnotdef &Hpres (* &Huser *) & Hentryp & Hpe & Htblmmu & Hsh1notdef
 & Hve & Hidx  & Hvanotnull & Hptsh1notnull & Htblsh1 &Hreadflag).
 { unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure in *;intuition;subst;trivial. }
 assert(Hlookup :exists entry, 
- lookup ptSh1 idx (memory s) beqPage beqIndex = Some (VE entry)).
+ lookup ptSh1 idx (memory s) pageEq idxEq = Some (VE entry)).
 { assert(Hva : isVE ptSh1 idx s) by trivial.  
   unfold isVE in *.
  subst. 
  destruct(lookup ptSh1
-          (StateLib.getIndexOfAddr vaValue fstLevel) (memory s)
+          (StateLib.getIndexOfAddr vaValue levelMin) (memory s)
           );intros; try now contradict Hva.
  destruct v; try now contradict Hva.
  do 2 f_equal.
  exists v;trivial. }
  destruct Hlookup as(v0 & Hlookup).
-assert(Hpartitions: getPartitions multiplexer s' = getPartitions multiplexer s) by 
+assert(Hpartitions: getPartitions pageRootPartition s' = getPartitions pageRootPartition s) by 
 (apply getPartitionsAddDerivation with v0;trivial).
 assert(Hchildren: getChildren (currentPartition s) s' = getChildren (currentPartition s) s) by 
 (apply getChildrenAddDerivation with v0;trivial).
@@ -134,13 +134,13 @@ intuition;subst;trivial;simpl.
 + eapply consistencyUpdtateSh1Structure with (level:= nbLgen) (entry:=v0)
   (currentPD:=currentPD) (ptVaInCurPartpd:=ptMMU) (phyVaChild:=pg);intuition;unfold consistency in *;
   intuition.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr trdVA fstLevel) v0 isPE;trivial;intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr trdVA levelMin) v0 isPE;trivial;intros;split;
   subst;trivial.
 + apply isPEAddDerivation with v0;trivial.
 + unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure in *.
    assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA fstLevel) va s/\ 
-         beqVAddr defaultVAddr va = b3 ) by trivial.
+         isEntryVA ptSh1TrdVA (StateLib.getIndexOfAddr trdVA levelMin) va s/\ 
+         vaddrEq vaddrDefault va = b3 ) by trivial.
   destruct Hi as (va & Hva & Hderiv).
   destruct Hor as [Hor|[Hor|Hor]];
   intuition;subst.
@@ -148,7 +148,7 @@ intuition;subst;trivial;simpl.
     apply isEntryVAAddDerivation; trivial.
     eapply toApplyPageTablesOrIndicesAreDifferent with 
       trdVA  fstVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
     right;left; trivial.
     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
     intros;split;subst;trivial.
@@ -157,32 +157,32 @@ intuition;subst;trivial;simpl.
    apply isEntryVAAddDerivation; trivial.
    eapply toApplyPageTablesOrIndicesAreDifferent with 
     trdVA  sndVA (currentPartition s)
-    currentShadow1 sh1idx nbLgen isVE s ;trivial.
+    currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
    right;left; trivial.
    rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
    intros;split;subst;trivial.
    intros;split;subst;trivial.
   - exists trdVA;split;trivial.
     unfold isEntryVA. cbn.
-    assert(Hpairs :  beqPairs (ptSh1TrdVA,  StateLib.getIndexOfAddr trdVA fstLevel)
-      (ptSh1TrdVA,  StateLib.getIndexOfAddr trdVA fstLevel)
-    beqPage beqIndex = true). 
+    assert(Hpairs :  beqPairs (ptSh1TrdVA,  StateLib.getIndexOfAddr trdVA levelMin)
+      (ptSh1TrdVA,  StateLib.getIndexOfAddr trdVA levelMin)
+    pageEq idxEq = true). 
     apply beqPairsTrue;split;trivial.
     rewrite Hpairs.
     simpl;trivial.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr trdVA fstLevel) v0 isVE;trivial;intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr trdVA levelMin) v0 isVE;trivial;intros;split;
   subst;trivial.
 + apply isVEAddDerivation with v0; trivial.
 + apply isEntryPageAddDerivation with v0; trivial.
 + apply entryPresentFlagAddDerivation with v0; trivial.
 + apply entryUserFlagAddDerivation  with v0; trivial.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr sndVA fstLevel) v0 isPE;trivial; intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr sndVA levelMin) v0 isPE;trivial; intros;split;
   subst;trivial.
 + apply isPEAddDerivation  with v0; trivial.
 + unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure in *.
    assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA fstLevel) va s/\ 
-         beqVAddr defaultVAddr va = b2 ) by trivial.
+         isEntryVA ptSh1SndVA (StateLib.getIndexOfAddr sndVA levelMin) va s/\ 
+         vaddrEq vaddrDefault va = b2 ) by trivial.
   destruct Hi as (va & Hva & Hderiv).
   destruct Hor as [Hor|[Hor|Hor]];
   intuition;subst.
@@ -190,16 +190,16 @@ intuition;subst;trivial;simpl.
     apply isEntryVAAddDerivation; trivial.
     eapply toApplyPageTablesOrIndicesAreDifferent with 
       sndVA  fstVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
     right;left; trivial.
     rewrite checkVAddrsEqualityWOOffsetPermut;trivial.
     intros;split;subst;trivial.
     intros;split;subst;trivial.
   - exists sndVA;split;trivial.
     unfold isEntryVA. cbn.
-    assert(Hpairs :  beqPairs (ptSh1SndVA,  StateLib.getIndexOfAddr sndVA fstLevel)
-      (ptSh1SndVA,  StateLib.getIndexOfAddr sndVA fstLevel)
-    beqPage beqIndex = true). 
+    assert(Hpairs :  beqPairs (ptSh1SndVA,  StateLib.getIndexOfAddr sndVA levelMin)
+      (ptSh1SndVA,  StateLib.getIndexOfAddr sndVA levelMin)
+    pageEq idxEq = true). 
     apply beqPairsTrue;split;trivial.
     rewrite Hpairs.
     simpl;trivial.
@@ -207,25 +207,25 @@ intuition;subst;trivial;simpl.
     apply isEntryVAAddDerivation; trivial.
     eapply toApplyPageTablesOrIndicesAreDifferent with 
     sndVA trdVA (currentPartition s)
-    currentShadow1 sh1idx nbLgen isVE s ;trivial.
+    currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
     right;left; trivial.
     intros;split;subst;trivial.
     intros;split;subst;trivial.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr sndVA fstLevel) v0 isVE;trivial;intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr sndVA levelMin) v0 isVE;trivial;intros;split;
   subst;trivial.
 + apply isVEAddDerivation with v0; trivial.
 + unfold PCToGeneralizePropagatedPropertiesPrepareUpdateShadow1Structure in *.
    assert (Hi : exists va : vaddr,
-         isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA fstLevel) va s/\ 
-         beqVAddr defaultVAddr va = b1 ) by trivial.
+         isEntryVA ptSh1FstVA (StateLib.getIndexOfAddr fstVA levelMin) va s/\ 
+         vaddrEq vaddrDefault va = b1 ) by trivial.
   destruct Hi as (va & Hva & Hderiv).
   destruct Hor as [Hor|[Hor|Hor]];
   intuition;subst.
   - exists fstVA;split;trivial.
     unfold isEntryVA. cbn.
-    assert(Hpairs :  beqPairs (ptSh1FstVA,  StateLib.getIndexOfAddr fstVA fstLevel)
-      (ptSh1FstVA,  StateLib.getIndexOfAddr fstVA fstLevel)
-    beqPage beqIndex = true). 
+    assert(Hpairs :  beqPairs (ptSh1FstVA,  StateLib.getIndexOfAddr fstVA levelMin)
+      (ptSh1FstVA,  StateLib.getIndexOfAddr fstVA levelMin)
+    pageEq idxEq = true). 
     apply beqPairsTrue;split;trivial.
     rewrite Hpairs.
     simpl;trivial.  
@@ -233,7 +233,7 @@ intuition;subst;trivial;simpl.
     apply isEntryVAAddDerivation; trivial.
     eapply toApplyPageTablesOrIndicesAreDifferent with 
       fstVA sndVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
     right;left; trivial.
     intros;split;subst;trivial.
     intros;split;subst;trivial.    
@@ -241,17 +241,17 @@ intuition;subst;trivial;simpl.
     apply isEntryVAAddDerivation; trivial.
     eapply toApplyPageTablesOrIndicesAreDifferent with 
     fstVA trdVA (currentPartition s)
-    currentShadow1 sh1idx nbLgen isVE s ;trivial.
+    currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
     right;left; trivial.
     intros;split;subst;trivial.
     intros;split;subst;trivial.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr fstVA fstLevel) v0 isVE;trivial;intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr fstVA levelMin) v0 isVE;trivial;intros;split;
   subst;trivial.
 + apply isVEAddDerivation with v0; trivial.
 + apply isEntryPageAddDerivation with v0; trivial.
 + apply entryPresentFlagAddDerivation with v0; trivial.
 + apply entryUserFlagAddDerivation  with v0; trivial.
-+ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr fstVA fstLevel) v0 isPE;trivial;intros;split;
++ apply getTableRootAddDerivation with  (StateLib.getIndexOfAddr fstVA levelMin) v0 isPE;trivial;intros;split;
   subst;trivial.
 + apply isPEAddDerivation with v0; trivial.
 + apply entryUserFlagAddDerivation  with v0; trivial.
@@ -313,12 +313,12 @@ eapply weaken.
 eapply WP.writeVirEntry.
 simpl;intros.
 assert(Hlookup :exists entry, 
- lookup ptSh1FstVA idxFstVA (memory s) beqPage beqIndex = Some (VE entry)).
+ lookup ptSh1FstVA idxFstVA (memory s) pageEq idxEq = Some (VE entry)).
 { assert(Hva : isVE ptSh1FstVA idxFstVA s) by 
 (unfold propagatedPropertiesPrepare in *;intuition;subst;trivial).  
   unfold isVE in *.
  subst. 
- destruct( lookup ptSh1FstVA idxFstVA (memory s) beqPage beqIndex
+ destruct( lookup ptSh1FstVA idxFstVA (memory s) pageEq idxEq
           );intros; try now contradict Hva.
  destruct v; try now contradict Hva.
  do 2 f_equal.
@@ -348,7 +348,7 @@ intuition.
 + unfold newIndirectionsAreNotMappedInChildrenAll in *.
   intuition ;apply newIndirectionsAreNotMappedAddDerivation with v0;trivial.  
 + unfold isEntryVA;cbn.
-  assert(Htrue : beqPairs (ptSh1FstVA, idxFstVA) (ptSh1FstVA, idxFstVA) beqPage beqIndex
+  assert(Htrue : beqPairs (ptSh1FstVA, idxFstVA) (ptSh1FstVA, idxFstVA) pageEq idxEq
     = true).
   { apply beqPairsTrue.
     split; trivial. }
@@ -392,12 +392,12 @@ eapply weaken.
 eapply WP.writeVirEntry.
 simpl;intros.
 assert(Hlookup :exists entry, 
- lookup ptSh1SndVA idxSndVA  (memory s) beqPage beqIndex = Some (VE entry)).
+ lookup ptSh1SndVA idxSndVA  (memory s) pageEq idxEq = Some (VE entry)).
 { assert(Hva : isVE ptSh1SndVA idxSndVA  s) by 
 (unfold propagatedPropertiesPrepare in *;intuition;subst;trivial).  
   unfold isVE in *.
  subst. 
- destruct( lookup  ptSh1SndVA idxSndVA (memory s) beqPage beqIndex
+ destruct( lookup  ptSh1SndVA idxSndVA (memory s) pageEq idxEq
           );intros; try now contradict Hva.
  destruct v; try now contradict Hva.
  do 2 f_equal.
@@ -429,13 +429,13 @@ intuition.
   apply isEntryVAAddDerivation;trivial.  
   apply toApplyPageTablesOrIndicesAreDifferent with fstVA
       sndVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
       right;left; trivial.
   intros;subst;split;trivial.      
   intros;subst;split;trivial.
 + unfold isEntryVA.
   cbn.
-  assert(Htrue : beqPairs (ptSh1SndVA, idxSndVA) (ptSh1SndVA, idxSndVA) beqPage beqIndex
+  assert(Htrue : beqPairs (ptSh1SndVA, idxSndVA) (ptSh1SndVA, idxSndVA) pageEq idxEq
     = true).
   { apply beqPairsTrue.
     split; trivial. }
@@ -479,12 +479,12 @@ eapply weaken.
 eapply WP.writeVirEntry.
 simpl;intros.
 assert(Hlookup :exists entry, 
- lookup ptSh1TrdVA idxTrdVA  (memory s) beqPage beqIndex = Some (VE entry)).
+ lookup ptSh1TrdVA idxTrdVA  (memory s) pageEq idxEq = Some (VE entry)).
 { assert(Hva : isVE ptSh1TrdVA idxTrdVA  s) by 
 (unfold propagatedPropertiesPrepare in *;intuition;subst;trivial).  
   unfold isVE in *.
  subst. 
- destruct( lookup  ptSh1TrdVA idxTrdVA (memory s) beqPage beqIndex
+ destruct( lookup  ptSh1TrdVA idxTrdVA (memory s) pageEq idxEq
           );intros; try now contradict Hva.
  destruct v; try now contradict Hva.
  do 2 f_equal.
@@ -514,7 +514,7 @@ intuition.
   apply isEntryVAAddDerivation;trivial.  
   apply toApplyPageTablesOrIndicesAreDifferent with fstVA
       trdVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
       right;left; trivial.
   intros;subst;split;trivial.      
   intros;subst;split;trivial.
@@ -523,13 +523,13 @@ intuition.
   apply isEntryVAAddDerivation;trivial.  
   apply toApplyPageTablesOrIndicesAreDifferent with sndVA
       trdVA (currentPartition s)
-      currentShadow1 sh1idx nbLgen isVE s ;trivial.
+      currentShadow1 idxShadow1 nbLgen isVE s ;trivial.
       right;left; trivial.
   intros;subst;split;trivial.      
   intros;subst;split;trivial.
 + unfold isEntryVA.
   cbn.
-  assert(Htrue : beqPairs (ptSh1TrdVA, idxTrdVA) (ptSh1TrdVA, idxTrdVA) beqPage beqIndex
+  assert(Htrue : beqPairs (ptSh1TrdVA, idxTrdVA) (ptSh1TrdVA, idxTrdVA) pageEq idxEq
     = true).
   { apply beqPairsTrue.
     split; trivial. }

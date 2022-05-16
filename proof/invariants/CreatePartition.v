@@ -84,8 +84,8 @@ Lemma mapKernel  table idx (P : unit -> state -> Prop) :
 {{fun  s => P tt {|
   currentPartition := currentPartition s;
   memory := add table idx
-              (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPage |})
-              (memory s) beqPage beqIndex |} }} MAL.writePhyEntry table idx defaultPage false false false false false {{P}}.
+              (PE {| read := false; write := false; exec := false; present := false; user := false; pa := pageDefault |})
+              (memory s) pageEq idxEq |} }} MAL.writePhyEntry table idx pageDefault false false false false false {{P}}.
 Proof.
 unfold mapKernel.
 eapply weaken.
@@ -100,7 +100,7 @@ createPartition descChild pdChild shadow1 shadow2 list
 {{fun _ s  => partitionsIsolation s  /\ kernelDataIsolation s /\ verticalSharing s /\ consistency s }}.
 Proof.
 unfold createPartition.
-case_eq(beqVAddr defaultVAddr descChild);
+case_eq(vaddrEq vaddrDefault descChild);
 intros HdescChildDefault.
 eapply weaken.
 eapply WP.ret.
@@ -206,12 +206,12 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *.
       intuition . 
       instantiate (1:= currentPart). subst. assumption.
-      instantiate (1:= PDidx).
+      instantiate (1:= idxPageDir).
       split. intuition.
       assert(consistency s /\
               Some level = StateLib.getNbLevel /\ 
               currentPart = currentPartition s /\ 
-              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+              nextEntryIsPP currentPart idxPageDir currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
       by intuition.
       clear H.     (* 
       destruct H as ( _ & _ & _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & 
@@ -227,14 +227,14 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *.
       subst.
       generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.     
-      assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx\/ PDidx = sh3idx \/ PDidx = PPRidx  \/ PDidx = PRidx ) as Htmp 
+      assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2\/ idxPageDir = idxShadow3 \/ idxPageDir = idxParentDesc  \/ idxPageDir = idxPartDesc ) as Htmp 
       by auto.
-      generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxPageDir Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxPageDir); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); [|now contradict Hrootpd];
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. 
@@ -247,10 +247,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert( (getTableAddrRoot' ptRefChild PDidx currentPart descChild s /\   ptRefChild = defaultPage) \/
+      assert( (getTableAddrRoot' ptRefChild idxPageDir currentPart descChild s /\   ptRefChild = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr descChild fstLevel = idx ->
-      isPE ptRefChild idx s /\ getTableAddrRoot ptRefChild PDidx currentPart descChild s)).
+      StateLib.getIndexOfAddr descChild levelMin = idx ->
+      isPE ptRefChild idx s /\ getTableAddrRoot ptRefChild idxPageDir currentPart descChild s)).
       { 
       destruct H1 as [H1 |H1].
       + left. trivial. 
@@ -300,7 +300,7 @@ eapply WP.bindRev.
          subst.
          destruct H as (H & Hidx).
          assert (forall idx : index,
-         StateLib.getIndexOfAddr descChild fstLevel = idx -> isPE ptRefChild idx s/\ getTableAddrRoot ptRefChild PDidx currentPart descChild s).  
+         StateLib.getIndexOfAddr descChild levelMin = idx -> isPE ptRefChild idx s/\ getTableAddrRoot ptRefChild idxPageDir currentPart descChild s).  
          intuition.
          apply H0 in Hidx. destruct Hidx. assumption.
        }
@@ -334,12 +334,12 @@ eapply WP.bindRev.
       instantiate (1:= currentPart).
       intuition. subst. unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. intuition.
-      instantiate (1:= PDidx).
+      instantiate (1:= idxPageDir).
       split. intuition.
       assert(consistency s /\
               Some level = StateLib.getNbLevel /\ 
               currentPart = currentPartition s /\ 
-              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+              nextEntryIsPP currentPart idxPageDir currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
       by intuition.
       clear H.  
       exists currentPD.
@@ -352,14 +352,14 @@ eapply WP.bindRev.
       unfold currentPartitionInPartitionsList in *.
       subst.
       generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.     
-      assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/PDidx = sh3idx \/ PDidx = PPRidx  \/ PDidx = PRidx ) as Htmp 
+      assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/idxPageDir = idxShadow3 \/ idxPageDir = idxParentDesc  \/ idxPageDir = idxPartDesc ) as Htmp 
       by auto.
-      generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxPageDir Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxPageDir); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); [|now contradict Hrootpd];
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;trivial.
@@ -370,10 +370,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert( (getTableAddrRoot'  ptPDChild PDidx currentPart pdChild s /\    ptPDChild = defaultPage) \/
+      assert( (getTableAddrRoot'  ptPDChild idxPageDir currentPart pdChild s /\    ptPDChild = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-      isPE  ptPDChild idx s /\ getTableAddrRoot ptPDChild  PDidx currentPart pdChild s)).
+      StateLib.getIndexOfAddr pdChild levelMin = idx ->
+      isPE  ptPDChild idx s /\ getTableAddrRoot ptPDChild  idxPageDir currentPart pdChild s)).
       { 
       destruct H1 as [H1 |H1].
       + left. trivial. 
@@ -426,8 +426,8 @@ eapply WP.bindRev.
          subst.
          destruct H as (H & Hidx).
          assert (forall idx : index,
-         StateLib.getIndexOfAddr pdChild fstLevel = idx -> isPE ptPDChild idx s
-         /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s).  
+         StateLib.getIndexOfAddr pdChild levelMin = idx -> isPE ptPDChild idx s
+         /\ getTableAddrRoot ptPDChild idxPageDir currentPart pdChild s).  
          { intuition. }
          
          apply H0 in Hidx. destruct Hidx; assumption.
@@ -464,12 +464,12 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= PDidx).
+      instantiate (1:= idxPageDir).
       split. intuition.
       assert(consistency s /\
               Some level = StateLib.getNbLevel /\ 
               currentPart = currentPartition s /\ 
-              nextEntryIsPP currentPart PDidx currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
+              nextEntryIsPP currentPart idxPageDir currentPD s) as (Hcons & Hlevel & Hcp & Hrootpd)
       by intuition.
       clear H. 
       exists currentPD.
@@ -480,16 +480,16 @@ eapply WP.bindRev.
       by intuition. clear Hcons. 
 
       unfold partitionDescriptorEntry in Hpd.
-      assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx\/PDidx = sh3idx\/ PDidx = PPRidx \/ PDidx = PRidx ) as Htmp
+      assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2\/idxPageDir = idxShadow3\/ idxPageDir = idxParentDesc \/ idxPageDir = idxPartDesc ) as Htmp
           by auto.
       subst.
       generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.     
-       generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+       generalize (Hpd idxPageDir Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxPageDir); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); [|now contradict Hrootpd];
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -501,11 +501,11 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert(( getTableAddrRoot' ptSh1Child PDidx currentPart shadow1 s /\  ptSh1Child = defaultPage) \/
+      assert(( getTableAddrRoot' ptSh1Child idxPageDir currentPart shadow1 s /\  ptSh1Child = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+      StateLib.getIndexOfAddr shadow1 levelMin = idx ->
       isPE ptSh1Child idx s/\
-     getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s)).
+     getTableAddrRoot ptSh1Child idxPageDir currentPart shadow1 s)).
       {
       destruct H1 as [H1 |(Hnew & Hi & H1)].
       + left. trivial. 
@@ -553,8 +553,8 @@ eapply WP.bindRev.
          subst.
          destruct H as (H & Hidx).
          assert (forall idx : index,
-         StateLib.getIndexOfAddr shadow1 fstLevel = idx -> isPE ptSh1Child idx s /\
-     getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s).  
+         StateLib.getIndexOfAddr shadow1 levelMin = idx -> isPE ptSh1Child idx s /\
+     getTableAddrRoot ptSh1Child idxPageDir currentPart shadow1 s).  
          { intuition. }
          
          apply H0 in Hidx. destruct Hidx; assumption.
@@ -593,7 +593,7 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= PDidx).
+      instantiate (1:= idxPageDir).
       split. intuition.
       
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & 
@@ -604,16 +604,16 @@ eapply WP.bindRev.
       unfold consistency in *.
              destruct Hcons as (Hpd & _ & _ &_  & Hpr  & _). 
       unfold partitionDescriptorEntry in Hpd.
-       assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx\/PDidx = sh3idx\/ PDidx = PPRidx \/ PDidx = PRidx ) as Htmp 
+       assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2\/idxPageDir = idxShadow3\/ idxPageDir = idxParentDesc \/ idxPageDir = idxPartDesc ) as Htmp 
           by auto.
           subst.
       generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxPageDir Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry).
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxPageDir); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); [|now contradict Hrootpd];
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -624,11 +624,11 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert( ( getTableAddrRoot' ptSh2Child PDidx currentPart shadow2 s /\ ptSh2Child = defaultPage) \/
+      assert( ( getTableAddrRoot' ptSh2Child idxPageDir currentPart shadow2 s /\ ptSh2Child = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+      StateLib.getIndexOfAddr shadow2 levelMin = idx ->
       isPE ptSh2Child idx s/\
-     getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s)).
+     getTableAddrRoot ptSh2Child idxPageDir currentPart shadow2 s)).
       {
       destruct H1 as [H1 |(Hi  & Hnew & H1)].
       + left. trivial. 
@@ -676,8 +676,8 @@ eapply WP.bindRev.
          subst.
          destruct H as (H & Hidx).
          assert (forall idx : index,
-         StateLib.getIndexOfAddr shadow2 fstLevel = idx -> isPE ptSh2Child idx s /\
-     getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s).  
+         StateLib.getIndexOfAddr shadow2 levelMin = idx -> isPE ptSh2Child idx s /\
+     getTableAddrRoot ptSh2Child idxPageDir currentPart shadow2 s).  
          { intuition. }
          
          apply H0 in Hidx. destruct Hidx;assumption.
@@ -714,7 +714,7 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= PDidx).
+      instantiate (1:= idxPageDir).
       split. intuition.
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
 
@@ -724,16 +724,16 @@ eapply WP.bindRev.
       unfold consistency in *.
       destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx\/ PDidx = sh3idx
-       \/ PDidx = PPRidx \/ PDidx = PRidx) as Htmp 
+      assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2\/ idxPageDir = idxShadow3
+       \/ idxPageDir = idxParentDesc \/ idxPageDir = idxPartDesc) as Htmp 
       by auto.
             generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd PDidx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxPageDir Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
-      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ PDidx); [|now contradict Hrootpd];
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex); [|now contradict Hrootpd];
+      unfold nextEntryIsPP in *; destruct (StateLib.Index.succ idxPageDir); [|now contradict Hrootpd];
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq); [|now contradict Hrootpd];
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -744,10 +744,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-       assert( ( getTableAddrRoot' ptConfigPagesList PDidx currentPart list s /\ ptConfigPagesList = defaultPage) \/
+       assert( ( getTableAddrRoot' ptConfigPagesList idxPageDir currentPart list s /\ ptConfigPagesList = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s)).
+      StateLib.getIndexOfAddr list levelMin = idx ->
+      isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList idxPageDir currentPart list s)).
       {
       destruct H1 as [H1 |(Hi & Hi1 &H1)].
       + left. trivial. 
@@ -795,7 +795,7 @@ eapply WP.bindRev.
          subst.
          destruct H as (H & Hidx).
          assert (forall idx : index,
-         StateLib.getIndexOfAddr list fstLevel = idx -> isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList PDidx currentPart list s).  
+         StateLib.getIndexOfAddr list levelMin = idx -> isPE ptConfigPagesList idx s /\ getTableAddrRoot ptConfigPagesList idxPageDir currentPart list s).  
          { intuition. }
          
          apply H0 in Hidx. destruct Hidx;assumption.
@@ -852,32 +852,32 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= sh1idx).
+      instantiate (1:= idxShadow1).
       split. intuition. (*
       destruct H as ( (_ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& 
       _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H) & H0). *)
       assert(Hcons : consistency s) by intuition.
       assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
-      assert (Hrootpd : nextEntryIsPP currentPart PDidx currentPD s) by intuition.
+      assert (Hrootpd : nextEntryIsPP currentPart idxPageDir currentPD s) by intuition.
       assert(Hcp : currentPart = currentPartition s) by intuition.
-      assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+      assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
       exists currentShadow1.
       split. intuition.
       unfold consistency in *.
       destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx 
-      \/  sh1idx  = sh3idx \/ sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+      assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 
+      \/  idxShadow1  = idxShadow3 \/ idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
       by auto.
           generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
       split.
       unfold nextEntryIsPP in *. 
-      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct (StateLib.Index.succ idxShadow1); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hrootpd.
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -889,10 +889,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert ( (getTableAddrRoot' ptRefChildFromSh1 sh1idx currentPart descChild s /\ ptRefChildFromSh1 = defaultPage) \/
+      assert ( (getTableAddrRoot' ptRefChildFromSh1 idxShadow1 currentPart descChild s /\ ptRefChildFromSh1 = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr descChild fstLevel = idx ->
-      isVE ptRefChildFromSh1 idx s /\  getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s)).
+      StateLib.getIndexOfAddr descChild levelMin = idx ->
+      isVE ptRefChildFromSh1 idx s /\  getTableAddrRoot ptRefChildFromSh1 idxShadow1 currentPart descChild s)).
       { destruct H1 as [H1 |(Hi & Hi1 & H1 )].
       + left. trivial. 
       + right. intros idx Hidx.
@@ -928,7 +928,7 @@ eapply WP.bindRev.
           split.
           eapply HP. 
           subst.
-          assert ( StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) as Hidxchild.
+          assert ( StateLib.getIndexOfAddr descChild levelMin = idxRefChild) as Hidxchild.
           intuition.
           apply Hptchild in Hidxchild. destruct Hidxchild; assumption. }
       simpl. intros derivedRefChild.
@@ -952,13 +952,13 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= sh1idx).
+      instantiate (1:= idxShadow1).
       split. intuition.
       assert(Hcons : consistency s) by intuition.
       assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
-      assert (Hrootpd : nextEntryIsPP currentPart PDidx currentPD s) by intuition.
+      assert (Hrootpd : nextEntryIsPP currentPart idxPageDir currentPD s) by intuition.
       assert(Hcp : currentPart = currentPartition s) by intuition.
-      assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+      assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
       (*
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
       assert (nextEntryIsPP currentPart sh1idx currentShadow1 s ). intuition. *)
@@ -968,18 +968,18 @@ eapply WP.bindRev.
 
         destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/  sh1idx  = sh3idx
-      \/  sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+      assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/  idxShadow1  = idxShadow3
+      \/  idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
       by auto.
           generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
       split.
       unfold nextEntryIsPP in *. 
-      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct (StateLib.Index.succ idxShadow1); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hrootpd.
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -991,11 +991,11 @@ eapply WP.bindRev.
       intros.
       destruct H as (H0 & H1).
           
-      assert (  (getTableAddrRoot' ptPDChildSh1 sh1idx currentPart pdChild s /\ ptPDChildSh1 = defaultPage) \/
+      assert (  (getTableAddrRoot' ptPDChildSh1 idxShadow1 currentPart pdChild s /\ ptPDChildSh1 = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+      StateLib.getIndexOfAddr pdChild levelMin = idx ->
       isVE ptPDChildSh1 idx s /\
-     getTableAddrRoot ptPDChildSh1 sh1idx currentPart pdChild s )).
+     getTableAddrRoot ptPDChildSh1 idxShadow1 currentPart pdChild s )).
       { destruct H1 as [H1 |( Hi & Hi1  &H1 )].
       + left. trivial. 
       + right. intros idx Hidx.
@@ -1033,7 +1033,7 @@ eapply WP.bindRev.
           split.
           eapply HP. 
           subst.
-          assert ( StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild) as Hidxchild.
+          assert ( StateLib.getIndexOfAddr pdChild levelMin = idxPDChild) as Hidxchild.
           intuition. 
           apply Hptchild in Hidxchild. destruct Hidxchild;assumption. }
       simpl. intros derivedPDChild.
@@ -1057,13 +1057,13 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= sh1idx).
+      instantiate (1:= idxShadow1).
       split. intuition.
       assert(Hcons : consistency s) by intuition.
       assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
-      assert (Hrootpd : nextEntryIsPP currentPart PDidx currentPD s) by intuition.
+      assert (Hrootpd : nextEntryIsPP currentPart idxPageDir currentPD s) by intuition.
       assert(Hcp : currentPart = currentPartition s) by intuition.
-      assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+      assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
       (*
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ & _ 
       & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
@@ -1073,18 +1073,18 @@ eapply WP.bindRev.
       unfold consistency in *.
         destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/  sh1idx  = sh3idx
-      \/  sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+      assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/  idxShadow1  = idxShadow3
+      \/  idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
       by auto.
           generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
       split.
       unfold nextEntryIsPP in *. 
-      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct (StateLib.Index.succ idxShadow1); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hrootpd.
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -1095,10 +1095,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert ( (getTableAddrRoot' ptSh1ChildFromSh1 sh1idx currentPart shadow1 s /\  ptSh1ChildFromSh1 = defaultPage) \/
+      assert ( (getTableAddrRoot' ptSh1ChildFromSh1 idxShadow1 currentPart shadow1 s /\  ptSh1ChildFromSh1 = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-      isVE ptSh1ChildFromSh1 idx s /\ getTableAddrRoot ptSh1ChildFromSh1 sh1idx currentPart shadow1 s)).
+      StateLib.getIndexOfAddr shadow1 levelMin = idx ->
+      isVE ptSh1ChildFromSh1 idx s /\ getTableAddrRoot ptSh1ChildFromSh1 idxShadow1 currentPart shadow1 s)).
       { destruct H1 as [H1 |(Hi & Hi1 &H1)].
       + left. trivial. 
       + right. intros idx Hidx.
@@ -1136,7 +1136,7 @@ eapply WP.bindRev.
           split.
           eapply HP. 
           subst.
-          assert ( StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1) as Hidxchild.
+          assert ( StateLib.getIndexOfAddr shadow1 levelMin = idxSh1) as Hidxchild.
           intuition.
           apply Hptchild in Hidxchild. destruct Hidxchild.
           assumption. }
@@ -1161,13 +1161,13 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= sh1idx).
+      instantiate (1:= idxShadow1).
       split. intuition.
       assert(Hcons : consistency s) by intuition.
       assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
-      assert (Hrootpd : nextEntryIsPP currentPart PDidx currentPD s) by intuition.
+      assert (Hrootpd : nextEntryIsPP currentPart idxPageDir currentPD s) by intuition.
       assert(Hcp : currentPart = currentPartition s) by intuition.
-      assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+      assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
       (*
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& _ & _ 
       & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H).
@@ -1177,18 +1177,18 @@ eapply WP.bindRev.
       unfold consistency in *.
               destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/  sh1idx  = sh3idx
-      \/  sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+      assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/  idxShadow1  = idxShadow3
+      \/  idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
       by auto.
           generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
       split.
       unfold nextEntryIsPP in *. 
-      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct (StateLib.Index.succ idxShadow1); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hrootpd.
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -1199,10 +1199,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert (  (getTableAddrRoot' childSh2 sh1idx currentPart shadow2 s /\ childSh2 = defaultPage) \/
+      assert (  (getTableAddrRoot' childSh2 idxShadow1 currentPart shadow2 s /\ childSh2 = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
-      isVE childSh2 idx s /\ getTableAddrRoot childSh2 sh1idx currentPart shadow2 s )).
+      StateLib.getIndexOfAddr shadow2 levelMin = idx ->
+      isVE childSh2 idx s /\ getTableAddrRoot childSh2 idxShadow1 currentPart shadow2 s )).
       { destruct H1 as [H1 |(Hi & Hi1 &H1)].
       + left. trivial. 
       + right. intros idx Hidx.
@@ -1240,7 +1240,7 @@ eapply WP.bindRev.
           split.
           eapply HP. 
           subst.
-          assert ( StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2) as Hidxchild.
+          assert ( StateLib.getIndexOfAddr shadow2 levelMin = idxSh2) as Hidxchild.
           intuition. 
           apply Hptchild in Hidxchild. destruct Hidxchild; assumption. }
       simpl. intros derivedSh2Child.
@@ -1266,13 +1266,13 @@ eapply WP.bindRev.
       unfold consistency in *. 
       unfold  currentPartitionInPartitionsList in *. 
       intuition.
-      instantiate (1:= sh1idx).
+      instantiate (1:= idxShadow1).
       split. intuition.
       assert(Hcons : consistency s) by intuition.
       assert(Hlevel : Some level = StateLib.getNbLevel) by intuition. 
-      assert (Hrootpd : nextEntryIsPP currentPart PDidx currentPD s) by intuition.
+      assert (Hrootpd : nextEntryIsPP currentPart idxPageDir currentPD s) by intuition.
       assert(Hcp : currentPart = currentPartition s) by intuition.
-      assert (H0 : nextEntryIsPP currentPart sh1idx currentShadow1 s) by intuition.
+      assert (H0 : nextEntryIsPP currentPart idxShadow1 currentShadow1 s) by intuition.
       (*
       destruct H as ( _ & _& _ & Hcons & Hlevel  & _ & _ & _ &_ & _& 
       _ & _ & _ & _ &_ & _ & _ & _ &_ & _& Hcp & Hrootpd & H ).
@@ -1283,18 +1283,18 @@ eapply WP.bindRev.
       
               destruct Hcons as (Hpd & _ & _ &_  & Hpr & _). 
       unfold partitionDescriptorEntry in Hpd.
-      assert (sh1idx = PDidx \/ sh1idx = sh1idx \/ sh1idx = sh2idx \/  sh1idx  = sh3idx
-      \/  sh1idx  = PPRidx \/  sh1idx = PRidx) as Htmp 
+      assert (idxShadow1 = idxPageDir \/ idxShadow1 = idxShadow1 \/ idxShadow1 = idxShadow2 \/  idxShadow1  = idxShadow3
+      \/  idxShadow1  = idxParentDesc \/  idxShadow1 = idxPartDesc) as Htmp 
       by auto.
           generalize (Hpd  (currentPartition s)  Hpr); clear Hpd; intros Hpd.
-      generalize (Hpd sh1idx Htmp); clear Hpd; intros Hpd.
+      generalize (Hpd idxShadow1 Htmp); clear Hpd; intros Hpd.
       destruct Hpd as (Hidxpd & _& Hentry). 
       destruct Hentry as (page1 & Hpd & Hnotnull).
       subst.
       split.
       unfold nextEntryIsPP in *. 
-      destruct (StateLib.Index.succ sh1idx); try now contradict Hrootpd.
-      destruct (lookup (currentPartition s) i (memory s) beqPage beqIndex) ; try now contradict Hrootpd.
+      destruct (StateLib.Index.succ idxShadow1); try now contradict Hrootpd.
+      destruct (lookup (currentPartition s) i (memory s) pageEq idxEq) ; try now contradict Hrootpd.
       destruct v ; try now contradict Hrootpd.
       subst; assumption.
       subst. left. split;intuition.
@@ -1305,10 +1305,10 @@ eapply WP.bindRev.
       2: {
       intros.
       destruct H as (H0 & H1).
-      assert ( (getTableAddrRoot' childListSh1 sh1idx currentPart list s /\ childListSh1 = defaultPage) \/
+      assert ( (getTableAddrRoot' childListSh1 idxShadow1 currentPart list s /\ childListSh1 = pageDefault) \/
      (forall idx : index,
-      StateLib.getIndexOfAddr list fstLevel = idx ->
-      isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 sh1idx currentPart list s  )).
+      StateLib.getIndexOfAddr list levelMin = idx ->
+      isVE childListSh1 idx s /\ getTableAddrRoot childListSh1 idxShadow1 currentPart list s  )).
       { destruct H1 as [H1 |(Hi & Hi1 & H1)].
       + left. trivial. 
       + right. intros idx Hidx.
@@ -1346,7 +1346,7 @@ eapply WP.bindRev.
           split.
           eapply HP. 
           subst.
-          assert ( StateLib.getIndexOfAddr list fstLevel = idxConfigPagesList) as Hidxchild.
+          assert ( StateLib.getIndexOfAddr list levelMin = idxConfigPagesList) as Hidxchild.
           intuition.  
           apply Hptchild in Hidxchild. destruct Hidxchild; assumption.  }
       simpl. intros derivedRefChildListSh1.
@@ -1365,8 +1365,8 @@ eapply WP.bindRev.
     
     unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
-      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
-      isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by intuition.
+      StateLib.getIndexOfAddr pdChild levelMin = idx ->
+      isPE ptPDChild idx s /\ getTableAddrRoot ptPDChild idxPageDir currentPart pdChild s) by intuition.
     apply Hpe.
     intuition.
     simpl.
@@ -1385,7 +1385,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (Nat.eqb defaultPage phyPDChild) = false).
+    assert(Hnotnull : (Nat.eqb pageDefault phyPDChild) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptPDChild idxPDChild presentPDChild s) by intuition.
@@ -1393,7 +1393,7 @@ eapply WP.bindRev.
       repeat rewrite andb_true_iff in Hlegit;intuition.
       subst. trivial. }
     
-    assert(Hphy : forall partition, In partition (getPartitions multiplexer s) ->
+    assert(Hphy : forall partition, In partition (getPartitions pageRootPartition s) ->
     ~ In phyPDChild (getConfigPages partition s) ).
     { intros. try repeat rewrite  andb_true_iff in Hlegit.
       try repeat rewrite and_assoc in Hlegit.
@@ -1415,8 +1415,8 @@ eapply WP.bindRev.
     subst.
      unfold propagatedProperties in *. 
     assert (Hpe : forall idx : index,
-                   StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
-                   isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child PDidx 
+                   StateLib.getIndexOfAddr shadow1 levelMin = idx ->
+                   isPE ptSh1Child idx s /\ getTableAddrRoot ptSh1Child idxPageDir 
                    currentPart shadow1 s) by intuition.
     apply Hpe.
     intuition.
@@ -1428,7 +1428,7 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (Nat.eqb defaultPage phySh1Child) = false).
+    assert(Hnotnull : (Nat.eqb pageDefault phySh1Child) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptSh1Child idxSh1 presentSh1 s) by intuition.
@@ -1436,7 +1436,7 @@ eapply WP.bindRev.
       repeat rewrite andb_true_iff in Hlegit;intuition.
       subst. trivial. }
       
-    assert(Hphy : forall partition, In partition (getPartitions multiplexer s) -> 
+    assert(Hphy : forall partition, In partition (getPartitions pageRootPartition s) -> 
     ~ In phySh1Child  (getConfigPages partition s) ).
     { intros. try repeat rewrite  andb_true_iff in Hlegit.
       try repeat rewrite and_assoc in Hlegit.
@@ -1457,9 +1457,9 @@ eapply WP.bindRev.
     subst.
      unfold propagatedProperties in *. 
     assert (Hpe : forall idx : index,
-                     StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+                     StateLib.getIndexOfAddr shadow2 levelMin = idx ->
                      isPE ptSh2Child idx s /\ getTableAddrRoot ptSh2Child 
-                     PDidx currentPart shadow2 s) by intuition.
+                     idxPageDir currentPart shadow2 s) by intuition.
     apply Hpe.
     intuition. 
     simpl.
@@ -1470,14 +1470,14 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-    assert(Hnotnull : (Nat.eqb defaultPage phySh2Child) = false).
+    assert(Hnotnull : (Nat.eqb pageDefault phySh2Child) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptSh2Child idxSh2 presentSh2 s) by intuition.
       apply phyPageNotDefault with ptSh2Child idxSh2 s;intuition.
       repeat rewrite andb_true_iff in Hlegit;intuition.
       subst. trivial. }
-    assert(Hphy : forall partition, In partition (getPartitions multiplexer s) ->
+    assert(Hphy : forall partition, In partition (getPartitions pageRootPartition s) ->
     ~ In phySh2Child (getConfigPages partition s)).
     { intros. try repeat rewrite  andb_true_iff in Hlegit.
       try repeat rewrite and_assoc in Hlegit.
@@ -1498,9 +1498,9 @@ eapply WP.bindRev.
     subst.
  unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
-                       StateLib.getIndexOfAddr list fstLevel = idx ->
+                       StateLib.getIndexOfAddr list levelMin = idx ->
                        isPE ptConfigPagesList idx s /\
-                       getTableAddrRoot ptConfigPagesList PDidx currentPart list s) 
+                       getTableAddrRoot ptConfigPagesList idxPageDir currentPart list s) 
     by intuition.
     apply Hpe.
     intuition.
@@ -1512,14 +1512,14 @@ eapply WP.bindRev.
     eapply Invariants.readPhyEntry.
     simpl. intros.
     split.
-     assert(Hnotnull : (Nat.eqb defaultPage phyConfigPagesList) = false).
+     assert(Hnotnull : (Nat.eqb pageDefault phyConfigPagesList) = false).
     { unfold consistency in *.
       assert(Hcons : isPresentNotDefaultIff s) by intuition.
       assert(Hpresent : entryPresentFlag ptConfigPagesList idxConfigPagesList presentConfigPagesList s) by intuition.
       apply phyPageNotDefault with ptConfigPagesList idxConfigPagesList s;intuition.
       repeat rewrite andb_true_iff in Hlegit;intuition.
       subst. trivial. }
-    assert(Hphy : forall partition, In partition (getPartitions multiplexer s) ->
+    assert(Hphy : forall partition, In partition (getPartitions pageRootPartition s) ->
     ~ In phyConfigPagesList (getConfigPages partition s)).
     { intros. try repeat rewrite  andb_true_iff in Hlegit.
       try repeat rewrite and_assoc in Hlegit.
@@ -1540,9 +1540,9 @@ eapply WP.bindRev.
     subst.
  unfold propagatedProperties in *.  
     assert (Hpe : forall idx : index,
-                         StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                         StateLib.getIndexOfAddr descChild levelMin = idx ->
                          isPE ptRefChild idx s /\
-                         getTableAddrRoot ptRefChild PDidx currentPart descChild s)
+                         getTableAddrRoot ptRefChild idxPageDir currentPart descChild s)
     by intuition.
     apply Hpe.
     intuition.
@@ -2025,8 +2025,8 @@ eapply WP.bindRev.
     set (s' :=  {|
      currentPartition := currentPartition s;
      memory := add phyPDChild kidx
-                 (PE {| read := false; write := false; exec := false; present := false; user := false; pa := defaultPage |})
-                 (memory s) beqPage beqIndex |}) in *.
+                 (PE {| read := false; write := false; exec := false; present := false; user := false; pa := pageDefault |})
+                 (memory s) pageEq idxEq |}) in *.
    simpl in *.
    destruct H0 as ((H0 & Ha1 ) & Ha3).
 split.
@@ -2046,7 +2046,7 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
   repeat rewrite and_assoc.
    unfold propagatedProperties in *.
    unfold isWellFormedMMUTables in *.
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *.
    intuition.
    subst.
@@ -2061,13 +2061,13 @@ apply propagatedPropertiesUpdateMappedPageData; trivial.
    intros.
    unfold StateLib.readPhyEntry, StateLib.readPresent  in *.
    cbn.
-   case_eq(beqPairs (phyPDChild, kidx) (phyPDChild, idx) beqPage beqIndex
+   case_eq(beqPairs (phyPDChild, kidx) (phyPDChild, idx) pageEq idxEq
    );intros.
    simpl.
    subst;split;trivial.
    assert( lookup phyPDChild idx (removeDup phyPDChild kidx (memory s)
-    beqPage beqIndex) beqPage beqIndex =
-    lookup phyPDChild idx (memory s) beqPage beqIndex).
+    pageEq idxEq) pageEq idxEq =
+    lookup phyPDChild idx (memory s) pageEq idxEq).
     apply removeDupIdentity.
     apply beqPairsFalse in H0.
     intuition.
@@ -2106,7 +2106,7 @@ intros [].
         ~ In phyDescChild (getAccessibleMappedPages partition s))) /\
       zero = CIndex 0) /\
      (forall idx : index,
-      StateLib.readPhyEntry phyPDChild idx (memory s) = Some defaultPage /\ 
+      StateLib.readPhyEntry phyPDChild idx (memory s) = Some pageDefault /\ 
       StateLib.readPresent phyPDChild idx (memory s) = Some false)).
       2: {
       simpl;
@@ -2127,7 +2127,7 @@ intros [].
       intuition.
       subst.
 
-      assert(Hor : level <> fstLevel \/ level = fstLevel ) by apply levelDecOrNot.
+      assert(Hor : level <> levelMin \/ level = levelMin ) by apply levelDecOrNot.
       destruct Hor as [Ho | Hor].
       left;intros.
       split;trivial.
@@ -2168,13 +2168,13 @@ intros [].
     eassumption.
     unfold propagatedProperties in *.
     assert(Hget1 :forall idx : index,
-      StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+      StateLib.getIndexOfAddr shadow1 levelMin = idx ->
       isPE ptSh1Child idx s /\ 
-      getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
+      getTableAddrRoot ptSh1Child idxPageDir currentPart shadow1 s) by intuition.
     assert(Hget2 : forall idx : index,
-      StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+      StateLib.getIndexOfAddr pdChild levelMin = idx ->
       isPE ptPDChild idx s /\ 
-      getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by intuition.
+      getTableAddrRoot ptPDChild idxPageDir currentPart pdChild s) by intuition.
     intuition trivial.
     instantiate (1:= ptSh1Child); assumption.
     instantiate (1:= ptPDChild); assumption.
@@ -2190,10 +2190,10 @@ intros [].
     subst.
     assumption.
     apply Hget1; trivial.
-    assert(Hidx : StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr shadow1 levelMin = idxSh1) by trivial.
     generalize (Hget1 idxSh1 Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
     apply Hget2; trivial.
-    assert(Hidx : StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr pdChild levelMin = idxPDChild) by trivial.
     generalize (Hget2 idxPDChild Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
     assumption.
     assert (presentSh1 = true).
@@ -2224,7 +2224,7 @@ intros [].
             assert (zero = CIndex 0) as Hzero.
             intuition.
             subst.
-            assert(Hor : level <> fstLevel \/ level = fstLevel ) by apply levelDecOrNot.
+            assert(Hor : level <> levelMin \/ level = levelMin ) by apply levelDecOrNot.
             destruct Hor as [Ho | Hor].
             left;intros.
             split;trivial.
@@ -2265,13 +2265,13 @@ intros [].
           eassumption.
           unfold propagatedProperties in *.
           assert(Hget1 :forall idx : index,
-            StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+            StateLib.getIndexOfAddr shadow2 levelMin = idx ->
             isPE ptSh2Child idx s /\ 
-            getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by intuition.
+            getTableAddrRoot ptSh2Child idxPageDir currentPart shadow2 s) by intuition.
           assert(Hget2 : forall idx : index,
-            StateLib.getIndexOfAddr shadow1 fstLevel = idx ->
+            StateLib.getIndexOfAddr shadow1 levelMin = idx ->
             isPE ptSh1Child idx s /\ 
-            getTableAddrRoot ptSh1Child PDidx currentPart shadow1 s) by intuition.
+            getTableAddrRoot ptSh1Child idxPageDir currentPart shadow1 s) by intuition.
           intuition trivial.
           instantiate (1:= ptSh2Child); assumption.
           instantiate (1:= ptSh1Child); assumption.
@@ -2287,10 +2287,10 @@ intros [].
           subst.
           assumption.
           apply Hget1; trivial.
-          assert(Hidx : StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2) by trivial.
+          assert(Hidx : StateLib.getIndexOfAddr shadow2 levelMin = idxSh2) by trivial.
           generalize (Hget1 idxSh2 Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
           apply Hget2; trivial.
-          assert(Hidx : StateLib.getIndexOfAddr shadow1 fstLevel = idxSh1) by trivial.
+          assert(Hidx : StateLib.getIndexOfAddr shadow1 levelMin = idxSh1) by trivial.
           generalize (Hget2 idxSh1 Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
           assumption.
           assert (presentSh2 = true).
@@ -2316,13 +2316,13 @@ intros [].
       eassumption.
       unfold propagatedProperties in *.
       assert(Hget1 :forall idx : index,
-        StateLib.getIndexOfAddr shadow2 fstLevel = idx ->
+        StateLib.getIndexOfAddr shadow2 levelMin = idx ->
         isPE ptSh2Child idx s /\ 
-        getTableAddrRoot ptSh2Child PDidx currentPart shadow2 s) by intuition.
+        getTableAddrRoot ptSh2Child idxPageDir currentPart shadow2 s) by intuition.
       assert(Hget2 : forall idx : index,
-        StateLib.getIndexOfAddr pdChild fstLevel = idx ->
+        StateLib.getIndexOfAddr pdChild levelMin = idx ->
         isPE ptPDChild idx s /\ 
-        getTableAddrRoot ptPDChild PDidx currentPart pdChild s) by intuition.
+        getTableAddrRoot ptPDChild idxPageDir currentPart pdChild s) by intuition.
       intuition trivial.
       instantiate (1:= ptSh2Child); assumption.
       instantiate (1:= ptPDChild); assumption.
@@ -2338,10 +2338,10 @@ intros [].
       subst.
       assumption.
       apply Hget1; trivial.
-      assert(Hidx : StateLib.getIndexOfAddr shadow2 fstLevel = idxSh2) by trivial.
+      assert(Hidx : StateLib.getIndexOfAddr shadow2 levelMin = idxSh2) by trivial.
       generalize (Hget1 idxSh2 Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
       apply Hget2; trivial.
-      assert(Hidx : StateLib.getIndexOfAddr pdChild fstLevel = idxPDChild) by trivial.
+      assert(Hidx : StateLib.getIndexOfAddr pdChild levelMin = idxPDChild) by trivial.
       generalize (Hget2 idxPDChild Hidx);clear Hget1 ; intros (_ & Hhet1); assumption.
       assumption.
       assert (presentSh2 = true).
@@ -2520,12 +2520,12 @@ intros [].
     instantiate(1:=  idxRefChild).
     unfold propagatedProperties in *.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -2535,13 +2535,13 @@ intros [].
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  PRidx in Hcur.
+    apply Hpde with (currentPartition s)  idxPartDesc in Hcur.
     intuition.
     repeat right; trivial.
-    assert (idxPR = PRidx) by intuition.
+    assert (idxPR = idxPartDesc) by intuition.
     subst.
     unfold propagatedProperties in *.
     unfold consistency in *.
@@ -2549,10 +2549,10 @@ intros [].
     unfold partitionDescriptorEntry in *.
     intuition.
     subst.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *. 
     intuition.
-    apply Hpde with (currentPartition s) PRidx   in Hcur.
+    apply Hpde with (currentPartition s) idxPartDesc   in Hcur.
     intuition.
     try repeat right; trivial.
     intros [].
@@ -2579,17 +2579,17 @@ intros [].
     unfold propagatedProperties in *.
     intuition.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -2599,10 +2599,10 @@ intros [].
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  PDidx in Hcur.
+    apply Hpde with (currentPartition s)  idxPageDir in Hcur.
     intuition.
     left; trivial.
     unfold propagatedProperties in *.
@@ -2611,10 +2611,10 @@ intros [].
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  PDidx in Hcur.
+    apply Hpde with (currentPartition s)  idxPageDir in Hcur.
     intuition.
     left; trivial.
     simpl.
@@ -2629,17 +2629,17 @@ intros [].
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PDidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPageDir   in Hcur.
       intuition.
       left; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPartDesc   in Hcur.
       intuition.
       try repeat right; trivial. }
     destruct H0.
@@ -2693,17 +2693,17 @@ eapply WP.bindRev.
     unfold propagatedProperties in *.
     intuition.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -2713,10 +2713,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  sh1idx in Hcur.
+    apply Hpde with (currentPartition s)  idxShadow1 in Hcur.
     intuition.
     right;left; trivial.
     unfold propagatedProperties in *.
@@ -2725,10 +2725,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s) sh1idx  in Hcur.
+    apply Hpde with (currentPartition s) idxShadow1  in Hcur.
     intuition.
     right; left; trivial.
     simpl.
@@ -2744,17 +2744,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PDidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPageDir   in Hcur.
       intuition.
       left; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh1idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow1   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
@@ -2782,17 +2782,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPartDesc   in Hcur.
       intuition.
       repeat right ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh1idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow1   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
@@ -2845,17 +2845,17 @@ eapply WP.bindRev.
     unfold propagatedProperties in *.
     intuition.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -2865,10 +2865,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  sh2idx in Hcur.
+    apply Hpde with (currentPartition s)  idxShadow2 in Hcur.
     subst.
     intuition.
     right;right;left; trivial.
@@ -2878,10 +2878,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s) sh2idx  in Hcur.
+    apply Hpde with (currentPartition s) idxShadow2  in Hcur.
     intuition.
     right;right; left; trivial.
     simpl.
@@ -2897,17 +2897,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh2idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow2   in Hcur.
       intuition.
       right;right;left; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh1idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow1   in Hcur.
       intuition.
       right;left;trivial. }
     destruct H0.
@@ -2939,17 +2939,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh2idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow2   in Hcur.
       intuition.
       right;right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PDidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPageDir   in Hcur.
       intuition.
       left;trivial. }
     destruct H0.
@@ -2978,17 +2978,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh2idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow2   in Hcur.
       intuition.
       right;right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPartDesc   in Hcur.
       intuition.
       repeat right;trivial. }
     destruct H0.
@@ -3043,17 +3043,17 @@ eapply WP.bindRev.
     unfold propagatedProperties in *.
     intuition.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -3063,10 +3063,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  sh3idx in Hcur.
+    apply Hpde with (currentPartition s)  idxShadow3 in Hcur.
     subst.
     intuition.
     do 3 right;left; trivial.
@@ -3076,10 +3076,10 @@ eapply WP.bindRev.
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s) sh3idx  in Hcur.
+    apply Hpde with (currentPartition s) idxShadow3  in Hcur.
     intuition.
     do 3 right; left; trivial.
     simpl.
@@ -3094,17 +3094,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) sh2idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow2   in Hcur.
       intuition.
       right;right;left; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh3idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow3   in Hcur.
       intuition.
       do 3 right;left;trivial. }
     destruct H0.
@@ -3132,17 +3132,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh1idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow1   in Hcur.
       intuition.
       right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh3idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow3   in Hcur.
       intuition.
       do 3 right;left;trivial. }
     destruct H0.
@@ -3172,17 +3172,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh3idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow3   in Hcur.
       intuition.
       do 3 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PDidx   in Hcur.
+      apply Hpde with (currentPartition s) idxPageDir   in Hcur.
       intuition.
       left;trivial. }
     do 4 destruct H0.
@@ -3210,17 +3210,17 @@ eapply WP.bindRev.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) sh3idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow3   in Hcur.
       intuition.
       do 3 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PRidx in Hcur.
+      apply Hpde with (currentPartition s) idxPartDesc in Hcur.
       intuition.
       repeat right;trivial. }
     do 5 destruct H0.
@@ -3274,17 +3274,17 @@ intros [].
     unfold propagatedProperties in *.
     intuition.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
     apply Hget1; trivial.
     assert(Hget1 :forall idx : index,
-                  StateLib.getIndexOfAddr descChild fstLevel = idx ->
+                  StateLib.getIndexOfAddr descChild levelMin = idx ->
                   isPE ptRefChild idx s /\ 
-                  getTableAddrRoot ptRefChild PDidx currentPart descChild s) by intuition.
+                  getTableAddrRoot ptRefChild idxPageDir currentPart descChild s) by intuition.
     intuition.
-    assert(Hidx : StateLib.getIndexOfAddr descChild fstLevel = idxRefChild) by trivial.
+    assert(Hidx : StateLib.getIndexOfAddr descChild levelMin = idxRefChild) by trivial.
     generalize (Hget1 idxRefChild Hidx);clear Hget1 ; intros (_ & Hhet1).
     subst. assumption.
     subst. assumption.
@@ -3294,10 +3294,10 @@ intros [].
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s)  PPRidx in Hcur.
+    apply Hpde with (currentPartition s)  idxParentDesc in Hcur.
     subst.
     intuition.
     do 4 right;left; trivial.
@@ -3307,10 +3307,10 @@ intros [].
     subst.
     assert (Hpde : partitionDescriptorEntry s) by trivial.
     unfold  partitionDescriptorEntry in *.
-    assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+    assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
     unfold currentPartitionInPartitionsList in *.
     intuition.
-    apply Hpde with (currentPartition s) PPRidx  in Hcur.
+    apply Hpde with (currentPartition s) idxParentDesc  in Hcur.
     intuition.
     do 4 right; left; trivial.
     simpl.
@@ -3325,17 +3325,17 @@ intros [].
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PPRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxParentDesc   in Hcur.
       intuition.
       do 4 right ;left; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) sh3idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow3   in Hcur.
       intuition.
       do 3 right;left;trivial. }
     do 2 destruct H0.
@@ -3361,17 +3361,17 @@ apply idxPPRsuccNotEqidxSh3;trivial.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PPRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxParentDesc   in Hcur.
       intuition.
       do 4 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) sh2idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow2   in Hcur.
       intuition.
       do 2 right;left;trivial. }
         do 3 destruct H0.
@@ -3398,17 +3398,17 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PPRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxParentDesc   in Hcur.
       intuition.
       do 4 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) sh1idx   in Hcur.
+      apply Hpde with (currentPartition s) idxShadow1   in Hcur.
       intuition.
       right;left;trivial. }
         do 4 destruct H0.
@@ -3437,17 +3437,17 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PPRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxParentDesc   in Hcur.
       intuition.
       do 4 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *.
       intuition.
-      apply Hpde with (currentPartition s) PDidx in Hcur.
+      apply Hpde with (currentPartition s) idxPageDir in Hcur.
       intuition.
       left;trivial. }
        do 5 destruct H0.
@@ -3475,17 +3475,17 @@ apply idxPPRsuccNotEqidxSh2;trivial.
       unfold partitionDescriptorEntry in *.
       intuition.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PPRidx   in Hcur.
+      apply Hpde with (currentPartition s) idxParentDesc   in Hcur.
       intuition.
       do 4 right;left ; trivial.
       subst.
-      assert (Hcur : In (currentPartition s) (getPartitions multiplexer s)).
+      assert (Hcur : In (currentPartition s) (getPartitions pageRootPartition s)).
       unfold currentPartitionInPartitionsList in *. 
       intuition.
-      apply Hpde with (currentPartition s) PRidx in Hcur.
+      apply Hpde with (currentPartition s) idxPartDesc in Hcur.
       intuition.
       repeat right;trivial. }
        do 6 destruct H0.
@@ -3569,9 +3569,9 @@ eapply WP.writePDflag.
 simpl.
 intros. 
 assert(Hget : forall idx : index,
-          StateLib.getIndexOfAddr descChild fstLevel = idx ->
+          StateLib.getIndexOfAddr descChild levelMin = idx ->
           isVE ptRefChildFromSh1 idx s /\
-          getTableAddrRoot ptRefChildFromSh1 sh1idx currentPart descChild s).
+          getTableAddrRoot ptRefChildFromSh1 idxShadow1 currentPart descChild s).
 {
 unfold propagatedProperties in *.
 unfold newPropagatedProperties in *.  intuition. }
@@ -3582,7 +3582,7 @@ unfold newPropagatedProperties in *.
 apply Hget.
 intuition. }
 unfold isVE in Hve.
-case_eq( lookup ptRefChildFromSh1 idxRefChild (memory s) beqPage beqIndex);
+case_eq( lookup ptRefChildFromSh1 idxRefChild (memory s) pageEq idxEq);
 intros; rewrite H1 in *; try now contradict Hve.
 case_eq v ; intros;rewrite H2 in *; try now contradict Hve.
 exists v0;split;trivial.

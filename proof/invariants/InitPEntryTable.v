@@ -98,7 +98,7 @@ induction n.  simpl.
   pattern s in H.
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-               StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage  /\
+               StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault  /\
                       StateLib.readPresent table curidx (memory s) = Some false )
   end.
   simpl.
@@ -107,7 +107,7 @@ induction n.  simpl.
   trivial. (** PROVE POSTCONDITION **)
   repeat split; assumption.
   unfold StateLib.readPhyEntry ,StateLib.readPresent; cbn.
-  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
   { apply beqPairsTrue; split; reflexivity. }
   rewrite Htrue.
   subst;cbn; trivial.
@@ -125,7 +125,7 @@ induction n.  simpl.
   pattern s in H.
   eassumption.   
   assert (maxidx = CIndex (tableSize - 1) /\ 
-  true = StateLib.Index.ltb curidx maxidx)
+  true = idxLt curidx maxidx)
   as (Hcuridx & Hidx').
   intuition.
   subst.
@@ -173,7 +173,7 @@ induction n.  simpl.
  pattern s in H.
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              ( StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage /\
+              ( StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault /\
     StateLib.readPresent table curidx (memory s) = Some false))
   end.
   simpl.
@@ -182,7 +182,7 @@ induction n.  simpl.
   trivial. (** PROVE PRECONDITION *) 
   repeat split; assumption.
   unfold StateLib.readPhyEntry, StateLib.readPresent ; cbn.
-  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
   { apply beqPairsTrue; split; reflexivity. }
   rewrite Htrue.
   subst;cbn; split;trivial.
@@ -248,7 +248,7 @@ induction n.  simpl.
    pattern s in H.
     match type of H with 
     | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                 StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage  /\
+                 StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault  /\
                         StateLib.readPresent table curidx (memory s) = Some false )
     end.
     simpl.
@@ -258,14 +258,14 @@ induction n.  simpl.
     unfold StateLib.readPhyEntry, StateLib.readPresent.
     cbn; simpl in *.
     subst.
-    assert(Hfalse : Lib.beqPairs (table, curidx) (table, idx) beqPage beqIndex= false).
+    assert(Hfalse : Lib.beqPairs (table, curidx) (table, idx) pageEq idxEq= false).
     { apply beqPairsFalse. 
       right.
       apply indexDiffLtb.
       right;assumption. }
     rewrite Hfalse.
-    assert (Lib.lookup  table idx (Lib.removeDup table curidx (memory s) beqPage beqIndex)
-           beqPage beqIndex = Lib.lookup  table idx  (memory s) beqPage beqIndex) as Hmemory.
+    assert (Lib.lookup  table idx (Lib.removeDup table curidx (memory s) pageEq idxEq)
+           pageEq idxEq = Lib.lookup  table idx  (memory s) pageEq idxEq) as Hmemory.
     { apply removeDupIdentity.
       right. 
       apply indexDiffLtb.
@@ -277,7 +277,7 @@ induction n.  simpl.
     assumption.
     repeat split; assumption.
     unfold StateLib.readPhyEntry ,StateLib.readPresent; cbn.
-    assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+    assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
     { apply beqPairsTrue; split; reflexivity. }
     rewrite Htrue.
     subst;cbn; trivial.
@@ -295,7 +295,7 @@ induction n.  simpl.
    pattern s in H.
    eassumption.   
    assert (maxidx = CIndex (tableSize - 1) /\ 
-   true = StateLib.Index.ltb curidx maxidx)
+   true = idxLt curidx maxidx)
    as (Hcuridx & Hidx').
    intuition.
    subst.
@@ -372,7 +372,7 @@ induction n.  simpl.
    pattern s in H.
     match type of H with 
     | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-                ( StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage /\
+                ( StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault /\
       StateLib.readPresent table curidx (memory s) = Some false))
     end.
     simpl.
@@ -382,14 +382,14 @@ induction n.  simpl.
     unfold StateLib.readPhyEntry, StateLib.readPresent  .
     cbn; simpl in *.
     subst.
-    assert(Hfalse : Lib.beqPairs (table, curidx) (table, idx) beqPage beqIndex= false).
+    assert(Hfalse : Lib.beqPairs (table, curidx) (table, idx) pageEq idxEq= false).
     { apply beqPairsFalse. 
       right.
       apply indexDiffLtb.
       right;assumption. }
     rewrite Hfalse.
-    assert (Lib.lookup  table idx (Lib.removeDup table curidx (memory s) beqPage beqIndex)
-           beqPage beqIndex = Lib.lookup  table idx  (memory s) beqPage beqIndex) as Hmemory.
+    assert (Lib.lookup  table idx (Lib.removeDup table curidx (memory s) pageEq idxEq)
+           pageEq idxEq = Lib.lookup  table idx  (memory s) pageEq idxEq) as Hmemory.
     { apply removeDupIdentity.
       right. 
       apply indexDiffLtb.
@@ -400,7 +400,7 @@ induction n.  simpl.
     assumption.
     repeat split; assumption.
     unfold StateLib.readPhyEntry, StateLib.readPresent ; cbn.
-    assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+    assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
     { apply beqPairsTrue; split; reflexivity. }
     rewrite Htrue.
     subst;cbn; split;trivial.
@@ -477,9 +477,9 @@ table phyPDChild
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\ 
    zero = CIndex 0 ) /\
   (forall partition : page,
-  In partition (getPartitions multiplexer s) ->
+  In partition (getPartitions pageRootPartition s) ->
   partition = table \/ In table (getConfigPagesAux partition s) -> False) /\ 
-  (Nat.eqb defaultPage table) = false 
+  (Nat.eqb pageDefault table) = false 
 }} 
 
 initPEntryTable table  curidx 
@@ -563,7 +563,7 @@ induction n.  simpl.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
    simpl in *.
    destruct H.
    destruct H0 as (Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero & 
@@ -578,7 +578,7 @@ induction n.  simpl.
    unfold consistency in *.
    intuition.
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition. 
    subst.
@@ -588,13 +588,13 @@ induction n.  simpl.
    apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition).
    intros.
    contradict H1.
-   assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+   assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
    { unfold s'.
      apply getPartitionsUpdateMappedPageData ; trivial.
      + unfold consistency in *. intuition. 
      + unfold getPartitions.
        destruct nbPage;simpl;left;trivial.
-     + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
+     + assert(Hfalse : (Nat.eqb pageDefault table) = false) by trivial.
        apply beq_nat_false in Hfalse.
        unfold not; intros.
        apply Hfalse.
@@ -621,7 +621,7 @@ induction n.  simpl.
    eassumption.
    destruct H.
    assert (maxidx = CIndex (tableSize - 1) /\ 
-   true = StateLib.Index.ltb curidx maxidx)
+   true = idxLt curidx maxidx)
    as (Hcuridx & Hidx').
    intuition.
    subst.
@@ -675,7 +675,7 @@ induction n.  simpl.
     set (s' := {| currentPartition := currentPartition s;
                   memory := Lib.add table curidx
                               (PE {| read := false; write := false; exec := false; present := false; user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
     try repeat rewrite and_assoc.
     simpl in *.
     destruct H as (Hprop & Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero & Htable & Htablenotnull &  Hmax & Hlt & Hnull ).
@@ -689,7 +689,7 @@ induction n.  simpl.
    unfold consistency in *.
    intuition.
    unfold propagatedProperties in *. 
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {  unfold consistency in *. 
       intuition. 
       subst.
@@ -698,13 +698,13 @@ induction n.  simpl.
    try repeat split;trivial; try (   
    apply writeAccessibleRecPostCondUpdateMappedPageData ;subst;intuition).
     intros partition Hpartition.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
      { unfold s'.
        apply getPartitionsUpdateMappedPageData ; trivial.
        + unfold consistency in *. intuition. 
        + unfold getPartitions.
          destruct nbPage;simpl;left;trivial.
-       + assert(Hfalse : (Nat.eqb defaultPage table) = false) by trivial.
+       + assert(Hfalse : (Nat.eqb pageDefault table) = false) by trivial.
          apply beq_nat_false in Hfalse.
          unfold not; intros.
          apply Hfalse.
@@ -751,26 +751,26 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
     (forall partition : page,
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s))) /\ zero = CIndex 0) /\
       
-      (Nat.eqb defaultPage table1) = false /\
-      (Nat.eqb defaultPage table2) = false /\
-       nextEntryIsPP partition PDidx currentPD s /\
-      In partition (getPartitions multiplexer s) /\
-   (forall idx : index, StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\
+      (Nat.eqb pageDefault table1) = false /\
+      (Nat.eqb pageDefault table2) = false /\
+       nextEntryIsPP partition idxPageDir currentPD s /\
+      In partition (getPartitions pageRootPartition s) /\
+   (forall idx : index, StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\
    StateLib.readPresent phyPage2 idx (memory s) = Some false ) /\ 
    (forall partition : page,
-    In partition (getPartitions multiplexer s) -> 
+    In partition (getPartitions pageRootPartition s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
+   ( (Nat.eqb pageDefault phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
-       StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
-       StateLib.getIndexOfAddr va2 fstLevel = idxVa2 /\
+       StateLib.getIndexOfAddr va1 levelMin = idxVa1 /\
+       StateLib.getIndexOfAddr va2 levelMin = idxVa2 /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va1 fstLevel = idx -> isPE table1 idx s /\
-         getTableAddrRoot table1 PDidx partition va1 s) /\
+        StateLib.getIndexOfAddr va1 levelMin = idx -> isPE table1 idx s /\
+         getTableAddrRoot table1 idxPageDir partition va1 s) /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va2 fstLevel = idx -> 
-        isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s) /\
+        StateLib.getIndexOfAddr va2 levelMin = idx -> 
+        isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s) /\
         Some level = StateLib.getNbLevel /\
        false = StateLib.checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
        entryPresentFlag table1 idxVa1 true s /\ entryPresentFlag table2 idxVa2 true s
@@ -779,7 +779,7 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
   Internal.initPEntryTable phyPage1 curidx {{ fun _  (s : state) =>
                                                forall idx : index,
                                                StateLib.readPhyEntry phyPage2 idx
-                                                 (memory s) = Some defaultPage/\
+                                                 (memory s) = Some pageDefault/\
                                                StateLib.readPresent phyPage2 idx
                                                  (memory s) = 
                                                Some false }}.
@@ -842,7 +842,7 @@ induction n.  simpl.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
    simpl in *.
    destruct H.
    destruct H0 as (  Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero &   Htl1notnull & Htbl2notnull & Hpp & Hmult &
@@ -863,7 +863,7 @@ induction n.  simpl.
      unfold consistency in *.
      intuition. }
 unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition. 
    subst.
@@ -881,14 +881,14 @@ unfold propagatedProperties in *.
     split; trivial.
     split.
     apply nextEntryIsPPUpdateMappedPageData; trivial.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
     { unfold s'.
     
       apply getPartitionsUpdateMappedPageData ; trivial.
       + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb pageDefault phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -931,12 +931,12 @@ unfold propagatedProperties in *.
     split; trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial.
     left;trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial.
     left;trivial. 
     split; trivial.
@@ -945,12 +945,12 @@ unfold propagatedProperties in *.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial.
     left;trivial.
     apply Htableroot1; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table1 idx s /\ getTableAddrRoot table1 PDidx partition va1 s)
+    assert (isPE table1 idx s /\ getTableAddrRoot table1 idxPageDir partition va1 s)
     as ( _ & Hget1).
     apply Htableroot1; trivial.
     trivial.
@@ -958,22 +958,22 @@ unfold propagatedProperties in *.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial.
     left;trivial.
     apply Htableroot2; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s)
+    assert (isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s)
     as ( _ & Hget1).
     apply Htableroot2; trivial.
     trivial.
     split; trivial.
     repeat split; trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     intros [].
     (** MALInternal.Index.succ **) 
@@ -988,7 +988,7 @@ unfold propagatedProperties in *.
      eassumption.
      destruct H.
      assert (maxidx = CIndex (tableSize - 1) /\ 
-     true = StateLib.Index.ltb curidx maxidx)
+     true = idxLt curidx maxidx)
      as (Hcuridx & Hidx').
      intuition.
      subst.
@@ -1043,7 +1043,7 @@ unfold propagatedProperties in *.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
     simpl in *.
     destruct H.
     destruct H0 as (  Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero & Htl1notnull & Htbl2notnull & Hpp & Hmult &
@@ -1064,7 +1064,7 @@ unfold propagatedProperties in *.
        unfold consistency in *.
        intuition. }
     unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition. 
    subst.
@@ -1081,13 +1081,13 @@ unfold propagatedProperties in *.
     split; trivial.
     split.
     apply nextEntryIsPPUpdateMappedPageData; trivial.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
     { unfold s'.
       apply getPartitionsUpdateMappedPageData ; trivial.
       + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb pageDefault phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -1127,11 +1127,11 @@ unfold propagatedProperties in *.
     split; trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     split; trivial.
     split; trivial.
@@ -1139,11 +1139,11 @@ unfold propagatedProperties in *.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply Htableroot1; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table1 idx s /\ getTableAddrRoot table1 PDidx partition va1 s)
+    assert (isPE table1 idx s /\ getTableAddrRoot table1 idxPageDir partition va1 s)
     as ( _ & Hget1).
     apply Htableroot1; trivial.
     trivial.
@@ -1151,26 +1151,26 @@ unfold propagatedProperties in *.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     apply Htableroot2; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s)
+    assert (isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s)
     as ( _ & Hget1).
     apply Htableroot2; trivial.
     trivial.
     split; trivial.
     repeat split; trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     intros.
     simpl in *.
     assert((forall idx : index,
-     StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\
+     StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\
      StateLib.readPresent phyPage2 idx (memory s) = Some false))  by intuition.
      apply H0. }
 Qed.
@@ -1204,49 +1204,49 @@ partition  va1 va2 idxVa1 idxVa2 (table1 table2 : page) phyPage1
     (forall partition : page,
      In partition (getAncestors currentPart s) -> ~ In phyDescChild (getAccessibleMappedPages partition s)))/\ zero = CIndex 0) /\
       
-      (Nat.eqb defaultPage table1) = false /\
-      (Nat.eqb defaultPage table2) = false /\
-       nextEntryIsPP partition PDidx currentPD s /\
-      In partition (getPartitions multiplexer s) /\
-   ( (level <> fstLevel /\
+      (Nat.eqb pageDefault table1) = false /\
+      (Nat.eqb pageDefault table2) = false /\
+       nextEntryIsPP partition idxPageDir currentPD s /\
+      In partition (getPartitions pageRootPartition s) /\
+   ( (level <> levelMin /\
     (forall idx : index,
-     StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\ 
+     StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\ 
      StateLib.readPresent phyPage2 idx (memory s) = Some false) \/
-    level = fstLevel /\
+    level = levelMin /\
     (forall idx : index,
-     StateLib.readVirEntry phyPage2 idx (memory s) = Some defaultVAddr /\ 
+     StateLib.readVirEntry phyPage2 idx (memory s) = Some vaddrDefault /\ 
      StateLib.readPDflag phyPage2 idx (memory s) = Some false)
    
     
    
    )) /\ 
    (forall partition : page,
-    In partition (getPartitions multiplexer s) -> 
+    In partition (getPartitions pageRootPartition s) -> 
     partition = phyPage1 \/ In phyPage1 (getConfigPagesAux partition s) -> False) /\
-   ( (Nat.eqb defaultPage phyPage1) = false) /\ 
+   ( (Nat.eqb pageDefault phyPage1) = false) /\ 
    isEntryPage table1 idxVa1 phyPage1 s /\
        isEntryPage table2 idxVa2 phyPage2 s /\
-       StateLib.getIndexOfAddr va1 fstLevel = idxVa1 /\
-       StateLib.getIndexOfAddr va2 fstLevel = idxVa2 /\
+       StateLib.getIndexOfAddr va1 levelMin = idxVa1 /\
+       StateLib.getIndexOfAddr va2 levelMin = idxVa2 /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va1 fstLevel = idx -> isPE table1 idx s /\
-         getTableAddrRoot table1 PDidx partition va1 s) /\
+        StateLib.getIndexOfAddr va1 levelMin = idx -> isPE table1 idx s /\
+         getTableAddrRoot table1 idxPageDir partition va1 s) /\
        (forall idx : index,
-        StateLib.getIndexOfAddr va2 fstLevel = idx -> 
-        isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s) /\
+        StateLib.getIndexOfAddr va2 levelMin = idx -> 
+        isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s) /\
         Some level = StateLib.getNbLevel /\
        false = StateLib.checkVAddrsEqualityWOOffset nbLevel va2 va1 level /\
        entryPresentFlag table1 idxVa1 true s /\ entryPresentFlag table2 idxVa2 true s
 
 }} 
   Internal.initPEntryTable phyPage1 curidx {{ fun _  (s : state) =>
-                                                (level <> fstLevel /\
+                                                (level <> levelMin /\
     (forall idx : index,
-     StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\ 
+     StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\ 
      StateLib.readPresent phyPage2 idx (memory s) = Some false) \/
-    level = fstLevel /\
+    level = levelMin /\
     (forall idx : index,
-     StateLib.readVirEntry phyPage2 idx (memory s) = Some defaultVAddr /\ 
+     StateLib.readVirEntry phyPage2 idx (memory s) = Some vaddrDefault /\ 
      StateLib.readPDflag phyPage2 idx (memory s) = Some false)
    
     
@@ -1311,7 +1311,7 @@ induction n.  simpl.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
    simpl in *.
    destruct H.
    destruct H0 as (  Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero &  Htl1notnull & Htbl2notnull & Hpp & Hmult &
@@ -1332,7 +1332,7 @@ induction n.  simpl.
      unfold consistency in *.
      intuition. }
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    { unfold consistency in *. 
    intuition;
    subst;
@@ -1348,14 +1348,14 @@ induction n.  simpl.
     split; trivial.
     split.
     apply nextEntryIsPPUpdateMappedPageData; trivial.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
     { unfold s'.
     
       apply getPartitionsUpdateMappedPageData ; trivial.
       + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb pageDefault phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -1412,12 +1412,12 @@ induction n.  simpl.
     split; trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial.
     left;trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial.
     left;trivial. 
     split; trivial.
@@ -1426,12 +1426,12 @@ induction n.  simpl.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial.
     left;trivial.
     apply Htableroot1; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table1 idx s /\ getTableAddrRoot table1 PDidx partition va1 s)
+    assert (isPE table1 idx s /\ getTableAddrRoot table1 idxPageDir partition va1 s)
     as ( _ & Hget1).
     apply Htableroot1; trivial.
     trivial.
@@ -1439,22 +1439,22 @@ induction n.  simpl.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial.
     left;trivial.
     apply Htableroot2; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s)
+    assert (isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s)
     as ( _ & Hget1).
     apply Htableroot2; trivial.
     trivial.
     split; trivial.
     repeat split; trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     intros [].
     (** MALInternal.Index.succ **) 
@@ -1469,7 +1469,7 @@ induction n.  simpl.
      eassumption.
      destruct H.
      assert (maxidx = CIndex (tableSize - 1) /\ 
-     true = StateLib.Index.ltb curidx maxidx)
+     true = idxLt curidx maxidx)
      as (Hcuridx & Hidx').
      intuition.
      subst.
@@ -1524,7 +1524,7 @@ induction n.  simpl.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
     simpl in *.
     destruct H.
     destruct H0 as ( Hnew1 & Hnew2 & Hnew3 & Hnew4 & Hnew5 & Hzero & Htl1notnull & Htbl2notnull & Hpp & Hmult &
@@ -1545,7 +1545,7 @@ induction n.  simpl.
        unfold consistency in *.
        intuition. }
    unfold propagatedProperties in *.  
-   assert(Hcurpart : In currentPart (getPartitions multiplexer s)).
+   assert(Hcurpart : In currentPart (getPartitions pageRootPartition s)).
    {unfold consistency in *. 
    intuition; 
    subst;
@@ -1561,13 +1561,13 @@ induction n.  simpl.
     split; trivial.
     split.
     apply nextEntryIsPPUpdateMappedPageData; trivial.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
     { unfold s'.
       apply getPartitionsUpdateMappedPageData ; trivial.
       + unfold consistency in *. intuition. 
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
-      + assert(Hfalse : (Nat.eqb defaultPage phyPage1) = false) by trivial.
+      + assert(Hfalse : (Nat.eqb pageDefault phyPage1) = false) by trivial.
         apply beq_nat_false in Hfalse.
         unfold not; intros.
         apply Hfalse.
@@ -1622,11 +1622,11 @@ induction n.  simpl.
     split; trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     split.
     apply isEntryPageUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     split; trivial.
     split; trivial.
@@ -1634,11 +1634,11 @@ induction n.  simpl.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply Htableroot1; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table1 idx s /\ getTableAddrRoot table1 PDidx partition va1 s)
+    assert (isPE table1 idx s /\ getTableAddrRoot table1 idxPageDir partition va1 s)
     as ( _ & Hget1).
     apply Htableroot1; trivial.
     trivial.
@@ -1646,21 +1646,21 @@ induction n.  simpl.
     intros.
     split. 
     apply isPEUpdateUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     apply Htableroot2; trivial.
     apply getTableAddrRootUpdateMappedPageData; trivial.
-    assert (isPE table2 idx s /\ getTableAddrRoot table2 PDidx partition va2 s)
+    assert (isPE table2 idx s /\ getTableAddrRoot table2 idxPageDir partition va2 s)
     as ( _ & Hget1).
     apply Htableroot2; trivial.
     trivial.
     split; trivial.
     repeat split; trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va1 idxVa1 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va1 idxVa1 s ;
     trivial. left;trivial.
     apply entryPresentFlagUpdateMappedPageData; trivial.
-    apply mappedPageIsNotPTable with partition  currentPD isPE PDidx va2 idxVa2 s ;
+    apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     intros.
     simpl in *.
@@ -1670,9 +1670,9 @@ Qed.
 Lemma initPEntryTablePreservesProp table (nbL : level)(curidx : index):
 {{ fun s : state =>
 
-   false = StateLib.Level.eqb nbL fstLevel }} 
+   false = levelEq nbL levelMin }} 
   initPEntryTable table curidx {{ fun (_ : unit) (_ : state) =>
-                                  false = StateLib.Level.eqb nbL fstLevel }}.
+                                  false = levelEq nbL levelMin }}.
 Proof.
 unfold initPEntryTable.
 unfold initPEntryTableAux.
@@ -1733,7 +1733,7 @@ induction n.  simpl.
                               (PE {| read := false; write := false; 
                               exec := false; present := false; 
                               user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
    simpl in *.
    destruct H.
    split;trivial.
@@ -1750,7 +1750,7 @@ induction n.  simpl.
    eassumption.
    destruct H.
    assert (maxidx = CIndex (tableSize - 1) /\ 
-   true = StateLib.Index.ltb curidx maxidx)
+   true = idxLt curidx maxidx)
    as (Hcuridx & Hidx').
    intuition.
    subst.
@@ -1803,7 +1803,7 @@ induction n.  simpl.
     set (s' := {| currentPartition := currentPartition s;
                   memory := Lib.add table curidx
                               (PE {| read := false; write := false; exec := false; present := false; user := false; pa := nullP |})
-                              (memory s) beqPage beqIndex |}) in *.
+                              (memory s) pageEq idxEq |}) in *.
     try repeat rewrite and_assoc.
     simpl in *.
     intuition.
@@ -1890,7 +1890,7 @@ induction n.  simpl.
   pattern s in H.
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-               StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage  /\
+               StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault  /\
                       StateLib.readPresent table curidx (memory s) = Some false )
   end.
   simpl.
@@ -1898,7 +1898,7 @@ induction n.  simpl.
 (*   destruct H as (Hreadlt & Hmax & Hlt & Hnull ). *)
   split.
    (** PROVE POSTCONDITION **)
-    assert(Hcurpart:In (currentPartition s) (getPartitions multiplexer s)) by (unfold propagatedPropertiesPrepare, consistency  in *;subst;intuition;subst;trivial).
+    assert(Hcurpart:In (currentPartition s) (getPartitions pageRootPartition s)) by (unfold propagatedPropertiesPrepare, consistency  in *;subst;intuition;subst;trivial).
     split.
     (** propagatedPropertiesPrepare *)
     intuition;subst.
@@ -1922,7 +1922,7 @@ apply isPartitionFalseAllUpdateMappedPageContent with
     apply writeAccessibleRecPostCondUpdateMappedPageData;trivial.
     (** initPEntryTablePreconditionToPropagatePrepareProperties *)
     set(s':= {| currentPartition := _ |}) in *.
-    assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+    assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
     { apply getPartitionsUpdateMappedPageData ; trivial;unfold consistency in *;intuition.
       + unfold getPartitions.
         destruct nbPage;simpl;left;trivial.
@@ -1938,7 +1938,7 @@ apply isPartitionFalseAllUpdateMappedPageContent with
     apply Hi with partition;trivial.
   (** the postcondition of the current function *)
   unfold StateLib.readPhyEntry ,StateLib.readPresent; cbn.
-  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
   { apply beqPairsTrue; split; reflexivity. }
   rewrite Htrue.
   subst;cbn; trivial.
@@ -1959,7 +1959,7 @@ apply isPartitionFalseAllUpdateMappedPageContent with
   pattern s in H.
   eassumption.   
   assert (maxidx = CIndex (tableSize - 1) /\ 
-  true = StateLib.Index.ltb curidx maxidx)
+  true = idxLt curidx maxidx)
   as (Hcuridx & Hidx').
   intuition.
   subst.
@@ -2007,14 +2007,14 @@ apply isPartitionFalseAllUpdateMappedPageContent with
  pattern s in H.
   match type of H with 
   | ?HT s => instantiate (1 := fun tt s => HT s /\ 
-              ( StateLib.readPhyEntry table curidx s.(memory) = Some defaultPage /\
+              ( StateLib.readPhyEntry table curidx s.(memory) = Some pageDefault /\
     StateLib.readPresent table curidx (memory s) = Some false))
   end.
   simpl.
   destruct H as (Hreadlt & Hmax & Hlt & Hnull ).
   split.
   (** PROVE POSTCONDITION **)
-  assert(Hcurpart:In (currentPartition s) (getPartitions multiplexer s)) by (unfold propagatedPropertiesPrepare, consistency  in *;subst;intuition;subst;trivial).
+  assert(Hcurpart:In (currentPartition s) (getPartitions pageRootPartition s)) by (unfold propagatedPropertiesPrepare, consistency  in *;subst;intuition;subst;trivial).
   split.
   (** propagatedPropertiesPrepare *)
   intuition;subst.
@@ -2033,7 +2033,7 @@ apply isPartitionFalseAllUpdateMappedPageContent with
   apply writeAccessibleRecPostCondUpdateMappedPageData;trivial.
   (** initPEntryTablePreconditionToPropagatePrepareProperties *)
   set(s':= {| currentPartition := _ |}) in *.
-  assert(getPartitions multiplexer s' = getPartitions multiplexer s) as Hpartions.
+  assert(getPartitions pageRootPartition s' = getPartitions pageRootPartition s) as Hpartions.
   { apply getPartitionsUpdateMappedPageData ; trivial;unfold consistency in *;intuition.
     + unfold getPartitions.
       destruct nbPage;simpl;left;trivial.
@@ -2048,7 +2048,7 @@ apply isPartitionFalseAllUpdateMappedPageContent with
   unfold not;intros.
   apply Hi with partition;trivial.
   unfold StateLib.readPhyEntry, StateLib.readPresent ; cbn.
-  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) beqPage beqIndex = true).
+  assert(Htrue : Lib.beqPairs (table, curidx) (table, curidx) pageEq idxEq = true).
   { apply beqPairsTrue; split; reflexivity. }
   rewrite Htrue.
   subst;cbn; split;trivial.
@@ -2140,10 +2140,10 @@ induction n.  simpl.
     unfold PreCtoPropagateIsWellFormedMMUTables in *.
     unfold consistency in *.
     apply readMappedPageDataUpdateMappedPageData 
-    with partition  table2 table1  (StateLib.getIndexOfAddr va2 fstLevel) (StateLib.getIndexOfAddr va1 fstLevel)
+    with partition  table2 table1  (StateLib.getIndexOfAddr va2 levelMin) (StateLib.getIndexOfAddr va1 levelMin)
     va2 va1 level s; intuition; subst;trivial. } 
     assert(Htable : forall idx : index,
-     StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\ StateLib.readPresent phyPage2 idx (memory s) = Some false) by intuition.
+     StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\ StateLib.readPresent phyPage2 idx (memory s) = Some false) by intuition.
     generalize (Htable idx); clear Htable; intros Htable.
     split.
     destruct Htable as (Htable1 & Htable2). 
@@ -2174,7 +2174,7 @@ induction n.  simpl.
      eassumption.
      destruct H.
      assert (maxidx = CIndex (tableSize - 1) /\ 
-     true = StateLib.Index.ltb curidx maxidx)
+     true = idxLt curidx maxidx)
      as (Hcuridx & Hidx').
      intuition.
      subst.
@@ -2241,10 +2241,10 @@ induction n.  simpl.
     unfold PreCtoPropagateIsWellFormedMMUTables in *.
     unfold consistency in *.
     apply readMappedPageDataUpdateMappedPageData 
-    with partition  table2 table1  (StateLib.getIndexOfAddr va2 fstLevel) (StateLib.getIndexOfAddr va1 fstLevel)
+    with partition  table2 table1  (StateLib.getIndexOfAddr va2 levelMin) (StateLib.getIndexOfAddr va1 levelMin)
     va2 va1 level s; intuition; subst;trivial. } 
     assert(Htable : forall idx : index,
-     StateLib.readPhyEntry phyPage2 idx (memory s) = Some defaultPage /\ StateLib.readPresent phyPage2 idx (memory s) = Some false) by intuition.
+     StateLib.readPhyEntry phyPage2 idx (memory s) = Some pageDefault /\ StateLib.readPresent phyPage2 idx (memory s) = Some false) by intuition.
     generalize (Htable idx); clear Htable; intros Htable.
     split.
     destruct Htable as (Htable1 & Htable2). 
@@ -2347,7 +2347,7 @@ induction n.  simpl.
     unfold PreCtoPropagateIsWellFormedMMUTables in *.
     unfold consistency in *.
     apply readMappedPageDataUpdateMappedPageData 
-    with partition  table2 table1  (StateLib.getIndexOfAddr va2 fstLevel) (StateLib.getIndexOfAddr va1 fstLevel)
+    with partition  table2 table1  (StateLib.getIndexOfAddr va2 levelMin) (StateLib.getIndexOfAddr va1 levelMin)
     va2 va1 level s; intuition; subst;trivial. } 
     assert( Hor : isWellFormedFstShadow lpred phyPage2 s) by intuition.
     split.
@@ -2387,7 +2387,7 @@ induction n.  simpl.
      eassumption.
      destruct H.
      assert (maxidx = CIndex (tableSize - 1) /\ 
-     true = StateLib.Index.ltb curidx maxidx)
+     true = idxLt curidx maxidx)
      as (Hcuridx & Hidx').
      intuition.
      subst.
@@ -2455,7 +2455,7 @@ induction n.  simpl.
     unfold PreCtoPropagateIsWellFormedMMUTables in *.
     unfold consistency in *.
     apply readMappedPageDataUpdateMappedPageData 
-    with partition  table2 table1  (StateLib.getIndexOfAddr va2 fstLevel) (StateLib.getIndexOfAddr va1 fstLevel)
+    with partition  table2 table1  (StateLib.getIndexOfAddr va2 levelMin) (StateLib.getIndexOfAddr va1 levelMin)
     va2 va1 level s; intuition; subst;trivial. } 
     assert( Hor : isWellFormedFstShadow lpred phyPage2 s) by intuition.
     unfold isWellFormedFstShadow in Hor.

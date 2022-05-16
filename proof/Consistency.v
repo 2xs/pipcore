@@ -58,22 +58,22 @@ The other tables contain Physical entries
 *)
 Definition dataStructurePdSh1Sh2asRoot (idxroot : index) (s : state) :=
 forall (partition : page),  
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 forall entry, nextEntryIsPP partition idxroot entry s ->  
 forall va : vaddr, 
 True -> forall level stop , Some level = getNbLevel -> 
 forall indirection idx, getIndirection entry va level stop s = Some indirection -> 
-( indirection = defaultPage \/ 
+( indirection = pageDefault \/ 
 (( ( stop < level /\ isPE indirection idx s )\/  
-   ( stop >= level /\ ( (isVE indirection idx s /\ idxroot = sh1idx) \/ 
-                       (isVA indirection idx s /\ idxroot = sh2idx) \/ 
-                       (isPE indirection idx s /\ idxroot = PDidx) ) ))
+   ( stop >= level /\ ( (isVE indirection idx s /\ idxroot = idxShadow1) \/ 
+                       (isVA indirection idx s /\ idxroot = idxShadow2) \/ 
+                       (isPE indirection idx s /\ idxroot = idxPageDir) ) ))
                        /\ 
-  indirection <> defaultPage)) .
+  indirection <> pageDefault)) .
 
 Definition wellFormedFstShadow (s : state) :=
 forall partition,
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 forall va pg pd sh1,
 StateLib.getPd partition (memory s) = Some pd -> 
 StateLib.getFstShadow partition (memory s) = Some sh1 ->
@@ -82,28 +82,28 @@ exists vainparent, getVirtualAddressSh1 sh1 s va = Some vainparent.
 
 Definition wellFormedSndShadow (s : state) :=
 forall partition,
-In partition (getPartitions multiplexer s) -> 
-partition <> multiplexer ->
+In partition (getPartitions pageRootPartition s) -> 
+partition <> pageRootPartition ->
 forall va pg pd sh2,
 StateLib.getPd partition (memory s) = Some pd ->
 StateLib.getSndShadow partition (memory s) = Some sh2 ->
 getMappedPage pd s va= SomePage pg ->
 exists vainparent, getVirtualAddressSh2 sh2 s va = Some vainparent /\
-beqVAddr defaultVAddr vainparent = false .
+vaddrEq vaddrDefault vainparent = false .
 
 Definition wellFormedShadows (idxroot : index) (s : state) :=
 forall (partition : page),
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 forall pdroot ,
 StateLib.getPd partition (memory s) = Some pdroot ->
 forall structroot, nextEntryIsPP partition idxroot structroot s ->
 forall nbL stop , Some nbL = getNbLevel ->
 forall indirection1  va b,
 getIndirection pdroot va nbL stop s = Some indirection1 ->
-(Nat.eqb defaultPage indirection1) = b ->
+(Nat.eqb pageDefault indirection1) = b ->
 (exists indirection2,
 getIndirection structroot va nbL stop s = Some indirection2 /\
-(Nat.eqb defaultPage indirection2) = b).
+(Nat.eqb pageDefault indirection2) = b).
 
 (* Definition fstShadowWellFormed (s : state) :=
 forall (partition : page),  
@@ -121,22 +121,22 @@ getIndirection sh1Root va level stop s = Some defaultPage.  *)
     first created partition (multiplexer) 
     (2) *)
 Definition currentPartitionInPartitionsList (s : state) := 
- In (currentPartition s) (getPartitions multiplexer s).
+ In (currentPartition s) (getPartitions pageRootPartition s).
 
 (** ** The [currentPartitionIsNotDefaultPage t] property specifies that the 
     current partition is not a default physical page  
     (2) *)
 Definition currentPartitionIsNotDefaultPage (s : state) :=
- (currentPartition s) <> defaultPage. 
+ (currentPartition s) <> pageDefault. 
  
 (** ** The [parentInPartitionList] property specifies that the parent of a given 
 partition should be into the list of partitions retrieved from the 
     first created partition (multiplexer) 
     (3) *)
 Definition parentInPartitionList (s : state) := 
-forall partition, In partition (getPartitions multiplexer s) -> 
-forall parent, nextEntryIsPP partition PPRidx parent s ->
-In parent (getPartitions multiplexer s). 
+forall partition, In partition (getPartitions pageRootPartition s) -> 
+forall parent, nextEntryIsPP partition idxParentDesc parent s ->
+In parent (getPartitions pageRootPartition s). 
 
 (** ** The [partitionDescriptorEntry] defines some properties of the partition descriptor. 
     - A partition descriptor is a table containing virtual addresses and physical pages.
@@ -147,26 +147,26 @@ In parent (getPartitions multiplexer s).
     (4) *)
 Definition partitionDescriptorEntry s := 
 forall (partition : page),  
-In partition (getPartitions multiplexer s) -> 
-forall (idxroot : index), (idxroot = PDidx \/ idxroot = sh1idx \/ idxroot = sh2idx \/ 
-idxroot = sh3idx \/
-idxroot = PPRidx  \/ idxroot = PRidx ) ->
+In partition (getPartitions pageRootPartition s) -> 
+forall (idxroot : index), (idxroot = idxPageDir \/ idxroot = idxShadow1 \/ idxroot = idxShadow2 \/ 
+idxroot = idxShadow3 \/
+idxroot = idxParentDesc  \/ idxroot = idxPartDesc ) ->
 idxroot < tableSize - 1  /\
 isVA partition idxroot  s /\ 
 exists entry, nextEntryIsPP partition idxroot entry s  /\  
-entry <> defaultPage.
+entry <> pageDefault.
 
 (** ** The [multiplexerWithoutParent] specifies that the multiplexer is the root of
 the partition tree *)
 Definition multiplexerWithoutParent s :=
-getParent multiplexer (memory s) = None.
+getParent pageRootPartition (memory s) = None.
 
 (** ** The [noDupMappedPagesList] requires that mapped pages of a single partition
     are different 
     (5) *)
 Definition noDupMappedPagesList s :=
 forall (partition : page),  
-In partition (getPartitions multiplexer s) ->  
+In partition (getPartitions pageRootPartition s) ->  
  NoDup ((getMappedPages partition s)).
  
 (** ** The [noDupConfigPagesList] requires that configuation tables of
@@ -174,7 +174,7 @@ In partition (getPartitions multiplexer s) ->
     (6) *)
 Definition noDupConfigPagesList s :=
 forall (partition : page),  
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 NoDup (getConfigPages partition s).
 (* forall root, nextEntryIsPP partition idxroot root s->
  NoDup (getIndirections root s). 
@@ -185,7 +185,7 @@ NoDup (getConfigPages partition s).
     (7) *)
 Definition accessibleVAIsNotPartitionDescriptor s :=
 forall partition va pd sh1 page, 
-  In partition (getPartitions multiplexer s) -> 
+  In partition (getPartitions pageRootPartition s) -> 
   StateLib.getPd partition (memory s) = Some pd -> 
   StateLib.getFstShadow partition (memory s) = Some sh1 -> 
   getAccessibleMappedPage pd s va = SomePage page -> 
@@ -196,7 +196,7 @@ forall partition va pd sh1 page,
     (8) *)
 Definition  accessibleChildPageIsAccessibleIntoParent s := 
 forall partition va pd  accessiblePage, 
-  In partition (getPartitions multiplexer s) ->
+  In partition (getPartitions pageRootPartition s) ->
   StateLib.getPd partition (memory s) = Some pd ->
   getAccessibleMappedPage pd s va = SomePage accessiblePage ->
   isAccessibleMappedPageInParent partition va accessiblePage s = true. 
@@ -206,7 +206,7 @@ forall partition va pd  accessiblePage,
     (9) **)
 Definition noCycleInPartitionTree s := 
 forall ancestor partition, 
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 In ancestor (getAncestors partition s) -> 
 ancestor <> partition.
 
@@ -215,8 +215,8 @@ ancestor <> partition.
       (10) **)
 Definition configTablesAreDifferent s := 
 forall partition1 partition2,
-In partition1 (getPartitions multiplexer s) -> 
-In partition2 (getPartitions multiplexer s) -> 
+In partition1 (getPartitions pageRootPartition s) -> 
+In partition2 (getPartitions pageRootPartition s) -> 
 partition1 <> partition2 -> 
 disjoint (getConfigPages partition1 s) (getConfigPages partition2 s).
 
@@ -225,7 +225,7 @@ disjoint (getConfigPages partition1 s) (getConfigPages partition2 s).
     (11) **)
 Definition isChild  s :=
 forall partition parent : page,
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 StateLib.getParent partition (memory s) = Some parent -> 
 In partition (getChildren parent s).
 
@@ -235,7 +235,7 @@ partition into the partition list so this partition should be the parent of this
  (..) **)
 Definition isParent  s :=
 forall partition parent : page,
-In parent (getPartitions multiplexer s) -> 
+In parent (getPartitions pageRootPartition s) -> 
 In partition (getChildren parent s) -> 
 StateLib.getParent partition (memory s) = Some parent.
 
@@ -246,7 +246,7 @@ StateLib.getParent partition (memory s) = Some parent.
 Definition isPresentNotDefaultIff s:=
 forall table idx , 
  readPresent table idx (memory s) = Some false <-> 
- readPhyEntry table idx (memory s) = Some defaultPage .
+ readPhyEntry table idx (memory s) = Some pageDefault .
 
 (** ** The [physicalPageNotDerived] specifies that if a given physical
     page is marked as not derived in a parent so it is not mapped in any child
@@ -254,7 +254,7 @@ forall table idx ,
 **) 
 Definition physicalPageNotDerived s := 
 forall parent va pdParent pageParent, 
-In parent (getPartitions multiplexer s) -> 
+In parent (getPartitions pageRootPartition s) -> 
 StateLib.getPd parent (memory s) = Some pdParent -> 
 ~ isDerived parent va s -> 
 getMappedPage pdParent s va = SomePage pageParent -> 
@@ -265,21 +265,21 @@ getMappedPage pdChild s vaInChild = SomePage  pageChild ->
 pageParent <> pageChild.
 
 Definition noDupPartitionTree s :=
-NoDup (getPartitions multiplexer s) .
+NoDup (getPartitions pageRootPartition s) .
 
 
 Definition wellFormedFstShadowIfDefaultValues s :=
 forall partition va pd sh1 , 
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 StateLib.getPd partition (memory s) = Some pd -> 
 StateLib.getFstShadow partition (memory s) = Some sh1 -> 
 getMappedPage pd s va = SomeDefault-> 
 getPDFlag sh1 va s = false /\ 
-getVirtualAddressSh1 sh1 s va = Some defaultVAddr.
+getVirtualAddressSh1 sh1 s va = Some vaddrDefault.
 
 Definition wellFormedFstShadowIfNone s :=
 forall partition va pd sh1 , 
-In partition (getPartitions multiplexer s) -> 
+In partition (getPartitions pageRootPartition s) -> 
 StateLib.getPd partition (memory s) = Some pd -> 
 StateLib.getFstShadow partition (memory s) = Some sh1 -> 
 getMappedPage pd s va =  NonePage -> 
@@ -290,31 +290,31 @@ getVirtualAddressSh1 sh1 s va = None.
 (** Consistency : Linked list properties **)
 Definition LLconfiguration1 s:=
 forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
+In part (getPartitions pageRootPartition s) -> 
+nextEntryIsPP part idxShadow3 fstLL s ->  
 In LLtable (getLLPages part s nbPage) -> 
 isI LLtable (CIndex 1) s.
 
 
 Definition LLconfiguration2 s:=
 forall part fstLL LLtable maxidx,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
+In part (getPartitions pageRootPartition s) -> 
+nextEntryIsPP part idxShadow3 fstLL s ->  
 In LLtable (getLLPages part s nbPage) -> 
 StateLib.getMaxIndex = Some maxidx -> 
 isPP LLtable maxidx s.
 
 Definition LLconfiguration3 s:=
 forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
+In part (getPartitions pageRootPartition s) -> 
+nextEntryIsPP part idxShadow3 fstLL s ->  
 In LLtable (getLLPages part s (nbPage+1)) -> 
 isI LLtable (CIndex 0) s.
 
 Definition LLconfiguration4 s:=
 forall part fstLL LLtable,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
+In part (getPartitions pageRootPartition s) -> 
+nextEntryIsPP part idxShadow3 fstLL s ->  
 In LLtable (getLLPages part s (nbPage+1)) -> 
 exists FFI nextFFI,
 StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI 
@@ -324,13 +324,13 @@ StateLib.readIndex LLtable (CIndex 0) (memory s)= Some FFI
 
 Definition LLconfiguration5 s:=
 forall part fstLL ,
-In part (getPartitions multiplexer s) -> 
-nextEntryIsPP part sh3idx fstLL s ->  
+In part (getPartitions pageRootPartition s) -> 
+nextEntryIsPP part idxShadow3 fstLL s ->  
 NoDup (getLLPages fstLL s (nbPage + 1)).
 
 Definition LLconfiguration5' s:=
 forall partition LL LLtable FFI nextFFI, 
-In partition (getPartitions multiplexer s) ->
+In partition (getPartitions pageRootPartition s) ->
 getConfigTablesLinkedList partition (memory s) = Some LL ->
 In LLtable (getLLPages LL s (nbPage + 1)) ->
 isIndexValue LLtable (CIndex 0) FFI s ->
@@ -343,9 +343,9 @@ nextFFI <> CIndex 1.
 (** ** Conjunction of all consistency properties *)
 Definition consistency s := 
  partitionDescriptorEntry s /\  
- dataStructurePdSh1Sh2asRoot PDidx s /\
- dataStructurePdSh1Sh2asRoot sh1idx s /\
- dataStructurePdSh1Sh2asRoot sh2idx s /\
+ dataStructurePdSh1Sh2asRoot idxPageDir s /\
+ dataStructurePdSh1Sh2asRoot idxShadow1 s /\
+ dataStructurePdSh1Sh2asRoot idxShadow2 s /\
  currentPartitionInPartitionsList s /\
  noDupMappedPagesList s /\
  noDupConfigPagesList s  /\
@@ -362,8 +362,8 @@ Definition consistency s :=
  noDupPartitionTree s /\
  wellFormedFstShadow s /\
  wellFormedSndShadow s /\
- wellFormedShadows sh1idx s /\
- wellFormedShadows sh2idx s /\
+ wellFormedShadows idxShadow1 s /\
+ wellFormedShadows idxShadow2 s /\
  currentPartitionIsNotDefaultPage s /\
  wellFormedFstShadowIfNone s /\
  wellFormedFstShadowIfDefaultValues s.

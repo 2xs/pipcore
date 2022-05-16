@@ -42,10 +42,10 @@ Require Import Coq.Logic.ProofIrrelevance Arith Lia Bool.
 
 (** ADT : level **)
 Lemma levelEqBEqNatTrue :
-forall l l' : level, StateLib.Level.eqb l l' = true -> l = l' .
+forall l l' : level, levelEq l l' = true -> l = l' .
  Proof.
  intros l l' H.  
- unfold StateLib.Level.eqb in H. 
+ unfold levelEq in H. 
  apply beq_nat_true in H.
  destruct l.
  destruct l'. simpl in *.
@@ -56,12 +56,12 @@ Qed.
 
 Lemma levelEqBEqNatFalse : 
 forall l ,
-StateLib.Level.eqb l fstLevel = false -> l > fstLevel.
+levelEq l levelMin = false -> l > levelMin.
 Proof.
 intros.
-unfold StateLib.Level.eqb in H.
+unfold levelEq in H.
 apply beq_nat_false in H.
-unfold fstLevel in *.
+unfold levelMin in *.
 unfold CLevel in *.
 case_eq (lt_dec 0 nbLevel).
 intros.
@@ -76,12 +76,12 @@ Qed.
 
 Lemma levelEqBEqNatFalse0 : 
 forall l ,
-StateLib.Level.eqb l fstLevel = false -> l > 0.
+levelEq l levelMin = false -> l > 0.
 Proof.
 intros.
-unfold StateLib.Level.eqb in H.
+unfold levelEq in H.
 apply beq_nat_false in H.
-unfold fstLevel in H.
+unfold levelMin in H.
 unfold CLevel in H.
 case_eq (lt_dec 0 nbLevel).
 intros.
@@ -96,12 +96,12 @@ Qed.
 
 Lemma levelEqBEqNatTrue0 : 
 forall l ,
-StateLib.Level.eqb l fstLevel = true -> l <= 0.
+levelEq l levelMin = true -> l <= 0.
 Proof.
 intros.
-unfold StateLib.Level.eqb in H.
+unfold levelEq in H.
 apply beq_nat_true in H.
-unfold fstLevel in H.
+unfold levelMin in H.
 unfold CLevel in H.
 case_eq (lt_dec 0 nbLevel).
 intros.
@@ -115,7 +115,7 @@ intuition.
 Qed.
  
 Lemma levelPredNone nbL:
-StateLib.Level.eqb nbL fstLevel = false ->
+levelEq nbL levelMin = false ->
 StateLib.Level.pred nbL <> None.
 Proof.
 intros.
@@ -128,7 +128,7 @@ lia.
 Qed.
 
 Lemma levelPredLt nbL l :
-StateLib.Level.eqb nbL fstLevel = false ->
+levelEq nbL levelMin = false ->
 StateLib.Level.pred nbL = Some l -> 
 l < nbL. 
 Proof.
@@ -197,7 +197,7 @@ simpl; lia.
 now contradict H.
 Qed.
 
-Lemma levelPredMinus1: forall l l' , StateLib.Level.eqb l fstLevel = false -> StateLib.Level.pred l = Some l' -> l' = CLevel (l - 1).
+Lemma levelPredMinus1: forall l l' , levelEq l levelMin = false -> StateLib.Level.pred l = Some l' -> l' = CLevel (l - 1).
 Proof.
 intros. 
 unfold StateLib.Level.pred  in *.
@@ -318,9 +318,9 @@ Qed.
 
 Lemma fstLevelLe :
 forall l: level ,
-fstLevel <= l.
+levelMin <= l.
 Proof.
-unfold fstLevel.
+unfold levelMin.
 unfold CLevel.
 intros.
 case_eq( lt_dec 0 nbLevel);intros.
@@ -343,12 +343,12 @@ Qed.
 
 Lemma notFstLevel (level1 : level) : 
  0 < level1 -> 
-StateLib.Level.eqb level1 fstLevel = false.
+levelEq level1 levelMin = false.
 Proof. 
-unfold Level.eqb.
+unfold levelEq.
 intros.
 apply NPeano.Nat.eqb_neq.
-unfold fstLevel. 
+unfold levelMin. 
 unfold CLevel.
 case_eq (lt_dec 0 nbLevel);intros. 
 simpl.
@@ -394,13 +394,13 @@ lia.
 Qed.
 
 (**** ADT : page **)
-Lemma isDefaultPageFalse : forall p,   (defaultPage =? pa p) = false -> pa p <> defaultPage .
+Lemma isDefaultPageFalse : forall p,   (pageDefault =? pa p) = false -> pa p <> pageDefault .
 Proof.
 intros. 
 apply beq_nat_false in H.
 unfold not. intros.
 contradict H. symmetry.
-unfold defaultPage in *.
+unfold pageDefault in *.
 unfold CPage in *.
 case_eq (lt_dec 0 nbPage).
 intros.
@@ -410,11 +410,11 @@ intros.
 rewrite H in H0. rewrite H0. intuition.
 Qed.
 
-Lemma isDefaultPageTrue : forall p,   (defaultPage =? pa p) = true -> pa p = defaultPage .
+Lemma isDefaultPageTrue : forall p,   (pageDefault =? pa p) = true -> pa p = pageDefault .
 Proof.
 intros. 
 apply beq_nat_true in H. symmetry.
-unfold defaultPage in *.
+unfold pageDefault in *.
 unfold CPage in *.
 case_eq (lt_dec 0 nbPage).
 intros.
@@ -501,18 +501,18 @@ Qed.
 
 Lemma indexltbTrue : 
 forall i1 i2 : index , 
-StateLib.Index.ltb i1 i2 = true -> i1 < i2.
-Proof. intros. unfold MALInternal.Index.ltb in H. 
+idxLt i1 i2 = true -> i1 < i2.
+Proof. intros. unfold idxLtM in H. 
 apply NPeano.Nat.ltb_lt in H.
 assumption.
 Qed. 
 
 Lemma indexltbFalse : 
 forall i1 i2 : index , 
-StateLib.Index.ltb i1 i2 = false -> i1 >= i2.
+idxLt i1 i2 = false -> i1 >= i2.
 Proof.
 intros.
-unfold MALInternal.Index.ltb in *. 
+unfold idxLtM in *. 
 apply not_lt.
 apply NPeano.Nat.ltb_nlt in H.
 lia.
@@ -708,10 +708,10 @@ now contradict H1.
 Qed.
 
 Lemma indexEqbTrue : 
-forall idx1 idx2 : index, true = StateLib.Index.eqb idx1 idx2 -> 
+forall idx1 idx2 : index, true = idxEq idx1 idx2 -> 
 idx1 = idx2.
 Proof.
-unfold StateLib.Index.eqb in *.
+unfold idxEq in *.
 intros.
 symmetry in H.
 apply beq_nat_true in H.
@@ -737,7 +737,7 @@ Qed.
 
 Lemma indexSEqbZeroOdd : 
 forall curidx idxsucc, 
-true = StateLib.Index.eqb curidx (CIndex 0) -> 
+true = idxEq curidx (CIndex 0) -> 
 StateLib.Index.succ curidx = Some idxsucc -> 
 Nat.Odd idxsucc.
 Proof.
@@ -1161,9 +1161,9 @@ lia.
 lia.
 Qed.
 (** ADT : vaddr **)
-Lemma lengthVAddrNotZero (va : vaddr) : fstLevel < (length va -1).
+Lemma lengthVAddrNotZero (va : vaddr) : levelMin < (length va -1).
 Proof. 
- unfold fstLevel.  destruct va.
+ unfold levelMin.  destruct va.
  simpl. rewrite Hva. unfold CLevel. case_eq (lt_dec 0 nbLevel).
  simpl. intros. lia.
  intros. destruct level_d. simpl. lia. 
@@ -1205,12 +1205,12 @@ Qed.
 (** beqPairs **)
 Lemma beqPairsTrue : 
 forall table1 idx1 table2 idx2 , table1 = table2 /\ idx1 = idx2 <->   
-beqPairs (table1, idx1) (table2, idx2) beqPage beqIndex = true.
+beqPairs (table1, idx1) (table2, idx2) pageEq idxEq = true.
 Proof.
 intros.
 unfold beqPairs.
 cbn.  
-unfold beqPage , beqIndex .
+unfold pageEq , idxEq .
 split.
 * case_eq (table1 =? table2) ; case_eq(idx1 =? idx2);intuition.
   apply beq_nat_false in H.  
@@ -1261,12 +1261,12 @@ Qed.
 Lemma beqPairsFalse : 
 forall table1 idx1 table2 idx2 , 
 table1 <> table2 \/ idx1 <> idx2 <-> 
-beqPairs (table1, idx1) (table2, idx2) beqPage beqIndex = false.
+beqPairs (table1, idx1) (table2, idx2) pageEq idxEq = false.
 Proof.
 intros.
 unfold beqPairs.
 cbn.  
-unfold beqPage , beqIndex .
+unfold pageEq , idxEq .
 intuition.
 case_eq (table1 =? table2) ; case_eq(idx1 =? idx2);intuition.
 contradict H0.
@@ -1369,28 +1369,28 @@ inversion Hirr.
 subst;now contradict Hor.
 Qed.
     
-Lemma idxPRsucNotEqidxPPR : PRidx < tableSize - 1 -> 
-exists succidx1 : index, Index.succ PRidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+Lemma idxPRsucNotEqidxPPR : idxPartDesc < tableSize - 1 -> 
+exists succidx1 : index, Index.succ idxPartDesc = Some succidx1 /\ (succidx1 = idxParentDesc -> False).
 Proof. 
 unfold Index.succ.
-case_eq (lt_dec (PRidx + 1) tableSize); intros.
+case_eq (lt_dec (idxPartDesc + 1) tableSize); intros.
 eexists.
 split.
-instantiate (1:= CIndex (PRidx + 1)).
+instantiate (1:= CIndex (idxPartDesc + 1)).
 f_equal.
 unfold CIndex .
-case_eq (lt_dec(PRidx + 1) tableSize); intros.
+case_eq (lt_dec(idxPartDesc + 1) tableSize); intros.
 f_equal.
 apply proof_irrelevance.
 abstract lia.
 unfold CIndex.
-case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+case_eq(lt_dec (idxPartDesc + 1) tableSize ); intros.
 
-assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = PPRidx)
+assert(Hi : {| i := idxPartDesc + 1; Hi := ADT.CIndex_obligation_1 (idxPartDesc + 1) l0 |} = idxParentDesc)
 by trivial.
 contradict Hi.
 subst.
-unfold PRidx. unfold PPRidx.
+unfold idxPartDesc. unfold idxParentDesc.
 unfold CIndex at 3.
 case_eq (lt_dec 10 tableSize); intros.
 unfold not; intros Hii.
@@ -1411,27 +1411,27 @@ unfold tableSizeLowerBound in *.
 abstract lia.
 abstract lia.
 Qed. 
-     Lemma idxPPRsuccNotEqidxPR : PPRidx < tableSize - 1 -> 
-    exists succidx2 : index, Index.succ PPRidx = Some succidx2 /\ (succidx2 = PRidx -> False).
+     Lemma idxPPRsuccNotEqidxPR : idxParentDesc < tableSize - 1 -> 
+    exists succidx2 : index, Index.succ idxParentDesc = Some succidx2 /\ (succidx2 = idxPartDesc -> False).
     Proof.  
     unfold Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxParentDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PPRidx + 1)).
+    instantiate (1:= CIndex (idxParentDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxParentDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.    
-    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = PRidx)
+    case_eq(lt_dec (idxParentDesc + 1) tableSize ); intros.    
+    assert(Hi : {| i := idxParentDesc + 1; Hi := ADT.CIndex_obligation_1 (idxParentDesc + 1) l0 |} = idxPartDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold PPRidx. unfold PRidx.
+    unfold idxParentDesc. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 0 tableSize); intros.
     unfold not; intros Hii.
@@ -1452,9 +1452,9 @@ Qed.
     abstract lia.
     abstract lia.
     Qed. 
-Lemma idxPRidxPPRNotEq : PRidx <> PPRidx.
+Lemma idxPRidxPPRNotEq : idxPartDesc <> idxParentDesc.
     Proof.  
-      unfold PRidx. unfold PPRidx.
+      unfold idxPartDesc. unfold idxParentDesc.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1465,28 +1465,28 @@ Lemma idxPRidxPPRNotEq : PRidx <> PPRidx.
       apply tableSizeBigEnough.
       abstract lia. Qed. 
 
-    Lemma idxPPRsuccNotEqidxPD : PPRidx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    Lemma idxPPRsuccNotEqidxPD : idxParentDesc < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxParentDesc = Some succidx2 /\ (succidx2 = idxPageDir -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxParentDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PPRidx + 1)).
+    instantiate (1:= CIndex (idxParentDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxParentDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxParentDesc + 1) tableSize ); intros.
     
-    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = PDidx)
+    assert(Hi : {| i := idxParentDesc + 1; Hi := ADT.CIndex_obligation_1 (idxParentDesc + 1) l0 |} = idxPageDir)
     by trivial.
     contradict Hi.
     subst.
-    unfold PPRidx. unfold PDidx.
+    unfold idxParentDesc. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 2 tableSize); intros.
     unfold not; intros Hii.
@@ -1508,9 +1508,9 @@ Lemma idxPRidxPPRNotEq : PRidx <> PPRidx.
     abstract lia.
     Qed.
 
-Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
+Lemma idxPPRidxPDNotEq : idxParentDesc <> idxPageDir.
     Proof. 
-      unfold PPRidx. unfold PDidx.
+      unfold idxParentDesc. unfold idxPageDir.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1518,28 +1518,28 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
       abstract lia.  apply tableSizeBigEnough.
       unfold tableSizeLowerBound in *.
       abstract lia. apply tableSizeBigEnough. abstract lia. Qed. 
-    Lemma idxPDsucNotEqidxPPR :  PDidx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Lemma idxPDsucNotEqidxPPR :  idxPageDir < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxPageDir = Some succidx1 /\ (succidx1 = idxParentDesc -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPageDir + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PDidx + 1)).
+    instantiate (1:= CIndex (idxPageDir + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPageDir + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxPageDir + 1) tableSize ); intros.
     
-    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = PPRidx)
+    assert(Hi : {| i := idxPageDir + 1; Hi := ADT.CIndex_obligation_1 (idxPageDir + 1) l0 |} = idxParentDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold PDidx. unfold PPRidx.
+    unfold idxPageDir. unfold idxParentDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 10 tableSize); intros.
     unfold not; intros Hii.
@@ -1561,9 +1561,9 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
     abstract lia.
     Qed.
 
- Lemma idxPDidxPPRNotEq : PDidx <> PPRidx.
+ Lemma idxPDidxPPRNotEq : idxPageDir <> idxParentDesc.
     Proof. 
-      unfold PRidx. unfold sh3idx.
+      unfold idxPartDesc. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1574,9 +1574,9 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
       apply tableSizeBigEnough.
       abstract lia. Qed.
 
- Lemma idxPPRidxSh1NotEq : PPRidx <> sh1idx.
+ Lemma idxPPRidxSh1NotEq : idxParentDesc <> idxShadow1.
     Proof. 
-      unfold PPRidx. unfold sh1idx.
+      unfold idxParentDesc. unfold idxShadow1.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1585,28 +1585,28 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
       unfold tableSizeLowerBound in *.
       abstract lia. apply tableSizeBigEnough. abstract lia. Qed.
    
-    Lemma idxPPRsuccNotEqidxSh1 : PPRidx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+    Lemma idxPPRsuccNotEqidxSh1 : idxParentDesc < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxParentDesc = Some succidx2 /\ (succidx2 = idxShadow1 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxParentDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PPRidx + 1)).
+    instantiate (1:= CIndex (idxParentDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxParentDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxParentDesc + 1) tableSize ); intros.
     
-    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh1idx)
+    assert(Hi : {| i := idxParentDesc + 1; Hi := ADT.CIndex_obligation_1 (idxParentDesc + 1) l0 |} = idxShadow1)
     by trivial.
     contradict Hi.
     subst.
-    unfold PPRidx. unfold sh1idx.
+    unfold idxParentDesc. unfold idxShadow1.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -1628,28 +1628,28 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
     abstract lia.
     Qed. 
 
-    Lemma idxSh1succNotEqidxPPR : sh1idx < tableSize - 1 ->
-    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Lemma idxSh1succNotEqidxPPR : idxShadow1 < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ idxShadow1 = Some succidx1 /\ (succidx1 = idxParentDesc -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow1 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh1idx + 1)).
+    instantiate (1:= CIndex (idxShadow1 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow1 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow1 + 1) tableSize ); intros.
     
-    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PPRidx)
+    assert(Hi : {| i := idxShadow1 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow1 + 1) l0 |} = idxParentDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold PPRidx.
+    unfold idxShadow1. unfold idxParentDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 10 tableSize); intros.
     unfold not; intros Hii.
@@ -1671,9 +1671,9 @@ Lemma idxPPRidxPDNotEq : PPRidx <> PDidx.
     abstract lia.
     Qed.
 
-Lemma idxSh1idxPPRnotEq : sh1idx <> PPRidx.
+Lemma idxSh1idxPPRnotEq : idxShadow1 <> idxParentDesc.
     Proof.  
-      unfold sh1idx. unfold PPRidx.
+      unfold idxShadow1. unfold idxParentDesc.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1684,27 +1684,27 @@ Lemma idxSh1idxPPRnotEq : sh1idx <> PPRidx.
       apply tableSizeBigEnough.
       abstract lia. Qed.
 
-    Lemma idxPPRsuccNotEqidxSh2 : PPRidx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh2idx -> False).
+    Lemma idxPPRsuccNotEqidxSh2 : idxParentDesc < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxParentDesc = Some succidx2 /\ (succidx2 = idxShadow2 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxParentDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PPRidx + 1)).
+    instantiate (1:= CIndex (idxParentDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxParentDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.    
-    assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh2idx)
+    case_eq(lt_dec (idxParentDesc + 1) tableSize ); intros.    
+    assert(Hi : {| i := idxParentDesc + 1; Hi := ADT.CIndex_obligation_1 (idxParentDesc + 1) l0 |} = idxShadow2)
     by trivial.
     contradict Hi.
     subst.
-    unfold PPRidx. unfold sh2idx.
+    unfold idxParentDesc. unfold idxShadow2.
     unfold CIndex at 3.
     case_eq (lt_dec 6 tableSize); intros.
     unfold not; intros Hii.
@@ -1726,8 +1726,8 @@ Lemma idxSh1idxPPRnotEq : sh1idx <> PPRidx.
     abstract lia.
     Qed. 
 
-Lemma idxPPRidxSh2NotEq : PPRidx <> sh2idx. Proof. 
-      unfold PPRidx. unfold sh2idx.
+Lemma idxPPRidxSh2NotEq : idxParentDesc <> idxShadow2. Proof. 
+      unfold idxParentDesc. unfold idxShadow2.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1737,27 +1737,27 @@ Lemma idxPPRidxSh2NotEq : PPRidx <> sh2idx. Proof.
       abstract lia.
       apply tableSizeBigEnough.
       abstract lia. Qed.
-    Lemma idxSh2succNotEqidxPPR : sh2idx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ sh2idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Lemma idxSh2succNotEqidxPPR : idxShadow2 < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxShadow2 = Some succidx1 /\ (succidx1 = idxParentDesc -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow2 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh2idx + 1)).
+    instantiate (1:= CIndex (idxShadow2 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow2 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.    
-    assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PPRidx)
+    case_eq(lt_dec (idxShadow2 + 1) tableSize ); intros.    
+    assert(Hi : {| i := idxShadow2 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow2 + 1) l0 |} = idxParentDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh2idx. unfold PPRidx.
+    unfold idxShadow2. unfold idxParentDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 10 tableSize); intros.
     unfold not; intros Hii.
@@ -1779,9 +1779,9 @@ Lemma idxPPRidxSh2NotEq : PPRidx <> sh2idx. Proof.
     abstract lia.
     Qed. 
 
-Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
+Lemma idxSh2idxPPRnotEq : idxShadow2 <> idxParentDesc.
     Proof.  
-      unfold sh1idx. unfold sh3idx.
+      unfold idxShadow1. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1792,28 +1792,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       apply tableSizeBigEnough.
       abstract lia. Qed.
 
-    Lemma idxPPRsuccNotEqidxSh3 : PPRidx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ PPRidx = Some succidx2 /\ (succidx2 = sh3idx -> False).
+    Lemma idxPPRsuccNotEqidxSh3 : idxParentDesc < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxParentDesc = Some succidx2 /\ (succidx2 = idxShadow3 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxParentDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PPRidx + 1)).
+    instantiate (1:= CIndex (idxParentDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PPRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxParentDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PPRidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxParentDesc + 1) tableSize ); intros.
     
-     assert(Hi : {| i := PPRidx + 1; Hi := ADT.CIndex_obligation_1 (PPRidx + 1) l0 |} = sh3idx)
+     assert(Hi : {| i := idxParentDesc + 1; Hi := ADT.CIndex_obligation_1 (idxParentDesc + 1) l0 |} = idxShadow3)
     by trivial.
     contradict Hi.
     subst.
-    unfold PPRidx. unfold sh3idx.
+    unfold idxParentDesc. unfold idxShadow3.
     unfold CIndex at 3.
     case_eq (lt_dec 8 tableSize); intros.
     unfold not; intros Hii.
@@ -1835,27 +1835,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     abstract lia.
     Qed. 
 
-    Lemma idxSh3succNotEqPPRidx : sh3idx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ sh3idx = Some succidx1 /\ (succidx1 = PPRidx -> False).
+    Lemma idxSh3succNotEqPPRidx : idxShadow3 < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxShadow3 = Some succidx1 /\ (succidx1 = idxParentDesc -> False).
     Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow3 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh3idx + 1)).
+    instantiate (1:= CIndex (idxShadow3 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow3 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PPRidx)
+    case_eq(lt_dec (idxShadow3 + 1) tableSize ); intros.
+     assert(Hi : {| i := idxShadow3 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow3 + 1) l0 |} = idxParentDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold PPRidx.
+    unfold idxShadow3. unfold idxParentDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 10 tableSize); intros.
     unfold not; intros Hii.
@@ -1877,9 +1877,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     abstract lia.
     Qed. 
 
- Lemma idxPPRidxSh3NotEq : PPRidx <> sh3idx.
+ Lemma idxPPRidxSh3NotEq : idxParentDesc <> idxShadow3.
     Proof.  
-      unfold PPRidx. unfold sh3idx.
+      unfold idxParentDesc. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1889,28 +1889,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       abstract lia.
        apply tableSizeBigEnough. abstract lia. Qed.
 
-    Lemma idxSh3succNotEqPRidx : sh3idx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    Lemma idxSh3succNotEqPRidx : idxShadow3 < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxShadow3 = Some succidx2 /\ (succidx2 = idxPartDesc -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow3 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh3idx + 1)).
+    instantiate (1:= CIndex (idxShadow3 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow3 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow3 + 1) tableSize ); intros.
     
-     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PRidx)
+     assert(Hi : {| i := idxShadow3 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow3 + 1) l0 |} = idxPartDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold PRidx.
+    unfold idxShadow3. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 0 tableSize); intros.
     unfold not; intros Hii.
@@ -1932,26 +1932,26 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     abstract lia.
     Qed.
 
-    Lemma idxPRsuccNotEqidxSh3 : PRidx < tableSize - 1 -> exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Lemma idxPRsuccNotEqidxSh3 : idxPartDesc < tableSize - 1 -> exists succidx1 : index, StateLib.Index.succ idxPartDesc = Some succidx1 /\ (succidx1 = idxShadow3 -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPartDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PRidx + 1)).
+    instantiate (1:= CIndex (idxPartDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPartDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh3idx)
+    case_eq(lt_dec (idxPartDesc + 1) tableSize ); intros.
+    assert(Hi : {| i := idxPartDesc + 1; Hi := ADT.CIndex_obligation_1 (idxPartDesc + 1) l0 |} = idxShadow3)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold PRidx.
+    unfold idxShadow3. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 8 tableSize); intros.
     unfold not; intros Hii.
@@ -1973,10 +1973,10 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     abstract lia.
     Qed.
 
-    Lemma  idxPRidxSh3NotEq : PRidx <> sh3idx.
+    Lemma  idxPRidxSh3NotEq : idxPartDesc <> idxShadow3.
     Proof.  
     (* *)
-      unfold PRidx. unfold sh3idx.
+      unfold idxPartDesc. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -1985,27 +1985,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       unfold tableSizeLowerBound in *.
       abstract lia. apply tableSizeBigEnough. abstract lia. Qed.  
 
-    Lemma idxSh3succNotEqidxPDidx : sh3idx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    Lemma idxSh3succNotEqidxPDidx : idxShadow3 < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxShadow3 = Some succidx2 /\ (succidx2 = idxPageDir -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow3 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh3idx + 1)).
+    instantiate (1:= CIndex (idxShadow3 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow3 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = PDidx)
+    case_eq(lt_dec (idxShadow3 + 1) tableSize ); intros.
+     assert(Hi : {| i := idxShadow3 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow3 + 1) l0 |} = idxPageDir)
     by trivial.
     contradict Hi.
     subst.
-    unfold PDidx. unfold sh3idx.
+    unfold idxPageDir. unfold idxShadow3.
     unfold CIndex at 3.
     case_eq (lt_dec 2 tableSize); intros.
     unfold not; intros Hii.
@@ -2028,28 +2028,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     Qed.
 
 
-    Lemma idxPDsucNotEqidxSh3 : PDidx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Lemma idxPDsucNotEqidxSh3 : idxPageDir < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxPageDir = Some succidx1 /\ (succidx1 = idxShadow3 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPageDir + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PDidx + 1)).
+    instantiate (1:= CIndex (idxPageDir + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPageDir + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     abstract lia.
     unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxPageDir + 1) tableSize ); intros.
     
-     assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh3idx)
+     assert(Hi : {| i := idxPageDir + 1; Hi := ADT.CIndex_obligation_1 (idxPageDir + 1) l0 |} = idxShadow3)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold PDidx.
+    unfold idxShadow3. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 8 tableSize); intros.
     unfold not; intros Hii.
@@ -2071,10 +2071,10 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     abstract lia.
     Qed.
 
-    Lemma idxPDidxSh3notEq : PDidx <> sh3idx.
+    Lemma idxPDidxSh3notEq : idxPageDir <> idxShadow3.
     Proof. 
 (*    
- *)      unfold PDidx. unfold sh3idx.
+ *)      unfold idxPageDir. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2085,28 +2085,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       Qed. 
 
     Lemma idxSh3succNotEqidxSh1 : 
-    sh3idx < tableSize - 1 -> 
-     exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+    idxShadow3 < tableSize - 1 -> 
+     exists succidx2 : index, StateLib.Index.succ idxShadow3 = Some succidx2 /\ (succidx2 = idxShadow1 -> False).
      Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow3 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh3idx + 1)).
+    instantiate (1:= CIndex (idxShadow3 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow3 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow3 + 1) tableSize ); intros.
     
-     assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = sh1idx)
+     assert(Hi : {| i := idxShadow3 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow3 + 1) l0 |} = idxShadow1)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold sh1idx.
+    unfold idxShadow3. unfold idxShadow1.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -2127,28 +2127,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     lia.
     Qed.
-    Lemma sh1idxSh3idxNotEq : sh1idx < tableSize - 1 ->
-    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Lemma sh1idxSh3idxNotEq : idxShadow1 < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ idxShadow1 = Some succidx1 /\ (succidx1 = idxShadow3 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow1 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh1idx + 1)).
+    instantiate (1:= CIndex (idxShadow1 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow1 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow1 + 1) tableSize ); intros.
     
-     assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = sh3idx)
+     assert(Hi : {| i := idxShadow1 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow1 + 1) l0 |} = idxShadow3)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold sh3idx.
+    unfold idxShadow1. unfold idxShadow3.
     unfold CIndex at 3.
     case_eq (lt_dec 8 tableSize); intros.
     unfold not; intros Hii.
@@ -2169,9 +2169,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     lia.
     Qed.
-    Lemma idxSh1idxSh3notEq :  sh1idx <> sh3idx.
+    Lemma idxSh1idxSh3notEq :  idxShadow1 <> idxShadow3.
      Proof. 
-      unfold sh1idx. unfold sh3idx.
+      unfold idxShadow1. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2181,27 +2181,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       lia. apply tableSizeBigEnough. lia.
       Qed. 
 
-    Lemma idxSh3succNotEqidxSh2 : sh3idx < tableSize - 1 ->
-    exists succidx2 : index, StateLib.Index.succ sh3idx = Some succidx2 /\ (succidx2 = sh2idx -> False).
+    Lemma idxSh3succNotEqidxSh2 : idxShadow3 < tableSize - 1 ->
+    exists succidx2 : index, StateLib.Index.succ idxShadow3 = Some succidx2 /\ (succidx2 = idxShadow2 -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow3 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh3idx + 1)).
+    instantiate (1:= CIndex (idxShadow3 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh3idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow3 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh3idx + 1) tableSize ); intros.
-    assert(Hi : {| i := sh3idx + 1; Hi := ADT.CIndex_obligation_1 (sh3idx + 1) l0 |} = sh2idx)
+    case_eq(lt_dec (idxShadow3 + 1) tableSize ); intros.
+    assert(Hi : {| i := idxShadow3 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow3 + 1) l0 |} = idxShadow2)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold sh2idx.
+    unfold idxShadow3. unfold idxShadow2.
     unfold CIndex at 3.
     case_eq (lt_dec 6 tableSize); intros.
     unfold not; intros Hii.
@@ -2223,27 +2223,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     Qed.
 
-    Lemma idxSh2succNotEqidxSh3 : sh2idx < tableSize - 1 ->
-    exists succidx1 : index, StateLib.Index.succ sh2idx = Some succidx1 /\ (succidx1 = sh3idx -> False).
+    Lemma idxSh2succNotEqidxSh3 : idxShadow2 < tableSize - 1 ->
+    exists succidx1 : index, StateLib.Index.succ idxShadow2 = Some succidx1 /\ (succidx1 = idxShadow3 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow2 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh2idx + 1)).
+    instantiate (1:= CIndex (idxShadow2 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow2 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-     assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = sh3idx)
+    case_eq(lt_dec (idxShadow2 + 1) tableSize ); intros.
+     assert(Hi : {| i := idxShadow2 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow2 + 1) l0 |} = idxShadow3)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh3idx. unfold sh2idx.
+    unfold idxShadow3. unfold idxShadow2.
     unfold CIndex at 3.
     case_eq (lt_dec 8 tableSize); intros.
     unfold not; intros Hii.
@@ -2265,9 +2265,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     Qed.
  
-    Lemma idxSh2idxSh3notEq : sh2idx <> sh3idx .
+    Lemma idxSh2idxSh3notEq : idxShadow2 <> idxShadow3 .
     Proof.  
-      unfold sh2idx. unfold sh3idx.
+      unfold idxShadow2. unfold idxShadow3.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2277,28 +2277,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       lia. apply tableSizeBigEnough. lia. 
      Qed.
      
-   Lemma  idxSh2succNotEqidxPR : sh2idx < tableSize - 1 -> 
-   exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+   Lemma  idxSh2succNotEqidxPR : idxShadow2 < tableSize - 1 -> 
+   exists succidx2 : index, StateLib.Index.succ idxShadow2 = Some succidx2 /\ (succidx2 = idxPartDesc -> False).
    Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow2 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh2idx + 1)).
+    instantiate (1:= CIndex (idxShadow2 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow2 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow2 + 1) tableSize ); intros.
     
-     assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PRidx)
+     assert(Hi : {| i := idxShadow2 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow2 + 1) l0 |} = idxPartDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh2idx. unfold PRidx.
+    unfold idxShadow2. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 0 tableSize); intros.
     unfold not; intros Hii.
@@ -2320,28 +2320,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     Qed.   
     
-        Lemma idxPRsuccNotEqidxSh2 : PRidx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh2idx -> False). 
+        Lemma idxPRsuccNotEqidxSh2 : idxPartDesc < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxPartDesc = Some succidx1 /\ (succidx1 = idxShadow2 -> False). 
     Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPartDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PRidx + 1)).
+    instantiate (1:= CIndex (idxPartDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPartDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxPartDesc + 1) tableSize ); intros.
     
-     assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh2idx)
+     assert(Hi : {| i := idxPartDesc + 1; Hi := ADT.CIndex_obligation_1 (idxPartDesc + 1) l0 |} = idxShadow2)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh2idx. unfold PRidx.
+    unfold idxShadow2. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 6 tableSize); intros.
     unfold not; intros Hii.
@@ -2362,9 +2362,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     lia.
     Qed.
-        Lemma idxPRidxSh2NotEq : PRidx <> sh2idx.
+        Lemma idxPRidxSh2NotEq : idxPartDesc <> idxShadow2.
     Proof.
-      unfold PRidx. unfold sh2idx.
+      unfold idxPartDesc. unfold idxShadow2.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2374,27 +2374,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       lia. apply tableSizeBigEnough. lia.
       Qed.   
 
-          Lemma idxSh2succNotEqidxPD : sh2idx < tableSize - 1 -> 
-     exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+          Lemma idxSh2succNotEqidxPD : idxShadow2 < tableSize - 1 -> 
+     exists succidx2 : index, StateLib.Index.succ idxShadow2 = Some succidx2 /\ (succidx2 = idxPageDir -> False).
      Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow2 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh2idx + 1)).
+    instantiate (1:= CIndex (idxShadow2 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow2 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-    assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = PDidx)
+    case_eq(lt_dec (idxShadow2 + 1) tableSize ); intros.
+    assert(Hi : {| i := idxShadow2 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow2 + 1) l0 |} = idxPageDir)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh2idx. unfold PDidx.
+    unfold idxShadow2. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 2 tableSize); intros.
     unfold not; intros Hii.
@@ -2419,29 +2419,29 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     Qed.
 
         Lemma idxPDsucNotEqidxSh2 : 
-    PDidx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh2idx -> False).
+    idxPageDir < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxPageDir = Some succidx1 /\ (succidx1 = idxShadow2 -> False).
     Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPageDir + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PDidx + 1)).
+    instantiate (1:= CIndex (idxPageDir + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPageDir + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxPageDir + 1) tableSize ); intros.
    
    
-    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh2idx)
+    assert(Hi : {| i := idxPageDir + 1; Hi := ADT.CIndex_obligation_1 (idxPageDir + 1) l0 |} = idxShadow2)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh2idx. unfold PDidx.
+    unfold idxShadow2. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 6 tableSize); intros.
     unfold not; intros Hii.
@@ -2464,9 +2464,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     Qed. 
 
  
-    Lemma idxPDidxSh2notEq : PDidx <> sh2idx .
+    Lemma idxPDidxSh2notEq : idxPageDir <> idxShadow2 .
     Proof.  
-      unfold PDidx. unfold sh2idx.
+      unfold idxPageDir. unfold idxShadow2.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2476,27 +2476,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
       lia. apply tableSizeBigEnough. lia. Qed.
 
           Lemma idxSh2succNotEqidxSh1 : 
-    sh2idx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ sh2idx = Some succidx2 /\ (succidx2 = sh1idx -> False).
+    idxShadow2 < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxShadow2 = Some succidx2 /\ (succidx2 = idxShadow1 -> False).
     Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow2 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh2idx + 1)).
+    instantiate (1:= CIndex (idxShadow2 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh2idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow2 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh2idx + 1) tableSize ); intros.
-      assert(Hi : {| i := sh2idx + 1; Hi := ADT.CIndex_obligation_1 (sh2idx + 1) l0 |} = sh1idx)
+    case_eq(lt_dec (idxShadow2 + 1) tableSize ); intros.
+      assert(Hi : {| i := idxShadow2 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow2 + 1) l0 |} = idxShadow1)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold sh2idx.
+    unfold idxShadow1. unfold idxShadow2.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -2520,28 +2520,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
 
   
       Lemma idxSh1succNotEqidxSh2 : 
-    sh1idx < tableSize - 1 -> 
-    exists succidx1 : index, StateLib.Index.succ sh1idx = Some succidx1 /\ (succidx1 = sh2idx -> False).
+    idxShadow1 < tableSize - 1 -> 
+    exists succidx1 : index, StateLib.Index.succ idxShadow1 = Some succidx1 /\ (succidx1 = idxShadow2 -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow1 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh1idx + 1)).
+    instantiate (1:= CIndex (idxShadow1 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow1 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxShadow1 + 1) tableSize ); intros.
     
-     assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = sh2idx)
+     assert(Hi : {| i := idxShadow1 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow1 + 1) l0 |} = idxShadow2)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold sh2idx.
+    unfold idxShadow1. unfold idxShadow2.
     unfold CIndex at 3.
     case_eq (lt_dec 6 tableSize); intros.
     unfold not; intros Hii.
@@ -2566,27 +2566,27 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
 
       
     Lemma idxSh1succNotEqidxPR : 
-    sh1idx < tableSize - 1 -> 
-    exists succidx2 : index, StateLib.Index.succ sh1idx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    idxShadow1 < tableSize - 1 -> 
+    exists succidx2 : index, StateLib.Index.succ idxShadow1 = Some succidx2 /\ (succidx2 = idxPartDesc -> False).
     Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow1 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh1idx + 1)).
+    instantiate (1:= CIndex (idxShadow1 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow1 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PRidx)
+    case_eq(lt_dec (idxShadow1 + 1) tableSize ); intros.
+    assert(Hi : {| i := idxShadow1 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow1 + 1) l0 |} = idxPartDesc)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold PRidx.
+    unfold idxShadow1. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -2609,28 +2609,28 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     Qed.
         Lemma idxPRsuccNotEqidxSh1 :
-    PRidx + 1 < tableSize -> 
+    idxPartDesc + 1 < tableSize -> 
 (*     PRidx + 1< tableSize - 1 ->  *)
-    exists succidx1 : index, StateLib.Index.succ PRidx = Some succidx1 /\ (succidx1 = sh1idx -> False).
+    exists succidx1 : index, StateLib.Index.succ idxPartDesc = Some succidx1 /\ (succidx1 = idxShadow1 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPartDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PRidx + 1)).
+    instantiate (1:= CIndex (idxPartDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPartDesc + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros.
-    assert(Hi : {| i := PRidx + 1; Hi := ADT.CIndex_obligation_1 (PRidx + 1) l0 |} = sh1idx)
+    case_eq(lt_dec (idxPartDesc + 1) tableSize ); intros.
+    assert(Hi : {| i := idxPartDesc + 1; Hi := ADT.CIndex_obligation_1 (idxPartDesc + 1) l0 |} = idxShadow1)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold PRidx.
+    unfold idxShadow1. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -2649,9 +2649,9 @@ Lemma idxSh2idxPPRnotEq : sh2idx <> PPRidx.
     lia.
     lia.
     Qed.
-Lemma idxPRidxSh1NotEq : PRidx <> sh1idx.
+Lemma idxPRidxSh1NotEq : idxPartDesc <> idxShadow1.
     Proof. 
-      unfold PRidx. unfold sh1idx.
+      unfold idxPartDesc. unfold idxShadow1.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.
@@ -2662,27 +2662,27 @@ Lemma idxPRidxSh1NotEq : PRidx <> sh1idx.
       Qed.
       
           Lemma idxSh1succNotEqidxPD : 
-    sh1idx + 1 < tableSize -> 
-    exists succidx2 : index, StateLib.Index.succ sh1idx = Some succidx2 /\ (succidx2 = PDidx -> False).
+    idxShadow1 + 1 < tableSize -> 
+    exists succidx2 : index, StateLib.Index.succ idxShadow1 = Some succidx2 /\ (succidx2 = idxPageDir -> False).
     Proof.  
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec (idxShadow1 + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (sh1idx + 1)).
+    instantiate (1:= CIndex (idxShadow1 + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(sh1idx + 1) tableSize); intros.
+    case_eq (lt_dec(idxShadow1 + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (sh1idx + 1) tableSize ); intros.
-    assert(Hi : {| i := sh1idx + 1; Hi := ADT.CIndex_obligation_1 (sh1idx + 1) l0 |} = PDidx)
+    case_eq(lt_dec (idxShadow1 + 1) tableSize ); intros.
+    assert(Hi : {| i := idxShadow1 + 1; Hi := ADT.CIndex_obligation_1 (idxShadow1 + 1) l0 |} = idxPageDir)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold PDidx.
+    unfold idxShadow1. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 2 tableSize); intros.
     unfold not; intros Hii.
@@ -2718,27 +2718,27 @@ Lemma idxPRidxSh1NotEq : PRidx <> sh1idx.
     Qed. 
     
         Lemma  idxPDsucNotEqidxSh1 : 
-    PDidx + 1 < tableSize -> 
-    exists succidx1 : index, StateLib.Index.succ PDidx = Some succidx1 /\ (succidx1 = sh1idx -> False).
+    idxPageDir + 1 < tableSize -> 
+    exists succidx1 : index, StateLib.Index.succ idxPageDir = Some succidx1 /\ (succidx1 = idxShadow1 -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPageDir + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PDidx + 1)).
+    instantiate (1:= CIndex (idxPageDir + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPageDir + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
-    assert(Hi : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = sh1idx)
+    case_eq(lt_dec (idxPageDir + 1) tableSize ); intros.
+    assert(Hi : {| i := idxPageDir + 1; Hi := ADT.CIndex_obligation_1 (idxPageDir + 1) l0 |} = idxShadow1)
     by trivial.
     contradict Hi.
     subst.
-    unfold sh1idx. unfold PDidx.
+    unfold idxShadow1. unfold idxPageDir.
     unfold CIndex at 3.
     case_eq (lt_dec 4 tableSize); intros.
     unfold not; intros Hii.
@@ -2763,29 +2763,29 @@ Lemma idxPRidxSh1NotEq : PRidx <> sh1idx.
 
       
           Lemma idxPDsucNotEqidxPR : 
-    PDidx + 1 < tableSize -> 
-     exists succidx2 : index, StateLib.Index.succ PDidx = Some succidx2 /\ (succidx2 = PRidx -> False).
+    idxPageDir + 1 < tableSize -> 
+     exists succidx2 : index, StateLib.Index.succ idxPageDir = Some succidx2 /\ (succidx2 = idxPartDesc -> False).
      Proof.
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PDidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPageDir + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PDidx + 1)).
+    instantiate (1:= CIndex (idxPageDir + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PDidx + 1) tableSize); intros.
+    case_eq (lt_dec(idxPageDir + 1) tableSize); intros.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PDidx + 1) tableSize ); intros.
+    case_eq(lt_dec (idxPageDir + 1) tableSize ); intros.
     
-    assert(Hii : {| i := PDidx + 1; Hi := ADT.CIndex_obligation_1 (PDidx + 1) l0 |} = PRidx)
+    assert(Hii : {| i := idxPageDir + 1; Hi := ADT.CIndex_obligation_1 (idxPageDir + 1) l0 |} = idxPartDesc)
 
 by trivial.
     contradict Hii.
     subst.
-    unfold PDidx. unfold PRidx.
+    unfold idxPageDir. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 0 tableSize); intros.
     unfold not; intros Hi.
@@ -2808,25 +2808,25 @@ by trivial.
     Qed.
     
         Lemma idxPRsucNotEqidxPD : 
-    PRidx + 1 < tableSize -> 
-    exists succidx1 : index, Index.succ PRidx = Some succidx1 /\ (succidx1 = PDidx -> False).
+    idxPartDesc + 1 < tableSize -> 
+    exists succidx1 : index, Index.succ idxPartDesc = Some succidx1 /\ (succidx1 = idxPageDir -> False).
     Proof. 
     unfold StateLib.Index.succ.
-    case_eq (lt_dec (PRidx + 1) tableSize); intros.
+    case_eq (lt_dec (idxPartDesc + 1) tableSize); intros.
     eexists.
     split.
-    instantiate (1:= CIndex (PRidx + 1)).
+    instantiate (1:= CIndex (idxPartDesc + 1)).
     f_equal.
     unfold CIndex .
-    case_eq (lt_dec(PRidx + 1) tableSize); intros * Hc2.
+    case_eq (lt_dec(idxPartDesc + 1) tableSize); intros * Hc2.
     f_equal.
     apply proof_irrelevance.
     lia.
     unfold CIndex.
-    case_eq(lt_dec (PRidx + 1) tableSize ); intros * Hc3 Hc4.
+    case_eq(lt_dec (idxPartDesc + 1) tableSize ); intros * Hc3 Hc4.
     contradict Hc4.
     subst.
-    unfold PDidx. unfold PRidx.
+    unfold idxPageDir. unfold idxPartDesc.
     unfold CIndex at 3.
     case_eq (lt_dec 2 tableSize); intros * Hc5.
     unfold not; intros Hc6.
@@ -2850,9 +2850,9 @@ by trivial.
     lia.
     Qed.
 
-        Lemma idxPRidxPDNotEq : PRidx <> PDidx.
+        Lemma idxPRidxPDNotEq : idxPartDesc <> idxPageDir.
     Proof.  
-      unfold PDidx. unfold PRidx.
+      unfold idxPageDir. unfold idxPartDesc.
       apply indexEqFalse ;
       assert (tableSize > tableSizeLowerBound).
       apply tableSizeBigEnough.

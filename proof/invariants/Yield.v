@@ -54,8 +54,8 @@ Lemma switchContextCont (targetPartDesc : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
-  targetPartDesc <> defaultPage
+  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  targetPartDesc <> pageDefault
 }}
 
 switchContextCont targetPartDesc targetPageDir flagsOnYield targetContext
@@ -185,11 +185,11 @@ Definition saveSourceContextCont (targetPartDesc           : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
-  targetPartDesc <> defaultPage /\
+  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  targetPartDesc <> pageDefault /\
   Some nbL = StateLib.getNbLevel /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 saveSourceContextCont targetPartDesc targetPageDir sourcePageDir
@@ -209,7 +209,7 @@ unfold saveSourceContextCont.
 (* sourceCtxLastMMUPage := getTableAddr sourcePageDir sourceContextSaveVAddr nbL *)
 eapply WP.bindRev.
 eapply WP.weaken.
-eapply (getTableAddr sourcePageDir sourceContextSaveVAddr nbL _ sourcePartDesc PDidx).
+eapply (getTableAddr sourcePageDir sourceContextSaveVAddr nbL _ sourcePartDesc idxPageDir).
 cbn.
 intros s preconditions.
 split.
@@ -227,15 +227,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_srcPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
-destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) pageEq idxEq);
          try now contradict H_srcPageDir.
 destruct v ; try now contradict H_srcPageDir.
 subst; assumption.
@@ -247,12 +247,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
-           /\ sourceCtxLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
-           /\ sourceCtxLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' sourceCtxLastMMUPage idxPageDir sourcePartDesc sourceContextSaveVAddr s
+           /\ sourceCtxLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot sourceCtxLastMMUPage idxPageDir sourcePartDesc sourceContextSaveVAddr s
+           /\ sourceCtxLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr sourceContextSaveVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr sourceContextSaveVAddr levelMin = idx ->
              StateLib.isPE sourceCtxLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullSrcCtxLastMMUPage )
@@ -294,10 +294,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_srcCtxLastMMUPageIsNotNull).
   apply EqNat.beq_nat_false in H_srcCtxLastMMUPageIsNotNull.
-  assert (StateLib.getTableAddrRoot sourceCtxLastMMUPage PDidx sourcePartDesc sourceContextSaveVAddr s
-       /\ sourceCtxLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot sourceCtxLastMMUPage idxPageDir sourcePartDesc sourceContextSaveVAddr s
+       /\ sourceCtxLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr sourceContextSaveVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr sourceContextSaveVAddr levelMin = idx ->
           StateLib.isPE sourceCtxLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -417,7 +417,7 @@ subst.
 (* sourceCtxEndLastMMUPage := Internal.getTableAddr sourcePageDir sourceContextEndSaveVAddr nbL *)
 eapply bindRev.
 eapply weaken.
-eapply (getTableAddr sourcePageDir sourceContextEndSaveVAddr nbL _ sourcePartDesc PDidx).
+eapply (getTableAddr sourcePageDir sourceContextEndSaveVAddr nbL _ sourcePartDesc idxPageDir).
 cbn.
 intros s preconditions.
 split.
@@ -435,15 +435,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_srcPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
-destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) pageEq idxEq);
          try now contradict H_srcPageDir.
 destruct v ; try now contradict H_srcPageDir.
 subst; assumption.
@@ -455,12 +455,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' sourceCtxEndLastMMUPage PDidx sourcePartDesc sourceContextEndSaveVAddr s
-           /\ sourceCtxEndLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot sourceCtxEndLastMMUPage PDidx sourcePartDesc sourceContextEndSaveVAddr s
-           /\ sourceCtxEndLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' sourceCtxEndLastMMUPage idxPageDir sourcePartDesc sourceContextEndSaveVAddr s
+           /\ sourceCtxEndLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot sourceCtxEndLastMMUPage idxPageDir sourcePartDesc sourceContextEndSaveVAddr s
+           /\ sourceCtxEndLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr sourceContextEndSaveVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr sourceContextEndSaveVAddr levelMin = idx ->
              StateLib.isPE sourceCtxEndLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullSrcCtxLastMMUPage )
@@ -502,10 +502,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_srcCtxEndLastMMUPageIsNotNull).
   apply EqNat.beq_nat_false in H_srcCtxEndLastMMUPageIsNotNull.
-  assert (StateLib.getTableAddrRoot sourceCtxEndLastMMUPage PDidx sourcePartDesc sourceContextEndSaveVAddr s
-       /\ sourceCtxEndLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot sourceCtxEndLastMMUPage idxPageDir sourcePartDesc sourceContextEndSaveVAddr s
+       /\ sourceCtxEndLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr sourceContextEndSaveVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr sourceContextEndSaveVAddr levelMin = idx ->
           StateLib.isPE sourceCtxEndLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -636,12 +636,12 @@ Lemma getTargetContextCont (targetPartDesc : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP targetPartDesc PDidx targetPageDir s /\
-  targetPartDesc <> defaultPage /\
+  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP targetPartDesc idxPageDir targetPageDir s /\
+  targetPartDesc <> pageDefault /\
   Some nbL = StateLib.getNbLevel /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 getTargetContextCont targetPartDesc targetPageDir targetVidt sourcePageDir
@@ -670,7 +670,7 @@ intro targetContextVAddr.
 (* targetContextLastMMUPage := Internal.getTableAddr targetPageDir targetContextVAddr nbL *)
 eapply WP.bindRev.
 eapply WP.weaken.
-eapply (getTableAddr targetPageDir targetContextVAddr nbL _ targetPartDesc PDidx).
+eapply (getTableAddr targetPageDir targetContextVAddr nbL _ targetPartDesc idxPageDir).
 cbn.
 intros s preconditions.
 repeat rewrite and_assoc in preconditions.
@@ -689,15 +689,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry targetPartDesc H_tgtPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_tgtPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_tgtPageDir.
-destruct (lookup targetPartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_tgtPageDir.
+destruct (lookup targetPartDesc i (memory s) pageEq idxEq);
          try now contradict H_tgtPageDir.
 destruct v ; try now contradict H_tgtPageDir.
 subst; assumption.
@@ -709,12 +709,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' targetContextLastMMUPage PDidx targetPartDesc targetContextVAddr s
-           /\ targetContextLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot targetContextLastMMUPage PDidx targetPartDesc targetContextVAddr s
-           /\ targetContextLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' targetContextLastMMUPage idxPageDir targetPartDesc targetContextVAddr s
+           /\ targetContextLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot targetContextLastMMUPage idxPageDir targetPartDesc targetContextVAddr s
+           /\ targetContextLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr targetContextVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr targetContextVAddr levelMin = idx ->
              StateLib.isPE targetContextLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullTgtCtxLastMMUPage )
@@ -756,10 +756,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_targetContextLastMMUPageIsNotNull).
   apply EqNat.beq_nat_false in H_targetContextLastMMUPageIsNotNull.
-  assert (StateLib.getTableAddrRoot targetContextLastMMUPage PDidx targetPartDesc targetContextVAddr s
-       /\ targetContextLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot targetContextLastMMUPage idxPageDir targetPartDesc targetContextVAddr s
+       /\ targetContextLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr targetContextVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr targetContextVAddr levelMin = idx ->
           StateLib.isPE targetContextLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -879,7 +879,7 @@ subst.
 (* targetContextEndLastMMUPage := Internal.getTableAddr targetPageDir targetContextEndVAddr nbL *)
 eapply bindRev.
 eapply weaken.
-eapply (getTableAddr targetPageDir targetContextEndVAddr nbL _ targetPartDesc PDidx).
+eapply (getTableAddr targetPageDir targetContextEndVAddr nbL _ targetPartDesc idxPageDir).
 cbn.
 intros s preconditions.
 split.
@@ -897,15 +897,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry targetPartDesc H_tgtPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_tgtPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_tgtPageDir.
-destruct (lookup targetPartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_tgtPageDir.
+destruct (lookup targetPartDesc i (memory s) pageEq idxEq);
          try now contradict H_tgtPageDir.
 destruct v ; try now contradict H_tgtPageDir.
 subst; assumption.
@@ -917,12 +917,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' targetContextEndLastMMUPage PDidx targetPartDesc targetContextEndVAddr s
-           /\ targetContextEndLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot targetContextEndLastMMUPage PDidx targetPartDesc targetContextEndVAddr s
-           /\ targetContextEndLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' targetContextEndLastMMUPage idxPageDir targetPartDesc targetContextEndVAddr s
+           /\ targetContextEndLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot targetContextEndLastMMUPage idxPageDir targetPartDesc targetContextEndVAddr s
+           /\ targetContextEndLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr targetContextEndVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr targetContextEndVAddr levelMin = idx ->
              StateLib.isPE targetContextEndLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullTgtCtxEndLastMMUPage )
@@ -964,10 +964,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_tgtCtxEndLastMMUPageIsNotNull).
   apply EqNat.beq_nat_false in H_tgtCtxEndLastMMUPageIsNotNull.
-  assert (StateLib.getTableAddrRoot targetContextEndLastMMUPage PDidx targetPartDesc targetContextEndVAddr s
-       /\ targetContextEndLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot targetContextEndLastMMUPage idxPageDir targetPartDesc targetContextEndVAddr s
+       /\ targetContextEndLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr targetContextEndVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr targetContextEndVAddr levelMin = idx ->
           StateLib.isPE targetContextEndLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -1109,12 +1109,12 @@ Lemma getTargetVidtCont (targetPartDesc : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
-  targetPartDesc <> defaultPage /\
+  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  targetPartDesc <> pageDefault /\
   Some nbL = StateLib.getNbLevel /\
-  StateLib.getIndexOfAddr vidtVAddr fstLevel = idxVidtInLastMMUPage /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  StateLib.getIndexOfAddr vidtVAddr levelMin = idxVidtInLastMMUPage /\
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 getTargetVidtCont targetPartDesc sourcePageDir vidtVAddr sourceContextSaveVAddr targetInterrupt
@@ -1146,7 +1146,7 @@ cbn.
 (* targetVidtLastMMUPage := Internal.getTableAddr targetPageDir vidtVAddr nbL *)
 eapply WP.bindRev.
 eapply WP.weaken.
-eapply (getTableAddr targetPageDir vidtVAddr nbL _ targetPartDesc PDidx).
+eapply (getTableAddr targetPageDir vidtVAddr nbL _ targetPartDesc idxPageDir).
 cbn.
 intros s preconditions.
 repeat rewrite and_assoc in preconditions.
@@ -1165,15 +1165,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry targetPartDesc H_tgtPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_tgtPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_tgtPageDir.
-destruct (lookup targetPartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_tgtPageDir.
+destruct (lookup targetPartDesc i (memory s) pageEq idxEq);
          try now contradict H_tgtPageDir.
 destruct v ; try now contradict H_tgtPageDir.
 subst; assumption.
@@ -1185,12 +1185,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
-           /\ targetVidtLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
-           /\ targetVidtLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' targetVidtLastMMUPage idxPageDir targetPartDesc vidtVAddr s
+           /\ targetVidtLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot targetVidtLastMMUPage idxPageDir targetPartDesc vidtVAddr s
+           /\ targetVidtLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr vidtVAddr levelMin = idx ->
              StateLib.isPE targetVidtLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullTgtCtxLastMMUPage )
@@ -1232,10 +1232,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_targetVidtLastMMUPageisNotNull).
   apply EqNat.beq_nat_false in H_targetVidtLastMMUPageisNotNull.
-  assert (StateLib.getTableAddrRoot targetVidtLastMMUPage PDidx targetPartDesc vidtVAddr s
-       /\ targetVidtLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot targetVidtLastMMUPage idxPageDir targetPartDesc vidtVAddr s
+       /\ targetVidtLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr vidtVAddr levelMin = idx ->
           StateLib.isPE targetVidtLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -1355,11 +1355,11 @@ Lemma getSourceVidtCont (targetPartDesc : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions multiplexer s) /\
-  targetPartDesc <> defaultPage /\
+  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  targetPartDesc <> pageDefault /\
   Some nbL = StateLib.getNbLevel /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 getSourceVidtCont targetPartDesc sourcePageDir targetInterrupt sourceContextSaveIndex nbL
@@ -1389,7 +1389,7 @@ cbn.
 (* sourceVidtLastMMUPage := Internal.getTableAddr sourcePageDir vidtVAddr nbL *)
 eapply WP.bindRev.
 eapply WP.weaken.
-eapply (getTableAddr sourcePageDir vidtVAddr nbL _ sourcePartDesc PDidx).
+eapply (getTableAddr sourcePageDir vidtVAddr nbL _ sourcePartDesc idxPageDir).
 cbn.
 intros s preconditions.
 repeat rewrite and_assoc in preconditions.
@@ -1408,15 +1408,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_srcPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
-destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) pageEq idxEq);
          try now contradict H_srcPageDir.
 destruct v ; try now contradict H_srcPageDir.
 subst; assumption.
@@ -1428,12 +1428,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
-           /\ sourceVidtLastMMUPage = defaultPage
-        \/ StateLib.getTableAddrRoot sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
-           /\ sourceVidtLastMMUPage <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' sourceVidtLastMMUPage idxPageDir sourcePartDesc vidtVAddr s
+           /\ sourceVidtLastMMUPage = pageDefault
+        \/ StateLib.getTableAddrRoot sourceVidtLastMMUPage idxPageDir sourcePartDesc vidtVAddr s
+           /\ sourceVidtLastMMUPage <> pageDefault /\
             (forall idx : index,
-             StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+             StateLib.getIndexOfAddr vidtVAddr levelMin = idx ->
              StateLib.isPE sourceVidtLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_addProp as [ ( H_getTableAddr & H_nullSrcVidtLastMMUPage )
@@ -1475,10 +1475,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_sourceVidtLastMMUPageisNotNull).
   apply EqNat.beq_nat_false in H_sourceVidtLastMMUPageisNotNull.
-  assert (StateLib.getTableAddrRoot sourceVidtLastMMUPage PDidx sourcePartDesc vidtVAddr s
-       /\ sourceVidtLastMMUPage <> defaultPage
+  assert (StateLib.getTableAddrRoot sourceVidtLastMMUPage idxPageDir sourcePartDesc vidtVAddr s
+       /\ sourceVidtLastMMUPage <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr vidtVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr vidtVAddr levelMin = idx ->
           StateLib.isPE sourceVidtLastMMUPage idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
@@ -1603,8 +1603,8 @@ Lemma getParentPartDescCont (sourcePartDesc : page)
   verticalSharing s /\
   consistency s /\
   Some nbL = StateLib.getNbLevel /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 getParentPartDescCont sourcePartDesc sourcePageDir targetInterrupt sourceContextSaveIndex
@@ -1678,17 +1678,17 @@ unfold partitionDescriptorEntry in H_partDescEntry.
 unfold parentInPartitionList in H_parentInPartitionList.
 pose (H_speParentInPartitionList := H_parentInPartitionList sourcePartDesc H_srcPartDesc targetPartDesc H_isPP).
 split. assumption.
-assert (PPRidx = PDidx \/ PPRidx = sh1idx \/ PPRidx = sh2idx \/ PPRidx = sh3idx \/
-        PPRidx = PPRidx \/ PPRidx = PRidx) as H_idxRefl by intuition.
-pose (H_spePartDescEntry := H_partDescEntry sourcePartDesc H_srcPartDesc PPRidx H_idxRefl).
+assert (idxParentDesc = idxPageDir \/ idxParentDesc = idxShadow1 \/ idxParentDesc = idxShadow2 \/ idxParentDesc = idxShadow3 \/
+        idxParentDesc = idxParentDesc \/ idxParentDesc = idxPartDesc) as H_idxRefl by intuition.
+pose (H_spePartDescEntry := H_partDescEntry sourcePartDesc H_srcPartDesc idxParentDesc H_idxRefl).
 destruct H_spePartDescEntry as ( _ & _ & H_existsTargetPartDesc).
 destruct H_existsTargetPartDesc.
 destruct H.
 unfold StateLib.nextEntryIsPP in H_isPP.
 unfold StateLib.nextEntryIsPP in H.
 clear H_partDescEntry H_parentInPartitionList H_srcPartDesc H_rootPart H_sourcePartNotRoot H_speParentInPartitionList H_idxRefl.
-destruct (StateLib.Index.succ PPRidx); try congruence.
-destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex); try congruence.
+destruct (StateLib.Index.succ idxParentDesc); try congruence.
+destruct (lookup sourcePartDesc i (memory s) pageEq idxEq); try congruence.
 destruct v; congruence.
 intuition.
 Qed.
@@ -1711,8 +1711,8 @@ Definition getChildPartDescCont (sourcePartDesc : page)
   consistency s /\
   Some nbL = StateLib.getNbLevel /\
   sourcePartDesc = currentPartition s /\
-  List.In sourcePartDesc (StateLib.getPartitions multiplexer s) /\
-  StateLib.nextEntryIsPP sourcePartDesc PDidx sourcePageDir s
+  List.In sourcePartDesc (StateLib.getPartitions pageRootPartition s) /\
+  StateLib.nextEntryIsPP sourcePartDesc idxPageDir sourcePageDir s
 }}
 
 getChildPartDescCont sourcePartDesc sourcePageDir targetPartDescVAddr targetInterrupt
@@ -1731,7 +1731,7 @@ unfold getChildPartDescCont.
 (* childLastMMUTable := Internal.getTableAddr sourcePageDir targetPartDescVAddr nbL *)
 eapply WP.bindRev.
 eapply WP.weaken.
-eapply (getTableAddr sourcePageDir targetPartDescVAddr nbL _ sourcePartDesc PDidx).
+eapply (getTableAddr sourcePageDir targetPartDescVAddr nbL _ sourcePartDesc idxPageDir).
 cbn.
 intros s preconditions.
 repeat rewrite and_assoc in preconditions.
@@ -1750,15 +1750,15 @@ unfold partitionDescriptorEntry in H_cons.
 destruct H_cons as (H_partDescEntry & _).
 generalize (H_partDescEntry sourcePartDesc H_srcPartDesc); clear H_partDescEntry; intro H_partDescEntry.
 clear H_srcPartDesc.
-assert (PDidx = PDidx \/ PDidx = sh1idx \/ PDidx = sh2idx \/  PDidx  = sh3idx
-  \/  PDidx  = PPRidx \/  PDidx = PRidx) as H_idxMatch by intuition.
-generalize (H_partDescEntry PDidx H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
+assert (idxPageDir = idxPageDir \/ idxPageDir = idxShadow1 \/ idxPageDir = idxShadow2 \/  idxPageDir  = idxShadow3
+  \/  idxPageDir  = idxParentDesc \/  idxPageDir = idxPartDesc) as H_idxMatch by intuition.
+generalize (H_partDescEntry idxPageDir H_idxMatch); clear H_partDescEntry; intro H_partDescEntry.
 clear H_idxMatch.
 destruct H_partDescEntry as ( H_validIdx & _ & H_entry ).
 destruct H_entry as (page1 & Hpd & Hnotnull).
 unfold StateLib.nextEntryIsPP in *.
-destruct (StateLib.Index.succ PDidx); try now contradict H_srcPageDir.
-destruct (lookup sourcePartDesc i (memory s) beqPage beqIndex);
+destruct (StateLib.Index.succ idxPageDir); try now contradict H_srcPageDir.
+destruct (lookup sourcePartDesc i (memory s) pageEq idxEq);
          try now contradict H_srcPageDir.
 destruct v ; try now contradict H_srcPageDir.
 subst; assumption.
@@ -1770,12 +1770,12 @@ eapply WP.weaken.
 2: {
   intros s postconditions.
   destruct postconditions as (H_initPreconditions & H_addProp).
-  assert ( StateLib.getTableAddrRoot' childLastMMUTable PDidx sourcePartDesc targetPartDescVAddr s
-           /\ childLastMMUTable = defaultPage
-        \/ StateLib.getTableAddrRoot childLastMMUTable PDidx sourcePartDesc targetPartDescVAddr s
-           /\ childLastMMUTable <> defaultPage /\
+  assert ( StateLib.getTableAddrRoot' childLastMMUTable idxPageDir sourcePartDesc targetPartDescVAddr s
+           /\ childLastMMUTable = pageDefault
+        \/ StateLib.getTableAddrRoot childLastMMUTable idxPageDir sourcePartDesc targetPartDescVAddr s
+           /\ childLastMMUTable <> pageDefault /\
               (forall idx : index,
-                  StateLib.getIndexOfAddr targetPartDescVAddr fstLevel = idx ->
+                  StateLib.getIndexOfAddr targetPartDescVAddr levelMin = idx ->
                   StateLib.isPE childLastMMUTable idx s)
          ) as H_cleanedPost.
   {
@@ -1818,10 +1818,10 @@ eapply WP.weaken.
   intros s postconditions.
   destruct postconditions as ( (H_initPreconditions & H_postGetTableAddr ) & H_childLastMMUTableisNotNull).
   apply EqNat.beq_nat_false in H_childLastMMUTableisNotNull.
-  assert (StateLib.getTableAddrRoot childLastMMUTable PDidx sourcePartDesc targetPartDescVAddr s
-       /\ childLastMMUTable <> defaultPage
+  assert (StateLib.getTableAddrRoot childLastMMUTable idxPageDir sourcePartDesc targetPartDescVAddr s
+       /\ childLastMMUTable <> pageDefault
        /\ (forall idx : index,
-          StateLib.getIndexOfAddr targetPartDescVAddr fstLevel = idx ->
+          StateLib.getIndexOfAddr targetPartDescVAddr levelMin = idx ->
           StateLib.isPE childLastMMUTable idx s)) as H_cleanedPost.
   {
     destruct H_postGetTableAddr as
