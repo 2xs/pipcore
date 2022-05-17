@@ -31,28 +31,37 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
-#ifndef __OPS__
-#define __OPS__
+/* This file contains arch-independent operations */
 
-#define idxEqM(x,y) ((x) == (y))
-#define idxGeM(x,y) ((x) >= (y))
-#define idxLeM(x,y) ((x) <= (y))
-#define idxLtM(x,y) ((x) <  (y))
+#include "mal.h"
+#include "Ops.h"
 
-extern index idxPredM(index x);
-extern index idxSuccM(index x);
+index idxPredM(index x)
+{
+    return x-1;
+}
 
-#define vaddrEq(x,y) ((x) == (y))
-#define vaddrEqM(x,y) ((x) == (y))
+index idxSuccM(index x)
+{
+    return x+1;
+}
 
-#define pageEqM(x,y) ((x) == (y))
+level levelPredM(level x)
+{
+    return x-1;
+}
 
-#define levelEqM(x,y) ((x) == (y))
-#define levelGtM(x,y) ((x) > (y))
-extern level levelPredM(level x);
-extern level levelSuccM(level x);
+level levelSuccM(level x)
+{
+    return x+1;
+}
 
-extern count countSuccM(count x);
-extern count countFromLevelM(level x);
+count countSuccM(count x)
+{
+    return x+1;
+}
 
-#endif
+count countFromLevelM(level x)
+{
+    return 3*x;
+}
