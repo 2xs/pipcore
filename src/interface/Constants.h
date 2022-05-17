@@ -34,6 +34,7 @@
 #ifndef __CONSTANTS__
 #define __CONSTANTS__
 
+#include <stddef.h>
 /* include mal for getVaddrVIDT */
 #include "mal.h"
 
@@ -60,4 +61,5 @@ extern count getCount0(void);
 
 extern level getNbLevel(void);
 
+extern size_t contextSizeMinusOne;
 #endif

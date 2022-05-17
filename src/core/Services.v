@@ -596,7 +596,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         (* FTH Addr *)
         (* Get the next Virtual address *)
 
-        perform fthVA := fetchVirtual trdVA idxstorefetch in     
+        perform fthVA := readTableVirtual trdVA idxstorefetch in     
         perform isNull := compareVAddrToNull fthVA in 
         if isNull then prepareType false fstVA
         else 
@@ -614,7 +614,7 @@ phySh2Child lastLLtable : page)(vaToPrepare : vaddr) (fstVA : vaddr)
         else 
         (**  Get the physical address *)
         perform newFstLL := readPhyEntry ptMMUFthVA idxFthVA in
-        perform nextVA := fetchVirtual fthVA idxstorefetch in
+        perform nextVA := readTableVirtual fthVA idxstorefetch in
 
         (** set fthVA as not accessible **)
         writeAccessible ptMMUFthVA idxFthVA false ;;

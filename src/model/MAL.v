@@ -334,10 +334,10 @@ Definition readVirtualUser paddr idx : LLI vaddr :=
   | Some _ => getVaddrDefault
   | None => getVaddrDefault
   end.
-(** The 'fetchVirtual' function translates the given virtual address to physical address in the 
-    current partition and read the value stored into the physical address. This value is a 
+(** The 'readTableVirtual' function translates the given virtual address to physical address in the
+    current partition and read the value stored into the physical address. This value is a
     virtual address  *)
-Definition fetchVirtual ( va : vaddr) (idx : index)  : LLI vaddr:=
+Definition readTableVirtual (va : vaddr) (idx : index) : LLI vaddr :=
   perform currentPartition := getCurPartition in 
   perform currentPD := internalGetPageDir currentPartition in
   perform nbL := getNbLevel in 

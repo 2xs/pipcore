@@ -34,6 +34,7 @@
 /* This file contains arch-independent constants */
 
 #include "mal.h"
+#include "Constants.h"
 
 vaddr vaddrDefault = 0;
 
@@ -80,3 +81,5 @@ page getPageDefault(void) {
 count getCount0(void) {
     return 0;
 }
+
+size_t contextSizeMinusOne = sizeof(user_ctx_t) - 1;

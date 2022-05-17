@@ -107,7 +107,6 @@ typedef uint32_t count;
 
 /* Miscellaneous */
 #define getStoreFetchIndex zero
-#define fetchVirtual       readTableVirtual
 
 /* preVaddr */
 typedef uint32_t preVaddr;
@@ -137,8 +136,6 @@ typedef enum yield_checks_e {
 	coq_FAIL_CALLER_CONTEXT_SAVE=9
 } yield_checks;
 #define contextAddr user_ctx_t *
-
-#define contextSizeMinusOne (sizeof(user_ctx_t) - 1)
 
 #define userValue uint32_t
 
