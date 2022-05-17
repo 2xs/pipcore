@@ -39,7 +39,8 @@
 #ifndef DEF_PEPIN_LIBC_H
 #define DEF_PEPIN_LIBC_H
 
-typedef unsigned long size_t;
+#include <stddef.h>
+/* to get size_t */
 
 void *memset(void *s, int c, size_t n);
 void *strcpy(char* dest, const char* src);
