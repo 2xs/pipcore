@@ -40,6 +40,8 @@
 
 /* idxKernel will be chosen by the linker */
 
+extern unsigned int N;
+
 extern vaddr vaddrDefault;
 
 extern level levelMin;

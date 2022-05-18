@@ -36,6 +36,8 @@
 #include "mal.h"
 #include "Constants.h"
 
+unsigned int N = 1 << 20;
+
 vaddr vaddrDefault = 0;
 
 index getIdxStoreFetch(void) {

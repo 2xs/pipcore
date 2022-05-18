@@ -213,7 +213,6 @@ all : $(PARTITION).elf $(PARTITION).iso
 
 # Drop purely model related coq modules
 DIGGERFLAGS := -m ADT -m Datatypes -m Hardware -m Nat
-DIGGERFLAGS += --ignore coq_N
 # Monad used in the coq code
 DIGGERFLAGS += -M coq_LLI
 # Dependencies of the traducted code to C interface
@@ -222,6 +221,7 @@ DIGGERFLAGS += -m MAL -d :$(GENERATED_FILES_DIR)/MAL.json
 DIGGERFLAGS += -m IAL -d :$(GENERATED_FILES_DIR)/IAL.json
 DIGGERFLAGS += -m Constants -d :$(GENERATED_FILES_DIR)/Constants.json
 DIGGERFLAGS += -m Ops -d :$(GENERATED_FILES_DIR)/Ops.json
+DIGGERFLAGS += -r Coq_true:true -r Coq_false:false -r Coq_tt:tt -r coq_N:N
 # output a #include "maldefines.h" at the beginning of the translated files
 DIGGERFLAGS += -q maldefines.h
 

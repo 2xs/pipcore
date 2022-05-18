@@ -35,7 +35,6 @@
     This file contains some internal functions used by services *)
 Require Import Pip.Model.Hardware Pip.Model.ADT Pip.Model.MAL Pip.Model.MALInternal Pip.Model.IAL Pip.Model.Constants.
 Require Import Bool Arith List Coq.Init.Peano.
-Definition N := 100.
 
 (** The [getPd] function returns the page directory of a given partition *)
 Definition getPd partition :=

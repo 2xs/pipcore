@@ -35,6 +35,9 @@ Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib.
 Require Import List Arith Lia.
 Import ListNotations.
 
+(** Dummy recursion bound, to be used until specific bounds are defined *)
+Definition N := 100.
+
 Definition idxDefault := CIndex 0.
 (* TODO: Use semantical names rather than factual? *)
 Definition idx0 := CIndex 0.
