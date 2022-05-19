@@ -2,3 +2,4 @@
 -Q src/core Pip.Core
 -Q src/model Pip.Model
 -Q src/dx Pip.dx
+-Q src/arch/x86_multiboot Pip.Arch

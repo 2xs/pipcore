@@ -49,108 +49,33 @@ Import UserIdentNotations.
 
 From Pip.Model Require Hardware ADT Constants Ops MALInternal MAL IAL.
 From Pip.Core  Require Internal Services.
-
-Definition uint32 : Ctypes.type :=
-  Ctypes.Tint Ctypes.I32 Ctypes.Unsigned Ctypes.noattr.
-
-Definition userContextId := "user_ctx_s".
-Definition userContextT := Ctypes.Tstruct $userContextId Ctypes.noattr.
-Definition userContextPtr := Ctypes.Tpointer userContextT Ctypes.noattr.
-
-Definition regsComposite :=
-  Ctypes.Composite
-    $"pushad_regs_t"
-    Ctypes.Struct
-    [ Ctypes.Member_plain $"edi" uint32
-    ; Ctypes.Member_plain $"esi" uint32
-    ; Ctypes.Member_plain $"ebp" uint32
-    ; Ctypes.Member_plain $"esp" uint32
-    ; Ctypes.Member_plain $"ebx" uint32
-    ; Ctypes.Member_plain $"edx" uint32
-    ; Ctypes.Member_plain $"ecx" uint32
-    ; Ctypes.Member_plain $"eax" uint32
-    ]
-    Ctypes.noattr.
-
-Definition userContextComposite :=
-  Ctypes.Composite
-    $userContextId
-    Ctypes.Struct
-    [ Ctypes.Member_plain $"eip"      uint32
-    ; Ctypes.Member_plain $"pipflags" uint32
-    ; Ctypes.Member_plain $"eflags"   uint32
-    ; Ctypes.Member_plain $"regs"     (Ctypes.Tstruct $"pushad_regs_t" Ctypes.noattr)
-    ; Ctypes.Member_plain $"valid"    uint32
-    ; Ctypes.Member_plain $"nfu"      (Ctypes.Tarray uint32 4 Ctypes.noattr)
-    ]
-    Ctypes.noattr.
-
-Definition composites :=
-  [ regsComposite
-  ; userContextComposite
-  ].
-
-Definition structIds :=
-  [ "pushad_regs_t"
-  ; "edi"
-  ; "esi"
-  ; "ebp"
-  ; "esp"
-  ; "ebx"
-  ; "edx"
-  ; "ecx"
-  ; "eax"
-  ; userContextId
-  ; "eip"
-  ; "pipflags"
-  ; "eflags"
-  ; "regs"
-  ; "valid"
-  ; "nfu"
-  ].
-
-Module PipTypes.
-  Definition indexCompilableType         := MkCompilableType ADT.index uint32.
-  Definition pageCompilableType          := MkCompilableType ADT.page uint32.
-  Definition paddrCompilableType         := MkCompilableType ADT.paddr uint32.
-  Definition vaddrCompilableType         := MkCompilableType ADT.vaddr uint32.
-  Definition levelCompilableType         := MkCompilableType ADT.level uint32.
-  Definition countCompilableType         := MkCompilableType ADT.count uint32.
-  Definition boolvaddrCompilableType     := MkCompilableType ADT.boolvaddr uint32.
-  Definition userValueCompilableType     := MkCompilableType ADT.userValue uint32.
-  Definition vintCompilableType          := MkCompilableType ADT.vint uint32.
-  Definition contextAddrCompilableType   := MkCompilableType ADT.contextAddr userContextPtr.
-  Definition interruptMaskCompilableType := MkCompilableType ADT.interruptMask uint32.
-  Definition yieldChecksType             := MkCompilableType Hardware.yield_checks uint32.
-End PipTypes.
+From Pip.Arch  Require DataTypes.
 
 Definition funIndexIndexBoolType :=
   MkCompilableSymbolType
-    [ PipTypes.indexCompilableType; PipTypes.indexCompilableType ]
+    [ DataTypes.indexCompilableType; DataTypes.indexCompilableType ]
     (Some Bool.boolCompilableType).
 
 Definition funVAddrVAddrBoolType :=
   MkCompilableSymbolType
-    [ PipTypes.vaddrCompilableType; PipTypes.vaddrCompilableType ]
+    [ DataTypes.vaddrCompilableType; DataTypes.vaddrCompilableType ]
     (Some Bool.boolCompilableType).
 
 Definition funPagePageBoolType :=
   MkCompilableSymbolType
-    [ PipTypes.pageCompilableType; PipTypes.pageCompilableType ]
+    [ DataTypes.pageCompilableType; DataTypes.pageCompilableType ]
     (Some Bool.boolCompilableType).
 
 Definition funLevelLevelBoolType :=
   MkCompilableSymbolType
-    [ PipTypes.levelCompilableType; PipTypes.levelCompilableType ]
+    [ DataTypes.levelCompilableType; DataTypes.levelCompilableType ]
     (Some Bool.boolCompilableType).
 
 Definition yieldChecksSymbolType :=
-  MkCompilableSymbolType [] (Some PipTypes.yieldChecksType).
+  MkCompilableSymbolType [] (Some DataTypes.yieldChecksType).
 
 Definition cval n :=
-  Csyntax.Eval
-    (Values.Vint (Integers.Int.repr n))
-    (Ctypes.Tint Ctypes.I32 Ctypes.Unsigned Ctypes.noattr).
+  Csyntax.Eval (Values.Vint (Integers.Int.repr n)) DataTypes.constantsT.
 
 Definition cBinOp o es :=
   match es with
@@ -225,7 +150,7 @@ GenerateIntermediateRepresentation
   Bool.Exports
   Nat.Exports
 
-  PipTypes
+  DataTypes.Exports
   PipPrimitives
 
   __
@@ -250,7 +175,7 @@ GenerateIntermediateRepresentation
   Bool.Exports
   Nat.Exports
 
-  PipTypes
+  DataTypes.Exports
 
   Internal
   .
@@ -264,7 +189,7 @@ GenerateIntermediateRepresentation
   Bool.Exports
   Nat.Exports
 
-  PipTypes
+  DataTypes.Exports
   PipPrimitives
 
   Constants
@@ -295,7 +220,7 @@ GenerateIntermediateRepresentation
   Bool.Exports
   Nat.Exports
 
-  PipTypes
+  DataTypes.Exports
   PipPrimitives
 
   Constants
@@ -322,7 +247,7 @@ GenerateIntermediateRepresentation
   Services
   .
 
-Definition dxModuleServicesH := makeDXModuleWithUserIds composites structIds ServicesHIRSyms.
+Definition dxModuleServicesH := makeDXModuleWithUserIds DataTypes.composites DataTypes.structIds ServicesHIRSyms.
 
 GenerateIntermediateRepresentation
   ServicesIRSyms
@@ -331,7 +256,7 @@ GenerateIntermediateRepresentation
   Bool.Exports
   Nat.Exports
 
-  PipTypes
+  DataTypes.Exports
   PipPrimitives
 
   Constants
@@ -368,4 +293,4 @@ GenerateIntermediateRepresentation
   Services
   .
 
-Definition dxModuleServices := makeDXModuleWithUserIds composites structIds ServicesIRSyms.
+Definition dxModuleServices := makeDXModuleWithUserIds DataTypes.composites DataTypes.structIds ServicesIRSyms.
