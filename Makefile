@@ -64,9 +64,9 @@ LDFLAGS=$(ARCH_LDFLAGS)
 # Enable debug symbols and logs
 CFLAGS+=$(if $(DEBUG), $(DEBUG_CFLAGS))
 
-COQFLAGS := $(shell $(CAT) _CoqProject)
+COQFLAGS := $(shell $(SED) 's/x86_multiboot/$(TARGET)/' _CoqProject)
 COQCFLAGS := $(COQFLAGS) -w all,-nonprimitive-projection-syntax,-disj-pattern-notation
-COQCEXTRFLAGS := $(shell $(SED) 's/-[RQ]  */&..\//g' _CoqProject) -w all,-extraction
+COQCEXTRFLAGS := $(shell $(SED) -e 's/-[RQ]  */&..\//g' -e 's/x86_multiboot/$(TARGET)/' _CoqProject) -w all,-extraction
 
 #####################################################################
 ##                      Directory variables                        ##
