@@ -193,7 +193,24 @@ GenerateIntermediateRepresentation
   PipPrimitives
 
   Constants
-  Ops
+
+  Ops.idxEqM
+  Ops.idxGeM
+  Ops.idxGtM
+  Ops.idxLeM
+  Ops.idxLtM
+  Ops.idxPredM
+  Ops.idxSuccM
+  Ops.vaddrEqM
+  Ops.pageEqM
+  Ops.levelEqM
+  Ops.levelGtM
+  Ops.levelPredM
+  Ops.levelSuccM
+  Ops.countEqM
+  Ops.countGeM
+  Ops.countSuccM
+  Ops.countFromLevelM
 
   MALInternal
   MAL
@@ -224,7 +241,24 @@ GenerateIntermediateRepresentation
   PipPrimitives
 
   Constants
-  Ops
+
+  Ops.idxEqM
+  Ops.idxGeM
+  Ops.idxGtM
+  Ops.idxLeM
+  Ops.idxLtM
+  Ops.idxPredM
+  Ops.idxSuccM
+  Ops.vaddrEqM
+  Ops.pageEqM
+  Ops.levelEqM
+  Ops.levelGtM
+  Ops.levelPredM
+  Ops.levelSuccM
+  Ops.countEqM
+  Ops.countGeM
+  Ops.countSuccM
+  Ops.countFromLevelM
 
   MALInternal
   MAL
@@ -260,7 +294,24 @@ GenerateIntermediateRepresentation
   PipPrimitives
 
   Constants
-  Ops
+
+  Ops.idxEqM
+  Ops.idxGeM
+  Ops.idxGtM
+  Ops.idxLeM
+  Ops.idxLtM
+  Ops.idxPredM
+  Ops.idxSuccM
+  Ops.vaddrEqM
+  Ops.pageEqM
+  Ops.levelEqM
+  Ops.levelGtM
+  Ops.levelPredM
+  Ops.levelSuccM
+  Ops.countEqM
+  Ops.countGeM
+  Ops.countSuccM
+  Ops.countFromLevelM
 
   MALInternal
   MAL
