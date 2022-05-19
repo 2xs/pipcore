@@ -1188,7 +1188,6 @@ case_eq isMultiplexer.
   unfold s'; rewrite getMappedPageUpdateUserFlag;trivial.
   unfold s';subst; apply noDupMappedPagesListUpdateUserFlag;trivial.
   rewrite Hpartitions;trivial.
-  assert(Hmult : multiplexer = pageRootPartition) by intuition. 
   subst.
   apply getAccessibleMappedPageNoneUpdateUserFlagFalse;trivial.
   (** Prove the recursion invariant **)
