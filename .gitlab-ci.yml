@@ -18,16 +18,6 @@ build x86 minimal with digger:
       - minimal.elf
     expire_in: 1 hour
 
-test x86 minimal:
-  stage: test
-  needs:
-    - job: build x86 minimal with digger
-      artifacts: true
-  script:
-    - .ci/apt-get.sh qemu-system-x86
-    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
-    - make -o minimal.elf test-minimal
-
 build arm minimal with digger:
   stage: build
   script:
@@ -46,7 +36,50 @@ build arm minimal with digger:
       - minimal.elf
     expire_in: 1 hour
 
-test arm minimal:
+build x86 minimal with dx:
+  stage: build
+  script:
+    # select the switch in which dx and its dependencies were compiled
+    - eval $(opam env --switch=4.07.1+flambda --set-switch)
+    - LIB=$(opam var lib)
+
+    # get dx from latest CI artifacts
+    - cd .ci
+    - curl -L 'https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/main/download?job=build%20dx%20and%20deps' -o dx.zip
+    - unzip -o dx.zip
+    - rsync -rpt dx-and-deps/* $LIB
+    - cd ..
+
+    - .ci/apt-get.sh nasm gcc
+
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make DXDIR=$LIB/dx minimal.elf
+  artifacts:
+    paths:
+      - minimal.elf
+    expire_in: 1 hour
+
+test x86 minimal (digger):
+  stage: test
+  needs:
+    - job: build x86 minimal with digger
+      artifacts: true
+  script:
+    - .ci/apt-get.sh qemu-system-x86
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make -o minimal.elf test-minimal
+
+test x86 minimal (dx):
+  stage: test
+  needs:
+    - job: build x86 minimal with dx
+      artifacts: true
+  script:
+    - .ci/apt-get.sh qemu-system-x86
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make -o minimal.elf test-minimal
+
+test arm minimal (digger):
   stage: test
   needs:
     - job: build arm minimal with digger
