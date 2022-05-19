@@ -59,6 +59,29 @@ build x86 minimal with dx:
       - minimal.elf
     expire_in: 1 hour
 
+build arm minimal with dx:
+  stage: build
+  script:
+    # select the switch in which dx and its dependencies were compiled
+    - eval $(opam env --switch=4.07.1+flambda --set-switch)
+    - LIB=$(opam var lib)
+
+    # get dx from latest CI artifacts
+    - cd .ci
+    - curl -L 'https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/main/download?job=build%20dx%20and%20deps' -o dx.zip
+    - unzip -o dx.zip
+    - rsync -rpt dx-and-deps/* $LIB
+    - cd ..
+
+    - .ci/apt-get.sh libnewlib-arm-none-eabi gcc-arm-none-eabi
+
+    - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make DXDIR=$LIB/dx minimal.elf
+  artifacts:
+    paths:
+      - minimal.elf
+    expire_in: 1 hour
+
 test x86 minimal (digger):
   stage: test
   needs:
@@ -83,6 +106,16 @@ test arm minimal (digger):
   stage: test
   needs:
     - job: build arm minimal with digger
+      artifacts: true
+  script:
+    - .ci/apt-get.sh qemu-system-arm
+    - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
+    - make -o minimal.elf test-minimal
+
+test arm minimal (dx):
+  stage: test
+  needs:
+    - job: build arm minimal with dx
       artifacts: true
   script:
     - .ci/apt-get.sh qemu-system-arm
