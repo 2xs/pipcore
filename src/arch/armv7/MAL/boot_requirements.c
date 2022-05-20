@@ -157,7 +157,7 @@ void cleanPage(uint32_t paddr)
  * \brief Applies the given rights on the given entry
  */
 void writePhyEntry(uint32_t table, uint32_t index, uint32_t addr,
-	uint32_t present, uint32_t user, uint32_t read, uint32_t write, uint32_t execute)
+        bool present, bool user, bool read, bool write, bool execute)
 {
 	unsigned entry;
 

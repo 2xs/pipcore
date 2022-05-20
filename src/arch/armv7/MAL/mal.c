@@ -187,7 +187,7 @@ uint32_t getIndexOfAddr(uint32_t addr, uint32_t index)
  * \param index The index in the given table
  * \return 1 if the page is user-mode accessible, 0 else
  */
-uint32_t readAccessible(uint32_t table, uint32_t index)
+bool readAccessible(uint32_t table, uint32_t index)
 {
 	uint32_t ret;
 	page_table_t *pt = (page_table_t*) table;
@@ -206,7 +206,7 @@ uint32_t readAccessible(uint32_t table, uint32_t index)
  * \param value 0 if the page is kernel-only, 1 else (any other value should be
  *        forbidden...)
  */
-void writeAccessible(uint32_t table, uint32_t index, uint32_t value)
+void writeAccessible(uint32_t table, uint32_t index, bool value)
 {
 	page_table_t *pt = (page_table_t*) table;
 
@@ -257,7 +257,7 @@ void updateRootPartition(uint32_t partition)
  * \param index The index in the given table
  * \return 1 if the page is present, 0 else
  */
-uint32_t readPresent(uint32_t table, uint32_t index)
+bool readPresent(uint32_t table, uint32_t index)
 {
 	uint32_t ret;
 	uint32_t *paddr;
@@ -279,7 +279,7 @@ uint32_t readPresent(uint32_t table, uint32_t index)
  * \param index The index into the shadow table
  * \param value The vamue of the PD flag
  */
-void writePDflag(uint32_t table, uint32_t index, uint32_t value)
+void writePDflag(uint32_t table, uint32_t index, bool value)
 {
 	uint32_t *paddr;
 
@@ -296,7 +296,7 @@ void writePDflag(uint32_t table, uint32_t index, uint32_t value)
  * \param index The index into the shadow table
  * \return The value of the PD flag
  */
-uint32_t readPDflag(uint32_t table, uint32_t index)
+bool readPDflag(uint32_t table, uint32_t index)
 {
 	uint32_t *paddr, curval;
 
@@ -398,7 +398,7 @@ uint32_t readTableVirtual(uint32_t table, uint32_t index)
  * \param execute The execute right
  * \return 1 if we can, 0 if we can't
  */
-uint32_t checkRights(uint32_t read, uint32_t write, uint32_t execute)
+bool checkRights(bool read, bool write, bool execute)
 {
 	// Read has to be 1 (only user/kernel in x86)
 	if(read==0)
