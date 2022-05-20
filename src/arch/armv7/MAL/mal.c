@@ -49,6 +49,8 @@ void ial_resume_ctx(user_ctx_t* context) __attribute__((noreturn));
 uint32_t current_partition = 0;
 uint32_t root_partition = 0;
 
+uint32_t tableSize = (uint32_t) MMU_L1_ENT_COUNT;
+
 level nbLevel = 2;
 level boundNbLevel = 3;
 level levelMin = 0;
@@ -147,7 +149,7 @@ vaddr readVirEntry(page table, index index)
  */
 uint32_t getTableSize()
 {
-	return (uint32_t) MMU_L1_ENT_COUNT;
+	return tableSize;
 }
 
 index maxFreeLL() {
