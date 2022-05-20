@@ -40,119 +40,119 @@
 
 /* ARM Architecture Reference Manual ARMv7-A: Chapter B3
  *
- *	Two descriptors format are available: short & long.
- *	Both can configure permissions on 4KB pages.
- *	Short descriptors can manage 32 bit address space, while long descriptor
+ *  Two descriptors format are available: short & long.
+ *  Both can configure permissions on 4KB pages.
+ *  Short descriptors can manage 32 bit address space, while long descriptor
  *  can manage 40 bit with Large Physical Address Extension (LPAE).
- *	We will stick to short descriptors for now.
+ *  We will stick to short descriptors for now.
  *
- *	Permissions can be applied on other kinds of memory regions.
- *	This intro only describes 4KB (small pages) management.
+ *  Permissions can be applied on other kinds of memory regions.
+ *  This intro only describes 4KB (small pages) management.
  *
- *	In short mode, two levels of translations are used:
- *		- 1: Translation table (TT): 4096 entries of 1Mb		(Aligned on 0x4000)
- *		- 2: Page Table (PT):		 256 entries of 4Kb		(Aligned on 0x400)
+ *  In short mode, two levels of translations are used:
+ *      - 1: Translation table (TT): 4096 entries of 1Mb     (Aligned on 0x4000)
+ *      - 2: Page Table (PT):         256 entries of 4Kb     (Aligned on 0x400)
  *
- *	ARMv7 defines two translations tables base registers: TTBR0 & TTBR1
- *	TTBR0 for low memory accesses, TTBR1 for hig memory
+ *  ARMv7 defines two translations tables base registers: TTBR0 & TTBR1
+ *  TTBR0 for low memory accesses, TTBR1 for hig memory
  *  It's meant to reduce context switching time, by using a process specific TT.
- *	The bound can be set in TTBCR.N (0 = use only TTBR0):
- *		0			-> 1<<(32-N)	: TTBR0
- *		1<<(32-N)	-> 4GB			: TTBR1
+ *  The bound can be set in TTBCR.N (0 = use only TTBR0):
+ *      0           -> 1<<(32-N)    : TTBR0
+ *      1<<(32-N)   -> 4GB          : TTBR1
  *  (In ARMv6 compatible mode, only TTBR0 can be used, N must be to zero.)
  *
- *	When split address space is used, the TT in TTBR0 is truncated  by
- *	a factor of (1<<N).
+ *  When split address space is used, the TT in TTBR0 is truncated  by
+ *  a factor of (1<<N).
  *
- *	Permissions: We use AP[2:0] permissions scheme with TEX & AFE disabled.
+ *  Permissions: We use AP[2:0] permissions scheme with TEX & AFE disabled.
  *
- *	Translation Lookaside Buffers (TLB):
+ *  Translation Lookaside Buffers (TLB):
  *  The TLB maintains a cache of memory translations. Any memory access that
- *	do not cause an fault might be allocated in TLB at any time.
- *	Software must perform TLB maintenance when updating the TT entries (B3.10.1)
+ *  do not cause an fault might be allocated in TLB at any time.
+ *  Software must perform TLB maintenance when updating the TT entries (B3.10.1)
  *
  *  The Address Space Identifier provide per process TLB management.
  *  The current ASID is defined in the Context ID Register (CONTEXTIDR[7:0])
  *
  *  Non global mappings get cached in TLB with current ASID tagged in.
- *	On a context switch, TLB entries can be flushed as per the ASID.
+ *  On a context switch, TLB entries can be flushed as per the ASID.
  *  The TTBR shall be changed together with the ASID.
  *
  *  *****************************************
- *  *	Adapting pip design to ARM MMU		*
+ *  *    Adapting pip design to ARM MMU     *
  *  *****************************************
  *
- *		*************************
- *		*	Configuration pages	*
- *		*************************
- *	The pip services relies on a x86 specific assumptions:
+ *      *************************
+ *      *  Configuration pages  *
+ *      *************************
+ *  The pip services relies on a x86 specific assumptions:
  *  - all levels of translation use the same address width,
- *	- and all MMU configuration pages occupy exactly one physical memory page,
+ *  - and all MMU configuration pages occupy exactly one physical memory page,
  *
  *  The first issue requires adding an argument to getTableSize to provide
- *	per level table size.
+ *  per level table size.
  *
- *	The second issue is more complex. A full l1 translation table takes 16KB.
- *	createPartition should somehow check that the given child pd point to
- *	four pages in the current child va space, and are indeed mapped to
- *	four consecutive physical pages, starting on a 16KB boundary.
+ *  The second issue is more complex. A full l1 translation table takes 16KB.
+ *  createPartition should somehow check that the given child pd point to
+ *  four pages in the current child va space, and are indeed mapped to
+ *  four consecutive physical pages, starting on a 16KB boundary.
  *
- *	One quick & dirty way to solve alignment problem is to rely on the VA
- *	selection mechanism to truncate the TTBR0 translation table to 4KB.
- *	With this solution, only 1024 entries of 1MB can be handled by a child,
- *	effectingly limiting the addressable memory space to 1GB.
+ *  One quick & dirty way to solve alignment problem is to rely on the VA
+ *  selection mechanism to truncate the TTBR0 translation table to 4KB.
+ *  With this solution, only 1024 entries of 1MB can be handled by a child,
+ *  effectingly limiting the addressable memory space to 1GB.
  *
- *	The TTBR1 register will be kept pointing on an empty L1 TT, causing any
- *	memory access > 0x40000000 to trigger a fault.
+ *  The TTBR1 register will be kept pointing on an empty L1 TT, causing any
+ *  memory access > 0x40000000 to trigger a fault.
  *
- *	Remains the variable table wize problem, but it should not cause much
- *	trouble in the proof as long as a configuration page fits in a page.
- *	We can easily prove that the getIndexOfAddr returns a correctly bounded
+ *  Remains the variable table wize problem, but it should not cause much
+ *  trouble in the proof as long as a configuration page fits in a page.
+ *  We can easily prove that the getIndexOfAddr returns a correctly bounded
  *  value.
-*
-	*	Another solution to both problems could be make getTableSize return 256.
-		 *	This way both problems would be solved quite simply. The maximum
-		  *	addressable space would though be 256MB only.
-		  *	Both solutions share another side-effect: we must provide pip with
-		  *	4KB aligned pages, even if the L2 PT are only 1KB. While it is not a big
-		  *	issue for userland, we'll waste quite a bit of memory there.
-		  *
-		  *		*************************
-		  *		*	Peripheral memory	*
-		  *		*************************
-		  *	One other issue is the memory-mapped peripherals. Simply handling it to
-		  *  the multiplexer seems an appealing solution, that provides a natural
-		  *  way to multiplex hardware.
-		  *
-		  *  It can not be solved so easily, because a partition would be able to pass
-		  *  a peripheral page as a mmu configuration page, and summon dragons.
-		  *	Another issue for peripheral memory is that it requires specific cache
-		  *	configuration in the page table.
-		  *
-		  *  On way to handle the problem requires chaning the model/services/proof to
-		  *	keep track of peripheral memory pages, and forbidding its usage as configuration
-		  *	pages.
-		  *
-		  *	For now, the problem stays open, and I will madly hardcode cache options,
-		  *  and dirty-check the peripheral memory issue.
-		  *
-		  *	Another issue we will need to solve is that peripheral memory access
-		  *	must remain accessible to kernel if we want to allow basic functionnalities
-		  *  as uart debugging. We will fix it by mapping the peripheral memory in
-		  *  TTBR1 register, only accessible to kernel.
-		  *
-		  */
+ *
+ *  Another solution to both problems could be make getTableSize return 256.
+ *  This way both problems would be solved quite simply. The maximum
+ *  addressable space would though be 256MB only.
+ *  Both solutions share another side-effect: we must provide pip with
+ *  4KB aligned pages, even if the L2 PT are only 1KB. While it is not a big
+ *  issue for userland, we'll waste quite a bit of memory there.
+ *
+ *      *************************
+ *      *   Peripheral memory   *
+ *      *************************
+ *  One other issue is the memory-mapped peripherals. Simply handling it to
+ *  the multiplexer seems an appealing solution, that provides a natural
+ *  way to multiplex hardware.
+ *
+ *  It can not be solved so easily, because a partition would be able to pass
+ *  a peripheral page as a mmu configuration page, and summon dragons.
+ *  Another issue for peripheral memory is that it requires specific cache
+ *  configuration in the page table.
+ *
+ *  On way to handle the problem requires chaning the model/services/proof to
+ *  keep track of peripheral memory pages, and forbidding its usage as configuration
+ *  pages.
+ *
+ *  For now, the problem stays open, and I will madly hardcode cache options,
+ *  and dirty-check the peripheral memory issue.
+ *
+ *  Another issue we will need to solve is that peripheral memory access
+ *  must remain accessible to kernel if we want to allow basic functionnalities
+ *  as uart debugging. We will fix it by mapping the peripheral memory in
+ *  TTBR1 register, only accessible to kernel.
+ *
+ */
 
-		  /* for TTBR1 upper memory (devices) */
-		  static unsigned  __attribute__((aligned(0x4000))) static_tt1[MMU_TTBR1_ENT_COUNT];
-		  /* Our TTBR0 L1 translation table */
-		  //static unsigned __attribute__((aligned(0x1000))) static_tt0[0x400];
+/* for TTBR1 upper memory (devices) */
+static unsigned  __attribute__((aligned(0x4000))) static_tt1[MMU_TTBR1_ENT_COUNT];
+/* Our TTBR0 L1 translation table */
+//static unsigned __attribute__((aligned(0x1000))) static_tt0[0x400];
 
-		  static struct mmu_caps_s {
-			  unsigned version;
-			  bool_t pxn;
-			  bool_t ltf;
-		  } mmu_caps;
+static struct mmu_caps_s {
+	unsigned version;
+	bool_t pxn;
+	bool_t ltf;
+} mmu_caps;
 
 /* Static allocator for up to 256 page tables */
 #if 1
