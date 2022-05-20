@@ -603,6 +603,10 @@ configure_global_variables() {
 			# out the recursive calls of the initPEntryTableAux
 			# function
 			arch_cflags="$arch_cflags"' -O2'
+			# On ARM, gcc defines uint32_t as 'unsigned long' while compcert
+			# defines it as 'unsigned' so we enforce the value used on gcc to
+			# ensure consistency
+			arch_cflags="$arch_cflags"' -U__UINT32_TYPE__ -D__UINT32_TYPE__=unsigned'
 
 			### LDFLAGS for the selected architecture
 
