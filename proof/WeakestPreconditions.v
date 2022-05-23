@@ -690,8 +690,8 @@ eapply ret .
 intros. intuition.
 Qed.
 
-Lemma getMultiplexer  (P : page -> state -> Prop) : 
-{{ wp P getMultiplexer}} getMultiplexer {{P}}.
+Lemma getPageRootPartition (P : page -> state -> Prop) :
+  {{wp P getPageRootPartition}} getPageRootPartition {{P}}.
 Proof.
 apply wpIsPrecondition.
 Qed.

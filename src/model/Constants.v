@@ -60,8 +60,8 @@ Definition vaddrDefault := CVaddr (repeat (CIndex 0) (nbLevel+1)).
 Definition vaddrMax     := CVaddr (repeat (CIndex (tableSize - 1)) (nbLevel+1)).
 Definition vaddrVIDT    := CVaddr (repeat (CIndex (tableSize - 1)) nbLevel ++ [CIndex 0]).
 
-Definition pageDefault     := CPage 0.
-Definition pageMultiplexer := CPage 1.
+Definition pageDefault       := CPage 0.
+Definition pageRootPartition := CPage 1.
 
 Definition levelMin     := CLevel 0.
 Definition count0       := CCount 0.
@@ -69,21 +69,21 @@ Definition count0       := CCount 0.
 
 (* Monadic getters *)
 
-Definition getIdxDefault      := ret idxDefault.
-Definition getIdx0            := ret idx0.
-Definition getIdx3            := ret idx3.
-Definition getIdxStoreFetch   := ret idxStoreFetch.
-Definition getIdxKernel       := ret idxKernel.
-Definition getIdxPartDesc     := ret idxPartDesc.
-Definition getIdxPageDir      := ret idxPageDir.
-Definition getIdxShadow1      := ret idxShadow1.
-Definition getIdxShadow2      := ret idxShadow2.
-Definition getIdxShadow3      := ret idxShadow3.
-Definition getIdxParentDesc   := ret idxParentDesc.
-Definition getVaddrDefault    := ret vaddrDefault.
-Definition getVaddrMax        := ret vaddrMax.
-Definition getVaddrVIDT       := ret vaddrVIDT.
-Definition getPageDefault     := ret pageDefault.
-Definition getPageMultiplexer := ret pageMultiplexer.
-Definition getLevelMin        := ret levelMin.
-Definition getCount0          := ret count0.
+Definition getIdxDefault        := ret idxDefault.
+Definition getIdx0              := ret idx0.
+Definition getIdx3              := ret idx3.
+Definition getIdxStoreFetch     := ret idxStoreFetch.
+Definition getIdxKernel         := ret idxKernel.
+Definition getIdxPartDesc       := ret idxPartDesc.
+Definition getIdxPageDir        := ret idxPageDir.
+Definition getIdxShadow1        := ret idxShadow1.
+Definition getIdxShadow2        := ret idxShadow2.
+Definition getIdxShadow3        := ret idxShadow3.
+Definition getIdxParentDesc     := ret idxParentDesc.
+Definition getVaddrDefault      := ret vaddrDefault.
+Definition getVaddrMax          := ret vaddrMax.
+Definition getVaddrVIDT         := ret vaddrVIDT.
+Definition getPageDefault       := ret pageDefault.
+Definition getPageRootPartition := ret pageRootPartition.
+Definition getLevelMin          := ret levelMin.
+Definition getCount0            := ret count0.

@@ -41,12 +41,12 @@ Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas
 Require Import Coq.Logic.ProofIrrelevance Lia Setoid Compare_dec EqNat List Bool.
 
 Module WP := WeakestPreconditions.
-Lemma getMultiplexer (P : state -> Prop) :
-{{ fun s => P s  }} MALInternal.getMultiplexer
+Lemma getPageRootPartition (P : state -> Prop) :
+{{ fun s => P s  }} MALInternal.getPageRootPartition
 {{ fun val s => P s /\ val = multiplexer }}.
 Proof.
    eapply WP.weaken.
-   eapply WP.getMultiplexer .
+   eapply WP.getPageRootPartition .
    intros.
    cbn. intuition.
 Qed.

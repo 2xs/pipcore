@@ -50,8 +50,8 @@ Notation lastVAddr := vaddrMax (only parsing).
 Notation vidtVAddr := vaddrVIDT (only parsing).
 #[deprecated(note="Use pageDefault instead")]
 Notation defaultPage := pageDefault (only parsing).
-#[deprecated(note="Use pageMultiplexer instead")]
-Notation multiplexer := pageMultiplexer (only parsing).
+#[deprecated(note="Use pageRootPartition instead")]
+Notation multiplexer := pageRootPartition (only parsing).
 #[deprecated(note="Use levelMin instead")]
 Notation fstLevel := levelMin (only parsing).
 #[deprecated(note="Use idxStoreFetch instead")]
@@ -70,8 +70,6 @@ Notation sh2idx := idxShadow2 (only parsing).
 Notation sh3idx := idxShadow3 (only parsing).
 #[deprecated(note="Use idxParentDesc instead")]
 Notation PPRidx := idxParentDesc (only parsing).
-#[deprecated(note="Use getPageMultiplexer instead")]
-Notation getMultiplexer := getPageMultiplexer (only parsing).
 
 
 (** Define getter for each constant *)

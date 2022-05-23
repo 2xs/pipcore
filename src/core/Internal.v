@@ -165,7 +165,7 @@ Definition setAccessible va currentPD L u :=
 match timout with 
 | 0 => ret false
 | S timout1 =>   
-perform multiplexer := getMultiplexer in 
+perform multiplexer := getPageRootPartition in 
 perform isMultiplexer := MALInternal.Page.eqb descParent multiplexer in
 if isMultiplexer (** stop if parent is the multiplexer *)
 then ret true
@@ -196,7 +196,7 @@ Fixpoint writeAccessibleRecAux timout (va : vaddr) (descParent : page) (flag : b
 match timout with 
 | 0 => ret false
 | S timout1 =>   
-perform multiplexer := getMultiplexer in 
+perform multiplexer := getPageRootPartition in 
 perform isMultiplexer := MALInternal.Page.eqb descParent multiplexer in
 if isMultiplexer (** stop if parent is the multiplexer *)
 then ret true

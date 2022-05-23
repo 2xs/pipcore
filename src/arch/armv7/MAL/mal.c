@@ -237,7 +237,7 @@ void updateCurPartition (uint32_t descriptor)
  * \brief get the root partition
  * \return the root partition
  */
-uint32_t getRootPartition(void)
+uint32_t getPageRootPartition(void)
 {
 	return root_partition;
 }

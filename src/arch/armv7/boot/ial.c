@@ -171,7 +171,7 @@ void __attribute__((noreturn)) ial_irq_handler(gate_ctx_t *ctx)
 
 	//TODO The next few lines of code could be written in Coq
 
-	page rootPartDesc = getRootPartition();
+	page rootPartDesc = getPageRootPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got root partition : %x\n", rootPartDesc);
 	page intPartitionPartDesc = getCurPartition();
 	//DEBUG(TRACE, "Hardware interrupt handler - Got interrupted partition : %x\n", intPartitionPartDesc);

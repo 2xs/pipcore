@@ -66,13 +66,13 @@ int kernel_start(void)
 	mal_init();
 
 	/* Activate and run the multiplexer */
-	updateMMURoot((uint32_t) ((void **) getRootPartition())[indexPD()+1]);
+	updateMMURoot((uint32_t) ((void **) getPageRootPartition())[indexPD()+1]);
 
-	uint32_t pageDir = readPhyEntry(getRootPartition(), indexPD()+1);
+	uint32_t pageDir = readPhyEntry(getPageRootPartition(), indexPD()+1);
 	user_ctx_t *user_ctx = ((user_ctx_t **) 0x3FFFF000)[0];
 
 	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
-	switchContextCont(getRootPartition(), pageDir, 0, user_ctx);
+	switchContextCont(getPageRootPartition(), pageDir, 0, user_ctx);
 
 	/* Should never be reached */
 	for (;;);

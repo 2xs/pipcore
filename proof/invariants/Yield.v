@@ -119,10 +119,10 @@ cbn.
 intro u; clear u.
 
 
-(* rootPartition := MALInternal.getMultiplexer *)
+(* rootPartition := MALInternal.getPageRootPartition *)
 eapply WP.bindRev.
 eapply WP.weaken.
-apply Invariants.getMultiplexer.
+apply Invariants.getPageRootPartition.
 intros s precondition.
 apply precondition.
 cbn.
@@ -1619,9 +1619,9 @@ getParentPartDescCont sourcePartDesc sourcePageDir targetInterrupt sourceContext
 Proof.
 unfold getParentPartDescCont.
 
-(* rootPartition := MALInternal.getMultiplexer *)
+(* rootPartition := MALInternal.getPageRootPartition *)
 eapply WP.bindRev.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intro rootPartition.
 cbn.
 

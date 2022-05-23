@@ -51,7 +51,7 @@ void disable_paging();
 uint32_t getCurPartition(void); //!< Interface to get the current Page Directory
 void updateCurPartition (uint32_t descriptor);
 
-uint32_t getRootPartition(void); //!< Interface to get the current Page Directory
+uint32_t getPageRootPartition(void); //!< Interface to get the current Page Directory
 void updateRootPartition (uint32_t descriptor);
 
 /* Address manipulation stuff */

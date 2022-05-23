@@ -93,7 +93,7 @@ void spawnFirstPartition(void)
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
 
-	pageDir = readPhyEntry(getRootPartition(), indexPD()+1);
+	pageDir = readPhyEntry(getPageRootPartition(), indexPD()+1);
 
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 
@@ -117,7 +117,7 @@ void spawnFirstPartition(void)
 	writePhysical(vidtPaddr, 32, (uint32_t)ctx);
 
 	DEBUG(INFO, "Boot sequence completed - now switching to userland\n");
-	switchContextCont(getRootPartition(), pageDir, 0, ctx);
+	switchContextCont(getPageRootPartition(), pageDir, 0, ctx);
 	for(;;);
 }
 

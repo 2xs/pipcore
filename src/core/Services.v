@@ -1132,7 +1132,7 @@ Definition switchContextCont (targetPartDesc : page)
   perform flagsOnWake := getInterruptMaskFromCtx targetContext in
   setInterruptMask flagsOnWake ;;
   (* allow root partition to prevent Pip from enforcing interrupts *)
-  perform rootPartition := getMultiplexer in
+  perform rootPartition := getPageRootPartition in
   perform targetIsRoot := Page.eqb rootPartition targetPartDesc in
   perform targetReqNoInterrupt := noInterruptRequest flagsOnWake in
   (
@@ -1415,7 +1415,7 @@ Definition getParentPartDescCont (sourcePartDesc : page)
                                  : LLI yield_checks :=
 
   (* check if partition is root *)
-  perform rootPartition := getMultiplexer in
+  perform rootPartition := getPageRootPartition in
   perform sourcePartitionIsRoot := Page.eqb rootPartition sourcePartDesc in
   if sourcePartitionIsRoot then
     ret FAIL_ROOT_CALLER

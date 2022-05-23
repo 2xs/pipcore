@@ -61,9 +61,9 @@ intuition.
 intros.
 simpl.
 eapply bindRev.
-(** getMultiplexer **)
+(** getPageRootPartition **)
 eapply weaken.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intros; simpl.
 pattern s in H.
 eapply H.
@@ -437,9 +437,9 @@ intuition.
 intros.
 simpl.
 eapply bindRev.
-(** getMultiplexer **)
+(** getPageRootPartition **)
 eapply weaken.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intros; simpl.
 pattern s in H.
 eapply H.
@@ -859,9 +859,9 @@ intuition.
 intros.
 simpl.
 eapply bindRev.
-(** getMultiplexer **)
+(** getPageRootPartition **)
 eapply weaken.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intros; simpl.
 pattern s in H.
 eapply H.
@@ -1240,9 +1240,9 @@ intuition. (** PROVE YOUR POSTCONDITION : ~ In phypage (getAccessibleMappedPages
 intros.
 simpl.
 eapply bindRev.
-(** getMultiplexer **)
+(** getPageRootPartition **)
 eapply weaken.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intros; simpl.
 pattern s in H.
 eapply H.
@@ -1942,9 +1942,9 @@ intuition.
 intros.
 simpl.
 eapply bindRev.
-(** getMultiplexer **)
+(** getPageRootPartition **)
 eapply weaken.
-eapply Invariants.getMultiplexer.
+eapply Invariants.getPageRootPartition.
 intros; simpl.
 pattern s in H.
 eapply H.

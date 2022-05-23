@@ -48,7 +48,7 @@
 void set_int_state(gate_ctx_t *ctx, uint32_t interrupt_state) {
 	uint32_t currentPartDesc = getCurPartition();
 	writePhysical(currentPartDesc, INTERRUPT_STATE_IDX, interrupt_state);
-	if (currentPartDesc == getRootPartition()) {
+	if (currentPartDesc == getPageRootPartition()) {
 		if (interrupt_state == 0)
 			ctx->spsr &= ~(CPSR_IRQ); //disable interrupts
 		else	ctx->spsr |=  CPSR_IRQ; // enable interrupts
@@ -64,7 +64,7 @@ void setInterruptMask(uint32_t interrupt_state) {
 
 void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
 	uint32_t currentPartDesc = getCurPartition();
-	if (currentPartDesc != getRootPartition()
+	if (currentPartDesc != getPageRootPartition()
 	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
 		ctx->spsr |=  CPSR_IRQ; // enable interrupts
 	}
@@ -74,7 +74,7 @@ void fix_eflags_gate_ctx(gate_ctx_t *ctx) {
 /*
 void fix_eflags_iret_ctx(iret_ctx_t *ctx) {
 	uint32_t currentPartDesc = getCurPartition();
-	if (currentPartDesc != getRootPartition()
+	if (currentPartDesc != getPageRootPartition()
 	|| readPhysical(currentPartDesc, INTERRUPT_STATE_IDX)) {
 		ctx->spsr |=  CPSR_IRQ; // enable interrupts
 	}
