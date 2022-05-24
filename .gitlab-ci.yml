@@ -52,8 +52,8 @@ build x86 minimal with dx:
 
     - .ci/apt-get.sh nasm gcc
 
-    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
-    - make DXDIR=$LIB/dx minimal.elf
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --no-command-check
+    - make minimal.elf
   artifacts:
     paths:
       - minimal.elf
@@ -75,8 +75,8 @@ build arm minimal with dx:
 
     - .ci/apt-get.sh libnewlib-arm-none-eabi gcc-arm-none-eabi
 
-    - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
-    - make DXDIR=$LIB/dx minimal.elf
+    - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --no-command-check
+    - make minimal.elf
   artifacts:
     paths:
       - minimal.elf
