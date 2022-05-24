@@ -154,8 +154,8 @@ Usage: %s <MANDATORY ARGUMENTS> [OPTIONAL ARGUMENTS]
 # Generate toolchains with validated commands
 generate_toolchains() {
 cat <<EOF > toolchain.mk
-DIGGER_DIR=tools/digger
-DIGGER=\$(DIGGER_DIR)/digger
+DIGGER_DIR := tools/digger
+DIGGER := \$(DIGGER_DIR)/digger
 
 DXDIR := $dx
 
@@ -165,45 +165,45 @@ COQDEP := $coqdep
 COQDOC := $coqdoc
 
 # GNU C Compiler
-CC="$cc"
+CC := $cc
 
 # Netwide assembler
-AS="$as"
+AS := $as
 
 # GNU Linker
-LD="$ld"
+LD := $ld
 
 # Qemu (for 32 bits architectures)
-QEMU="$qemu"
+QEMU := $qemu
 
 # GNU Debugger
-GDB="$gdb"
+GDB := $gdb
 
 ################# Compilation options #################
 
-TARGET=$target
-PARTITION=$partition_name
+TARGET := $target
+PARTITION := $partition_name
 
 # Arch related options
-ARCH_CFLAGS=$arch_cflags
-ARCH_LDFLAGS=$arch_ldflags
-ARCH_ASFLAGS=$arch_asflags
+ARCH_CFLAGS := $arch_cflags
+ARCH_LDFLAGS := $arch_ldflags
+ARCH_ASFLAGS := $arch_asflags
 
 # Debug related options
-DEBUG_CFLAGS=-g -DPIPDEBUG -DLOGLEVEL=TRACE
+DEBUG_CFLAGS := -g -DPIPDEBUG -DLOGLEVEL=TRACE
 
 # If the DEBUG variable is set, the output binary will
 # be in debug mode. Otherwise, if the DEBUG variable is
 # not set, the output binary will be in released mode.
-DEBUG=ENABLED
+DEBUG := ENABLED
 
 ################## Execution options ##################
 
-GDBARGS  = -iex "target remote localhost:1234"
+GDBARGS := -iex "target remote localhost:1234"
 GDBARGS += -iex "symbol-file \$(BUILD_DIR)/\$(TARGET)/\$(KERNEL_ELF)"
 
-QEMUARGS=$arch_qemuflags
-#QEMUARGS+= -S -s
+QEMUARGS := $arch_qemuflags
+#QEMUARGS += -S -s
 EOF
 
 cat <<EOF > src/arch/"$target"/partitions/toolchain.mk
@@ -242,12 +242,12 @@ cat <<EOF > src/arch/"$target"/partitions/toolchain.mk
 
 # Edit this to suit your needs
 
-CC=$cc
-LD=$ld
-AS=$as_partition
-OBJCOPY=$objcopy
+CC := $cc
+LD := $ld
+AS := $as_partition
+OBJCOPY := $objcopy
 
-LIBPIP=$libpip
+LIBPIP := $libpip
 EOF
 }
 
