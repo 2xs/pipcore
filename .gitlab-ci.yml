@@ -124,6 +124,7 @@ test arm minimal (dx):
 
 check proofs:
   when: manual
+  needs: []
   script:
     - coqc --version
     - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
