@@ -47,7 +47,7 @@ From dx.Type Require Bool Nat.
 
 Import UserIdentNotations.
 
-From Pip.Model Require Hardware ADT Constants Ops MALInternal MAL IAL.
+From Pip.Model Require Hardware ADT Constants Ops MAL IAL.
 From Pip.Core  Require Internal Services.
 From Pip.Arch  Require DataTypes.
 
@@ -212,7 +212,6 @@ GenerateIntermediateRepresentation
   Ops.countSuccM
   Ops.countFromLevelM
 
-  MALInternal
   MAL
 
   ADT.nbLevel
@@ -260,7 +259,6 @@ GenerateIntermediateRepresentation
   Ops.countSuccM
   Ops.countFromLevelM
 
-  MALInternal
   MAL
 
   IAL.setInterruptMask
@@ -313,7 +311,6 @@ GenerateIntermediateRepresentation
   Ops.countSuccM
   Ops.countFromLevelM
 
-  MALInternal
   MAL
 
   IAL.setInterruptMask

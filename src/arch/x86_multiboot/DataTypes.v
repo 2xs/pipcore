@@ -51,7 +51,7 @@ From dx.Type Require Bool Nat.
 
 Import UserIdentNotations.
 
-From Pip.Model Require Hardware ADT Constants Ops MALInternal MAL IAL.
+From Pip.Model Require Hardware ADT Constants Ops MAL IAL.
 From Pip.Core  Require Internal Services.
 
 Definition uint32 : Ctypes.type :=

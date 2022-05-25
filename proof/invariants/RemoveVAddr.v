@@ -35,7 +35,7 @@
     This file contains the invariant of [removeVAddr]. 
     We prove that this PIP service preserves the isolation property *)
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib
-               Pip.Model.MAL Pip.Model.MALInternal.
+               Pip.Model.MAL Pip.Model.Constants Pip.Model.Ops.
 Require Import Pip.Core.Internal Pip.Core.Services.
 Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
                Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.

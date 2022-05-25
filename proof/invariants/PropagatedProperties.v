@@ -31,7 +31,7 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MALInternal.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Constants Pip.Model.Ops.
 Require Import Pip.Proof.Consistency Pip.Proof.Isolation Pip.Proof.StateLib.
 Require Import List Arith.
 Import List.ListNotations.

@@ -33,7 +33,7 @@
 
 (** * Summary 
     This file contains required lemmas to prove the [writeAccessibleRec] invariants used to prove the prepare service *)
-Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL Pip.Model.MALInternal.
+Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MAL Pip.Model.Constants Pip.Model.Ops.
 Require Import Pip.Core.Internal.
 Require Import Pip.Proof.Consistency Pip.Proof.DependentTypeLemmas Pip.Proof.InternalLemmas
 Pip.Proof.Isolation Pip.Proof.StateLib Pip.Proof.WeakestPreconditions.

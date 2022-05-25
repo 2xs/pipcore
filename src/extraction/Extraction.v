@@ -51,7 +51,6 @@ Extract Inlined Constant orb => "orb".
 
 (** EXTRACTION *)
 Extraction Library IAL.
-Extraction Library MALInternal.
 Extraction Library MAL.
 Extraction Library Constants.
 Extraction Library Ops.

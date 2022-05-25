@@ -33,7 +33,7 @@
 
 (** * Summary 
     This file contains some internal functions used by services *)
-Require Import Pip.Model.Hardware Pip.Model.ADT Pip.Model.MAL Pip.Model.MALInternal Pip.Model.IAL Pip.Model.Constants.
+Require Import Pip.Model.Hardware Pip.Model.ADT Pip.Model.MAL Pip.Model.IAL Pip.Model.Constants Pip.Model.Ops.
 Require Import Bool Arith List Coq.Init.Peano.
 
 (** The [getPd] function returns the page directory of a given partition *)

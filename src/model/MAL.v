@@ -34,7 +34,7 @@
 (** * Summary 
      Memory Abstraction Layer : is the interface exposed to services to read and
     write data into physical memory  *)
-Require Export Pip.Model.MALInternal.
+Require Export Pip.Model.Constants Pip.Model.Ops.
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.Lib Pip.Model.MMU.
 Require Import Arith Bool NPeano List Lia.
 

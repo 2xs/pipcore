@@ -224,7 +224,7 @@ OBJECT_FILES=$(C_ARCH_INDEP_OBJ) $(C_TARGET_MAL_OBJ) $(C_TARGET_BOOT_OBJ)\
              $(TARGET_PARTITIONS_OBJ)
 
 # Jsons (Coq extracted AST)
-JSONS := IAL.json MALInternal.json MAL.json Constants.json Ops.json
+JSONS := IAL.json MAL.json Constants.json Ops.json
 JSONS += Internal.json Services.json
 
 JSONS := $(addprefix $(GENERATED_FILES_DIR)/, $(JSONS))
@@ -246,7 +246,6 @@ DIGGERFLAGS := -m ADT -m Datatypes -m Hardware -m Nat
 # Monad used in the coq code
 DIGGERFLAGS += -M coq_LLI
 # Dependencies of the traducted code to C interface
-DIGGERFLAGS += -m MALInternal -d :$(GENERATED_FILES_DIR)/MALInternal.json
 DIGGERFLAGS += -m MAL -d :$(GENERATED_FILES_DIR)/MAL.json
 DIGGERFLAGS += -m IAL -d :$(GENERATED_FILES_DIR)/IAL.json
 DIGGERFLAGS += -m Constants -d :$(GENERATED_FILES_DIR)/Constants.json
