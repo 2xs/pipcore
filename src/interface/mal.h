@@ -91,7 +91,6 @@ extern uint32_t tableSize;
 uint32_t getTableSize(void); //!< Table size
 index maxFreeLL();
 uint32_t getMaxIndex(void); //!< Table size
-uint32_t addressEquals(uint32_t addr, uint32_t addr2); //!< Checks whether an address is equal to another.
 void cleanPage(uint32_t paddr); //!< Cleans a given page, filling it with zero
 
 bool checkRights(bool read, bool write, bool execute); //!< Checks whether the asked rights are applicable to the architecture or not

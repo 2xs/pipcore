@@ -72,18 +72,6 @@ index getIdx0(void)
 }
 
 /*!
- * \fn uint32_t addressEquals(uint32_t addr, uint32_t addr2)
- * \param addr Address to check
- * \param addr2 Address to compare to
- * \brief Checks if an address given is equal to another given.
- * \return 0 is not equal, 1 otherwise.
- */
-uint32_t addressEquals(uint32_t addr, uint32_t addr2)
-{
-	return (addr == addr2);
-}
-
-/*!
  * \fn uint32_t getMaxIndex()
  * \brief get the maximum addressable index in the translation table.
  * \return the maximum index.
