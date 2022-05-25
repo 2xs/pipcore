@@ -31,6 +31,7 @@
 /*  knowledge of the CeCILL license and that you accept its terms.             */
 /*******************************************************************************/
 
+#include <elf.h>
 #include <stdint.h>
 
 #include "string.h"
@@ -40,7 +41,6 @@
 #include "debug.h"
 #include "fpinfo.h"
 #include "mal.h"
-#include "elf.h"
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
