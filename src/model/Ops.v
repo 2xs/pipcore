@@ -106,8 +106,5 @@ Program Definition countFromLevelM (x : level) : LLI count :=
   ret (Build_count (x * 3) _).
 Next Obligation.
   destruct x; simpl.
-  (* BEGIN SIMULATION
-    unfold nbLevel in Hl.
-     END SIMULATION *)
   lia.
 Qed.

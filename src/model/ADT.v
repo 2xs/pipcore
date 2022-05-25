@@ -36,24 +36,6 @@
 Require Import List Bool Arith.
 Import List.ListNotations.
 
-(* BEGIN SIMULATION
-
-Definition maxVint := 5.
-Definition nbLevel := 2.
-Definition boundNbLevel := S nbLevel.
-Definition tableSize := 12.
-Definition nbPage := 100.
-Definition boundNbPages := S nbPage.
-Definition contextSize := 5.
-Lemma nbLevelNotZero: nbLevel > 0.
-Proof. unfold nbLevel; auto. Qed.
-Lemma tableSizeNotZero : tableSize <> 0.
-Proof. unfold tableSize; auto. Qed.
-
-
-   END SIMULATION *)
-
-(* BEGIN NOT SIMULATION *)
 Axiom tableSize nbLevel nbPage maxVint contextSize : nat.
 Axiom nbLevelNotZero: nbLevel > 0.
 Axiom nbPageNotZero: nbPage > 0.
@@ -66,7 +48,6 @@ Definition boundNbLevel := nbLevel + 1.
 (* Axiom tableSizeNotZero : tableSize <> 0. *)
 
 Axiom tableSizeIsEven : Nat.Even tableSize.
-(* END NOT SIMULATION *)
 Definition tableSizeLowerBound := 14.
 Axiom tableSizeBigEnough : tableSize > tableSizeLowerBound. (* to be fixed on count **) 
 Record index := {
@@ -127,15 +108,9 @@ if ( Nat.eq_dec (length l)  (nbLevel+1))
   then Build_vaddr l _
   else Build_vaddr (repeat (CIndex 0) (nbLevel+1)) _.
 
-
-(* BEGIN NOT SIMULATION *)
-
 Next Obligation.
 apply repeat_length.
 Qed. 
-
-(* END NOT SIMULATION *)
-
 
 Program Definition CLevel ( a :nat) : level := 
 if lt_dec a nbLevel then Build_level a _ 

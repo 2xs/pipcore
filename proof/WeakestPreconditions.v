@@ -219,9 +219,6 @@ simpl. intros.
 destruct idx. simpl in *.
 destruct H0.
 destruct n. 
-(* BEGIN SIMULATION
-unfold tableSize in *.
-   END SIMULATION *)
 lia.
 Qed.
 Lemma pred  (idx : index) (P: index -> state -> Prop) :

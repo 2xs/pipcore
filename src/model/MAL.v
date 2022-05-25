@@ -225,13 +225,9 @@ then
   ret (Build_index (tableSize - 1) _)
 else undefined 36.
 
-(* BEGIN NOT SIMULATION *)
-
 Next Obligation.
 lia.
 Qed.
-
-(* END NOT SIMULATION *)
 
 (** The 'maxFreeLL' function returns the maximum number of entrie (phy/vaddr) into LL table
 *) 
@@ -239,14 +235,6 @@ Program Definition maxFreeLL : LLI index :=
 ret (Build_index ((Coq.Init.Nat.div2 tableSize) - 2) _).
 Next Obligation.
 assert (tableSize > tableSizeLowerBound) by apply tableSizeBigEnough.
-(* BEGIN SIMULATION
-unfold tableSizeLowerBound in *.
-omega.
-Qed.
-   END SIMULATION *)
-
-(* BEGIN NOT SIMULATION *)
-
 assert (tableSize > 0).
 unfold tableSizeLowerBound in *.
 lia.
@@ -254,8 +242,6 @@ assert(Hkey : Init.Nat.div2 tableSize < tableSize).
 apply NPeano.Nat.lt_div2; trivial.
 lia.
 Qed.
-(* END NOT SIMULATION *)
-
 
 
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
@@ -269,11 +255,9 @@ Program Definition getNbLevel : LLI level:=
 if gt_dec nbLevel 0
 then
   ret (Build_level (nbLevel -1) _ ) else undefined 35.
-(* BEGIN NOT SIMULATION *)
 Next Obligation.
 lia.
 Qed.
-(* END NOT SIMULATION *)
 
 Definition prepareType (val1 : bool) (val2 : vaddr) : LLI boolvaddr :=
 ret (Build_boolvaddr val1 val2).
