@@ -417,7 +417,7 @@ Fixpoint putShadowsBackAux timeout (phyRefPart : page) (pos : index) (currentPD 
       setAccessible va currentPD l1 true;;
       perform currentPart := getCurPartition in
       writeAccessibleRec  va currentPart true;;
-      (* perform zero := MALInternal.Index.zero in *)
+      (* perform zero := getIdx0 in *)
       (* storeVirtual va zero buf ;; *)
 
       perform succ := idxSuccM pos in

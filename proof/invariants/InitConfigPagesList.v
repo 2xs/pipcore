@@ -307,7 +307,7 @@ induction n.  simpl.
   apply tableSizeMinus0;trivial.
   intros maxidxminus1.     
   simpl.
-(** MALInternal.Index.geb *)
+(* idxGeM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.geb.
@@ -316,7 +316,7 @@ induction n.  simpl.
   eapply H.
   intros gebmaxidxminus1.     
   simpl.
-(** MALInternal.Index.eqb *)
+(* idxEqM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.eqb.
@@ -689,7 +689,7 @@ induction n.  simpl.
   apply beqPairsTrue;split;trivial.
   rewrite Htrue; trivial.   
   intros [].
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
   eapply bindRev.
   eapply WP.weaken. 
   eapply Invariants.Index.succ.
@@ -718,7 +718,7 @@ induction n.  simpl.
   trivial.
   intros Scuridx.
   simpl.
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
   eapply bindRev.
   eapply WP.weaken. 
   eapply Invariants.Index.succ.
@@ -1054,7 +1054,7 @@ induction n.  simpl.
   apply tableSizeMinus0;trivial.
   intros maxidxminus1.     
   simpl.
-(** MALInternal.Index.geb *)
+(* idxGeM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.geb.
@@ -1063,7 +1063,7 @@ induction n.  simpl.
   eapply H.
   intros gebmaxidxminus1.     
   simpl.
-(** MALInternal.Index.eqb *)
+(* idxEqM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.eqb.
@@ -1535,7 +1535,7 @@ induction n.  simpl.
     
     (** the first entry *) 
 case_eq eqbZero;intros HfstEntry.
-  { (** MALInternal.Index.succ **) 
+  { (* idxSuccM *)
    eapply bindRev.
    eapply WP.weaken. 
    eapply Invariants.Index.succ.
@@ -1737,7 +1737,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
     intuition.
     intuition.
     subst.
-(** MALInternal.Index.succ **) 
+(* idxSuccM *)
   eapply bindRev.
   eapply WP.weaken. 
   eapply Invariants.Index.succ.
@@ -1766,7 +1766,7 @@ assert(Hodd: PeanoNat.Nat.Odd oneI).
   trivial.
   intros Scuridx.
   simpl.
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
   eapply bindRev.
   eapply WP.weaken. 
   eapply Invariants.Index.succ.

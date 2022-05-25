@@ -119,7 +119,7 @@ cbn.
 intro u; clear u.
 
 
-(* rootPartition := MALInternal.getPageRootPartition *)
+(* rootPartition := getPageRootPartition *)
 eapply WP.bindRev.
 eapply WP.weaken.
 apply Invariants.getPageRootPartition.
@@ -128,7 +128,7 @@ apply precondition.
 cbn.
 intro rootPartition.
 
-(* targetIsRoot := MALInternal.Page.eqb rootPartition targetPartDesc *)
+(* targetIsRoot := pageEqM rootPartition targetPartDesc *)
 eapply WP.bindRev.
 eapply WP.weaken.
 apply Invariants.Page.eqb.
@@ -1619,13 +1619,13 @@ getParentPartDescCont sourcePartDesc sourcePageDir targetInterrupt sourceContext
 Proof.
 unfold getParentPartDescCont.
 
-(* rootPartition := MALInternal.getPageRootPartition *)
+(* rootPartition := getPageRootPartition *)
 eapply WP.bindRev.
 eapply Invariants.getPageRootPartition.
 intro rootPartition.
 cbn.
 
-(* sourcePartitionIsRoot := MALInternal.Page.eqb rootPartition sourcePartDesc *)
+(* sourcePartitionIsRoot := pageEqM rootPartition sourcePartDesc *)
 eapply WP.bindRev.
 apply Invariants.Page.eqb.
 intro sourcePartitionIsRoot.

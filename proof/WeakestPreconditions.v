@@ -33,7 +33,7 @@
 
 (** * Summary  
     In this file we formalize and prove the weakest precondition of the 
-    MAL and MALInternal functions *)
+    MAL and Ops functions *)
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.MAL Pip.Model.Lib Pip.Model.IAL.
 Require Import Pip.Proof.StateLib.
 Require Import Lia List Compare_dec.

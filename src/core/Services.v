@@ -1063,7 +1063,7 @@ Fixpoint collectRec timeout (phyPDChild : page) (phySh1Child : page) (phySh2Chil
       writeVirEntry sh2ChildFromSh1Parent vaPtVaToCollectFromSh2ChildIndex nullVA ;;
 
       (** Link returning pages *)
-      (*perform zero := MALInternal.Index.zero in
+      (*perform zero := getIdx0 in
         perform nullAddrV :=  getDefaultVAddr in
         storeVirtual vaPtVaToCollectFromPDChild zero vaPtVaToCollectFromSh1Child ;;
         storeVirtual vaPtVaToCollectFromSh1Child zero vaPtVaToCollectFromSh2Child ;;

@@ -98,7 +98,7 @@ case_eq isMultiplexer.
   pattern s in H.
   eapply H.
  unfold consistency in H;intuition.
- (** In descParent (getPartitions MALInternal.multiplexer s)**)
+ (* In descParent (getPartitions pageRootPartition s)*)
   intros sh2; simpl.
   eapply bindRev.
   (** getNbLevel **)
@@ -474,7 +474,7 @@ case_eq isMultiplexer.
   pattern s in H.
   eapply H.
  unfold consistency in H;intuition.
- (** In descParent (getPartitions MALInternal.multiplexer s)**)
+ (* In descParent (getPartitions pageRootPartition s)*)
   intros sh2; simpl.
   eapply bindRev.
   (** getNbLevel **)
@@ -886,7 +886,7 @@ case_eq isMultiplexer.
   pattern s in H.
   eapply H.
  unfold consistency in H;intuition.
- (** In descParent (getPartitions MALInternal.multiplexer s)**)
+ (* In descParent (getPartitions pageRootPartition s)*)
   intros sh2; simpl.
   eapply bindRev.
   (** getNbLevel **)
@@ -1273,7 +1273,7 @@ case_eq isMultiplexer.
   pattern s in H.
   eapply H.
  unfold consistency in H;intuition.
- (** In descParent (getPartitions MALInternal.multiplexer s)**)
+ (* In descParent (getPartitions pageRootPartition s)*)
   intros sh2; simpl.
   eapply bindRev.
   (** getNbLevel **)
@@ -1968,7 +1968,7 @@ case_eq isMultiplexer.
   pattern s in H.
   eapply H.
  unfold consistency in H;intuition.
- (** In descParent (getPartitions MALInternal.multiplexer s)**)
+ (* In descParent (getPartitions pageRootPartition s)*)
   intros sh2; simpl.
   eapply bindRev.
   (** getNbLevel **)

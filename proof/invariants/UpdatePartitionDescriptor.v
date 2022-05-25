@@ -377,7 +377,7 @@ eapply bindRev.
     trivial. left;trivial.
     apply nextEntryIsPPUpdateMappedPageData; trivial.
     intros [].
- (** MALInternal.Index.succ **) 
+ (* idxSuccM *)
    eapply bindRev.
    eapply WP.weaken. 
    eapply Invariants.Index.succ.
@@ -552,7 +552,7 @@ assert (Htrue :Lib.beqPairs (phyDescChild, idxPR) (phyDescChild, idxPR) pageEq i
 apply beqPairsTrue;split;trivial.
 rewrite Htrue; trivial.
 intros [].
-(** MALInternal.Index.succ **) 
+(* idxSuccM *)
 eapply bindRev.
 eapply WP.weaken. 
 eapply Invariants.Index.succ.
@@ -659,7 +659,7 @@ assert (Hmemory :  lookup table idx1succ (removeDup table idx2 (memory s) pageEq
 { apply removeDupIdentity; right; unfold not; intros; subst; now contradict Hnoteq. }
 rewrite Hmemory; assumption.
 intros [].
-(** MALInternal.Index.succ **) 
+(* idxSuccM *)
 eapply bindRev.
 eapply WP.weaken. 
 eapply Invariants.Index.succ.

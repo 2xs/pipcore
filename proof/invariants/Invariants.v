@@ -32,7 +32,7 @@
 (*******************************************************************************)
 
 (**  * Summary 
-    In this file we formalize and prove all invariants of the MAL and MALInternal functions *)
+    In this file we formalize and prove all invariants of the MAL and Ops functions *)
 Require Import Pip.Model.ADT Pip.Model.Hardware Pip.Model.IAL Pip.Model.Lib
                Pip.Model.MAL.
 Require Import Pip.Core.Internal Pip.Core.Services.
@@ -677,7 +677,7 @@ eapply WP.bindRev.
 apply getPDidx.
 intro idxPD. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.
@@ -771,7 +771,7 @@ eapply WP.bindRev.
 apply getSh2idx.
 intro idxSh2. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.
@@ -824,7 +824,7 @@ eapply WP.bindRev.
 apply getSh1idx.
 intro idxSh1. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.
@@ -880,7 +880,7 @@ eapply WP.bindRev.
 apply getSh1idx.
 intro idxSh1. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.
@@ -937,7 +937,7 @@ eapply WP.bindRev.
 apply getSh3idx.
 intro idxSh3. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.
@@ -1051,7 +1051,7 @@ induction nbLevel;intros.
   pattern s in H. 
   eassumption.
   intros idx2.
-(** MALInternal.Level.eqb **)
+(* levelEqM *)
   eapply WP.bindRev. 
   eapply WP.weaken.
   eapply Level.eqb.
@@ -1072,7 +1072,7 @@ induction nbLevel;intros.
     subst.     
     unfold idxEq.
     trivial.
-  - (** MALInternal.Level.pred **) 
+  - (* levelPredM *)
     eapply WP.bindRev.
     eapply WP.weaken.
     eapply Level.pred.
@@ -1084,7 +1084,7 @@ induction nbLevel;intros.
     symmetry in H1.
     apply levelEqBEqNatFalse0  in H1. assumption.
     intros levelpred.
-(** MALInternal.Index.eqb **)
+(* idxEqM *)
     eapply WP.bindRev.
     eapply WP.weaken.
     eapply Index.eqb.
@@ -1143,7 +1143,7 @@ eapply WP.bindRev.
 apply getPPRidx.
 intro idxppr. 
 simpl. 
-(** MALInternal.Index.succ **)
+(* idxSuccM *)
 eapply WP.bindRev.
 eapply WP.weaken.
 eapply Index.succ.

@@ -118,7 +118,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -202,7 +202,7 @@ induction n.  simpl.
    split; trivial.
    split; intuition. 
    intros [].
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
    eapply WP.bindRev.
    eapply WP.weaken. 
    eapply Invariants.Index.succ.
@@ -402,7 +402,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -563,7 +563,7 @@ induction n.  simpl.
     apply mappedPageIsNotPTable with partition  currentPD isPE idxPageDir va2 idxVa2 s ;
     trivial. left;trivial.
     intros [].
-    (** MALInternal.Index.succ **) 
+    (* idxSuccM *)
      eapply WP.bindRev.
      eapply WP.weaken. 
      eapply Invariants.Index.succ.
@@ -781,7 +781,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -822,7 +822,7 @@ induction n.  simpl.
    destruct H.
    split;trivial.
    intros [].
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
    eapply WP.bindRev.
    eapply WP.weaken. 
    eapply Invariants.Index.succ.
@@ -945,7 +945,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -1023,7 +1023,7 @@ induction n.  simpl.
   subst.
   trivial.     *)
   intros [].
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
   eapply bindRev.
   eapply WP.weaken. 
   eapply Invariants.Index.succ.
@@ -1149,7 +1149,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -1214,7 +1214,7 @@ induction n.  simpl.
     subst;cbn; trivial.
     split;trivial.    
     intros [].
-  (** MALInternal.Index.succ **) 
+  (* idxSuccM *)
    eapply bindRev.
    eapply WP.weaken. 
    eapply Invariants.Index.succ.
@@ -1409,7 +1409,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -1484,7 +1484,7 @@ induction n.  simpl.
     apply PreCtoPropagateIsWellFormedMMUTablesUpdateMappedPageData;trivial.
        unfold PreCtoPropagateIsWellFormedMMUTables in *.
     intros [].
-    (** MALInternal.Index.succ **) 
+    (* idxSuccM *)
      eapply WP.bindRev.
      eapply WP.weaken. 
      eapply Invariants.Index.succ.
@@ -1618,7 +1618,7 @@ induction n.  simpl.
   intros. simpl.
   pattern s in H.  eassumption. 
   intros maxidx . simpl.
-(** MALInternal.Index.ltb *)
+(* idxLtM *)
   eapply WP.bindRev.
   eapply WP.weaken.
   eapply Invariants.Index.ltb.
@@ -1682,7 +1682,7 @@ induction n.  simpl.
     intuition.
     apply PreCtoPropagateIsWellFormedMMUTablesUpdateMappedPageData;trivial.
     intros [].
-    (** MALInternal.Index.succ **) 
+    (* idxSuccM *)
      eapply WP.bindRev.
      eapply WP.weaken. 
      eapply Invariants.Index.succ.
