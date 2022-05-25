@@ -152,6 +152,15 @@ uint32_t getTableSize()
 	return tableSize;
 }
 
+/*!
+ * \brief get the maximum addressable index in the translation table.
+ * \return the maximum index.
+ */
+uint32_t getMaxIndex(void)
+{
+	return getTableSize() - 1;
+}
+
 index maxFreeLL() {
     return (MMU_L1_ENT_COUNT / 2) - 2;
 }
@@ -527,4 +536,14 @@ void loadContext(contextAddr ctx, bool enforce_interrupts) {
 
 	/* Should never be reached */
 	for (;;);
+}
+
+/*!
+ * \brief Returns the kernel address.
+ * \return The kernel address.
+ * TODO: Check mismatch with x86_multiboot version
+ */
+uint32_t getIdxKernel(void)
+{
+	return 0;
 }

@@ -52,6 +52,11 @@ index getIdxPageDir(void) {
     return 2;
 }
 
+index getIdx0(void)
+{
+    return 0;
+}
+
 index getIdx3(void) {
     return 3;
 }

@@ -167,6 +167,16 @@ uint32_t getTableSize()
 	return tableSize; // 1024 entries per table
 }
 
+/*!
+ * \fn uint32_t getMaxIndex()
+ * \brief get the maximum addressable index in the translation table.
+ * \return the maximum index.
+ */
+uint32_t getMaxIndex(void)
+{
+	return tableSize - 1;
+}
+
 index maxFreeLL() {
     return (tableSize / 2) - 2;
 }
@@ -695,4 +705,15 @@ void loadContext(contextAddr ctx, bool enforce_interrupts) {
 	    /* registers changed during inline assembly */
 	    :
 	);
+}
+
+/*!
+ * \fn uint32_t getIdxKernel()
+ * \brief Returns the kernel address.
+ * \return The kernel address.
+ */
+uint32_t getIdxKernel(void)
+{
+	extern uint32_t __code;
+	return getIndexOfAddr((uint32_t)(&__code), 1);
 }
