@@ -822,17 +822,6 @@ case_eq isMultiplexer.
   destruct nbPage;simpl;  rewrite Hpp;
   simpl;left;trivial.
 Qed.
-(*
-Definition preconditionToProveWriteAccessibleRecNewProperty s part1  parentpart1 part2 pdpart2 :=
-StateLib.getParent part1 (memory s) = Some parentpart1
-/\ StateLib.getPd part2 (memory s) = Some pdpart2.
-
-getMappedPage pdAncestor s0 vaInAncestor = getMappedPage pdAncestor s vaInAncestor
-noDupMappedPagesList s0
-In ancestor (getPartitions MALInternal.multiplexer s0)
-getAccessibleMappedPage pdAncestor s0 vaInAncestor = NonePage.
-*)
-
 
 Definition preconditionToProveWriteAccessibleRecNewProperty s part1  parentpart1 part2 pdpart2 vapart2 pg:=
 StateLib.getParent part1 (memory s) =Some  parentpart1

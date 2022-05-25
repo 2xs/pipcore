@@ -272,36 +272,6 @@ Definition updateCurPartition (phyPartition : page) : LLI unit :=
   memory := s.(memory)|} ).
 
 (***************************** STORE AND FETCH ****************************)
-(* (** The 'comparePageToNull' returns true if the given page is equal to the fixed
-    default page (null) *) 
-Definition comparePageToNull (p :page) : LLI bool :=
-  perform nullPaddr := getDefaultPage in
-  MALInternal.Page.eqb nullPaddr p.
-  
-(** The 'getTableAddrAux' returns the reference to the last page table  *)
-Fixpoint translateAux timeout (pd : page) (va : vaddr) (l : level) :=
-  match timeout with
-  | 0 => getDefaultPage
-  |S timeout1 =>
-  perform isFstLevel := MALInternal.Level.eqb l fstLevel in 
-    if isFstLevel 
-    then  ret pd 
-    else
-      perform idx :=  getIndexOfAddr va l in
-      perform addr :=  readPhyEntry pd idx in 
-      perform isNull := comparePageToNull addr in
-      if isNull then getDefaultPage else
-      perform p := MALInternal.Level.pred l in
-      translateAux timeout1 addr va p
-  end .
-
-(** The 'translate' *)
-Definition  translate (pd : page) (va : vaddr) (l : level)  :=
-  perform lastTable := translateAux nbLevel pd va l in 
-  perform isNull := comparePageToNull lastTable in
-  if isNull then getDefaultPage else
-  perform idx :=  getIndexOfAddr va fstLevel in
-  readPhyEntry lastTable idx. *)
 
 (** The 'internalGetPageDir' function returns the page directory of a given partition *)
 Definition internalGetPageDir partition :=

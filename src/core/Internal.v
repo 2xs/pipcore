@@ -160,36 +160,6 @@ Definition setAccessible va currentPD L u :=
 (** The [writeAccessibleRec] function updates the user access flag of a physical page which 
     corresponds to a given virtual address [va] in all ancestors of a given partition [descParent]. 
 *) 
-(* Fixpoint writeAccessibleRec timout (va : vaddr) (descParent : page) (flag : bool):=
-match timout with 
-| 0 => ret false
-| S timout1 =>   
-perform multiplexer := getPageRootPartition in 
-perform isMultiplexer := MALInternal.Page.eqb descParent multiplexer in
-if isMultiplexer (** stop if parent is the multiplexer *)
-then ret true
-else 
-(** get the snd shadow of the parent to get back the virtual address into the first ancestor *)
-perform sh2Parent := getSndShadow descParent in 
-perform L:= getNbLevel in
-perform idx := getIndexOfAddr va fstLevel in  
-perform ptsh2 := getTableAddr sh2Parent va  L in 
-perform isNull := comparePageToNull ptsh2 in
-if isNull then ret false else
-(** read the virtual address into the first ancestor *)
-perform vaInAncestor := readVirtual ptsh2 idx in 
-(** get the first ancestor partition descriptor *)
-perform ancestor := getParent descParent in
-(** get the page directory of the ancestor partition descriptor *)
-perform pdAncestor := getPd ancestor in 
-(** set access rights of the virtual address *)
-perform isaccess := setAccessible vaInAncestor pdAncestor L flag in 
-if isaccess 
-then
-(** recursion **)
-writeAccessibleRec timout1 vaInAncestor ancestor flag 
-else ret false
-end. *)
 
 Fixpoint writeAccessibleRecAux timout (va : vaddr) (descParent : page) (flag : bool):=
 match timout with 
