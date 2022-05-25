@@ -95,7 +95,7 @@ uint32_t get_int_state(uint32_t child_vaddr) {
 	uint32_t childPartDescLastMMUPage = getTableAddr(currentPageDir, child_vaddr, nbL);
 	if (childPartDescLastMMUPage == 0)
 		return ~0;
-	uint32_t idxChildPartDesc = getIndexOfAddr(child_vaddr, fstLevel);
+	uint32_t idxChildPartDesc = getIndexOfAddr(child_vaddr, levelMin);
 	if (!(readPresent(childPartDescLastMMUPage, idxChildPartDesc)))
 		return ~0;
 	if (!(checkChild(currentPartDesc, nbL, child_vaddr)))

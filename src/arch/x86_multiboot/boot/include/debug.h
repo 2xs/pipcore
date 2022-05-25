@@ -55,9 +55,6 @@
 #define LOG		4 //!< Log output
 #define TRACE		5 //!< Annoying, verbose output
 
-#define True 1
-#define False 0
-
 #ifdef PIPDEBUG
 
 #ifndef LOGLEVEL

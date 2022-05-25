@@ -59,7 +59,7 @@ void propagateFault(page callerPartDesc, page callerPageDir, unsigned targetInte
 				DEBUG(INFO, "Faulting partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetVidtCont(getParent(callerPartDesc), callerPageDir, getVaddrVIDT(), 0, targetInterrupt, nbL, getIndexOfAddr(getVaddrVIDT(), fstLevel), flagsOnYield, flagsOnWake, 0);
+			getTargetVidtCont(getParent(callerPartDesc), callerPageDir, getVaddrVIDT(), 0, targetInterrupt, nbL, getIndexOfAddr(getVaddrVIDT(), levelMin), flagsOnYield, flagsOnWake, 0);
 			break;
 		case coq_FAIL_ROOT_CALLER:
 			DEBUG(ERROR, "Root partition faulted, guru meditation.\n");
@@ -199,7 +199,7 @@ void __attribute__((noreturn)) ial_irq_handler(gate_ctx_t *ctx)
 				DEBUG(INFO, "Interrupted partition's context save address is not valid, can not salvage its context\n");
 			}
 			DEBUG(TRACE, "Skip saving the interrupted partition's context\n");
-			getTargetVidtCont(rootPartDesc, intPartitionPageDir, getVaddrVIDT(), 0, int_no, getNbLevel(), getIndexOfAddr(getVaddrVIDT(), fstLevel), 0, 0, &uctx);
+			getTargetVidtCont(rootPartDesc, intPartitionPageDir, getVaddrVIDT(), 0, int_no, getNbLevel(), getIndexOfAddr(getVaddrVIDT(), levelMin), 0, 0, &uctx);
 			break;
 		default:
 			DEBUG(ERROR, "Unrecoverable error occured during while loading the root interruption handler - guru meditation\n");

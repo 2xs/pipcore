@@ -51,72 +51,24 @@ typedef _Bool bool;
 /* Page */
 typedef uintptr_t page;
 
-#define getDefaultPage defaultAddr
-#define Page_eqb       eqb
-
 /* VAddr */
 typedef uintptr_t vaddr;
-
-#define getDefaultVAddr defaultAddr
-#define VAddr_eqbList   addressEquals
-#define beqVAddr        addressEquals
 
 extern uint32_t getVaddrVIDT(void);
 
 /* Index */
 typedef uint32_t index;
 
-#define getSh1idx  indexSh1
-#define getSh2idx  indexSh2
-#define getSh3idx  indexSh3
-#define getPRidx   zero
-#define getPDidx   indexPD
-#define getPPRidx  PPRidx
-
-#define Index_succ inc
-#define Index_pred sub
-#define Index_eqb  eqb
-#define Index_zero zero
-#define Index_const3() 3
-#define Index_geb  geb
-#define Index_gtb  gtb
-#define Index_leb  leb
-#define Index_ltb  ltb
-#define PreIndex_ltb ltb
-#define PreLevel_eqb eqb
-#define PreLevel_pred sub
-
 /* Level */
 typedef uint32_t level;
 
-#define fstLevel  0
-#define fstPreLevel 0
-
-#define Level_succ inc
-#define Level_pred sub
-#define Level_eqb  eqb
-#define Level_gtb  gtb
-
 /* Count */
 typedef uint32_t count;
-
-#define Count_succ inc
-#define Count_geb  geb
-#define Count_zero zero
-#define Count_mul3 mul3
-
-/* Miscellaneous */
-#define getStoreFetchIndex zero
 
 /* preVaddr */
 typedef uint32_t preVaddr;
 typedef uint32_t preIndex;
 typedef uint32_t preLevel;
-
-/* Astucious defines */
-#define preVaddrToVaddr(x) x
-#define succNbLevel (nbLevel + 1)
-#define maxprelevel (nbLevel - 1)
 
 /* boolVAddr */
 typedef uint32_t boolvaddr;
@@ -134,8 +86,9 @@ typedef enum yield_checks_e {
 	coq_FAIL_UNAVAILABLE_TARGET_CTX=8,
 	coq_FAIL_CALLER_CONTEXT_SAVE=9
 } yield_checks;
-#define contextAddr user_ctx_t *
 
-#define userValue uint32_t
+typedef user_ctx_t *contextAddr;
+
+typedef uint32_t userValue;
 
 #endif
