@@ -44,29 +44,11 @@
 #include "mal.h"
 
 /*!
- * \brief Returns the default null address.
- * \return The null address.
- */
-uint32_t defaultAddr(void)
-{
-	return 0;
-}
-
-/*!
  * \brief Returns the kernel address.
  * \return The kernel address.
  * TODO: Check mismatch with x86_multiboot version
  */
 uint32_t getIdxKernel(void)
-{
-	return 0;
-}
-
-/*!
- * \brief Returns the partition root.
- * \return The partition root.
- */
-uint32_t indexPR(void)
 {
 	return 0;
 }
@@ -90,51 +72,6 @@ index getIdx0(void)
 }
 
 /*!
- * \brief Returns the page directory index.
- * \return The page directory index.
- */
-uint32_t indexPD(void)
-{
-	return 2;
-}
-
-/*!
- * \brief Returns the shadow 1 index.
- * \return The shadow 1 index.
- */
-uint32_t indexSh1(void)
-{
-	return 4;
-}
-
-/*!
- * \brief Returns the shadow 2 index.
- * \return The shadow 2 index.
- */
-uint32_t indexSh2(void)
-{
-	return 6;
-}
-
-/*!
- * \brief Returns the shadow 3 index.
- * \return The shadow 3 index.
- */
-uint32_t indexSh3(void)
-{
-	return 8;
-}
-
-/*!
- * \brief Returns the parent partition root.
- * \return The parent partition root.
- */
-uint32_t PPRidx(void)
-{
-	return 10;
-}
-
-/*!
  * \param addr Address to check
  * \param addr2 Address to compare to
  * \brief Checks if an address given is equal to another given.
@@ -143,78 +80,6 @@ uint32_t PPRidx(void)
 uint32_t addressEquals(uint32_t addr, uint32_t addr2)
 {
 	return (addr == addr2);
-}
-
-/*!
- * \brief the first parameter is greater than or equal to the second one.
- * \return the comparison.
- */
-int geb(const uint32_t a, const uint32_t b)
-{
-	return a >= b;
-}
-
-/*!
- * \brief the first parameter is greater than the second one.
- * \return the comparison.
- */
-int gtb(const uint32_t a, const uint32_t b)
-{
-	return a > b;
-}
-
-/*!
- * \brief the first parameter is less than or equal to the second one.
- * \return the comparison.
- */
-int leb(const uint32_t a, const uint32_t b)
-{
-	return a <= b;
-}
-
-/*!
- * \brief the first parameter is less than the second one.
- * \return the comparison.
- */
-int ltb(const uint32_t a, const uint32_t b)
-{
-	return a < b;
-}
-
-/*!
- * \brief the first parameter is equal to the second one.
- * \return the comparison.
- */
-int eqb(const uint32_t a, const uint32_t b)
-{
-	return a == b;
-}
-
-/*!
- * \brief incremet the value.
- * \return the incremented value.
- */
-uint32_t inc(uint32_t val)
-{
-	return ++val;
-}
-
-/*!
- * \brief decrement value.
- * \return the decremented value.
- */
-uint32_t sub(uint32_t val)
-{
-	return --val;
-}
-
-/*!
- * \brief multiplies by 3.
- * \return the result of the multiplication by 3.
- */
-uint32_t mul3(uint32_t v)
-{
-	return 3 * v;
 }
 
 /*!

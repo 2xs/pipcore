@@ -93,7 +93,7 @@ void spawnFirstPartition(void)
 	DEBUG(INFO, "-> Initializing MMU.\n");
 	initMmu();
 
-	pageDir = readPhyEntry(getPageRootPartition(), indexPD()+1);
+	pageDir = readPhyEntry(getPageRootPartition(), getIdxPageDir()+1);
 
 	DEBUG(TRACE, "multiplexer cr3 is %x\n", pageDir);
 

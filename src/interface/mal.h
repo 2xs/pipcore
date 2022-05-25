@@ -87,7 +87,6 @@ uint32_t get_pd(); //!< Returns the VIRTUAL ADDRESS of the current Page Director
 
 void cleanPageEntry(uint32_t table, uint32_t index); //!< Cleans a page entry, setting its contents to 0x00000000
 
-uint32_t defaultAddr(void); //!< Default address, should be 0x00000000
 extern uint32_t tableSize;
 uint32_t getTableSize(void); //!< Table size
 index maxFreeLL();
@@ -106,24 +105,6 @@ extern uint32_t boundNbLevel;
 extern uint32_t nbPage;
 extern uint32_t boundNbPages;
 
-/* Coq related stuff */
-int geb(const uint32_t a, const uint32_t b); //!< Greater or equal
-int gtb(const uint32_t a, const uint32_t b); //!< Greater than
-int leb(const uint32_t a, const uint32_t b); //!< Lower or equal
-int ltb(const uint32_t a, const uint32_t b); //!< Lower than
-int eqb(const uint32_t a, const uint32_t b); //!< Equals
-uint32_t mul3(uint32_t v); //!< Multiply an integer with 3
-uint32_t inc(uint32_t val); //!< Increment an integer
-uint32_t sub(uint32_t val); //!< Decrement an integer
-uint32_t zero(); //!< Zero. That's it.
-
-
-uint32_t indexPR(void); //!< Partiton descriptor index into itself
-uint32_t indexPD(void); //!< Page directory index within partition descriptor
-uint32_t indexSh1(void); //!< Shadow 1 index within partition descriptor
-uint32_t indexSh2(void); //!< Shadow 2 index within partition descriptor
-uint32_t indexSh3(void); //!< Configuration tables linked list index within partition descriptor
-uint32_t PPRidx(void); //!< Parent partition index within partition descriptor
 uint32_t getIdxKernel(void); //!< Index of kernel's page directory entry
 void writePhyEntry(uint32_t table, uint32_t index, uint32_t addr, bool present, bool user, bool read, bool write, bool execute); //!< Write a physical entry with all the possible flags we might need
 void mapKernel(uint32_t mmu_root_page, uint32_t kernel_index); //!< Writes the kernel MMU configuration page at index 'kernel_index' in the MMU root page

@@ -425,7 +425,7 @@ bool checkRights(bool read, bool write, bool execute)
  */
 void mapKernel(uint32_t child_mmu_root_page, uint32_t kernel_index)
 {
-	uint32_t tt = readPhysical(current_partition, getPDidx() + 1);
+	uint32_t tt = readPhysical(current_partition, getIdxPageDir() + 1);
 	uint32_t kpt = readPhysical(tt, getIdxKernel());
 	writePhyEntry(child_mmu_root_page, kernel_index, kpt, 0, 0, 0, 0, 0);
 	return;

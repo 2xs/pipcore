@@ -560,7 +560,7 @@ uint32_t extractPreIndex(uint32_t addr, uint32_t index)
  */
 void mapKernel(uintptr_t child_mmu_root_page, uint32_t kernel_index)
 {
-    uint32_t cr3 = readPhysical(current_partition, indexPD() + 1);
+    uint32_t cr3 = readPhysical(current_partition, getIdxPageDir() + 1);
     uint32_t kpt = readPhysical(cr3, kernel_index);
     writePhyEntry(child_mmu_root_page, kernel_index, kpt, 1, 0, 1, 1, 1);
     return;

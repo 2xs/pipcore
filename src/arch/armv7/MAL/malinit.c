@@ -107,7 +107,7 @@ void mal_map_kernel(unsigned int *part)
 	void *addr;
 	unsigned *tt;
 
-	tt = (unsigned*)part[indexPD()];
+	tt = (unsigned*)part[getIdxPageDir()];
 
 	for (addr = kernel_text_start; addr<(void*)kernel_ro_start; addr += 0x1000)
 	{
@@ -144,7 +144,7 @@ static void mal_prepare_map(unsigned *part, unsigned *va)
 	void *pt, **sh1, **sh2, *sh1pt, *sh2pt;
 
 	/* Get translation table & pt index */
-	tt = (unsigned*)part[indexPD()];
+	tt = (unsigned*)part[getIdxPageDir()];
 	idx1 = ((unsigned)va >> 20) & 0x3ff;
 
 	/* Check if it's prepared already */
@@ -160,8 +160,8 @@ static void mal_prepare_map(unsigned *part, unsigned *va)
 	DEBUG(TRACE, "mal_prepare_map( part=%08x, va=%08x) : sh1pt=%p, sh2pt=%p\n", part,va,sh1pt,sh2pt);
 
 	/* fill the pt and its shadow versions */
-	sh1=(void**)part[indexSh1()];
-	sh2=(void**)part[indexSh2()];
+	sh1=(void**)part[getIdxShadow1()];
+	sh2=(void**)part[getIdxShadow2()];
 	sh1[idx1] = sh1pt;
 	sh2[idx1] = sh2pt;
 	pte = (unsigned)pt | 1;
@@ -181,7 +181,7 @@ static void mal_map_in_part(unsigned *part, void*pa, unsigned *va, uint8_t user)
 	nbPage++;	/* FIXME: I have no idea what is a correct nbPage */
 	boundNbPages = nbPage + 1;
 
-	tt = (mmu_sd_pt_t*)part[indexPD()];
+	tt = (mmu_sd_pt_t*)part[getIdxPageDir()];
 
 	idx1 = ((unsigned)va >> 20) & 0x3ff;
 	idx2 = ((unsigned)va >> 12) & 0xff;
