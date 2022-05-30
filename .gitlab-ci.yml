@@ -7,6 +7,7 @@ build x86 minimal with digger:
     - cd tools/digger
     - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
     - unzip -o digger.zip
+    - ./digger --version
     - cd ../..
 
     - .ci/apt-get.sh nasm gcc
@@ -25,6 +26,7 @@ build arm minimal with digger:
     - cd tools/digger
     - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
     - unzip -o digger.zip
+    - ./digger --version
     - cd ../..
 
     - .ci/apt-get.sh libnewlib-arm-none-eabi gcc-arm-none-eabi
