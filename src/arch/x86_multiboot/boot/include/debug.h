@@ -114,17 +114,9 @@ void counter_update(uint32_t begin);
 void display_time();
 
 void kprintf(char *fmt, ...);
-void panic(int_ctx_t *is);
 void dumpRegs(int_ctx_t *is, uint32_t outputLevel);
 
 #define BENCH_BEGIN counter_update(1)
 #define BENCH_END {counter_update(0); DEBUG(TRACE, "Benchmark lasted "); display_time();}
-
-#define ASSERT(u) \
-	if (!(u)){ \
-		kprintf("[%s:%d] Assert failed: " #u "\n", __FILE__, __LINE__); \
-		panic(0); \
-	}
-
 
 #endif

@@ -59,21 +59,6 @@ void krn_puts(char *c)
 }
 
 /**
- * \fn void panic (int_ctx_t *is)
- * \brief Just a loop acting like a kernel panic
- */
-void panic (int_ctx_t *is)
-{
-	DEBUG(CRITICAL, "Pip kernel panic - something happened\n");
-	if(is) {
-		dumpRegs(is, CRITICAL);
-	}
-	DEBUG(CRITICAL, "\tSystem halted. ~\n");
-	__asm volatile("cli; hlt;");
-	for(;;);
-}
-
-/**
  * \fn dumpRegs(int_ctx_t* is, uint32_t outputLevel)
  * \brief Dumps the registers of a saved interrupt context onto the serial output.
  * \param is Interrupted state
