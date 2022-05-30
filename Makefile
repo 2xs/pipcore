@@ -118,9 +118,6 @@ GENERATED_PARTITION_OBJ_DIR=$(TARGET_PARTITION_DIR)
 ############################ C files ################################
 
 C_GENERATED_SRC=$(C_GENERATED_SRC_DIR)/Services.c $(C_GENERATED_SRC_DIR)/Internal.c
-ifeq ($(GALLINA_C),dx)
-C_GENERATED_SRC += $(C_GENERATED_SRC_DIR)/MonadicOps.c
-endif
 C_ARCH_INDEP_SRC=$(wildcard $(C_ARCH_INDEP_DIR)/*.c)
 C_TARGET_BOOT_SRC=$(wildcard $(C_TARGET_BOOT_DIR)/*.c)
 C_TARGET_MAL_SRC=$(wildcard $(C_TARGET_MAL_DIR)/*.c)

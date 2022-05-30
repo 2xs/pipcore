@@ -34,21 +34,20 @@
 #ifndef __OPS__
 #define __OPS__
 
-#define idxEqM(x,y) ((x) == (y))
-#define idxGeM(x,y) ((x) >= (y))
-#define idxLeM(x,y) ((x) <= (y))
-#define idxLtM(x,y) ((x) <  (y))
+#define idxEq(x,y) ((x) == (y))
+#define idxGe(x,y) ((x) >= (y))
+#define idxLe(x,y) ((x) <= (y))
+#define idxLt(x,y) ((x) <  (y))
 
 extern index idxPredM(index x);
 extern index idxSuccM(index x);
 
 #define vaddrEq(x,y) ((x) == (y))
-#define vaddrEqM(x,y) ((x) == (y))
 
-#define pageEqM(x,y) ((x) == (y))
+#define pageEq(x,y) ((x) == (y))
 
-#define levelEqM(x,y) ((x) == (y))
-#define levelGtM(x,y) ((x) > (y))
+#define levelEq(x,y) ((x) == (y))
+#define levelGt(x,y) ((x) > (y))
 extern level levelPredM(level x);
 extern level levelSuccM(level x);
 

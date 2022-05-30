@@ -43,11 +43,11 @@ Definition idxGt (x y : index) : bool := y <? x.
 Definition idxLe (x y : index) : bool := x <=? y.
 Definition idxLt (x y : index) : bool := x <? y.
 
-Definition idxEqM (x y : index) := ret (idxEq x y).
-Definition idxGeM (x y : index) := ret (idxGe x y).
-Definition idxGtM (x y : index) := ret (idxGt x y).
-Definition idxLeM (x y : index) := ret (idxLe x y).
-Definition idxLtM (x y : index) := ret (idxLt x y).
+Notation idxEqM x y := (ret (idxEq x y)) (only parsing).
+Notation idxGeM x y := (ret (idxGe x y)) (only parsing).
+Notation idxGtM x y := (ret (idxGt x y)) (only parsing).
+Notation idxLeM x y := (ret (idxLe x y)) (only parsing).
+Notation idxLtM x y := (ret (idxLt x y)) (only parsing).
 
 Program Definition idxPredM (n : index) : LLI index :=
   let (i,P) := n in
@@ -64,16 +64,16 @@ Program Definition idxSuccM (n : index) : LLI index :=
   else undefined 28.
 
 Definition vaddrEq (x y : vaddr) : bool := eqList x y idxEq.
-Definition vaddrEqM (x y : vaddr) := ret (vaddrEq x y).
+Notation vaddrEqM x y := (ret (vaddrEq x y)) (only parsing).
 
 Definition pageEq (x y : page) : bool := x =? y.
-Definition pageEqM (x y : page) := ret (pageEq x y).
+Notation pageEqM x y := (ret (pageEq x y)) (only parsing).
 
 Definition levelEq (x y : level) : bool := x =? y.
 Definition levelGt (x y : level) : bool := y <? x.
 
-Definition levelEqM (x y : level) := ret (levelEq x y).
-Definition levelGtM (x y : level) := ret (levelGt x y).
+Notation levelEqM x y := (ret (levelEq x y)) (only parsing).
+Notation levelGtM x y := (ret (levelGt x y)) (only parsing).
 
 Program Definition levelPredM (n : level) : LLI level :=
   if gt_dec n 0
@@ -93,8 +93,8 @@ Program Definition levelSuccM (n : level) : LLI level :=
 Definition countEq (x y : count) : bool := x =? y.
 Definition countGe (x y : count) : bool := y <=? x.
 
-Definition countEqM (x y : count) := ret (countEq x y).
-Definition countGeM (x y : count) := ret (countGe x y).
+Notation countEqM x y := (ret (countEq x y)) (only parsing).
+Notation countGeM x y := (ret (countGe x y)) (only parsing).
 
 Program Definition countSuccM (n : count) : LLI count :=
   let isucc := n+1 in

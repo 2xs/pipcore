@@ -144,31 +144,6 @@ Module PipPrimitives.
 End PipPrimitives.
 
 GenerateIntermediateRepresentation
-  MonadicOpsIRSyms
-  Hardware.LLI Hardware.bind Hardware.ret
-
-  Bool.Exports
-  Nat.Exports
-
-  DataTypes.Exports
-  PipPrimitives
-
-  __
-
-  Ops.idxEqM
-  Ops.idxGeM
-  Ops.idxGtM
-  Ops.idxLeM
-  Ops.idxLtM
-  Ops.vaddrEqM
-  Ops.pageEqM
-  Ops.levelEqM
-  Ops.levelGtM
-  .
-
-Definition dxModuleMonadicOps := makeDXModuleWithDefaults MonadicOpsIRSyms.
-
-GenerateIntermediateRepresentation
   InternalHIRSyms
   Hardware.LLI Hardware.bind Hardware.ret
 
@@ -194,21 +169,10 @@ GenerateIntermediateRepresentation
 
   Constants
 
-  Ops.idxEqM
-  Ops.idxGeM
-  Ops.idxGtM
-  Ops.idxLeM
-  Ops.idxLtM
   Ops.idxPredM
   Ops.idxSuccM
-  Ops.vaddrEqM
-  Ops.pageEqM
-  Ops.levelEqM
-  Ops.levelGtM
   Ops.levelPredM
   Ops.levelSuccM
-  Ops.countEqM
-  Ops.countGeM
   Ops.countSuccM
   Ops.countFromLevelM
 
@@ -241,21 +205,10 @@ GenerateIntermediateRepresentation
 
   Constants
 
-  Ops.idxEqM
-  Ops.idxGeM
-  Ops.idxGtM
-  Ops.idxLeM
-  Ops.idxLtM
   Ops.idxPredM
   Ops.idxSuccM
-  Ops.vaddrEqM
-  Ops.pageEqM
-  Ops.levelEqM
-  Ops.levelGtM
   Ops.levelPredM
   Ops.levelSuccM
-  Ops.countEqM
-  Ops.countGeM
   Ops.countSuccM
   Ops.countFromLevelM
 
@@ -293,21 +246,10 @@ GenerateIntermediateRepresentation
 
   Constants
 
-  Ops.idxEqM
-  Ops.idxGeM
-  Ops.idxGtM
-  Ops.idxLeM
-  Ops.idxLtM
   Ops.idxPredM
   Ops.idxSuccM
-  Ops.vaddrEqM
-  Ops.pageEqM
-  Ops.levelEqM
-  Ops.levelGtM
   Ops.levelPredM
   Ops.levelSuccM
-  Ops.countEqM
-  Ops.countGeM
   Ops.countSuccM
   Ops.countFromLevelM
 

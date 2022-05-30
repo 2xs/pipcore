@@ -40,8 +40,7 @@ From dx Require Import DumpAsC.
 From Pip.dx Require Import Defs.
 
 Definition main := ltac:(let ms := eval compute in
-  [ ("MonadicOps.c", dxModuleMonadicOps)
-  ; ("Internal.h", dxModuleInternalH)
+  [ ("Internal.h", dxModuleInternalH)
   ; ("Internal.c", dxModuleInternal)
   ; ("Services.h", dxModuleServicesH)
   ; ("Services.c", dxModuleServices) ]
