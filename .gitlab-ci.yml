@@ -131,3 +131,9 @@ check proofs:
     - coqc --version
     - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
     - make proofs
+
+test x86 nanny_busy_beaver:
+  stage: test
+  trigger:
+    project: 2xs/pip/nanny_busy_beaver
+    strategy: depend
