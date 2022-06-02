@@ -1269,6 +1269,7 @@ cbn.
 trivial.
 Qed.
 
+(* 
 Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
 (P : state -> Prop) :
 {{fun s => P s}}
@@ -1279,7 +1280,7 @@ eapply WP.weaken.
 apply WP.writeContext.
 cbn.
 trivial.
-Qed.
+Qed. *)
 
 Lemma setInterruptMask (mask : interruptMask)
 (P : state -> Prop) :

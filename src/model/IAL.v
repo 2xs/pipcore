@@ -31,7 +31,8 @@
 (*  knowledge of the CeCILL license and that you accept its terms.             *)
 (*******************************************************************************)
 
-Require Import Pip.Model.ADT Pip.Model.Lib Pip.Model.Hardware Pip.Model.Constants Pip.Model.Ops Pip.Model.MAL.
+Require Import Pip.Model.ADT Pip.Model.Constants Pip.Model.Hardware
+               Pip.Model.Lib Pip.Model.MAL Pip.Model.MMU Pip.Model.Ops.
 Require Import Bool Arith List.
 Import List.ListNotations.
 
@@ -94,8 +95,6 @@ Definition isInterruptMasked (intMask : interruptMask) (interrupt : vint) : LLI 
 Definition vaddrToContextAddr (va : vaddr) : LLI contextAddr :=
   ret 0.
 
-Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
-          : LLI unit := ret tt.
 
 Definition updateMMURoot(pageDir : page)
           : LLI unit := ret tt.
@@ -116,3 +115,22 @@ rewrite (ADT.Hva first ).
 rewrite (ADT.Hva second).
 reflexivity.
 Qed.
+
+Fixpoint writeContextAux (contextSaveAddr : vaddr) (currIdx : index)
+                         (maxIdx : index) (bound : nat) : LLI unit :=
+  match bound with
+  | 0 => ret tt
+  | S dec_bound =>
+    storeVirtual contextSaveAddr currIdx vaddrDefault ;;
+    if idxEq currIdx maxIdx then
+      writeContextAux (getNextVaddr contextSaveAddr) idx0 maxIdx dec_bound
+    else
+      perform nextIdx := idxSuccM currIdx in
+      writeContextAux (getNextVaddr contextSaveAddr) nextIdx maxIdx dec_bound
+  end.
+
+Definition writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr)
+                        (flagsOnWake : interruptMask) : LLI unit :=
+  perform maxIdx := getMaxIndex in
+  perform idxContextInPage := ret (nth ((length contextSaveAddr) - 1) contextSaveAddr idxDefault) in
+  writeContextAux contextSaveAddr idxContextInPage maxIdx contextSizeMinusOne.

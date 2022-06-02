@@ -243,7 +243,7 @@ apply NPeano.Nat.lt_div2; trivial.
 lia.
 Qed.
 
-
+(* TODO : this +2 is hardcoded and depends on nbLevel, this should get fixed *)
 (** The 'getIndexOfAddr' function returns the index of va that corresponds to l *)
 Definition getIndexOfAddr (va : vaddr) (l : level) : LLI index:=
   ret ( nth ((length va) - (l + 2)) va idxDefault ).

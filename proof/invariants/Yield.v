@@ -42,6 +42,37 @@ From Pip.Proof Require Import
 CheckChild Consistency DependentTypeLemmas GetTableAddr InternalLemmas Invariants Isolation
 updateCurPartition WeakestPreconditions.
 
+Lemma WP_writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(P : unit -> state -> Prop) :
+{{fun s => P tt s}}
+IAL.writeContext callingContextAddr contextSaveAddr flagsOnWake
+{{P}}.
+Proof.
+unfold IAL.writeContext.
+
+eapply WP.bindRev.
+apply Invariants.getMaxIndex.
+intro maxIdx.
+cbn.
+
+
+
+eapply WP.weaken.
+apply ret
+Qed.
+
+Lemma Invariant_writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(P : state -> Prop) :
+{{fun s => P s}}
+IAL.writeContext callingContextAddr contextSaveAddr flagsOnWake
+{{fun _ s => P s}}.
+Proof.
+eapply WP.weaken.
+apply WP.writeContext.
+cbn.
+trivial.
+Qed. *)
+
 Lemma switchContextCont (targetPartDesc : page)
                         (targetPageDir  : page)
                         (flagsOnYield   : interruptMask)

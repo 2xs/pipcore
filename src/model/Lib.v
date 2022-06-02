@@ -65,13 +65,14 @@ Definition add {A B C: Type} (k : A) (i : B) (v : C) (assoc : list ((A * B)*C) )
 Program Fixpoint getNextVaddrAux (indexList : list index) : bool * (list index) :=
 match indexList with
 | nil   =>  (true, nil)
-| h::t  =>  if (fst (getNextVaddrAux t)) then
+| h::t  =>  let (carry, new_tail) := getNextVaddrAux t in
+            if carry then
               if (Nat.eq_dec (h+1) tableSize) then
-                (true, (Build_index 0 _)::(snd (getNextVaddrAux t)))
+                (true, (Build_index 0 _)::new_tail)
               else
-                (false, (Build_index (h+1) _::(snd (getNextVaddrAux t))))
+                (false, (Build_index (h+1) _)::new_tail)
             else
-                (false, (Build_index h _::(snd (getNextVaddrAux t))))
+                (false, (Build_index h _)::new_tail)
 end.
 
 Next Obligation.

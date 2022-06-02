@@ -876,15 +876,15 @@ eapply ret.
 trivial.
 Qed.
 
-Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
+(* Lemma writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)
 (P : unit -> state -> Prop) :
 {{fun s => P tt s}}
 writeContext callingContextAddr contextSaveAddr flagsOnWake
 {{P}}.
 Proof.
-apply ret.
+apply ret
 Qed.
-
+ *)
 Lemma setInterruptMask (mask : interruptMask)
 (P : unit -> state -> Prop) :
 {{fun s => P tt s}}
