@@ -54,11 +54,13 @@ eapply WP.bindRev.
 apply Invariants.getMaxIndex.
 intro maxIdx.
 cbn.
+eapply bindRev.
+apply Invariants.ret.
+intros.
+cbn.
 
+unfold IAL.writeContextAux.
 
-
-eapply WP.weaken.
-apply ret
 Qed.
 
 Lemma Invariant_writeContext (callingContextAddr : contextAddr) (contextSaveAddr : vaddr) (flagsOnWake : interruptMask)

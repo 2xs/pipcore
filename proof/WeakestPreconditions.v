@@ -935,3 +935,28 @@ Lemma getVaddrVIDT (P : vaddr -> state -> Prop) :
 Proof.
 apply wpIsPrecondition.
 Qed.
+
+Lemma storeVirtual (va : vaddr) (idx : index) (vaToStore : vaddr) (P : unit -> state -> Prop) :
+  {{ fun s => P tt {{
+    currentPartition := currentPartition s;
+    memory := add
+  perform currentPartition := getCurPartition in
+  perform currentPD := internalGetPageDir currentPartition in
+  perform nbL := getNbLevel in 
+  perform optionphyPage := translate currentPD va nbL in
+  match optionphyPage with 
+  | None => ret tt
+  | Some phyPage => writeVirtual phyPage idx vaToStore
+  end.
+Lemma writeVirtual  table idx (addr : vaddr)  (P : unit -> state -> Prop) :
+{{fun  s => P tt {|
+  currentPartition := currentPartition s;
+  memory := add table idx (VA addr) (memory s) pageEq idxEq |} }} writeVirtual table idx addr  {{P}}.
+Proof.
+unfold writeVirtual.
+eapply weaken.
+eapply modify .
+intros. simpl.
+assumption.  
+Qed.
+
