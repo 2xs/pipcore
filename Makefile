@@ -478,7 +478,7 @@ $(PARTITION_INTERMEDIATE_BIN): $(PARTITION_BIN)
 	ln $< $@
 
 $(PARTITION_BIN):
-	make -C $(TARGET_PARTITION_DIR)/$(PARTITION)
+	make -C $(dir $@) $(notdir $@)
 
 # Do not trigger compilation if $(PARTITION_INTERMEDIATE_BIN) is missing
 # and delete $(PARTITION_INTERMEDIATE_BIN) after compilation if it was created
