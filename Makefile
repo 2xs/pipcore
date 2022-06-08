@@ -457,6 +457,9 @@ $(PARTITION).iso: $(INTERMEDIATE_ELF)
 qemu-elf: $(PARTITION).elf
 	$(QEMU) $(QEMUARGS) -kernel $<
 
+qemu-gdb: $(PARTITION).elf
+	$(QEMU) $(QEMUARGS) -s -S -kernel $<
+
 qemu-iso: $(PARTITION).iso
 	$(QEMU) $(QEMUARGS) -boot d -cdrom $<
 

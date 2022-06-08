@@ -203,7 +203,6 @@ GDBARGS := -iex "target remote localhost:1234"
 GDBARGS += -iex "add-symbol-file src/arch/$target/partitions/\$(PARTITION)/\$(PARTITION).elf"
 
 QEMUARGS := $arch_qemuflags
-#QEMUARGS += -S -s
 EOF
 
 cat <<EOF > src/arch/"$target"/partitions/toolchain.mk
