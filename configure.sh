@@ -200,7 +200,7 @@ DEBUG := ENABLED
 ################## Execution options ##################
 
 GDBARGS := -iex "target remote localhost:1234"
-GDBARGS += -iex "symbol-file \$(BUILD_DIR)/\$(TARGET)/\$(KERNEL_ELF)"
+GDBARGS += -iex "add-symbol-file src/arch/$target/partitions/\$(PARTITION)/\$(PARTITION).elf"
 
 QEMUARGS := $arch_qemuflags
 #QEMUARGS += -S -s
