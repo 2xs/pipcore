@@ -12,7 +12,7 @@ build x86 minimal with digger:
 
     - .ci/apt-get.sh nasm gcc
 
-    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --no-command-check
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --c-compiler=gcc --linker=ld --no-command-check
     - make minimal.elf
   artifacts:
     paths:
@@ -54,7 +54,7 @@ build x86 minimal with dx:
 
     - .ci/apt-get.sh nasm gcc
 
-    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --no-command-check
+    - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --c-compiler=gcc --linker=ld --no-command-check
     - make minimal.elf
   artifacts:
     paths:
