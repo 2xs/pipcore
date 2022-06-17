@@ -1,11 +1,15 @@
 image: "coqorg/coq:latest"
 
+variables:
+  DIGGER_BRANCH: master
+  DX_BRANCH: main
+
 build x86 minimal with digger:
   stage: build
   script:
     # get digger from latest CI artifacts
     - cd tools/digger
-    - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
+    - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
     - unzip -o digger.zip
     - ./digger --version
     - cd ../..
@@ -24,7 +28,7 @@ build arm minimal with digger:
   script:
     # get digger from latest CI artifacts
     - cd tools/digger
-    - curl -L 'https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/master/download?job=build' -o digger.zip
+    - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
     - unzip -o digger.zip
     - ./digger --version
     - cd ../..
@@ -47,7 +51,7 @@ build x86 minimal with dx:
 
     # get dx from latest CI artifacts
     - cd .ci
-    - curl -L 'https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/main/download?job=build%20dx%20and%20deps' -o dx.zip
+    - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
     - unzip -o dx.zip
     - rsync -rpt dx-and-deps/* $LIB
     - cd ..
@@ -70,7 +74,7 @@ build arm minimal with dx:
 
     # get dx from latest CI artifacts
     - cd .ci
-    - curl -L 'https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/main/download?job=build%20dx%20and%20deps' -o dx.zip
+    - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
     - unzip -o dx.zip
     - rsync -rpt dx-and-deps/* $LIB
     - cd ..
