@@ -10,7 +10,7 @@ build x86 minimal with digger:
     # get digger from latest CI artifacts
     - cd tools/digger
     - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
-    - unzip -o digger.zip
+    - unzip -oq digger.zip
     - ./digger --version
     - cd ../..
 
@@ -29,7 +29,7 @@ build arm minimal with digger:
     # get digger from latest CI artifacts
     - cd tools/digger
     - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
-    - unzip -o digger.zip
+    - unzip -oq digger.zip
     - ./digger --version
     - cd ../..
 
@@ -52,7 +52,7 @@ build x86 minimal with dx:
     # get dx from latest CI artifacts
     - cd .ci
     - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
-    - unzip -o dx.zip
+    - unzip -oq dx.zip
     - rsync -rpt dx-and-deps/* $LIB
     - cd ..
 
@@ -75,7 +75,7 @@ build arm minimal with dx:
     # get dx from latest CI artifacts
     - cd .ci
     - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
-    - unzip -o dx.zip
+    - unzip -oq dx.zip
     - rsync -rpt dx-and-deps/* $LIB
     - cd ..
 
