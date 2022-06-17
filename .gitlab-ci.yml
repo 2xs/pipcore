@@ -16,6 +16,8 @@ build x86 minimal with digger:
 
     - .ci/apt-get.sh nasm gcc
 
+    - coqc --version
+
     - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --c-compiler=gcc --linker=ld --no-command-check
     - make minimal.elf
   artifacts:
@@ -34,6 +36,8 @@ build arm minimal with digger:
     - cd ../..
 
     - .ci/apt-get.sh libnewlib-arm-none-eabi gcc-arm-none-eabi
+
+    - coqc --version
 
     - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --no-command-check
     - make minimal.elf
@@ -58,6 +62,8 @@ build x86 minimal with dx:
 
     - .ci/apt-get.sh nasm gcc
 
+    - coqc --version
+
     - ./configure.sh --architecture=x86 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --c-compiler=gcc --linker=ld --no-command-check
     - make minimal.elf
   artifacts:
@@ -80,6 +86,8 @@ build arm minimal with dx:
     - cd ..
 
     - .ci/apt-get.sh libnewlib-arm-none-eabi gcc-arm-none-eabi
+
+    - coqc --version
 
     - ./configure.sh --architecture=armv7 --partition-name=minimal --libpip=/tmp --dx=$LIB/dx --no-command-check
     - make minimal.elf
