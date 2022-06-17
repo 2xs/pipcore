@@ -55,6 +55,7 @@ build x86 minimal with dx:
 
     # get dx from latest CI artifacts
     - cd .ci
+    - echo "Download dx artifact from https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps"
     - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
     - unzip -oq dx.zip
     - rsync -rpt dx-and-deps/* $LIB
@@ -80,6 +81,7 @@ build arm minimal with dx:
 
     # get dx from latest CI artifacts
     - cd .ci
+    - echo "Download dx artifact from https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps"
     - curl -L "https://gitlab.univ-lille.fr/2xs/dx/-/jobs/artifacts/$DX_BRANCH/download?job=build%20dx%20and%20deps" -o dx.zip
     - unzip -oq dx.zip
     - rsync -rpt dx-and-deps/* $LIB
