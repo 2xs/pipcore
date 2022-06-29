@@ -1,2 +1,2 @@
-deb http://debian.polytech-lille.fr/debian buster main
-deb http://debian.polytech-lille.fr/debian buster-updates main
+deb http://debian.polytech-lille.fr/debian bullseye main
+deb http://debian.polytech-lille.fr/debian bullseye-updates main

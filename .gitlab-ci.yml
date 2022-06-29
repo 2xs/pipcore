@@ -7,6 +7,8 @@ variables:
 build x86 minimal with digger:
   stage: build
   script:
+    - opam config list
+    - opam list
     # get digger from latest CI artifacts
     - cd tools/digger
     - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
@@ -28,6 +30,8 @@ build x86 minimal with digger:
 build arm minimal with digger:
   stage: build
   script:
+    - opam config list
+    - opam list
     # get digger from latest CI artifacts
     - cd tools/digger
     - curl -L "https://gitlab.univ-lille.fr/2xs/digger/-/jobs/artifacts/$DIGGER_BRANCH/download?job=build" -o digger.zip
@@ -49,8 +53,8 @@ build arm minimal with digger:
 build x86 minimal with dx:
   stage: build
   script:
-    # select the switch in which dx and its dependencies were compiled
-    - eval $(opam env --switch=4.07.1+flambda --set-switch)
+    - opam config list
+    - opam list
     - LIB=$(opam var lib)
 
     # get dx from latest CI artifacts
@@ -75,8 +79,8 @@ build x86 minimal with dx:
 build arm minimal with dx:
   stage: build
   script:
-    # select the switch in which dx and its dependencies were compiled
-    - eval $(opam env --switch=4.07.1+flambda --set-switch)
+    - opam config list
+    - opam list
     - LIB=$(opam var lib)
 
     # get dx from latest CI artifacts
