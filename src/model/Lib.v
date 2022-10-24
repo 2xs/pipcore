@@ -136,9 +136,9 @@ cbn.
 intros firstIndexList secondIndexList HlenVAddr someIndexList someIndexList2.
 case_eq someIndexList.
 - case_eq someIndexList2.
-  * intros.
-    destruct H1.
-    contradict H2.
+  * intros _ _ H _.
+    destruct H as (_, Hcontradict).
+    contradict Hcontradict.
     reflexivity.
   * intros.
     injection Heq_anonymous.
@@ -155,7 +155,7 @@ case_eq someIndexList.
     contradict HlenVAddr.
     unfold length.
     apply Nat.neq_succ_0.
-  * intros.
+  * intros i l H i0 l0 H0 H1 H2.
     destruct H1.
     apply (H1 i0 l0 i l).
     trivial.
@@ -164,13 +164,13 @@ Qed.
 Next Obligation.
 cbn.
 intros.
-split; intros; unfold not; intro; inversion H1.
+split; intros; unfold not; intro; inversion H.
 Qed.
 
 Next Obligation.
 cbn.
 intros.
-split; intros; unfold not; intro; inversion H1.
+split; intros; unfold not; intro; inversion H.
 Qed.
 
 Obligation Tactic := program_simpl.
