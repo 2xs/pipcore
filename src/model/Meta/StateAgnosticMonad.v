@@ -1,7 +1,7 @@
 Require Import String.
-From Pip.Model Require Import StateParameter.
+From Pip.Model.Meta Require Import StateModel.
 
-Module StateParameterizedMonadType (Export StateType : StateParameter).
+Module StateAgnosticMonad (Export State : StateModel).
 
   Inductive result (A : Type) : Type :=
   | val : A -> result A
@@ -10,15 +10,15 @@ Module StateParameterizedMonadType (Export StateType : StateParameter).
   Arguments val   [ A ].
   Arguments undef [ A ].
 
-  Definition SPM (A : Type) : Type :=
+  Definition SAM (A : Type) : Type :=
     state -> result (A * state).
 
-  Definition ret {A : Type} (a : A) : SPM A :=
+  Definition ret {A : Type} (a : A) : SAM A :=
     fun s => val (a , s).
 
-  Definition bind {A B : Type} (m : SPM A)
-                               (f : A -> SPM B)
-                               : SPM B :=
+  Definition bind {A B : Type} (m : SAM A)
+                               (f : A -> SAM B)
+                               : SAM B :=
     fun s => match m s with
     | val (a, s') => f a s'
     | undef msg s' => undef msg s'
@@ -39,21 +39,21 @@ Module StateParameterizedMonadType (Export StateType : StateParameter).
 
    Open Scope state_scope.
 
-  Definition put (s : state) : SPM unit :=
+  Definition put (s : state) : SAM unit :=
     fun _ => val (tt, s).
 
-  Definition get : SPM state :=
+  Definition get : SAM state :=
     fun s => val (s, s).
 
-  Definition modify (f : state -> state) : SPM unit :=
+  Definition modify (f : state -> state) : SAM unit :=
     perform s := get in
     put (f s).
 
-  Definition undefined {A : Type} (msg : string) : SPM A :=
+  Definition undefined {A : Type} (msg : string) : SAM A :=
     fun s => undef msg s.
 
   Definition hoareTriple {A : Type} (P : state -> Prop)
-                                    (m : SPM A)
+                                    (m : SAM A)
                                     (Q : A -> state -> Prop)
                                     : Prop :=
     forall s, P s -> match m s with
@@ -67,4 +67,4 @@ Module StateParameterizedMonadType (Export StateType : StateParameter).
       format "'[' '[' {{  P  }}  ']' '/  ' '[' m ']' '['  {{  Q  }} ']' ']'"
     ) : state_scope.
 
-End StateParameterizedMonadType.
+End StateAgnosticMonad.

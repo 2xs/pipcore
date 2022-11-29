@@ -1,19 +1,16 @@
-From Pip.Model Require Import CoreTypes.
-From Pip.Model Require Import StateParameter.
-From Pip.Model Require Import StateParameterizedMonadType.
-From Pip.Model Require Import MonadInterfaceParameters.
-
+From Pip.Model.Meta Require Import TypesModel StateModel InterfaceModel.
 Require Import Bool.
 
-Module MonadDependentCode (State : StateParameter)
-                          (Export MonadInterface : MonadInterfaceParameters State).
+Module ModelAgnosticCode (Export Types : TypesModel)
+                         (Export State : StateModel)
+                         (Export Interface : InterfaceModel Types State).
 
 
 Definition switchContextCont (targetPartDesc : page)
                              (targetPageDir  : page)
                              (flagsOnYield   : interruptMask)
                              (targetContext  : contextAddr)
-                             : SPM yield_checks :=
+                             : SAM yield_checks :=
 
   setInterruptMask flagsOnYield ;;
   updateMMURoot targetPageDir ;;
@@ -34,4 +31,4 @@ Definition switchContextCont (targetPartDesc : page)
   (* Actually never reached *)
   ret SUCCESS.
 
-End MonadDependentCode.
+End ModelAgnosticCode.

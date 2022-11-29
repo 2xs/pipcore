@@ -1,14 +1,11 @@
-From Pip.Model Require Import CoreTypes.
-From Pip.Model Require Import StateParameter.
-From Pip.Model Require Import StateParameterizedMonadType.
-From Pip.Model Require Import MonadInterfaceParameters.
-From Pip.Model Require Import AMServices.
+From Pip.Model.Meta Require Import TypesModel StateModel InterfaceModel.
+From Pip.Core Require Import ModelAgnosticCode.
 
-From Pip.Model Require Import AbstractMonad.
+From Pip.Model.Hollow Require Import HollowModel.
 
 Require Extraction.
 Extraction Language Haskell.
 
 (** EXTRACTION *)
-Module Code := MonadDependentCode AbstractState AbstractMonad.
+Module Code := ModelAgnosticCode HollowTypes HollowState HollowInterface.
 Separate Extraction Code.
