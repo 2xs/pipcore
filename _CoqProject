@@ -1,2 +1,3 @@
 -Q src/model Pip.Model
 -Q src/core  Pip.Core
+-Q proof/    Pip.Proof

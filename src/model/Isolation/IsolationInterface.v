@@ -1,48 +1,11 @@
 From Pip.Model.Meta Require Import TypesModel StateModel StateAgnosticMonad InterfaceModel.
-From Pip.Model.Isolation Require Import IsolationTypes.
+From Pip.Model.Isolation Require Import IsolationTypes IsolationState.
 
 Require Import Coq.Strings.String Lia NPeano.
 Require Import Arith Bool List.
 Import List.ListNotations.
 
-Module IsolationState <: StateModel.
-
-Export IsolationTypes.
-
-  Record Pentry : Type:=
-  {
-    read    : bool;
-    write   : bool;
-    exec    : bool;
-    present : bool;
-    user    : bool;
-    pa      : page
-  }.
-
-  Record Ventry : Type:=
-  {
-    pd : bool;
-    va : vaddr
-  }.
-
-  Inductive value : Type := 
-  |PE : Pentry -> value
-  |VE : Ventry -> value
-  |PP : page -> value
-  |VA : vaddr -> value
-  |I  : index -> value
-  |U  : userValue -> value.
-
-  Record IsolationState : Type := {
-    currentPartition : page;
-    memory : list (paddr * value)
-  }.
-
-  Definition state := IsolationState.
-
-End IsolationState.
-
-Module IsolationStateMonad <: InterfaceModel IsolationTypes IsolationState.
+Module IsolationInterface <: InterfaceModel IsolationTypes IsolationState.
 
   Module SAMM := StateAgnosticMonad IsolationState.
   Export SAMM.
@@ -440,4 +403,4 @@ Module IsolationStateMonad <: InterfaceModel IsolationTypes IsolationState.
   Definition loadContext (contextToLoad : contextAddr) (enforce_interrupt : bool) : SAM unit :=
   ret tt.
 
-End IsolationStateMonad.
+End IsolationInterface.
