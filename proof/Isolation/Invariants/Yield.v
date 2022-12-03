@@ -1,19 +1,14 @@
-(* From Pip.Model.Meta Require Import TypesModel StateModel StateAgnosticMonad InterfaceModel. *)
 From Pip.Model.Isolation Require Import IsolationTypes IsolationState IsolationInterface.
 From Pip.Core Require Import ModelAgnosticCode.
 
-(* From Pip.Proof.Isolation Require Import IsolationProperties.
- *)
+From Pip.Proof.Isolation Require Import ModelExclusiveFunctions IsolationProperties ConsistencyProperties.
+
 Import IsolationTypes.
 Import IsolationInterface.SAMM.
 
-(* Require Import Coq.Classes.RelationClasses.
-Require Import Lia.
+Module IsolationSpecificCode := ModelAgnosticCode IsolationTypes IsolationState IsolationInterface.
+Import IsolationSpecificCode.
 
-From Pip.Proof Require Import
-CheckChild Consistency DependentTypeLemmas GetTableAddr InternalLemmas Invariants Isolation
-updateCurPartition WeakestPreconditions.
- *)
 Lemma switchContextCont (targetPartDesc : page)
                         (targetPageDir  : page)
                         (flagsOnYield   : interruptMask)
@@ -26,7 +21,7 @@ Lemma switchContextCont (targetPartDesc : page)
   kernelDataIsolation s /\
   verticalSharing s /\
   consistency s /\
-  List.In targetPartDesc (StateLib.getPartitions pageRootPartition s) /\
+  List.In targetPartDesc (getPartitions pageRootPartition s) /\
   targetPartDesc <> pageDefault
 }}
 
@@ -39,3 +34,4 @@ switchContextCont targetPartDesc targetPageDir flagsOnYield targetContext
   verticalSharing s /\
   consistency s
 }}.
+Admitted.
