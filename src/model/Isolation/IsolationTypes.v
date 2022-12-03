@@ -117,4 +117,8 @@ Inductive yield_checks : Type :=
 | FAIL_MASKED_INTERRUPT
 | SUCCESS.
 
+Definition idxPageDir    := CIndex 2.  (* page directory *)
+Definition levelMin     := CLevel 0.
+Definition pageDefault       := CPage 0.
+
 End IsolationTypes.
