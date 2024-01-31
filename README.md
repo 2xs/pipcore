@@ -13,6 +13,7 @@ The Pip Development Team:
 *   Michaël Hauspie
 *   Samuel Hym
 *   David Nowak
+*   Claire Soyez-Martin
 *   Florian Vanhems
 
 Past members of the Pip Development Team:
