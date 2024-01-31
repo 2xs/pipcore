@@ -1,5 +1,5 @@
 (*******************************************************************************)
-(*  © Université de Lille, The Pip Development Team (2015-2021)                *)
+(*  © Université de Lille, The Pip Development Team (2015-2024)                *)
 (*                                                                             *)
 (*  This software is x computer program whose purpose is to run x minimal,     *)
 (*  hypervisor relying on proven properties such as memory isolation.          *)

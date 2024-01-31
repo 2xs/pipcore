@@ -1,6 +1,6 @@
 #!/bin/sh
 ###############################################################################
-#  © Université de Lille, The Pip Development Team (2015-2021)                #
+#  © Université de Lille, The Pip Development Team (2015-2024)                #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
@@ -207,7 +207,7 @@ EOF
 
 cat <<EOF > src/arch/"$target"/partitions/toolchain.mk
 ###############################################################################
-#  © Université de Lille, The Pip Development Team (2015-2021)                #
+#  © Université de Lille, The Pip Development Team (2015-2024)                #
 #                                                                             #
 #  This software is a computer program whose purpose is to run a minimal,     #
 #  hypervisor relying on proven properties such as memory isolation.          #
