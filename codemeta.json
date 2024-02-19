@@ -1,0 +1,285 @@
+{
+    "@context": [
+        "https:\/\/doi.org\/doi:10.5063\/schema\/codemeta-2.0",
+        "http:\/\/schema.org"
+    ],
+    "@type": "SoftwareSourceCode",
+    "name": "pipcore",
+    "description": "Pip is a protokernel: it allows for kernels, ranging from hypervisors to monolithic kernels, to be developped as user mode applications. Pip only provides system calls for managing isolated partitions of the memory and basic dealing of control flow, thus reducing the trusted computing base to its bare minimum.\r\n\r\nThe logic of Pip is implemented in Gallina - the language of the Coq proof assistant - and it is in the process of being equipped with a formal proof that it ensures memory isolation. For efficiency, it is automatically translated into freestanding C code.\r\n\r\nThe architecture-dependent part of Pip is implemented in C and assembly language. It consists of a thin layer giving access to the hardware.",
+    "dateCreated": "2016-10-03",
+    "datePublished": "2024-01-31",
+    "license": [
+        "CeCILL Free Software License Agreement v2.1"
+    ],
+    "url": "https:\/\/hal.science\/hal-04429239",
+    "identifier": [],
+    "applicationCategory": [
+        "info"
+    ],
+    "keywords": [
+        "Computer Science",
+        "Provable Security",
+        "Security",
+        "Formal Methods",
+        "Operating System"
+    ],
+    "funder": [
+        "Celtic-Plus\r\nMinisterio de Industria, Energ\u00eda y Turismo\r\nDGCIS"
+    ],
+    "institution": [
+        "Universit\u00e9 de Lille",
+        "CNRS"
+    ],
+    "codeRepository": "https:\/\/github.com\/2xs\/pipcore",
+    "relatedLink": [
+        "https:\/\/pip.univ-lille.fr\/",
+        "https:\/\/www.celticnext.eu\/project-odsi\/",
+        "https:\/\/github.com\/2xs\/pip_edf_scheduler",
+        "https:\/\/github.com\/2xs\/pipcore-mpu",
+        "https:\/\/github.com\/2xs\/dx",
+        "https:\/\/github.com\/2xs\/digger"
+    ],
+    "programmingLanguage": [
+        "Coq",
+        "C",
+        "Makefile",
+        "Shell"
+    ],
+    "runtimePlatform": [
+        "CoqIDE",
+        "Coq"
+    ],
+    "version": "1",
+    "softwareVersion": "2.0.0",
+    "dateModified": "2024-01-31",
+    "developmentStatus": "Actif",
+    "referencePublication": {
+        "hal": "hal-03671598,hal-02347481,tel-04398735,tel-04398750,hal-01712347,hal-01819676,hal-01819666,hal-01829374,hal-01816830,hal-01819955,hal-01820482,hal-01823572,hal-01556564,hal-01369769,hal-01122780"
+    },
+    "author": [
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Damien",
+                "familyName": "Amara",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Quentin",
+                "familyName": "Bergougnoux",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Julien",
+                "familyName": "Cartigny",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Nicolas",
+                "familyName": "Dejon",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "architecture",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Gilles",
+                "familyName": "Grimaud",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Micha\u00ebl",
+                "familyName": "Hauspie",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "\u00c9tienne Helluy",
+                "familyName": "Lafont",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Samuel",
+                "familyName": "Hym",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Narjes",
+                "familyName": "Jomaa",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "David",
+                "familyName": "Nowak",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": [],
+                "givenName": "Claire",
+                "familyName": "Soyez-Martin",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Paolo",
+                "familyName": "Torrini",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Florian",
+                "familyName": "Vanhems",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        },
+        {
+            "@type": "Role",
+            "roleName": "aut",
+            "author": {
+                "@type": "Person",
+                "@id": null,
+                "givenName": "Mahieddine",
+                "familyName": "Yaker",
+                "affiliation": [
+                    {
+                        "@type": "Organization",
+                        "name": "CRIStAL"
+                    }
+                ]
+            }
+        }
+    ]
+}
