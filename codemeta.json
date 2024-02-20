@@ -1,7 +1,6 @@
 {
     "@context": [
-        "https:\/\/doi.org\/doi:10.5063\/schema\/codemeta-2.0",
-        "http:\/\/schema.org"
+        "https:\/\/doi.org\/10.5063\/schema\/codemeta-2.0"
     ],
     "@type": "SoftwareSourceCode",
     "name": "pipcore",
@@ -9,7 +8,7 @@
     "dateCreated": "2016-10-03",
     "datePublished": "2024-01-31",
     "license": [
-        "CeCILL Free Software License Agreement v2.1"
+        "https://spdx.org/licenses/CECILL-2.1"
     ],
     "url": "https:\/\/hal.science\/hal-04429239",
     "identifier": [],
@@ -24,11 +23,18 @@
         "Operating System"
     ],
     "funder": [
-        "Celtic-Plus\r\nMinisterio de Industria, Energ\u00eda y Turismo\r\nDGCIS"
-    ],
-    "institution": [
-        "Universit\u00e9 de Lille",
-        "CNRS"
+        {
+            "@type": "Organization",
+            "name": "Celtic-Plus"
+        },
+        {
+            "@type": "Organization",
+            "name": "Ministerio de Industria, Energ\u00eda y Turismo"
+        },
+        {
+            "@type": "Organization",
+            "name": "DGCIS"
+        }
     ],
     "codeRepository": "https:\/\/github.com\/2xs\/pipcore",
     "relatedLink": [
@@ -58,228 +64,158 @@
     },
     "author": [
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Damien",
-                "familyName": "Amara",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Damien",
+            "familyName": "Amara",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Quentin",
-                "familyName": "Bergougnoux",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Quentin",
+            "familyName": "Bergougnoux",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Julien",
-                "familyName": "Cartigny",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Julien",
+            "familyName": "Cartigny",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Nicolas",
-                "familyName": "Dejon",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Nicolas",
+            "familyName": "Dejon",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "architecture",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Gilles",
-                "familyName": "Grimaud",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Gilles",
+            "familyName": "Grimaud",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Micha\u00ebl",
-                "familyName": "Hauspie",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Micha\u00ebl",
+            "familyName": "Hauspie",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "\u00c9tienne Helluy",
-                "familyName": "Lafont",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "\u00c9tienne Helluy",
+            "familyName": "Lafont",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Samuel",
-                "familyName": "Hym",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Samuel",
+            "familyName": "Hym",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Narjes",
-                "familyName": "Jomaa",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Narjes",
+            "familyName": "Jomaa",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "David",
-                "familyName": "Nowak",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "David",
+            "familyName": "Nowak",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": [],
-                "givenName": "Claire",
-                "familyName": "Soyez-Martin",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Claire",
+            "familyName": "Soyez-Martin",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Paolo",
-                "familyName": "Torrini",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Paolo",
+            "familyName": "Torrini",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Florian",
-                "familyName": "Vanhems",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Florian",
+            "familyName": "Vanhems",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         },
         {
-            "@type": "Role",
-            "roleName": "aut",
-            "author": {
-                "@type": "Person",
-                "@id": null,
-                "givenName": "Mahieddine",
-                "familyName": "Yaker",
-                "affiliation": [
-                    {
-                        "@type": "Organization",
-                        "name": "CRIStAL"
-                    }
-                ]
-            }
+            "@type": "Person",
+            "givenName": "Mahieddine",
+            "familyName": "Yaker",
+            "affiliation": [
+                {
+                    "@type": "Organization",
+                    "name": "CRIStAL"
+                }
+            ]
         }
     ]
 }
